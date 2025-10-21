@@ -67,59 +67,7 @@ export default function NavigationLeftMobile() {
                 </div>
               </div>
 
-              {/* Help Section */}
-              <div className="border-b border-gray-200">
-                <button
-                  onClick={() => setHelpOpen(!helpOpen)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-gray-800 hover:bg-gray-50 transition"
-                >
-                  <span className="flex items-center gap-2 text-xl">
-                    <HelpCircle className="w-5 h-5 text-[var(--color-brand-primary)]" />
-                    Help
-                  </span>
-                  <span className={`transform transition-transform ${helpOpen ? 'rotate-180' : ''}`}>
-                    ▼
-                  </span>
-                </button>
-
-                <AnimatePresence>
-                  {helpOpen && (
-                    <motion.ul
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="pl-10 text-gray-700 text-xl bg-gray-50 "
-                    >
-                      {[
-                        'Track My Order',
-                        'Contact Us',
-                        'FAQs',
-                        'Help Center',
-                        'Return Policy',
-                      ].map((item) => (
-                        <li
-                          key={item}
-                          className="px-2 py-2 hover:text-blue-600 cursor-pointer border-t border-gray-100"
-                        >
-                          {item}
-                        </li>
-                      ))}
-                    </motion.ul>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Cart */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <div className="flex items-center gap-2 text-gray-800 text-xl">
-                  <ShoppingCart className="w-5 h-5 text-[var(--color-brand-primary)]" />
-                  <span>Cart</span>
-                </div>
-                <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">2</span>
-              </div>
-
-              {/* User Section */}
+               {/* User Section */}
               <div className="border-b border-gray-200">
                 <button
                   onClick={() => setUserOpen(!userOpen)}
@@ -167,6 +115,62 @@ export default function NavigationLeftMobile() {
                   )}
                 </AnimatePresence>
               </div>
+
+              
+              {/* Cart */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <div className="flex items-center gap-2 text-gray-800 text-xl">
+                  <ShoppingCart className="w-5 h-5 text-[var(--color-brand-primary)]" />
+                  <span>Cart</span>
+                </div>
+                <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">2</span>
+              </div>
+
+
+              {/* Help Section */}
+              <div className="border-b border-gray-200">
+                <button
+                  onClick={() => setHelpOpen(!helpOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-gray-800 hover:bg-gray-50 transition"
+                >
+                  <span className="flex items-center gap-2 text-xl">
+                    <HelpCircle className="w-5 h-5 text-[var(--color-brand-primary)]" />
+                    Help
+                  </span>
+                  <span className={`transform transition-transform ${helpOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+
+                <AnimatePresence>
+                  {helpOpen && (
+                    <motion.ul
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="pl-10 text-gray-700 text-xl bg-gray-50 "
+                    >
+                      {[
+                        'Track My Order',
+                        'Contact Us',
+                        'FAQs',
+                        'Help Center',
+                        'Return Policy',
+                      ].map((item) => (
+                        <li
+                          key={item}
+                          className="px-2 py-2 hover:text-blue-600 cursor-pointer border-t border-gray-100"
+                        >
+                          {item}
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </div>
+
+             
             </motion.div>
           </>
         )}
