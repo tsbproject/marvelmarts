@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Search, ShoppingCart, User, HelpCircle } from 'lucide-react';
+import CategorySidebar from './CategorySidebar';
 
 export default function NavigationLeftMobile() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="flex items-center justify-end w-full px-4 py-2 md:hidden">
@@ -66,6 +68,23 @@ export default function NavigationLeftMobile() {
                   />
                 </div>
               </div>
+                {/* Category Sidebar Mobile version */}
+                <div className="md:hidden">
+                  <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="p-2 flex items-center gap-2 bg-orange-500 text-white rounded-md"
+                  >
+                    <Menu className="w-5 h-5" />
+                    <span>Browse Categories</span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="absolute top-0 left-0 w-full bg-white shadow-lg z-50">
+                      {/* Category Sidebar content */}
+                      <CategorySidebar />
+                    </div>
+                  )}
+                </div>
 
                {/* User Section */}
               <div className="border-b border-gray-200">

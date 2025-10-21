@@ -7,7 +7,7 @@ import SearchBar from '@/app/_components/SearchBar';
 
 export default function Header() {
   return (
-    <header className="bg-[var(--color-accent-navy)] h-30 md:h-40 shadow  p-4 md:p-4  overflow-x-hidden ">
+    <header className="bg-[var(--color-accent-navy)] h-30 md:h-40 shadow  p-4 md:p-4  overflow-x-hidden overflow-y-hidden ">
        <Logo />
       
       <div className='invisible md:visible'>

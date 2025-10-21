@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { Inter } from "next/font/google"
 import Footer from '@/app/_components/Footer'
 import Header from '@/app/_components/Header'
+import CategorySidebar from '@/app/_components/CategorySidebar';
 
 export const metadata: Metadata = {
   title: 'MarvelMarts',
@@ -14,6 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" >
       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
         <Header />
+        <div className="hidden lg:block ml-20 mt-5">
+        <CategorySidebar />
+        </div>
         <main className="min-h-screen">{children}</main>
         <Footer />
       </body>
