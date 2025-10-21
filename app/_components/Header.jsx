@@ -7,23 +7,31 @@ import SearchBar from '@/app/_components/SearchBar';
 
 export default function Header() {
   return (
-    <header className="bg-[var(--color-accent-navy)] h-30 shadow p-4  ">
+    <header className="bg-[var(--color-accent-navy)] h-30 md:h-40 shadow  p-4 md:p-4  overflow-x-hidden ">
        <Logo />
+      
+      <div className='invisible md:visible'>
+       <SearchBar /> 
+       </div> 
+       
       
        
     
      
        
-       {/* 👇 Left Navigation Area */}
-    <div className="w-full flex items-center justify-between">
-        <SearchBar />  
-       <NavigationRight />
-       <NavigationLeftMobile className="md:hidden" />      {/* Mobile */}
+       {/* 👇 Mobile Hambugger Area */}
+    <div className="relative -top-45 left-4">
+     <NavigationLeftMobile className="md:hidden" />      {/* Mobile */}
     </div>
 
     {/* 👇 Right-side icons area */}
-    <div className="hidden items-center gap-4">
+    <div className="invisible md:visible items-center gap-4">
+      <NavigationRight  />
+    </div>
+
+    <div className='invisible md:visible '>
       <UserMenu />  {/* The collapsible right-side menu component */}
+
     </div>
 
       

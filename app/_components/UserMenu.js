@@ -20,9 +20,9 @@ export default function UserMenu() {
       {/* User Icon */}
       <button
         onClick={() => setUserOpen(true)}
-        className="relative z-30 flex items-center justify-center p-2 rounded-full text-[var(--color-brand-primary)] hover:text-blue-600 transition-colors duration-200"
+        className="relative -top-12.5 left-[120rem] z-30 flex items-center justify-center p-2 rounded-full text-[var(--color-brand-primary)] hover:text-blue-600 transition-colors duration-200"
       >
-        <User className="w-6 h-6" />
+        <User className="w-10 h-10" />
       </button>
 
       {/* Overlay */}
@@ -58,7 +58,7 @@ export default function UserMenu() {
                   onClick={() => setUserOpen(false)}
                   className="text-gray-500 hover:text-red-500 transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-10 h-10" />
                 </button>
               </div>
 
@@ -69,8 +69,8 @@ export default function UserMenu() {
                     key={item.label}
                     className={`px-6 py-4 cursor-pointer transition-all duration-200 border-b border-gray-100 ${
                       item.type === 'auth'
-                        ? 'bg-gray-50 font-semibold text-blue-600 hover:bg-blue-50'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-[var(--color-accent-navy)] font-semibold text-blue-600 text-2xl hover:bg-blue-50'
+                        : 'text-gray-700 text-2xl hover:bg-gray-100'
                     }`}
                   >
                     {item.label}

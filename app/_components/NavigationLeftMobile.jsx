@@ -39,7 +39,7 @@ export default function NavigationLeftMobile() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 120, damping: 18 }}
-              className="fixed top-0 left-0 w-4/5 h-screen bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
+              className="fixed top-0 left-0 w-90 h-screen  bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
             >
               {/* Header Section */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">

@@ -22,6 +22,11 @@
 @layer base {
   html {
     font-family: 'Inter', sans-serif;
+    font-size: 62.5%;
+    font-size: 10px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+
   }
 }
 
@@ -49,4 +54,7 @@ body {
     animation: fadeIn 0.2s ease-out;
   }
 }
+
+
+
 
