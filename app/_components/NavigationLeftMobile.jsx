@@ -17,7 +17,7 @@ export default function NavigationLeftMobile() {
         aria-label="Open Menu"
         className="text-[var(--color-brand-primary)] hover:text-blue-600 transition-colors duration-200"
       >
-        <Menu className="w-7 h-7" />
+        <Menu className="w-8 h-8" />
       </button>
 
       {/* Backdrop */}
@@ -43,7 +43,7 @@ export default function NavigationLeftMobile() {
             >
               {/* Header Section */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-800">Menu</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Mobile Menu</h2>
                 <button
                   onClick={() => setMenuOpen(false)}
                   aria-label="Close Menu"
@@ -73,7 +73,7 @@ export default function NavigationLeftMobile() {
                   onClick={() => setHelpOpen(!helpOpen)}
                   className="w-full flex items-center justify-between px-4 py-3 text-gray-800 hover:bg-gray-50 transition"
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 text-xl">
                     <HelpCircle className="w-5 h-5 text-[var(--color-brand-primary)]" />
                     Help
                   </span>
@@ -89,7 +89,7 @@ export default function NavigationLeftMobile() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="pl-10 text-gray-700 text-sm bg-gray-50"
+                      className="pl-10 text-gray-700 text-xl bg-gray-50 "
                     >
                       {[
                         'Track My Order',
@@ -112,7 +112,7 @@ export default function NavigationLeftMobile() {
 
               {/* Cart */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <div className="flex items-center gap-2 text-gray-800">
+                <div className="flex items-center gap-2 text-gray-800 text-xl">
                   <ShoppingCart className="w-5 h-5 text-[var(--color-brand-primary)]" />
                   <span>Cart</span>
                 </div>
@@ -125,7 +125,7 @@ export default function NavigationLeftMobile() {
                   onClick={() => setUserOpen(!userOpen)}
                   className="w-full flex items-center justify-between px-4 py-3 text-gray-800 hover:bg-gray-50 transition"
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 text-xl">
                     <User className="w-5 h-5 text-[var(--color-brand-primary)]" />
                     Account
                   </span>
@@ -144,21 +144,21 @@ export default function NavigationLeftMobile() {
                       className="pl-6 text-gray-700 text-sm bg-gray-50"
                     >
                       {/* Sign In */}
-                      <li className="px-4 py-2 mt-2 font-bold text-white text-center bg-[var(--color-accent-navy)] rounded-lg cursor-pointer hover:bg-blue-800 transition">
+                      <li className="px-4 py-2 mt-2 text-xl font-bold text-white text-center bg-[var(--color-accent-navy)] rounded-lg cursor-pointer hover:bg-blue-800 transition">
                         Sign In
                       </li>
 
                       {/* Register */}
-                      <li className="px-4 py-2 mt-2 font-semibold text-white text-center bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 transition">
+                      <li className="px-4 py-2 mt-2 text-xl font-semibold text-white text-center bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 transition">
                         Register
                       </li>
 
-                      <div className="border-t border-gray-200 my-2" />
+                      <div className="border-t border-gray-200 my-2 " />
 
                       {['My Orders', 'Wishlist', 'Product Reviews'].map((item) => (
                         <li
                           key={item}
-                          className="px-4 py-2 hover:text-blue-600 cursor-pointer border-t border-gray-100"
+                          className="px-4 py-2 text-xl hover:text-blue-600 cursor-pointer border-t border-gray-100"
                         >
                           {item}
                         </li>
