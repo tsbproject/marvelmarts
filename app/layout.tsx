@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
         <Header />
         <div className="hidden lg:block ml-20 mt-5">
-        <CategorySidebar />
+    
         </div>
         <main className="min-h-screen">{children}</main>
         <Footer />

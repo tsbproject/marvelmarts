@@ -33,10 +33,10 @@ export default function CategorySidebar() {
   ];
 
   return (
-    <div className="relative w-85">
+    <div className="relative w-85 md:w-95 z-20">
       {/* Header */}
       <div
-        className="flex items-center justify-between bg-[var(--color-brand-primary)] text-white px-4 py-3 cursor-pointer rounded-t-md shadow-md"
+        className="flex items-center justify-between bg-[var(--color-brand-primary)] text-white px-4 py-3 cursor-pointer rounded-t-md shadow-md "
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center space-x-2">
@@ -65,7 +65,7 @@ export default function CategorySidebar() {
               {categories.map(({ name, icon: Icon }) => (
                 <li
                   key={name}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  className="flex items-center justify-between px-4 py-3 md:h-17 hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="w-7 h-7 text-gray-500" />
