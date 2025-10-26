@@ -1,7 +1,10 @@
-import HeroCarousel from '@/app/_components/HeroCarousel'
+import HeroCarousel from '@/app/_components/HeroCarousel';
 import EcommerceCarousel from './_components/EcommerceCarousel';
 import CategorySidebar from '@/app/_components/CategorySidebar';
 import FeaturedProducts from '@/app/_components/FeaturedProducts';
+import FlashSales from '@/app/_components/FlashSales';
+import NewArrivals from '@/app/_components/NewArrival';
+
 
 export default function HomePage() {
   return (
@@ -16,10 +19,13 @@ export default function HomePage() {
 
     <div className='relative top-[42rem]'>
        <FeaturedProducts />
+         <FlashSales />
+         <NewArrivals />
     </div>
+  
     
     
-    <div className='hidden md:block relative -top-[80rem] left-25'>
+    <div className='hidden md:block fixed top-37 left-25'>
       <CategorySidebar />
     </div>
     

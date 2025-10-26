@@ -1,21 +1,33 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { Star } from "lucide-react";
 
 export default function FeaturedProducts() {
   const [products, setProducts] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const categories = [
+    { key: "all", label: "All Products" },
+    { key: "electronics", label: "Electronics" },
+    { key: "jewelery", label: "Jewelry" },
+    { key: "men's clothing", label: "Men’s Clothing" },
+    { key: "women's clothing", label: "Women’s Clothing" },
+  ];
 
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("https://fakestoreapi.com/products?limit=8");
+        const res = await fetch("https://fakestoreapi.com/products");
         const data = await res.json();
         setProducts(data);
+        setFiltered(data);
       } catch (err) {
-        console.error("Failed to fetch products:", err);
+        console.error("Error fetching products:", err);
       } finally {
         setLoading(false);
       }
@@ -23,59 +35,79 @@ export default function FeaturedProducts() {
     fetchProducts();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center py-20 text-gray-500 text-xl">
-        Loading featured products...
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (category === "all") {
+      setFiltered(products);
+    } else {
+      setFiltered(products.filter((p) => p.category === category));
+    }
+  }, [category, products]);
 
   return (
-    <section className="w-full max-w-[1200px] mx-auto px-6 py-16 -mt-[45rem]">
-      <h2 className="text-4xl font-bold mb-10 text-gray-800 text-center">
-        Featured Products
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+    <section className="w-full  -mt-[40rem]">
+      {/* 🏷️ Category Tabs */}
+      <div className="flex flex-wrap justify-center gap-3 mb-10">
+        {categories.map((cat) => (
+          <button
+            key={cat.key}
+            onClick={() => setCategory(cat.key)}
+            className={`px-5 py-2 rounded-full font-semibold text-md md:text-2xl transition-all duration-200 
+            ${
+              category === cat.key
+                ? "bg-blue-600 text-white shadow-lg"
+                : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+            }`}
           >
-            <div className="relative w-full h-64 bg-gray-50 flex items-center justify-center">
-              <Image
-                src={product.image}
-                alt={product.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 33vw"
-                className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-            <div className="p-5 flex flex-col justify-between h-[180px]">
-              <h3 className="text-gray-700 text-lg font-semibold mb-2 line-clamp-2">
-                {product.title}
-              </h3>
-              <div className="flex items-center justify-between">
-                <span className="text-blue-600 text-2xl font-bold">
-                  ${product.price.toFixed(2)}
-                </span>
-                <div className="flex items-center text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.round(product.rating.rate)
-                          ? "fill-yellow-400"
-                          : "fill-gray-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+            {cat.label}
+          </button>
         ))}
       </div>
+
+      {/* 🛍️ Product Grid */}
+      {loading ? (
+        <div className="text-center text-lg text-gray-500">Loading products...</div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={category}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 px-4 md:px-10"
+          >
+            {filtered.map((product) => (
+              <motion.div
+                key={product.id}
+                whileHover={{ scale: 1.03 }}
+                className="bg-white rounded-2xl shadow-lg p-4 flex flex-col items-center transition-transform"
+              >
+                <div className="relative w-full h-52 flex items-center justify-center mb-4">
+                  <Image
+                    src={product.image}
+                    alt={product.title}
+                    fill
+                    className="object-contain p-4"
+                  />
+                </div>
+                <h3 className="font-semibold text-center text-gray-800 text-sm md:text-base line-clamp-2">
+                  {product.title}
+                </h3>
+                <p className="mt-2 text-lg font-bold text-blue-600">${product.price}</p>
+                <div className="flex items-center mt-2 space-x-1">
+                  {Array.from({ length: Math.round(product.rating?.rate || 4) }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                  <span className="text-sm text-gray-500">({product.rating?.count || 0})</span>
+                </div>
+                <button className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-full font-semibold transition-all duration-200">
+                  Add to Cart
+                </button>
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      )}
     </section>
   );
 }
