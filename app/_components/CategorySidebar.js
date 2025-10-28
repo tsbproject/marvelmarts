@@ -39,7 +39,7 @@ export default function CategorySidebar() {
         className="flex items-center justify-between bg-[var(--color-brand-primary)] text-white px-4 py-3 cursor-pointer rounded-t-md shadow-md "
         onClick={() => setOpen(!open)}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 ">
           <Grid className="w-6 h-6" />
           <span className="font-semibold uppercase text-xl">Browse Categories</span>
         </div>
@@ -61,11 +61,11 @@ export default function CategorySidebar() {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} // bounce-like
             className="bg-white shadow-lg rounded-b-md overflow-hidden"
           >
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-gray-100 z-1000">
               {categories.map(({ name, icon: Icon }) => (
                 <li
                   key={name}
-                  className="flex items-center justify-between px-4 py-3 md:h-17 hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  className="flex items-center justify-between px-4 py-3 md:h-17 hover:bg-gray-50 cursor-pointer transition-colors duration-150 "
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="w-7 h-7 text-gray-500" />

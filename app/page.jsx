@@ -11,13 +11,16 @@ export default function HomePage() {
     <>
     <div className="relative top-o md:-top-5">
        <EcommerceCarousel />
+       <div className='hidden md:block relative md:-top-[41rem]  left-27'>
+      <CategorySidebar />
+    </div>
       
       
       
        {/* <HeroCarousel /> */}
     </div>
 
-    <div className='relative top-[42rem]'>
+    <div className='relative '>
        <FeaturedProducts />
          <FlashSales />
          <NewArrivals />
@@ -25,9 +28,7 @@ export default function HomePage() {
   
     
     
-    <div className='hidden md:block fixed top-37 left-25'>
-      <CategorySidebar />
-    </div>
+    
     
     </>
 

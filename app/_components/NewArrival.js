@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Star } from "lucide-react";
+import { getNewArrivals } from "@/app/_lib/api";
 
 export default function NewArrivals() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
     async function fetchNew() {
-      const res = await fetch("https://fakestoreapi.com/products?sort=desc");
-      const data = await res.json();
+      const data = await getNewArrivals();
       setProducts(data.slice(0, 8));
     }
     fetchNew();
