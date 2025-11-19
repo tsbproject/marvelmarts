@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/app/_lib/prisma';
-import type { NextRequest } from 'next/server';
+import { NextResponse, NextRequest } from "next/server";
+import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { slug: string } } // correct App Router type
+  context: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = context.params;
+  const { slug } = await context.params; // 👈 REQUIRED in Next.js 15+
 
   try {
     const category = await prisma.category.findUnique({
@@ -18,17 +17,23 @@ export async function GET(
             variants: true,
           },
         },
-        children: true, // optional: get subcategories
+        children: true,
       },
     });
 
     if (!category) {
-      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
+      return NextResponse.json(
+        { message: "Category not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(category);
   } catch (err) {
-    console.error('GET /api/categories/[slug] error', err);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.error("GET /api/categories/[slug] error", err);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

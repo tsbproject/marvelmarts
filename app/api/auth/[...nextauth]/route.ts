@@ -1,50 +1,43 @@
-// app/api/auth/[...nextauth]/route.ts
+import NextAuth from 'next-auth';
+import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { getPrisma } from '@/app/_lib/prisma';
+import { compare } from 'bcryptjs';
 
-import NextAuth, { type NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/app/_lib/prisma";
-import { compare } from "bcryptjs";
-
-// -------------------------
-// Custom Session User type
-// -------------------------
 interface SessionUser {
-  id: number;
+  id: string;
   name?: string | null;
   email?: string | null;
 }
 
-// -------------------------
-// NextAuth Options
-// -------------------------
 export const authOptions: NextAuthOptions = {
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
 
   pages: {
-    signIn: "/auth/sign-in",
+    signIn: '/auth/sign-in',
   },
 
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
 
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // Fetch user from Prisma
+        const prisma = await getPrisma();
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
         if (!user || !user.passwordHash) return null;
 
-        // Validate password
         const valid = await compare(credentials.password, user.passwordHash);
         if (!valid) return null;
 
@@ -67,7 +60,7 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user && token.id) {
-        (session.user as SessionUser).id = token.id;
+        (session.user as SessionUser).id = token.id as string;
       }
       return session;
     },
@@ -76,9 +69,5 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// -------------------------
-// Export NextAuth handler
-// -------------------------
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

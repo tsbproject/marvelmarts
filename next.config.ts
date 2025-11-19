@@ -8,9 +8,11 @@ const nextConfig = {
         pathname: "/img/**",
       },
     ],
+    
   },
   experimental: {
-    serverComponentsExternalPackages: ["@prisma/client"],
+    serverExternalPackages: ["@prisma/client"]
+
   },
 };
 
