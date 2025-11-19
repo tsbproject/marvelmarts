@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/_lib/prisma';
+import type { NextRequest } from 'next/server';
 
-interface Params {
-  params: { slug: string };
-}
-
-export async function GET(req: Request, { params }: Params) {
-  const { slug } = params;
+export async function GET(
+  req: NextRequest,
+  context: { params: { slug: string } } // correct App Router type
+) {
+  const { slug } = context.params;
 
   try {
     const category = await prisma.category.findUnique({
