@@ -1,5 +1,4 @@
-// app/categories/[slug]/page.tsx
-import { prisma } from '@/app/_lib/prisma';
+import { getPrisma } from '@/app/_lib/prisma';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
@@ -9,18 +8,20 @@ interface CategoryPageProps {
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = params;
+  const prisma = await getPrisma();
 
   // Fetch category by slug including its products
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {
       products: {
+        orderBy: { createdAt: 'desc' }, // ✅ correct placement
         include: {
           images: true,
           variants: true,
         },
-        orderBy: { createdAt: 'desc' },
       },
+      children: true, // optional: include subcategories
     },
   });
 
@@ -39,7 +40,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             <div key={product.id} className="border p-4 rounded-lg">
               <h2 className="text-xl font-semibold">{product.title}</h2>
               <p className="text-gray-600">{product.description}</p>
-              <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+              <span className="text-lg font-bold">
+                ₦{product.price.toLocaleString()}
+              </span>
               {product.images.length > 0 && (
                 <Image
                   src={product.images[0].url}
