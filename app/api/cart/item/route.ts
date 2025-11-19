@@ -2,16 +2,21 @@ import { prisma } from "@/app/_lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
 import { NextResponse } from "next/server";
+import type { SessionWithUserId } from "@/app/_lib/auth"; // Import the type we defined earlier
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const session = (await getServerSession(authOptions)) as SessionWithUserId | null;
+    const userId = session?.user?.id;
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const { id, qty } = await req.json();
+    const { id, qty }: { id: number; qty: number } = await req.json();
 
-    const cartItem = await prisma.cartItem.findUnique({ where: { id }, include: { cart: true } });
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id },
+      include: { cart: true },
+    });
+
     if (!cartItem || cartItem.cart.userId !== userId)
       return new NextResponse("Forbidden", { status: 403 });
 
@@ -26,13 +31,17 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const session = (await getServerSession(authOptions)) as SessionWithUserId | null;
+    const userId = session?.user?.id;
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const { id } = await req.json();
+    const { id }: { id: number } = await req.json();
 
-    const cartItem = await prisma.cartItem.findUnique({ where: { id }, include: { cart: true } });
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id },
+      include: { cart: true },
+    });
+
     if (!cartItem || cartItem.cart.userId !== userId)
       return new NextResponse("Forbidden", { status: 403 });
 
@@ -44,31 +53,3 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ message: "Failed to delete item" }, { status: 500 });
   }
 }
-
-
-
-
-
-
-// import { supabase } from "@/app/_lib/db";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/_lib/auth";
-// import { NextResponse } from "next/server";
-
-
-// export async function PATCH(req: Request) {
-// const session = await getServerSession(authOptions);
-// if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
-// const { id, qty } = await req.json();
-// await supabase.cartItem.update({ where: { id }, data: { qty } });
-// return NextResponse.json({ ok: true });
-// }
-
-
-// export async function DELETE(req: Request) {
-// const session = await getServerSession(authOptions);
-// if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
-// const { id } = await req.json();
-// await supabase.cartItem.delete({ where: { id } });
-// return NextResponse.json({ ok: true });
-// }

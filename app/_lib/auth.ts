@@ -1,10 +1,27 @@
 import Credentials from "next-auth/providers/credentials";
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Session, User, JWT } from "next-auth";
 import { prisma } from "@/app/_lib/prisma";
 import { verifyPassword } from "@/app/_lib/password";
 
+// -------------------------
+// Extend JWT & Session types
+// -------------------------
+interface TokenWithUserId extends JWT {
+  userId?: number;
+}
+
+interface SessionWithUserId extends Session {
+  user?: {
+    id: number;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
+
   providers: [
     Credentials({
       name: "Credentials",
@@ -12,6 +29,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
+
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
@@ -22,12 +40,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.passwordHash) return null;
 
-        // Validate password
-        const valid = await verifyPassword(
-          credentials.password,
-          user.passwordHash
-        );
-
+        const valid = await verifyPassword(credentials.password, user.passwordHash);
         if (!valid) return null;
 
         return {
@@ -41,76 +54,23 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
+    // Attach user ID to JWT
     async jwt({ token, user }) {
-      if (user) token.userId = (user as any).id;
-      return token;
+      const t = token as TokenWithUserId;
+      if (user) t.userId = (user as User & { id: number }).id;
+      return t;
     },
 
+    // Add user ID to session
     async session({ session, token }) {
-      if (session.user && token.userId) {
-        (session.user as any).id = token.userId;
-      }
-      return session;
+      const s = session as SessionWithUserId;
+      const t = token as TokenWithUserId;
+      if (s.user && t.userId) s.user.id = t.userId;
+      return s;
     },
   },
 
-  pages: {},
+  pages: {
+    signIn: "/auth/sign-in",
+  },
 };
-
-
-
-
-
-
-// import Credentials from "next-auth/providers/credentials";
-// import type { NextAuthOptions } from "next-auth";
-// import { supabase } from "@/app/_lib/db";
-// import { verifyPassword } from "@/app/_lib/password";
-
-// export const authOptions: NextAuthOptions = {
-//   session: { strategy: "jwt" },
-//   providers: [
-//     Credentials({
-//       name: "Credentials",
-//       credentials: {
-//         email: { label: "Email", type: "email" },
-//         password: { label: "Password", type: "password" },
-//       },
-//       async authorize(credentials) {
-//         if (!credentials?.email || !credentials?.password) return null;
-
-//         const { data: users, error } = await supabase
-//           .from("users")
-//           .select("*")
-//           .eq("email", credentials.email)
-//           .limit(1);
-
-//         if (error || !users || users.length === 0) return null;
-
-//         const user = users[0];
-//         if (!user.passwordHash) return null;
-
-//         const ok = await verifyPassword(credentials.password, user.passwordHash);
-//         return ok
-//           ? {
-//               id: user.id,
-//               name: user.name ?? null,
-//               email: user.email ?? null,
-//               image: user.image ?? null,
-//             }
-//           : null;
-//       },
-//     }),
-//   ],
-//   pages: {},
-//   callbacks: {
-//     async jwt({ token, user }) {
-//       if (user) token.userId = (user as any).id;
-//       return token;
-//     },
-//     async session({ session, token }) {
-//       if (session.user && token.userId) (session.user as any).id = token.userId;
-//       return session;
-//     },
-//   },
-// };
