@@ -1,13 +1,15 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/app/_lib/prisma";
+import { NextResponse } from "next/server";
+import { getPrisma } from "@/app/_lib/prisma";
 
 export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  req: Request,
+  context: { params: { slug: string } }
 ) {
-  const { slug } = await context.params; // 👈 REQUIRED in Next.js 15+
+  const { slug } = context.params; // ✅ synchronous, not a Promise
 
   try {
+    const prisma = await getPrisma();
+
     const category = await prisma.category.findUnique({
       where: { slug },
       include: {

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         brand,
         stock: stock ?? 0,
         status: status ?? 'active',
-        category: categoryId ? { connect: { id: categoryId } } : undefined,
+        ...(categoryId ? { category: { connect: { id: categoryId } } } : {}),
       },
     });
 
@@ -62,6 +62,13 @@ export async function POST(req: NextRequest) {
         variants: true,
       },
     });
+
+    if (!fullProduct) {
+      return NextResponse.json(
+        { message: 'Product created but failed to fetch full data' },
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json(fullProduct, { status: 201 });
   } catch (err) {

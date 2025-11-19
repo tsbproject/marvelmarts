@@ -1,15 +1,24 @@
-// app/api/categories/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/app/_lib/prisma';
+import { getPrisma } from '@/app/_lib/prisma';
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany();
-    
-    if (categories.length === 0) {
-      return NextResponse.json({ message: 'No categories found' }, { status: 404 });
-    }
+    const prisma = await getPrisma();
 
+    const categories = await prisma.category.findMany({
+      include: {
+        children: true, // ✅ include subcategories if you want
+        products: {
+          include: {
+            images: true,
+            variants: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' }, // optional sorting
+    });
+
+    // ✅ Better: return empty array instead of 404
     return NextResponse.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
