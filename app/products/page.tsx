@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface Category {
   id: string;
@@ -60,7 +61,7 @@ export default function ProductsPage() {
                 )}
                 {product.images && product.images.length > 0 && (
                   <div className="mt-2">
-                    <img
+                    <Image
                       src={product.images[0].url}
                       alt={product.images[0].alt ?? product.title}
                       width={200}

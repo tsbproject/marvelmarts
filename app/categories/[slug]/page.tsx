@@ -1,5 +1,6 @@
 // app/categories/[slug]/page.tsx
 import { prisma } from '@/app/_lib/prisma';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 interface CategoryPageProps {
@@ -40,9 +41,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               <p className="text-gray-600">{product.description}</p>
               <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
               {product.images.length > 0 && (
-                <img
+                <Image
                   src={product.images[0].url}
                   alt={product.images[0].alt || product.title}
+                  width={400}
+                  height={300}
                   className="mt-2 w-full h-40 object-cover rounded"
                 />
               )}

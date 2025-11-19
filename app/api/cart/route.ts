@@ -1,203 +1,7 @@
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/app/_lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/_lib/auth";
-
-// // -------------------------
-// // TYPE DEFINITIONS
-// // -------------------------
-
-// interface SessionUser {
-//   id: number;
-//   name?: string | null;
-//   email?: string | null;
-// }
-
-// interface AddToCartBody {
-//   productId: number;
-//   variantId?: number | null;
-//   qty?: number;
-// }
-
-// // Guest cart return type
-// interface GuestCart {
-//   id: null;
-//   userId: null;
-//   items: Array<{
-//     id: number;
-//     product: any;
-//     variant: { id: number } | null;
-//     qty: number;
-//     unitPrice: number;
-//   }>;
-// }
-
-// // -------------------------
-// // GET OR CREATE CART
-// // -------------------------
-
-// async function getOrCreateCart(
-//   userId: number | null
-// ) {
-//   if (userId) {
-//     // Logged-in user
-//     const cart = await prisma.cart.findUnique({
-//       where: { userId },
-//       include: { items: { include: { product: true, variant: true } } },
-//     });
-
-//     if (cart) return cart;
-
-//     return prisma.cart.create({
-//       data: { userId },
-//       include: { items: { include: { product: true, variant: true } } },
-//     });
-//   }
-
-//   // Guest cart
-//   const guestCart: GuestCart = {
-//     id: null,
-//     userId: null,
-//     items: [],
-//   };
-
-//   return guestCart;
-// }
-
-// // -------------------------
-// // GET CART
-// // -------------------------
-
-// export async function GET() {
-//   try {
-//     const session = await getServerSession(authOptions);
-//     const user = session?.user as SessionUser | undefined;
-//     const userId = user?.id ?? null;
-
-//     const cart = await getOrCreateCart(userId);
-
-//     return NextResponse.json(cart);
-//   } catch (error) {
-//     console.error("GET /api/cart error:", error);
-//     return NextResponse.json({ error: "Failed to load cart" }, { status: 500 });
-//   }
-// }
-
-// // -------------------------
-// // ADD TO CART
-// // -------------------------
-
-// export async function POST(req: Request) {
-//   try {
-//     const session = await getServerSession(authOptions);
-//     const user = session?.user as SessionUser | undefined;
-//     const userId = user?.id ?? null;
-
-//     const body: AddToCartBody = await req.json();
-//     const { productId, variantId, qty } = body;
-
-//     if (!productId) {
-//       return NextResponse.json(
-//         { error: "Product ID required" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const product = await prisma.product.findUnique({
-//       where: { id: productId },
-//     });
-
-//     if (!product) {
-//       return NextResponse.json(
-//         { error: "Invalid product" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const unitPrice = product.discountPrice ?? product.price;
-
-//     // -------------------------
-//     // Guest cart (not saved)
-//     // -------------------------
-
-//     if (!userId) {
-//       const guestResult: GuestCart = {
-//         id: null,
-//         userId: null,
-//         items: [
-//           {
-//             id: Date.now(),
-//             product,
-//             variant: variantId ? { id: variantId } : null,
-//             qty: qty ?? 1,
-//             unitPrice,
-//           },
-//         ],
-//       };
-
-//       return NextResponse.json(guestResult);
-//     }
-
-//     // -------------------------
-//     // Logged-in user: persist to DB
-//     // -------------------------
-
-//     let cart = await prisma.cart.findUnique({
-//       where: { userId },
-//     });
-
-//     if (!cart) {
-//       cart = await prisma.cart.create({
-//         data: { userId },
-//       });
-//     }
-
-//     const existingItem = await prisma.cartItem.findFirst({
-//       where: {
-//         cartId: cart.id,
-//         productId,
-//         variantId: variantId ?? null,
-//       },
-//     });
-
-//     if (existingItem) {
-//       await prisma.cartItem.update({
-//         where: { id: existingItem.id },
-//         data: { qty: existingItem.qty + (qty ?? 1) },
-//       });
-//     } else {
-//       await prisma.cartItem.create({
-//         data: {
-//           cartId: cart.id,
-//           productId,
-//           variantId: variantId ?? null,
-//           qty: qty ?? 1,
-//           unitPrice,
-//         },
-//       });
-//     }
-
-//     const updatedCart = await prisma.cart.findUnique({
-//       where: { id: cart.id },
-//       include: { items: { include: { product: true, variant: true } } },
-//     });
-
-//     return NextResponse.json(updatedCart);
-//   } catch (error) {
-//     console.error("POST /api/cart error:", error);
-//     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
-//   }
-// }
-
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/_lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
-
-// -------------------------
-// TYPE DEFINITIONS
-// -------------------------
 
 interface SessionUser {
   id: number;
@@ -211,58 +15,42 @@ interface AddToCartBody {
   qty?: number;
 }
 
-// Prisma product type (simplified)
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-  discountPrice?: number | null;
-}
-
 interface CartItem {
   id: number;
-  product: Product;
-  variant: { id: number } | null;
+  product: {
+    id: number;
+    title: string;
+    discountPrice?: number | null;
+    price: number;
+  };
+  variant: { id: number; name?: string } | null;
   qty: number;
   unitPrice: number;
 }
 
-interface GuestCart {
-  id: null;
-  userId: null;
+interface Cart {
+  id: number | null;
+  userId: number | null;
   items: CartItem[];
 }
 
-// -------------------------
-// GET OR CREATE CART
-// -------------------------
-
-async function getOrCreateCart(userId: number | null) {
+async function getOrCreateCart(userId: number | null): Promise<Cart> {
   if (userId) {
-    // Logged-in user
-    let cart = await prisma.cart.findUnique({
+    const cart = await prisma.cart.findUnique({
       where: { userId },
       include: { items: { include: { product: true, variant: true } } },
     });
 
-    if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId },
-        include: { items: { include: { product: true, variant: true } } },
-      });
-    }
+    if (cart) return cart;
 
-    return cart;
+    return prisma.cart.create({
+      data: { userId },
+      include: { items: { include: { product: true, variant: true } } },
+    });
   }
 
-  // Guest cart
-  const guestCart: GuestCart = { id: null, userId: null, items: [] };
-  return guestCart;
+  return { id: null, userId: null, items: [] };
 }
-
-// -------------------------
-// GET CART
-// -------------------------
 
 export async function GET() {
   try {
@@ -279,10 +67,6 @@ export async function GET() {
   }
 }
 
-// -------------------------
-// ADD TO CART
-// -------------------------
-
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -296,21 +80,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Product ID required" }, { status: 400 });
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      return NextResponse.json({ error: "Invalid product" }, { status: 400 });
-    }
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) return NextResponse.json({ error: "Invalid product" }, { status: 400 });
 
     const unitPrice = product.discountPrice ?? product.price;
 
-    // -------------------------
-    // Guest cart (not saved)
-    // -------------------------
     if (!userId) {
-      const guestResult: GuestCart = {
+      // Guest cart
+      return NextResponse.json({
         id: null,
         userId: null,
         items: [
@@ -322,17 +99,12 @@ export async function POST(req: Request) {
             unitPrice,
           },
         ],
-      };
-      return NextResponse.json(guestResult);
+      });
     }
 
-    // -------------------------
-    // Logged-in user: persist to DB
-    // -------------------------
+    // Logged-in user cart
     let cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) {
-      cart = await prisma.cart.create({ data: { userId } });
-    }
+    if (!cart) cart = await prisma.cart.create({ data: { userId } });
 
     const existingItem = await prisma.cartItem.findFirst({
       where: { cartId: cart.id, productId, variantId: variantId ?? null },
@@ -345,13 +117,7 @@ export async function POST(req: Request) {
       });
     } else {
       await prisma.cartItem.create({
-        data: {
-          cartId: cart.id,
-          productId,
-          variantId: variantId ?? null,
-          qty: qty ?? 1,
-          unitPrice,
-        },
+        data: { cartId: cart.id, productId, variantId: variantId ?? null, qty: qty ?? 1, unitPrice },
       });
     }
 
@@ -366,4 +132,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
   }
 }
-
