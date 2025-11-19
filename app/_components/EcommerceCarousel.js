@@ -50,8 +50,8 @@ export default function EcommerceCarousel() {
   const prevSlide = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <div className="relative w-[100%] md:w-[100%] mx-auto  overflow-hidden shadow-2xl">
-      <div className="relative w-full h-[28rem] md:h-[40rem] bg-gray-200 rounded-2xl">
+    <div className="relative -mb-170 w-full md:w-full mx-auto  overflow-hidden shadow-2xl">
+      <div className="relative  w-full h-112 md:h-160 bg-gray-200 rounded-2xl">
         <AnimatePresence mode="wait">
           {slides.map(
             (slide, index) =>
@@ -62,7 +62,7 @@ export default function EcommerceCarousel() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.02 }}
                   transition={{ duration: 0.8, ease: 'easeInOut' }}
-                  className={`absolute inset-0 bg-gradient-to-r ${slide.bgColor} flex items-center justify-center`}
+                  className={`absolute inset-0 bg-linear-to-r ${slide.bgColor} flex items-center justify-center`}
                 >
                   {/* Background image with soft overlay */}
                   <div className="absolute inset-0">

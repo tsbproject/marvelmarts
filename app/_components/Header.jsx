@@ -1,14 +1,14 @@
 import Logo from './Logo'
-import NavigationRight from "@/app/_components/NavigationRight";
+import NavigationRight from "../_components/NavigationRight";
 import NavigationLeftMobile from './NavigationLeftMobile';
-import UserMenu from "@/app/_components/UserMenu";
-import SearchBar from '@/app/_components/SearchBar';
-import CategorySidebar from '@/app/_components/CategorySidebar';
+import UserMenu from "../_components/UserMenu";
+import SearchBar from '../_components/SearchBar';
+// import CategorySidebar from './_components/CategorySidebar';
 
 
 export default function Header() {
   return (
-    <header className="bg-[var(--color-accent-navy)] h-30 md:h-40 shadow  p-4 md:p-4  overflow-x-hidden overflow-y-hidden ">
+    <header className="bg-(--color-accent-navy) h-30 md:h-40 shadow  p-4 md:p-4  overflow-x-hidden overflow-y-hidden ">
        <Logo />
 
         

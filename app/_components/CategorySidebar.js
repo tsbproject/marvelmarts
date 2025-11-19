@@ -33,10 +33,10 @@ export default function CategorySidebar() {
   ];
 
   return (
-    <div className="relative w-85 md:w-95 z-20">
+    <div className="relative top-173 w-85 md:w-95 z-20">
       {/* Header */}
       <div
-        className="flex items-center justify-between bg-[var(--color-brand-primary)] text-white px-4 py-3 cursor-pointer rounded-t-md shadow-md "
+        className="flex items-center justify-between bg-(--color-brand-primary) text-white px-4 py-3 cursor-pointer rounded-t-md shadow-md "
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center space-x-2 ">

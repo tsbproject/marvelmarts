@@ -1,0 +1,6 @@
+Authenticated users:
+Can SELECT/INSERT/UPDATE/DELETE their own reviews, addresses, carts, cart_items, orders (only those they own).
+Can SELECT products, categories, product_images, variants (public read).
+Only users with JWT claim user_role = 'admin' can INSERT/UPDATE/DELETE products, categories, variants, and manage orders beyond basic creation (admin role pattern).
+For cart/cart_items: policies ensure cart.user_id = auth.uid() and cart_items are controlled via cart ownership.
+For order lifecycle: users can create orders (INSERT) where user_id = auth.uid(); they can SELECT their own orders; updates/deletes reserved for admin (or the owning user for limited updates if you prefer).

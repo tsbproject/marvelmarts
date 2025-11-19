@@ -1,0 +1,28 @@
+docker exec -it marvelmarts-web npx prisma migrate dev --name init           | MIgration
+
+docker exec -it marvelmarts-web npx prisma migrate reset           RESET DATABASE
+
+docker exec -it marvelmarts-web npx prisma generate 
+
+
+docker exec -it marvelmarts-db psql -U postgres -d marvelmarts_db    | vERIFY TABLE 
+
+
+
+docker-compose down -v
+docker-compose up --build
+
+
+
+
+Remove-Item -Recurse -Force .\node_modules
+Remove-Item -Recurse -Force .\.prisma
+Remove-Item .\package-lock.json
+
+
+----------------------------------------------------------------------------------
+SUPABASE PUSH  
+
+npx supabase db push
+npx supabase link --project-ref fpcgaoanuflbwqlszgfg
+npx supabase login
