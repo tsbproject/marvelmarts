@@ -1,15 +1,12 @@
-import { defineConfig } from '@prisma/config';
+import { defineConfig, env } from '@prisma/config';
+import 'dotenv/config';
 
 export default defineConfig({
-  schema: './prisma/schema.prisma',
-  datasource: {
+  schema: 'prisma/schema.prisma',
+  datasources: {
     db: {
-      url: process.env.DATABASE_URL!, // Neon connection string
+      provider: 'postgresql',
+      url: env('DATABASE_URL'),
     },
   },
 });
-
-
-
-
-
