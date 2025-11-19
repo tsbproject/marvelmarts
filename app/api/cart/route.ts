@@ -3,31 +3,77 @@ import { prisma } from "@/app/_lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
 
-// Helper to create a guest cart
-async function getOrCreateCart(userId: number | null) {
+// -------------------------
+// TYPE DEFINITIONS
+// -------------------------
+
+interface SessionUser {
+  id: number;
+  name?: string | null;
+  email?: string | null;
+}
+
+interface AddToCartBody {
+  productId: number;
+  variantId?: number | null;
+  qty?: number;
+}
+
+// Guest cart return type
+interface GuestCart {
+  id: null;
+  userId: null;
+  items: Array<{
+    id: number;
+    product: any;
+    variant: { id: number } | null;
+    qty: number;
+    unitPrice: number;
+  }>;
+}
+
+// -------------------------
+// GET OR CREATE CART
+// -------------------------
+
+async function getOrCreateCart(
+  userId: number | null
+) {
   if (userId) {
-    // logged-in user
-    let cart = await prisma.cart.findUnique({
+    // Logged-in user
+    const cart = await prisma.cart.findUnique({
       where: { userId },
       include: { items: { include: { product: true, variant: true } } },
     });
-    if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId },
-        include: { items: { include: { product: true, variant: true } } },
-      });
-    }
-    return cart;
-  } else {
-    // guest cart: id = null, just return empty cart
-    return { id: null, userId: null, items: [] };
+
+    if (cart) return cart;
+
+    return prisma.cart.create({
+      data: { userId },
+      include: { items: { include: { product: true, variant: true } } },
+    });
   }
+
+  // Guest cart
+  const guestCart: GuestCart = {
+    id: null,
+    userId: null,
+    items: [],
+  };
+
+  return guestCart;
 }
+
+// -------------------------
+// GET CART
+// -------------------------
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id ?? null; // null for guest
+    const user = session?.user as SessionUser | undefined;
+    const userId = user?.id ?? null;
+
     const cart = await getOrCreateCart(userId);
 
     return NextResponse.json(cart);
@@ -37,35 +83,81 @@ export async function GET() {
   }
 }
 
+// -------------------------
+// ADD TO CART
+// -------------------------
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id ?? null;
+    const user = session?.user as SessionUser | undefined;
+    const userId = user?.id ?? null;
 
-    const { productId, variantId, qty } = await req.json();
+    const body: AddToCartBody = await req.json();
+    const { productId, variantId, qty } = body;
 
-    if (!productId) return NextResponse.json({ error: "Product ID required" }, { status: 400 });
+    if (!productId) {
+      return NextResponse.json(
+        { error: "Product ID required" },
+        { status: 400 }
+      );
+    }
 
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) return NextResponse.json({ error: "Invalid product" }, { status: 400 });
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { error: "Invalid product" },
+        { status: 400 }
+      );
+    }
 
     const unitPrice = product.discountPrice ?? product.price;
 
+    // -------------------------
+    // Guest cart (not saved)
+    // -------------------------
+
     if (!userId) {
-      // For guests, we can't persist cart in DB. Return temporary item
-      return NextResponse.json({
+      const guestResult: GuestCart = {
         id: null,
         userId: null,
-        items: [{ id: Date.now(), product, variant: variantId ? { id: variantId } : null, qty: qty ?? 1, unitPrice }],
+        items: [
+          {
+            id: Date.now(),
+            product,
+            variant: variantId ? { id: variantId } : null,
+            qty: qty ?? 1,
+            unitPrice,
+          },
+        ],
+      };
+
+      return NextResponse.json(guestResult);
+    }
+
+    // -------------------------
+    // Logged-in user: persist to DB
+    // -------------------------
+
+    let cart = await prisma.cart.findUnique({
+      where: { userId },
+    });
+
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: { userId },
       });
     }
 
-    // Logged-in user: persist in DB
-    let cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) cart = await prisma.cart.create({ data: { userId } });
-
     const existingItem = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productId, variantId: variantId ?? null },
+      where: {
+        cartId: cart.id,
+        productId,
+        variantId: variantId ?? null,
+      },
     });
 
     if (existingItem) {
