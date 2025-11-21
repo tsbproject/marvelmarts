@@ -3,9 +3,9 @@ import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  context: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = context.params;
+  const { slug } = await context.params; // 👈 This is the required fix
 
   try {
     const category = await prisma.category.findUnique({
