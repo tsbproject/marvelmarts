@@ -1,27 +1,19 @@
-import { NextResponse } from 'next/server';
-import { getPrisma } from '@/app/_lib/prisma';
+// app/api/categories/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/app/_lib/prisma";
 
 export async function GET() {
   try {
-    const prisma = await getPrisma();
-
     const categories = await prisma.category.findMany({
-      include: {
-        children: true, // ✅ include subcategories if you want
-        products: {
-          include: {
-            images: true,
-            variants: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' }, // optional sorting
+      include: { children: true },
     });
 
-    // ✅ Better: return empty array instead of 404
     return NextResponse.json(categories);
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    let message = "Unknown error";
+    if (err instanceof Error) message = err.message;
+
+    console.error("GET /api/categories error:", err);
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

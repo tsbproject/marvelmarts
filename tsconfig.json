@@ -31,7 +31,7 @@
     ".next/types/**/*.ts",
     "app/page.tsx",
     "app/_components/Logo.js"
-  ],
+, "prisma.config.ts"  ],
   "exclude": ["node_modules"]
 }
 
