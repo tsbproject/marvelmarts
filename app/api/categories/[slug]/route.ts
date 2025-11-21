@@ -1,12 +1,11 @@
-// app/api/categories/[slug]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
-  _: Request,
-  context: { params: { slug: string } }
+  request: Request,
+  { params }: { params: { slug: string } }
 ) {
-  const { slug } = context.params;
+  const { slug } = params;
 
   try {
     const category = await prisma.category.findUnique({
@@ -26,14 +25,16 @@ export async function GET(
       return NextResponse.json({ message: "Category not found" }, { status: 404 });
     }
 
-    // Convert decimals in products
     const safeCategory = {
       ...category,
-      products: category.products.map(product => ({
+      products: category.products.map((product) => ({
         ...product,
         price: Number(product.price),
         discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-        variants: product.variants.map(v => ({ ...v, price: Number(v.price) })),
+        variants: product.variants.map((v) => ({
+          ...v,
+          price: Number(v.price),
+        })),
       })),
     };
 
