@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: { slug: string } }
 ) {
-  const { slug } = params;
+  const { slug } = context.params;
 
   try {
     const category = await prisma.category.findUnique({
@@ -30,7 +30,9 @@ export async function GET(
       products: category.products.map((product) => ({
         ...product,
         price: Number(product.price),
-        discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+        discountPrice: product.discountPrice
+          ? Number(product.discountPrice)
+          : null,
         variants: product.variants.map((v) => ({
           ...v,
           price: Number(v.price),
