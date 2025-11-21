@@ -1,4 +1,4 @@
-import { getPrisma } from '@/app/_lib/prisma';
+import { prisma } from '@/app/_lib/prisma';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
@@ -8,25 +8,24 @@ interface CategoryPageProps {
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = params;
-  const prisma = await getPrisma();
 
   // Fetch category by slug including its products
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {
       products: {
-        orderBy: { createdAt: 'desc' }, // ✅ correct placement
+        orderBy: { createdAt: 'desc' },
         include: {
           images: true,
           variants: true,
         },
       },
-      children: true, // optional: include subcategories
+      children: true,
     },
   });
 
   if (!category) {
-    notFound(); // 404 if category doesn't exist
+    notFound();
   }
 
   return (
