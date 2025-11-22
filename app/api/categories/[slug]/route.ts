@@ -3,9 +3,9 @@ import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
-  const { slug } = await context.params; // 👈 This is the required fix
+  const { slug } = params; // <— FIXED: no await, no Promise
 
   try {
     const category = await prisma.category.findUnique({
@@ -22,7 +22,10 @@ export async function GET(
     });
 
     if (!category) {
-      return NextResponse.json({ message: "Category not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Category not found" },
+        { status: 404 }
+      );
     }
 
     const safeCategory = {
