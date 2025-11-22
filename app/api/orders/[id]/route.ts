@@ -6,7 +6,7 @@ import type { User } from "next-auth";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // ✅ params is a Promise
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await params; // ✅ await the promise
 
     const order = await prisma.order.findUnique({
       where: { id },
