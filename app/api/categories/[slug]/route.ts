@@ -3,9 +3,9 @@ import { prisma } from "@/app/_lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = params; // <— FIXED: no await, no Promise
+  const { slug } = await params; // ✅ await the promise
 
   try {
     const category = await prisma.category.findUnique({
