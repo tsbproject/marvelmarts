@@ -4,34 +4,34 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
 
 interface SessionUser {
-  id: string; // Change to string
+  id: string; // id is a string according to the Prisma schema
   name?: string | null;
   email?: string | null;
 }
 
 interface AddToCartBody {
-  productId: string; // Change to string
-  variantId?: string | null; // Change to string
+  productId: string; // id is a string in Prisma schema
+  variantId?: string | null; // id is a string in Prisma schema
   qty?: number;
 }
 
 interface CartItem {
-  id: string; // Change to string
+  id: string; // id is a string in Prisma schema
   product: {
-    id: string; // Change to string
+    id: string; // id is a string in Prisma schema
     title: string;
-    discountPrice?: number | null; // Change to number
-    price: number; // Change to number
-  } | null; // Allow product to be null
-  variant: { id: string; name?: string } | null; // Allow variant to be null
+    discountPrice?: number | null; // converted to number
+    price: number; // converted to number
+  } | null;
+  variant: { id: string; name?: string } | null;
   qty: number;
-  unitPrice: number; // Change to number
+  unitPrice: number; // unitPrice should be a number
 }
 
 interface Cart {
-  id: string | null; // Change to string
-  userId: string | null; // Change to string
-  items: CartItem[];
+  id: string | null; // id is a string in Prisma schema
+  userId: string | null; // userId is a string in Prisma schema
+  items: CartItem[]; // List of CartItems
 }
 
 // Helper function to get or create a cart
@@ -43,25 +43,50 @@ async function getOrCreateCart(userId: string | null): Promise<Cart> {
     });
 
     if (cart) {
-      // Convert `Decimal` to `number` for product fields
-      cart.items = cart.items.map(item => ({
-        ...item,
-        product: item.product ? {
-          ...item.product,
-          price: item.product.price.toNumber(), // Convert Decimal to number
-          discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
-        } : null,
-      }));
+      // Convert Decimal to number for `price`, `discountPrice`, and `unitPrice` when returning the cart
+      const result: Cart = {
+        id: cart.id,
+        userId: cart.userId,
+        items: cart.items.map(item => ({
+          id: item.id,
+          product: item.product ? {
+            ...item.product,
+            price: parseFloat(item.product.price.toString()), // Convert Decimal to number
+            discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null, // Convert Decimal to number
+          } : null,
+          variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
+          qty: item.qty,
+          unitPrice: parseFloat(item.unitPrice.toString()),
+        })),
+      };
 
-      return cart;
+      return result;
     }
 
-    return prisma.cart.create({
+    // If no cart found, create a new one
+    const created = await prisma.cart.create({
       data: { userId },
       include: { items: { include: { product: true, variant: true } } },
     });
+
+    return {
+      id: created.id,
+      userId: created.userId,
+      items: created.items.map(item => ({
+        id: item.id,
+        product: item.product ? {
+          ...item.product,
+          price: parseFloat(item.product.price.toString()),
+          discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null,
+        } : null,
+        variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
+        qty: item.qty,
+        unitPrice: parseFloat(item.unitPrice.toString()),
+      })),
+    };
   }
 
+  // Return a default cart if no userId
   return { id: null, userId: null, items: [] };
 }
 
@@ -99,13 +124,13 @@ export async function POST(req: Request) {
     const unitPrice = product.discountPrice ?? product.price;
 
     if (!userId) {
-      // Guest cart
+      // Guest cart logic
       return NextResponse.json({
         id: null,
         userId: null,
         items: [
           {
-            id: Date.now().toString(), // Convert to string
+            id: Date.now().toString(), // Convert to string for guest cart ID
             product,
             variant: variantId ? { id: variantId } : null,
             qty: qty ?? 1,
@@ -115,56 +140,42 @@ export async function POST(req: Request) {
       });
     }
 
-    // Logged-in user cart
-    let cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) cart = await prisma.cart.create({ data: { userId } });
+    const cart = await getOrCreateCart(userId);
 
-    const existingItem = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productId, variantId: variantId ?? null },
-    });
-
-    if (existingItem) {
-      await prisma.cartItem.update({
-        where: { id: existingItem.id },
-        data: { qty: existingItem.qty + (qty ?? 1) },
-      });
-    } else {
-      await prisma.cartItem.create({
-        data: { cartId: cart.id, productId, variantId: variantId ?? null, qty: qty ?? 1, unitPrice },
-      });
+    if (!cart.id) {
+      return NextResponse.json({ error: "Cart ID is missing" }, { status: 500 });
     }
+    await prisma.cartItem.create({
+      data: { cartId: cart.id, productId, variantId: variantId ?? null, qty: qty ?? 1, unitPrice },
+    });
 
     const updatedCart = await prisma.cart.findUnique({
       where: { id: cart.id },
       include: { items: { include: { product: true, variant: true } } },
     });
 
-    // Helper function to safely convert unitPrice from Decimal or number
-    const convertUnitPrice = (unitPrice: unknown): number => {
-      if (typeof unitPrice === "object" && unitPrice !== null && "toNumber" in unitPrice && typeof (unitPrice as { toNumber: unknown }).toNumber === "function") {
-        return (unitPrice as { toNumber(): number }).toNumber();
-      }
-      return typeof unitPrice === "number" ? unitPrice : 0;
-    };
+    if (!updatedCart) {
+      return NextResponse.json({ error: "Cart not found after update" }, { status: 404 });
+    }
 
-    // Handle possible null and convert Decimal fields to plain numbers for the response
-    const safeCart = {
-      id: updatedCart?.id ?? null,
-      userId: updatedCart?.userId ?? null,
-      items: (updatedCart?.items ?? []).map(item => ({
+    // Convert Decimal to number for the cart items before returning
+    const result: Cart = {
+      id: updatedCart.id,
+      userId: updatedCart.userId,
+      items: updatedCart.items.map(item => ({
         id: item.id,
         product: item.product ? {
           ...item.product,
-          price: item.product.price.toNumber(), // Convert Decimal to number
-          discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
+          price: parseFloat(item.product.price.toString()), // Convert Decimal to number
+          discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null, // Convert Decimal to number
         } : null,
-        variant: item.variant ?? null,
+        variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
         qty: item.qty,
-        unitPrice: convertUnitPrice(item.unitPrice),
+        unitPrice: parseFloat(item.unitPrice.toString()),
       })),
     };
 
-    return NextResponse.json(safeCart);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("POST /api/cart error:", error);
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
