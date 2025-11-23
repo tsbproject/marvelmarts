@@ -1,41 +1,17 @@
-// import { PrismaClient } from '@prisma/client';
-// import { PrismaNeon } from '@prisma/adapter-neon';
-// import { Pool } from '@neondatabase/serverless';
-
-// if (!process.env.DATABASE_URL) {
-//   throw new Error('DATABASE_URL must be set');
-// }
-
-// const pool = new Pool({
-//   connectionString: process.env.DATABASE_URL,
-// });
-
-// const adapter = new PrismaNeon(pool);
-
-// declare global {
-//   var prisma: PrismaClient | undefined;
-// }
-
-// export const prisma =
-//   globalThis.prisma ?? new PrismaClient({ adapter });
-
-// if (process.env.NODE_ENV !== 'production') {
-//   globalThis.prisma = prisma;
-// }
-
-
-// app/_lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { Pool } from '@neondatabase/serverless';
+import { Pool } from 'pg'; // Use `pg`'s Pool instead of @neondatabase/serverless
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set');
 }
 
-// Create a Neon pool for serverless environments
+// Create a pg Pool for the Neon serverless environment
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL, // Ensure this is correct
+  ssl: {
+    rejectUnauthorized: false, // Or customize this based on your Neon configuration
+  },
 });
 
 // Prisma Neon adapter
@@ -64,4 +40,3 @@ export function handlePrismaError(err: unknown) {
   if (err instanceof Error) return err.message;
   return 'Unknown Prisma error';
 }
-
