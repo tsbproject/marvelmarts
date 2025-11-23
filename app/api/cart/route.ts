@@ -42,7 +42,19 @@ async function getOrCreateCart(userId: string | null): Promise<Cart> {
       include: { items: { include: { product: true, variant: true } } },
     });
 
-    if (cart) return cart;
+    if (cart) {
+      // Convert `Decimal` to `number` for product fields
+      cart.items = cart.items.map(item => ({
+        ...item,
+        product: item.product ? {
+          ...item.product,
+          price: item.product.price.toNumber(), // Convert Decimal to number
+          discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
+        } : null,
+      }));
+
+      return cart;
+    }
 
     return prisma.cart.create({
       data: { userId },
@@ -60,16 +72,6 @@ export async function GET() {
     const userId = user?.id ?? null;
 
     const cart = await getOrCreateCart(userId);
-
-    // Convert Decimal values to number for the cart items
-    cart.items = cart.items.map(item => ({
-      ...item,
-      product: item.product ? {
-        ...item.product,
-        price: item.product.price.toNumber(), // Convert Decimal to number
-        discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
-      } : null,
-    }));
 
     return NextResponse.json(cart);
   } catch (error) {
@@ -137,17 +139,32 @@ export async function POST(req: Request) {
       include: { items: { include: { product: true, variant: true } } },
     });
 
-    // Convert Decimal values to number for the cart items
-    updatedCart.items = updatedCart.items.map(item => ({
-      ...item,
-      product: item.product ? {
-        ...item.product,
-        price: item.product.price.toNumber(), // Convert Decimal to number
-        discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
-      } : null,
-    }));
+    // Helper function to safely convert unitPrice from Decimal or number
+    const convertUnitPrice = (unitPrice: unknown): number => {
+      if (typeof unitPrice === "object" && unitPrice !== null && "toNumber" in unitPrice && typeof (unitPrice as { toNumber: unknown }).toNumber === "function") {
+        return (unitPrice as { toNumber(): number }).toNumber();
+      }
+      return typeof unitPrice === "number" ? unitPrice : 0;
+    };
 
-    return NextResponse.json(updatedCart);
+    // Handle possible null and convert Decimal fields to plain numbers for the response
+    const safeCart = {
+      id: updatedCart?.id ?? null,
+      userId: updatedCart?.userId ?? null,
+      items: (updatedCart?.items ?? []).map(item => ({
+        id: item.id,
+        product: item.product ? {
+          ...item.product,
+          price: item.product.price.toNumber(), // Convert Decimal to number
+          discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
+        } : null,
+        variant: item.variant ?? null,
+        qty: item.qty,
+        unitPrice: convertUnitPrice(item.unitPrice),
+      })),
+    };
+
+    return NextResponse.json(safeCart);
   } catch (error) {
     console.error("POST /api/cart error:", error);
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
