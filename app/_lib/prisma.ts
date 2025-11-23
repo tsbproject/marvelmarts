@@ -19,17 +19,28 @@
 // export default global.prisma;
 
 
-
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { Pool, PoolConfig } from 'pg'; // Import Pool and PoolConfig from pg
 
 // Ensure DATABASE_URL is set in the environment variables
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set');
 }
 
-// Prisma Neon adapter using the DATABASE_URL connection string directly
-const adapter = new PrismaNeon(process.env.DATABASE_URL); // Pass the connection string directly
+// Create a PoolConfig using the DATABASE_URL
+const poolConfig: PoolConfig = {
+  connectionString: process.env.DATABASE_URL, // Pass the DATABASE_URL directly
+  ssl: {
+    rejectUnauthorized: false, // Adjust this based on your DB provider's SSL requirements (e.g., for Neon)
+  },
+};
+
+// Create a Pool instance using the PoolConfig
+const pool = new Pool(poolConfig);
+
+// Prisma Neon adapter using the pg PoolConfig (adapter expects PoolConfig/connection info, not a Pool instance)
+const adapter = new PrismaNeon(poolConfig); // Pass the PoolConfig (or connection string) instead of the Pool instance
 
 // Extend globalThis to store Prisma singleton in development
 declare global {
@@ -54,4 +65,3 @@ export function handlePrismaError(err: unknown) {
   if (err instanceof Error) return err.message;
   return 'Unknown Prisma error';
 }
-
