@@ -1,3 +1,60 @@
+// import { prisma } from "@/app/_lib/prisma";
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/_lib/auth";
+// import { NextResponse } from "next/server";
+// import type { SessionWithUserId } from "@/app/_lib/auth"; // Import the type we defined earlier
+
+// export async function PATCH(req: Request) {
+//   try {
+//     const session = (await getServerSession(authOptions)) as SessionWithUserId | null;
+//     const userId = session?.user?.id;
+//     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+//     const { id, qty }: { id: number; qty: number } = await req.json();
+
+//     const cartItem = await prisma.cartItem.findUnique({
+//       where: { id },
+//       include: { cart: true },
+//     });
+
+//     if (!cartItem || cartItem.cart.userId !== userId)
+//       return new NextResponse("Forbidden", { status: 403 });
+
+//     await prisma.cartItem.update({ where: { id }, data: { qty } });
+
+//     return NextResponse.json({ ok: true });
+//   } catch (err) {
+//     console.error("PATCH /api/cart/item error:", err);
+//     return NextResponse.json({ message: "Failed to update item" }, { status: 500 });
+//   }
+// }
+
+// export async function DELETE(req: Request) {
+//   try {
+//     const session = (await getServerSession(authOptions)) as SessionWithUserId | null;
+//     const userId = session?.user?.id;
+//     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+//     const { id }: { id: number } = await req.json();
+
+//     const cartItem = await prisma.cartItem.findUnique({
+//       where: { id },
+//       include: { cart: true },
+//     });
+
+//     if (!cartItem || cartItem.cart.userId !== userId)
+//       return new NextResponse("Forbidden", { status: 403 });
+
+//     await prisma.cartItem.delete({ where: { id } });
+
+//     return NextResponse.json({ ok: true });
+//   } catch (err) {
+//     console.error("DELETE /api/cart/item error:", err);
+//     return NextResponse.json({ message: "Failed to delete item" }, { status: 500 });
+//   }
+// }
+
+
 import { prisma } from "@/app/_lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
@@ -12,15 +69,16 @@ export async function PATCH(req: Request) {
 
     const { id, qty }: { id: number; qty: number } = await req.json();
 
+    // Convert id to string
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id },
+      where: { id: String(id) }, // Ensure id is a string
       include: { cart: true },
     });
 
     if (!cartItem || cartItem.cart.userId !== userId)
       return new NextResponse("Forbidden", { status: 403 });
 
-    await prisma.cartItem.update({ where: { id }, data: { qty } });
+    await prisma.cartItem.update({ where: { id: String(id) }, data: { qty } }); // Ensure id is a string
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -37,15 +95,16 @@ export async function DELETE(req: Request) {
 
     const { id }: { id: number } = await req.json();
 
+    // Convert id to string
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id },
+      where: { id: String(id) }, // Ensure id is a string
       include: { cart: true },
     });
 
     if (!cartItem || cartItem.cart.userId !== userId)
       return new NextResponse("Forbidden", { status: 403 });
 
-    await prisma.cartItem.delete({ where: { id } });
+    await prisma.cartItem.delete({ where: { id: String(id) } }); // Ensure id is a string
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -53,3 +112,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ message: "Failed to delete item" }, { status: 500 });
   }
 }
+
