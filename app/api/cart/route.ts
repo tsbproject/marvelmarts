@@ -20,20 +20,21 @@ interface CartItem {
   product: {
     id: string; // Change to string
     title: string;
-    discountPrice?: number | null;
-    price: number;
+    discountPrice?: number | null; // Change to number
+    price: number; // Change to number
   } | null; // Allow product to be null
   variant: { id: string; name?: string } | null; // Allow variant to be null
   qty: number;
-  unitPrice: number;
+  unitPrice: number; // Change to number
 }
 
 interface Cart {
   id: string | null; // Change to string
   userId: string | null; // Change to string
-  items: CartItem[]; // Updated to reflect that `product` can be null
+  items: CartItem[];
 }
 
+// Helper function to get or create a cart
 async function getOrCreateCart(userId: string | null): Promise<Cart> {
   if (userId) {
     const cart = await prisma.cart.findUnique({
@@ -59,6 +60,16 @@ export async function GET() {
     const userId = user?.id ?? null;
 
     const cart = await getOrCreateCart(userId);
+
+    // Convert Decimal values to number for the cart items
+    cart.items = cart.items.map(item => ({
+      ...item,
+      product: item.product ? {
+        ...item.product,
+        price: item.product.price.toNumber(), // Convert Decimal to number
+        discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
+      } : null,
+    }));
 
     return NextResponse.json(cart);
   } catch (error) {
@@ -125,6 +136,16 @@ export async function POST(req: Request) {
       where: { id: cart.id },
       include: { items: { include: { product: true, variant: true } } },
     });
+
+    // Convert Decimal values to number for the cart items
+    updatedCart.items = updatedCart.items.map(item => ({
+      ...item,
+      product: item.product ? {
+        ...item.product,
+        price: item.product.price.toNumber(), // Convert Decimal to number
+        discountPrice: item.product.discountPrice?.toNumber() ?? null, // Convert Decimal to number
+      } : null,
+    }));
 
     return NextResponse.json(updatedCart);
   } catch (error) {
