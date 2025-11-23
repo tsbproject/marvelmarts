@@ -4,37 +4,36 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
 
 interface SessionUser {
-  id: string; // Changed to string
+  id: string; // Change to string
   name?: string | null;
   email?: string | null;
 }
 
 interface AddToCartBody {
-  productId: string; // Changed to string
-  variantId?: string | null; // Changed to string
+  productId: string; // Change to string
+  variantId?: string | null; // Change to string
   qty?: number;
 }
 
 interface CartItem {
-  id: string; // Changed to string
+  id: string; // Change to string
   product: {
-    id: string; // Changed to string
+    id: string; // Change to string
     title: string;
     discountPrice?: number | null;
     price: number;
-  };
-  variant: { id: string; name?: string } | null;
+  } | null; // Allow product to be null
+  variant: { id: string; name?: string } | null; // Allow variant to be null
   qty: number;
   unitPrice: number;
 }
 
 interface Cart {
-  id: string | null; // Changed to string
-  userId: string | null; // Changed to string
-  items: CartItem[];
+  id: string | null; // Change to string
+  userId: string | null; // Change to string
+  items: CartItem[]; // Updated to reflect that `product` can be null
 }
 
-// Helper function to get or create a cart
 async function getOrCreateCart(userId: string | null): Promise<Cart> {
   if (userId) {
     const cart = await prisma.cart.findUnique({
@@ -53,7 +52,6 @@ async function getOrCreateCart(userId: string | null): Promise<Cart> {
   return { id: null, userId: null, items: [] };
 }
 
-// GET method handler
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -69,7 +67,6 @@ export async function GET() {
   }
 }
 
-// POST method handler
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
