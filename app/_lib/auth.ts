@@ -1,21 +1,21 @@
-// app/_lib/auth.ts
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/_lib/prisma";
 import { verifyPassword } from "@/app/_lib/password";
+import { JWT } from "next-auth/jwt"; // Import JWT type from next-auth
 
-// Extend JWT
-interface TokenWithUserId {
-  userId?: string;
+// Extend JWT with custom fields
+interface TokenWithUserId extends JWT {
+  userId?: string; // Add userId field to the JWT token
 }
 
 export const authOptions: NextAuthOptions = {
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Use JWT-based session
   },
 
   pages: {
-    signIn: "/auth/sign-in",
+    signIn: "/auth/sign-in", // Custom sign-in page
   },
 
   providers: [
@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         if (!valid) return null;
 
         return {
-          id: String(user.id),
+          id: String(user.id), // Ensure ID is a string
           name: user.name,
           email: user.email,
           image: user.image,
@@ -52,27 +52,29 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
+    // jwt callback
     async jwt({ token, user }) {
-      const t = token as TokenWithUserId;
+      const t = token as TokenWithUserId; // Cast token to TokenWithUserId
 
       if (user) {
-        t.userId = String(user.id);
+        t.userId = String(user.id); // Attach userId as string
       }
 
-      return t;
+      return t; // Return the modified token
     },
 
+    // session callback
     async session({ session, token }) {
       const s = session;
       const t = token as TokenWithUserId;
 
       if (s.user && t.userId) {
-        s.user.id = t.userId; // ensure string
+        s.user.id = t.userId; // Attach userId to session's user object
       }
 
-      return s;
+      return s; // Return the session
     },
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET, // Secret for encryption
 };
