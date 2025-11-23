@@ -1,13 +1,7 @@
-// lib/db.ts
 import { PrismaClient } from "@prisma/client";
 
-// Corrected provider value: Use "postgres" instead of "postgresql"
-export const prisma = new PrismaClient({
-  adapter: {
-    provider: "postgres", // Corrected to "postgres"
-    url: process.env.DATABASE_URL!,
-  },
-});
+// Initialize PrismaClient without the `adapter` configuration
+export const prisma = new PrismaClient();
 
 // Example usage:
 export async function getProducts() {
