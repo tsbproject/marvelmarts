@@ -3,10 +3,10 @@ import NextAuth, { DefaultSession } from "next-auth";
 declare module "next-auth" {
   interface Session {
     user: {
-      id: string; // ✅ keep as string (NextAuth expects string)
+      id: string; // ✅ keep as string
       name?: string | null;
       email?: string | null;
-      image?: string | null; // ✅ include image if you use it
+      image?: string | null;
       role?: string;
     };
   }
