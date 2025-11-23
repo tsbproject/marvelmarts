@@ -21,7 +21,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { Pool, PoolConfig } from 'pg'; // Import Pool and PoolConfig from pg
+import { PoolConfig } from 'pg'; // Import PoolConfig from pg
 
 // Ensure DATABASE_URL is set in the environment variables
 if (!process.env.DATABASE_URL) {
@@ -36,10 +36,7 @@ const poolConfig: PoolConfig = {
   },
 };
 
-// Create a Pool instance using the PoolConfig
-const pool = new Pool(poolConfig);
-
-// Prisma Neon adapter using the pg PoolConfig (adapter expects PoolConfig/connection info, not a Pool instance)
+// Use PoolConfig directly; no need to create a pg Pool instance
 const adapter = new PrismaNeon(poolConfig); // Pass the PoolConfig (or connection string) instead of the Pool instance
 
 // Extend globalThis to store Prisma singleton in development
