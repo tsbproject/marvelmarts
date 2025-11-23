@@ -1,32 +1,36 @@
-import NextAuth from "next-auth";
-import type { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/_lib/prisma";
-import { compare } from "bcryptjs";
+import { verifyPassword } from "@/app/_lib/password";
+import type { JWT } from "next-auth/jwt";
+import type { Session, User } from "next-auth";
 
-/**
- * NOTE:
- * - This file assumes your Prisma `User.id` is a string (cuid/uuid).
- * - If your DB uses numeric ids, change the types in the global augmentation to number.
- */
+interface TokenWithUserId extends JWT {
+  userId?: number;
+}
+
+interface SessionWithUserId extends Session {
+  user: {
+    id: number;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
 
 export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-  },
-
-  pages: {
-    signIn: "/auth/sign-in",
-  },
+  session: { strategy: "jwt" },
 
   providers: [
     CredentialsProvider({
       name: "Credentials",
+
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+
+      async authorize(credentials: Record<string, string> | undefined) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
@@ -35,41 +39,48 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.passwordHash) return null;
 
-        const isValid = await compare(credentials.password, user.passwordHash);
-        if (!isValid) return null;
+        const valid = await verifyPassword(credentials.password, user.passwordHash);
+        if (!valid) return null;
 
-        // return minimal user object (id must be string)
         return {
-          id: String(user.id),
-          email: user.email ?? undefined,
-          name: user.name ?? undefined,
-          role: user.role ?? undefined,
-        } as any;
+          id: user.id,
+          name: user.name ?? null,
+          email: user.email ?? null,
+          image: user.image ?? null,
+        };
       },
     }),
   ],
 
   callbacks: {
-    // Persist id + role to token
     async jwt({ token, user }) {
+      const t = token as TokenWithUserId;
+
       if (user) {
-        token.id = (user as any).id;
-        token.role = (user as any).role;
+        t.userId = (user as User & { id: number }).id;
       }
-      return token;
+
+      return t;
     },
 
-    // Expose id + role on session.user
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string | undefined;
-      }
-      return session;
+      const s = session as SessionWithUserId;
+      const t = token as TokenWithUserId;
+
+      s.user = {
+        id: t.userId ?? 0,
+        name: session.user?.name ?? null,
+        email: session.user?.email ?? null,
+        image: session.user?.image ?? null,
+      };
+
+      return s;
     },
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/auth/sign-in",
+  },
 };
 
 const handler = NextAuth(authOptions);
