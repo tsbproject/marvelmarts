@@ -61,6 +61,8 @@ export async function GET() {
     const cart = await getOrCreateCart(userId);
 
     return NextResponse.json(cart);
-  } catch (error) {
-    console.error("GET /api/cart error:", error);
-    r
+    } catch (error) {
+      console.error("GET /api/cart error:", error);
+      return NextResponse.json({ error: "Failed to fetch cart" }, { status: 500 });
+    }
+  }
