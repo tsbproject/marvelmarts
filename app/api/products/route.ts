@@ -37,9 +37,18 @@ export async function POST(request: Request) {
   try {
     const data: ProductUpdate = await request.json();
 
+    // Ensure a slug is created from the title
+    const slug = data.title
+      ? data.title
+          .toLowerCase()                    // Convert to lowercase
+          .replace(/\s+/g, "-")              // Replace spaces with hyphens
+          .replace(/[^\w-]+/g, "")           // Remove non-alphanumeric characters
+      : "";
+
     const product = await prisma.product.create({
       data: {
         title: data.title!,
+        slug: slug, // Use the generated slug
         description: data.description || "",
         price: data.price!,
         discountPrice: data.discountPrice ?? null,
