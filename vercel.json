@@ -4,8 +4,6 @@
       "src": "prisma/schema.prisma",
       "use": "@vercel/node"
     }
-  ],
-  "hooks": {
-    "build": "npx prisma generate"  
-  }
+  ]
+ 
 }
