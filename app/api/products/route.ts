@@ -1,7 +1,7 @@
 // app/api/products/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/_lib/prisma";
-import type { ProductUpdate } from "@/types/product";
+import type { ProductUpdate } from "@/types/product"; // Make sure this type includes categoryId
 
 // GET /api/products
 export async function GET() {
@@ -52,9 +52,25 @@ export async function POST(request: Request) {
         description: data.description || "",
         price: data.price!,
         discountPrice: data.discountPrice ?? null,
-        categoryId: data.categoryId!,
-        images: data.images ? { create: data.images } : undefined,
-        variants: data.variants ? { create: data.variants } : undefined,
+        categoryId: data.categoryId!, // Ensure categoryId is passed
+        images: data.images ? { create: data.images.map((url) => ({ url })) } : undefined,
+        variants: data.variants
+          ? {
+              create: data.variants.map((v: string | { name: string; sku: string; price: number }) =>
+                typeof v === "string"
+                  ? {
+                      name: v,
+                      sku: "", // Provide a default or generate SKU as needed
+                      price: 0 // Provide a default price or handle accordingly
+                    }
+                  : {
+                      name: v.name,
+                      sku: v.sku,
+                      price: v.price
+                    }
+              )
+            }
+          : undefined,
       },
       include: { images: true, category: true, variants: true },
     });

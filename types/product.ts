@@ -1,11 +1,12 @@
-// app/types/product.ts
+// types/product.ts
 
 export interface ProductUpdate {
-  id: string;       // Change to 'string' based on your Prisma schema
+  id: string; // Product ID, assuming it exists for updates
   title: string;
   description: string;
-  price: number;    // Converting Prisma Decimal to number
-  discountPrice?: number | null;  // Optional, converting Prisma Decimal to number
-  stock: number;
-  // Add any other fields that are relevant for updating a product
+  price: number;
+  discountPrice?: number | null;
+  categoryId: string;  // Add categoryId here
+  images?: string[];  // Array of image URLs
+  variants?: string[];  // Array of variant identifiers
 }
