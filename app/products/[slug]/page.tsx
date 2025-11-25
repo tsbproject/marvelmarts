@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { prisma } from '@/app/_lib/prisma';
+import  prisma  from '@/app/_lib/prisma';
 import Image from 'next/image';
 
 interface Props {

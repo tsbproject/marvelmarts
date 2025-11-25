@@ -1,4 +1,4 @@
-import { prisma } from "@/app/_lib/prisma";
+import prisma from "@/app/_lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/_lib/auth";
 import { NextResponse } from "next/server";

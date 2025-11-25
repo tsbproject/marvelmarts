@@ -1,59 +1,18 @@
-import { PrismaClient } from '@prisma/client';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { PoolConfig } from 'pg'; // Import PoolConfig from pg
+import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
-// Ensure DATABASE_URL is set in the environment variables
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL must be set');
-}
+const adapter = new PrismaNeon({
+  connectionString: process.env.DATABASE_URL!,
+});
 
-// Create a PoolConfig using the DATABASE_URL
-const poolConfig: PoolConfig = {
-  connectionString: process.env.DATABASE_URL, // Pass the DATABASE_URL directly
-  ssl: {
-    rejectUnauthorized: false, // Adjust this based on your DB provider's SSL requirements (e.g., for Neon)
-  },
-};
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// Use PoolConfig directly; no need to create a pg Pool instance
-const adapter = new PrismaNeon(poolConfig); // Pass the PoolConfig (or connection string) instead of the Pool instance
-
-// Extend globalThis to store Prisma singleton in development
-declare global {
-  var prisma: PrismaClient | undefined;
-}
-
-// Create Prisma client with adapter and optional logging
 export const prisma =
-  globalThis.prisma ??
-  new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
-  });
+  globalForPrisma.prisma ??
+  new PrismaClient({ adapter }); // ✅ pass adapter in Prisma 7
 
-// Prevent multiple instances in development (Next.js hot reload)
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
 }
 
-// Optional: helper function for safe error handling
-export function handlePrismaError(err: unknown) {
-  if (err instanceof Error) return err.message;
-  return 'Unknown Prisma error';
-}
-
-
-
-// import { PrismaClient } from "@prisma/client";
-// import { PostgreSQLAdapter } from "@prisma/adapter-postgresql";
-// import pg from "pg";
-
-// const connectionString = process.env.DATABASE_URL!;
-
-// const adapter = new PostgreSQLAdapter({
-//   connectionString,
-//   ssl: false,
-// });
-
-// export const prisma = new PrismaClient({ adapter });
-
+export default prisma;

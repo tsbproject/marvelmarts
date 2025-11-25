@@ -1,7 +1,7 @@
 // app/api/products/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/_lib/prisma";
-import type { ProductUpdate } from "@/types/product"; // Make sure this type includes categoryId
+import prisma  from "@/app/_lib/prisma";
+import type { ProductUpdate } from "@/types/product"; 
 
 // GET /api/products
 export async function GET() {

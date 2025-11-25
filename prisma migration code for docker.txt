@@ -26,3 +26,10 @@ SUPABASE PUSH
 npx supabase db push
 npx supabase link --project-ref fpcgaoanuflbwqlszgfg
 npx supabase login
+
+
+===============================================
+npx prisma migrate reset
+
+npx prisma studio | to check and edit DATABASE
+
