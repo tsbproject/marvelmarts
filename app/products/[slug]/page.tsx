@@ -69,60 +69,69 @@
 import { notFound } from "next/navigation";
 import prisma from "@/app/lib/prisma";
 import Image from "next/image";
+import type { Product, Category, ProductImage, Variant } from "@prisma/client";
 
 interface Props {
   params: { slug: string };
+}
+
+interface ProductWithRelations extends Product {
+  category: Category | null;
+  productImages: ProductImage[];
+  variants: Variant[];
 }
 
 export default async function ProductPage({ params }: Props) {
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
     include: {
-      category: { select: { id: true, name: true } },
-      productImages: true, // ✅ correct relation name
+      category: true,
+      productImages: true,
       variants: true,
     },
   });
 
   if (!product) return notFound();
 
-  // Fallback placeholder image
-  const fallbackImage = {
+  const typedProduct = product as ProductWithRelations;
+
+  const fallbackImage: ProductImage = {
     id: "placeholder",
     url: "https://via.placeholder.com/600x400?text=No+Image",
     alt: "No image available",
+    productId: typedProduct.id,
+    position: 0, // ✅ required field
   };
 
   const imagesToShow =
-    product.productImages && product.productImages.length > 0
-      ? product.productImages
+    typedProduct.productImages.length > 0
+      ? typedProduct.productImages
       : [fallbackImage];
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-      <p className="text-gray-700 mb-4">{product.description}</p>
+      <h1 className="text-3xl font-bold mb-2">{typedProduct.title}</h1>
+      <p className="text-gray-700 mb-4">{typedProduct.description}</p>
 
-      {product.category && (
+      {typedProduct.category && (
         <p className="text-sm text-gray-500 mb-2">
-          Category: {product.category.name}
+          Category: {typedProduct.category.name}
         </p>
       )}
 
       <p className="text-xl font-bold text-green-600 mb-4">
         ₦
-        {Number(product.price).toLocaleString("en-NG", {
+        {Number(typedProduct.price).toLocaleString("en-NG", {
           minimumFractionDigits: 2,
         })}
       </p>
 
-      {/* ✅ Always show at least one image */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {imagesToShow.map((img) => (
           <Image
             key={img.id}
             src={img.url}
-            alt={img.alt ?? product.title}
+            alt={img.alt ?? typedProduct.title}
             width={600}
             height={400}
             className="rounded object-cover w-full h-auto"
@@ -130,11 +139,11 @@ export default async function ProductPage({ params }: Props) {
         ))}
       </div>
 
-      {product.variants && product.variants.length > 0 && (
+      {typedProduct.variants.length > 0 && (
         <div className="mt-4">
           <h2 className="text-lg font-semibold mb-2">Variants</h2>
           <ul className="list-disc pl-5">
-            {product.variants.map((variant) => (
+            {typedProduct.variants.map((variant) => (
               <li key={variant.id}>
                 {variant.name} — ₦
                 {Number(variant.price).toLocaleString("en-NG", {
