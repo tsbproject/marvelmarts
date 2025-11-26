@@ -40,15 +40,15 @@
 
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": false,
-    "esModuleInterop": true,
-    "module": "ESNext",  // Set module to ESNext
-    "moduleResolution": "node",
+    "noEmit": true,                // Next.js handles build, no JS output
+    "esModuleInterop": true,       // allows default import for bcrypt
+    "module": "ESNext",
+    "moduleResolution": "node16",  // modern Node ESM resolution
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",

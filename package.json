@@ -12,10 +12,16 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node --loader ts-node/esm prisma/seed.ts"
+
+
+
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+     "seed": "node --loader ts-node/esm prisma/seed.ts"
+
+
+
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

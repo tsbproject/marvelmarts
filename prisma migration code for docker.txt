@@ -31,5 +31,9 @@ npx supabase login
 ===============================================
 npx prisma migrate reset
 
+npx prisma migrate dev --name init
+
+npx prisma migrate status
+
 npx prisma studio | to check and edit DATABASE
 
