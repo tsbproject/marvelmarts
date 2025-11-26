@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import  prisma  from "@/app/_lib/prisma";
+import  prisma  from "@/app/lib/prisma";
 import { hash } from "bcryptjs";
 
 export async function POST(req: NextRequest) {

@@ -1,60 +1,20 @@
-// {
-//   "compilerOptions": {
-//     "target": "ES2017",
-//     "lib": ["dom", "dom.iterable", "esnext"],
-//     "allowJs": true,
-//     "skipLibCheck": true,
-//     "strict": true,
-//     "noEmit": true,
-//     "esModuleInterop": true,
-//     "module": "esnext",
-//     "moduleResolution": "bundler",
-//     "resolveJsonModule": true,
-//     "isolatedModules": true,
-//     "jsx": "preserve",
-//     "incremental": true,
-//     "baseUrl": ".",
-//      "paths": {
-//       "@/*": ["./*"]
-//     },
-//     "typeRoots": ["./types", "./node_modules/@types"],
-//     "plugins": [
-//       {
-//         "name": "next"
-//       }
-//     ]
-//   },
-//   "include": [
-//     "next-env.d.ts",
-//     "**/*.ts",
-//     "**/*.tsx",
-//     ".next/types/**/*.ts",
-//     "app/page.tsx",
-//     "app/_components/Logo.js"
-// , "prisma.config.ts.DISABLE"  ],
-//   "exclude": ["node_modules"]
-// }
-
-
-
-
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,                // Next.js handles build, no JS output
-    "esModuleInterop": true,       // allows default import for bcrypt
-    "module": "ESNext",
-    "moduleResolution": "node16",  // modern Node ESM resolution
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
-    "paths": {
+     "paths": {
       "@/*": ["./*"]
     },
     "typeRoots": ["./types", "./node_modules/@types"],
@@ -64,16 +24,48 @@
       }
     ]
   },
+  
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "prisma/**/*.ts"
-  ],
+    "app/page.tsx",
+    "app/_components/Logo.js"
+, "prisma.config.ts.DISABLE"  ],
   "exclude": ["node_modules"]
 }
 
+
+
+
+// {
+//   "compilerOptions": {
+//     "target": "ES2020",
+//     "lib": ["dom", "dom.iterable", "esnext"],
+//     "allowJs": true,
+//     "skipLibCheck": true,
+//     "strict": true,
+//     "esModuleInterop": true,
+//     "module": "Node16",            // ✅ use Node16 module to match moduleResolution
+//     "moduleResolution": "node16",  // ✅ Node-style resolution
+//     "resolveJsonModule": true,
+//     "isolatedModules": false,      // ✅ allow normal TS compilation
+//     "jsx": "preserve",
+//     "incremental": true,
+//      "baseUrl": ".",
+//       "paths": {
+//        "@/*": ["./*"]
+//      },
+//     "typeRoots": ["./types", "./node_modules/@types"]
+//   },
+//    "ts-node": {
+//     "esm": true
+//   },
+
+//   "include": ["prisma/**/*.ts"],
+//   "exclude": ["node_modules"]
+// }
 
 
 

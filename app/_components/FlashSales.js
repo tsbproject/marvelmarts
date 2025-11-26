@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Star, Zap } from "lucide-react";
-import { getFlashProducts } from "@/app/_lib/api";
+import { getFlashProducts } from "@/app/lib/api";
 
 export default function FlashSales() {
   const [products, setProducts] = useState([]);

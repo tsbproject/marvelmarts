@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Star } from "lucide-react";
-import { getNewArrivals } from "@/app/_lib/api";
+import { getNewArrivals } from "@/app/lib/api";
 
 export default function NewArrivals() {
   const [products, setProducts] = useState([]);

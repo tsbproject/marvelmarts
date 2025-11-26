@@ -1,23 +1,10 @@
-'use client';
-
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-
-export default function AdminPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session || session.user.role !== 'admin') {
-      router.push('/');
-    }
-  }, [session, status, router]);
-
-  if (status === 'loading') {
-    return <p>Checking access...</p>;
-  }
-
-  return <h1>Admin Dashboard</h1>;
+export default function AdminDashboard() {
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+      <p className="text-gray-600 mt-2">
+        Welcome, Admin. Manage products, orders, and users from here.
+      </p>
+    </div>
+  );
 }

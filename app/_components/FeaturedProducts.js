@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Star } from "lucide-react";
-import { getAllProducts } from "@/app/_lib/api";
+import { getAllProducts } from "@/app/lib/api";
 
 
 

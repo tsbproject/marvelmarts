@@ -1,5 +1,7 @@
+
+
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";   // use PrismaPg for local seeding
 import bcrypt from "bcrypt";
 
@@ -66,7 +68,7 @@ async function main() {
         title: "Nike Air Max",
         slug: "nike-air-max",
         description: "Comfortable and stylish running shoes.",
-        price: 129.99,
+        price: new Prisma.Decimal(129.99),   // ✅ wrap in Decimal
         status: "active",
         stock: 50,
         categoryId: shoesCategory.id,
@@ -75,7 +77,7 @@ async function main() {
         title: "Adidas Ultraboost",
         slug: "adidas-ultraboost",
         description: "High-performance sneakers with responsive cushioning.",
-        price: 149.99,
+        price: new Prisma.Decimal(149.99),
         status: "active",
         stock: 30,
         categoryId: shoesCategory.id,
@@ -84,7 +86,7 @@ async function main() {
         title: "Puma RS-X",
         slug: "puma-rs-x",
         description: "Retro-inspired design with modern comfort.",
-        price: 109.99,
+        price: new Prisma.Decimal(109.99),
         status: "active",
         stock: 40,
         categoryId: shoesCategory.id,
@@ -112,14 +114,14 @@ async function main() {
           productId: product.id,
           name: "Size 9",
           sku: `${product.slug}-sz9`,
-          price: product.price,
+          price: product.price.toString(),   // ✅ convert Decimal to string/number
           stock: 10,
         },
         {
           productId: product.id,
           name: "Size 10",
           sku: `${product.slug}-sz10`,
-          price: product.price,
+          price: product.price.toString(),
           stock: 15,
         },
       ],

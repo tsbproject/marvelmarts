@@ -35,5 +35,7 @@ npx prisma migrate dev --name init
 
 npx prisma migrate status
 
+npx prisma migrate deploy
+
 npx prisma studio | to check and edit DATABASE
 
