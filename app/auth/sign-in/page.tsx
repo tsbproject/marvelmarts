@@ -108,20 +108,13 @@ export default function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  interface SignInResponse {
-    ok?: boolean;
-    error?: string;
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    const res = (await signIn("credentials", {
+    const res = await signIn("credentials", {
       redirect: false,
       email,
       password,
-    })) as SignInResponse;
-
+    });
     if (res?.ok) {
       router.refresh();
       router.push("/");
@@ -148,12 +141,10 @@ export default function SignInForm() {
             <label className="block mb-1 font-medium text-gray-700">Email</label>
             <input
               type="email"
-              placeholder="Enter your email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg 
-              focus:ring-2 focus:ring-black focus:outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
             />
           </div>
 
@@ -161,19 +152,16 @@ export default function SignInForm() {
             <label className="block mb-1 font-medium text-gray-700">Password</label>
             <input
               type="password"
-              placeholder="Enter your password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg 
-              focus:ring-2 focus:ring-black focus:outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-black text-white rounded-lg font-semibold 
-            hover:bg-gray-900 transition active:scale-[0.98]"
+            className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition active:scale-[0.98]"
           >
             Sign In
           </button>
