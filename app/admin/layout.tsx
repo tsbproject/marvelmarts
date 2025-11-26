@@ -1,4 +1,6 @@
-export default function AdminLayout({ children }) {
+import { ReactNode } from 'react';
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 bg-black text-white p-6">
