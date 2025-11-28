@@ -168,7 +168,7 @@ model User {
   name         String?
   email        String?   @unique
   passwordHash String?
-  role         String    @default("user") // "admin" | "user" | "staff"
+  role         String    @default("user") // "admin" | "user" | "staff" | "vendor"
   image        String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -178,4 +178,35 @@ model User {
   orders       Order[]
   reviews      Review[]
   sessions     Session[]
+
+  // optional vendor relation
+  vendorProfile VendorProfile?
 }
+
+model VendorProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  storeName    String
+  storePhone   String
+  storeAddress String
+  country      String
+  state        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  code      String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+
+
+
