@@ -12,7 +12,7 @@
 //   );
 // }
 
-
+export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import SignInPage from "./SignInForm";
