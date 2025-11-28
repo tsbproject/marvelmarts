@@ -1,14 +1,14 @@
 
 
-export const dynamic = "force-dynamic";
-
 import { Suspense } from "react";
-import SignInPage from "./SignInForm";
+import SignInForm from "./SignInForm";
 
-export default function Page() {
+export const dynamic = "force-dynamic"; // ✅ skip prerender
+
+export default function SignInPage() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
-      <SignInPage />
+      <SignInForm />
     </Suspense>
   );
 }
