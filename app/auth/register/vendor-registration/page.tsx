@@ -56,10 +56,17 @@ const VendorRegistration = () => {
     } else {
       setError(data.error || 'Failed to send verification code.');
     }
-  } catch (error) {
-    setError('Error: ' + error.message);
+  try {
+  // Your code logic here
+} catch (error: unknown) {
+  if (error instanceof Error) {
+    setError('Error: ' + error.message); // Now TypeScript knows it's an instance of Error
+  } else {
+    setError('An unknown error occurred');
   }
-};
+}
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
