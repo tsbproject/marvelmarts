@@ -9,7 +9,8 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const {
-      fullName,
+      firstName,
+      lastName,
       email,
       password,
       storeName,
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
       state
     } = body;
 
-    if (!fullName || !email || !password || !storeName || !storePhone || !storeAddress) {
+    if (!firstName || !lastName || !email || !password || !storeName || !storePhone || !storeAddress) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.create({
       data: {
-        fullName,
+        firstName,
+        lastName,
         email,
         passwordHash: hashed,
         role: "VENDOR",
