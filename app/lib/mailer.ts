@@ -1,4 +1,5 @@
-// app/_lib/mailer.ts
+// /app/_lib/mailer.ts
+
 const RESEND_API_URL = "https://api.resend.com/emails";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -6,9 +7,18 @@ if (!RESEND_API_KEY) {
   console.warn("RESEND_API_KEY not set — emails will fail");
 }
 
+// Function to send the verification email
 export async function sendVerificationEmail(to: string, code: string) {
-  if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY not configured");
+  }
 
+  // Ensure a valid 'code' is passed
+  if (!code) {
+    throw new Error("Verification code is missing");
+  }
+
+  // HTML content for the email
   const html = `
     <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
       <h2>Verify your email</h2>
@@ -19,13 +29,15 @@ export async function sendVerificationEmail(to: string, code: string) {
     </div>
   `;
 
+  // Prepare the email payload
   const payload = {
-    from: "no-reply@yourdomain.com",
-    to,
+    from: "no-reply@marvelmarts.com", // Add your verified sender email here
+    to, // Recipient email
     subject: "Your verification code",
-    html,
+    html, // The HTML body content
   };
 
+  // Make the request to the Resend API
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
     headers: {
@@ -35,6 +47,7 @@ export async function sendVerificationEmail(to: string, code: string) {
     body: JSON.stringify(payload),
   });
 
+  // Handle errors from Resend API
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Resend send failed: ${res.status} ${text}`);

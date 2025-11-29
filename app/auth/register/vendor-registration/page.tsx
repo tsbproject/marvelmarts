@@ -1,35 +1,36 @@
-"use client"; // This marks the file as a Client Component
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { useNotification } from "@/app/_context/NotificationContext"; 
 
 const VendorRegistration = () => {
+  const { addNotification } = useNotification(); 
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    verificationCode: '',
-    firstName: '',
-    lastName: '',
-    storeName: '',
-    storePhone: '',
-    storeAddress: '',
-    country: 'Nigeria',
-    state: '',
-    password: '',
-    confirmPassword: '',
+    username: "",
+    email: "",
+    verificationCode: "",
+    firstName: "",
+    lastName: "",
+    storeName: "",
+    storePhone: "",
+    storeAddress: "",
+    country: "Nigeria",
+    state: "",
+    password: "",
+    confirmPassword: "",
     agree: false,
   });
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
-  setFormData((prevState) => ({
-    ...prevState,
-    [name]: value,
-  }));
-};
-
+    const { name, value } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
+  };
 
   const handleCheckboxChange = () => {
     setFormData((prevState) => ({
@@ -40,37 +41,48 @@ const VendorRegistration = () => {
 
   const handleResendCode = async () => {
     if (!formData.email) {
-      alert('Please provide an email before requesting a code.');
+      alert("Please provide an email before requesting a code.");
       return;
     }
 
     try {
-      const response = await fetch('/api/auth/vendor/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/vendor/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email }),
       });
 
       const data = await response.json();
       if (data.success) {
-        alert('Verification code sent successfully!');
+        alert("Verification code sent successfully!");
+        addNotification("Verification code sent successfully!", "success"); // Trigger success notification
       } else {
-        setError(data.error || 'Failed to send verification code.');
+        setError(data.error || "Failed to send verification code.");
+        addNotification(data.error || "Failed to send verification code.", "error"); // Trigger error notification
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError('Error: ' + error.message); // Access message safely
+        setError("Error: " + error.message); // Access message safely
+        addNotification("Error: " + error.message, "error"); // Trigger error notification
       } else {
-        setError('An unknown error occurred'); // Fallback for non-Error objects
+        setError("An unknown error occurred"); // Fallback for non-Error objects
+        addNotification("An unknown error occurred", "error"); // Trigger unknown error notification
       }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validation and submission logic here (e.g. form validation, submitting to API)
-    // For now, just showing success message for demo
-    setSuccess('Registration Successful!');
+    // Simulating form validation and submission
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all required fields.");
+      addNotification("Please fill in all required fields.", "error"); // Trigger error notification
+      return;
+    }
+
+    // Simulate successful registration
+    setSuccess("Registration Successful!");
+    addNotification("Registration Successful!", "success"); // Trigger success notification
   };
 
   return (
