@@ -56,8 +56,12 @@ const VendorRegistration = () => {
       } else {
         setError(data.error || 'Failed to send verification code.');
       }
-    } catch (error) {
-      setError('Error: ' + error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError('Error: ' + error.message); // Access message safely
+      } else {
+        setError('An unknown error occurred'); // Fallback for non-Error objects
+      }
     }
   };
 
