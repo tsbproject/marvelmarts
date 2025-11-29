@@ -75,7 +75,7 @@ const VendorRegistration = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-xl">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-7xl">
         <h2 className="text-3xl font-semibold text-center mb-8">Vendor Registration</h2>
         {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
         {success && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded">{success}</div>}
