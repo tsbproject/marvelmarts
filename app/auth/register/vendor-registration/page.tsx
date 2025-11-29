@@ -38,28 +38,28 @@ const VendorRegistration = () => {
   };
 
   const handleResendCode = async () => {
-    if (!formData.email) {
-      alert('Please provide an email before requesting a code.');
-      return;
-    }
+  if (!formData.email) {
+    alert('Please provide an email before requesting a code.');
+    return;
+  }
 
-    try {
-      const response = await fetch('/api/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
+  try {
+    const response = await fetch('/api/auth/vendor/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email }),
+    });
 
-      const data = await response.json();
-      if (data.success) {
-        alert('Verification code sent successfully!');
-      } else {
-        setError(data.error || 'Failed to send verification code.');
-      }
-    } catch (error) {
-      setError('Error: ' + error.message);
+    const data = await response.json();
+    if (data.success) {
+      alert('Verification code sent successfully!');
+    } else {
+      setError(data.error || 'Failed to send verification code.');
     }
-  };
+  } catch (error) {
+    setError('Error: ' + error.message);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

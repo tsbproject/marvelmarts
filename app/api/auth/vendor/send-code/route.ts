@@ -1,3 +1,7 @@
+
+
+
+// app/api/auth/vendor/send-code/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { sendVerificationEmail } from "@/app/lib/mailer";
@@ -27,9 +31,7 @@ export async function POST(req: Request) {
     });
 
     if (existing) {
-      const secondsSince =
-        (now.getTime() - existing.createdAt.getTime()) / 1000;
-
+      const secondsSince = (now.getTime() - existing.createdAt.getTime()) / 1000;
       if (secondsSince < 60) {
         return NextResponse.json(
           { error: "Wait before requesting a new code" },
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
       create: { email, code, expiresAt },
     });
 
-    // send email
+    // Send email
     await sendVerificationEmail(email, code);
 
     return NextResponse.json({ success: true });
@@ -60,3 +62,4 @@ export async function POST(req: Request) {
     );
   }
 }
+
