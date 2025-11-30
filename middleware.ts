@@ -1,20 +1,29 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import type { JWT } from "next-auth/jwt";
 
 export default withAuth(
-  function middleware(req: NextRequest, { token }: { token?: JWT }) {
+  function middleware(req) {
+    const token = (req as any).nextauth?.token;
     const path = req.nextUrl.pathname;
 
-    // Admin-only routes
-    if (path.startsWith("/admin") && token?.role !== "admin") {
-      return NextResponse.redirect(new URL("/auth/sign-in", req.url));
+    // --- Admin-only routes ---
+    if (path.startsWith("/admin")) {
+      if (!token) {
+        // Not logged in → send to sign-in
+        return NextResponse.redirect(new URL("/auth/sign-in", req.url));
+      }
+      if (token.role !== "admin") {
+        // Logged in but not admin → send to denied page
+        return NextResponse.redirect(new URL("/auth/denied", req.url));
+      }
     }
 
-    // Account routes (logged-in users only)
-    if (path.startsWith("/account") && !token) {
-      return NextResponse.redirect(new URL("/auth/sign-in", req.url));
+    // --- Account routes (customer/vendor) ---
+    if (path.startsWith("/account")) {
+      if (!token) {
+        // Not logged in → send to sign-in
+        return NextResponse.redirect(new URL("/auth/sign-in", req.url));
+      }
     }
 
     return NextResponse.next();
