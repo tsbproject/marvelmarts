@@ -1,48 +1,65 @@
-// import { NextResponse } from "next/server";
-// import type { NextRequest } from "next/server";
-// import { getToken } from "next-auth/jwt";
+// import { withAuth } from "next-auth/middleware";
 
-// export async function middleware(req: NextRequest) {
-//   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-//   const pathname = req.nextUrl.pathname;
+// export default withAuth(
+//   function middleware() {},
 
-//   // protect /admin routes
-//   if (pathname.startsWith("/admin")) {
-//     if (!token || token.role !== "admin") {
-//       const url = req.nextUrl.clone();
-//       url.pathname = "/auth/sign-in";
-//       return NextResponse.redirect(url);
-//     }
+//   {
+//     callbacks: {
+//       authorized: ({ token, req }) => {
+//         const path = req.nextUrl.pathname;
+
+//         // Admin protection
+//         if (path.startsWith("/admin")) {
+//           return token?.role === "admin";
+//         }
+
+//         // User must be logged in for /account
+//         if (path.startsWith("/account")) {
+//           return !!token;
+//         }
+
+//         return true;
+//       },
+//     },
 //   }
-//   return NextResponse.next();
-// }
+// );
 
 // export const config = {
-//   matcher: ["/admin/:path*"],
+//   matcher: ["/admin/:path*", "/account/:path*"],
 // };
 
-
-
 import { withAuth } from "next-auth/middleware";
+import type { NextRequest } from "next/server";
 
 export default withAuth(
-  function middleware() {},
+  function middleware(req: NextRequest) {
+    // You can add logging here if needed
+  },
 
   {
     callbacks: {
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
 
-        // Admin protection
+        // --- PUBLIC ROUTES (no auth needed) ---
+        // Add public paths here if needed (e.g., /products, /blog)
+        // Example:
+        // if (path.startsWith("/public")) return true;
+
+        // --- PROTECTED ROUTES ---
+
+        // 1️⃣ Admin-only routes
         if (path.startsWith("/admin")) {
-          return token?.role === "admin";
+          if (!token) return false;
+          return token.role === "admin";
         }
 
-        // User must be logged in for /account
+        // 2️⃣ Logged-in users only
         if (path.startsWith("/account")) {
           return !!token;
         }
 
+        // Allow everything else by default
         return true;
       },
     },
@@ -50,6 +67,8 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/account/:path*",
+  ],
 };
-

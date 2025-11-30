@@ -1,60 +1,26 @@
-// // types/next-auth.d.ts
-// import NextAuth from "next-auth";
-
-// declare module "next-auth" {
-//   interface Session {
-//     user: {
-//       id: string;
-//       name?: string | null;
-//       email?: string | null;
-//       image?: string | null;
-//       role?: string;
-//     };
-//   }
-
-//   interface User {
-//     id: string;
-//     name?: string | null;
-//     email?: string | null;
-//     image?: string | null;
-//     role?: string;
-//   }
-// }
-
-// declare module "next-auth/jwt" {
-//   interface JWT {
-//     id?: string;
-//     role?: string;
-//   }
-// }
-
-
 // types/next-auth.d.ts
-import NextAuth, { DefaultSession } from "next-auth";
+import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
-      id: string; // ✅ always a string
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-      role?: string;
-    };
+      id: string;        // always present
+      role?: string;     // role stored on JWT
+    } & DefaultSession["user"]; // merge default fields (name, email, image)
   }
 
   interface User {
     id: string;
+    role?: string;
     name?: string | null;
     email?: string | null;
     image?: string | null;
-    role?: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id?: string;
-    role?: string;
+    id?: string;     // persisted user ID
+    role?: string;   // persisted role
   }
 }
