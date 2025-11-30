@@ -32,7 +32,7 @@
     ".next/types/**/*.ts",
     "app/page.tsx",
     "app/_components/Logo.js"
-, "prisma.config.ts.DISABLE"  ],
+, "prisma.config.ts.DISABLE", "scripts/create-super-admin.ts"  ],
   "exclude": ["node_modules"]
 }
 

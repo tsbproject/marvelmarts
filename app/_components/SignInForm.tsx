@@ -3,15 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function SignInForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,23 +20,36 @@ export default function SignInForm() {
       password,
     });
 
-    if (res?.ok) {
-      router.push("/"); // ✅ you can later replace with role-based redirect
+    if (res?.error) {
+      setErrorMsg("Invalid email or password");
+      return;
+    }
+
+    // ✅ Fetch the session after successful signIn
+    const sessionRes = await fetch("/api/auth/session");
+    const sessionData = await sessionRes.json();
+
+    const role = sessionData?.user?.role;
+
+    if (role === "SUPER_ADMIN" || role === "ADMIN") {
+      router.push("/dashboard/admins");
+    } else if (role === "VENDOR") {
+      router.push("/account/vendor");
+    } else if (role === "CUSTOMER") {
+      router.push("/account/customer");
     } else {
-      alert("Invalid email or password");
+      router.push("/"); // fallback
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-900">
-          Sign In
-        </h1>
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-900">Sign In</h1>
 
-        {error && (
+        {errorMsg && (
           <p className="mb-4 text-center text-red-600 font-medium bg-red-50 py-2 rounded-lg">
-            Authentication failed
+            {errorMsg}
           </p>
         )}
 
@@ -63,7 +74,6 @@ export default function SignInForm() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
             />
-
             <Link
               href="/auth/forgot-password"
               className="text-sm text-blue-600 hover:underline mt-1 inline-block"
@@ -93,4 +103,3 @@ export default function SignInForm() {
     </div>
   );
 }
-

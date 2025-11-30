@@ -181,6 +181,9 @@ model User {
 
   // optional vendor relation
   vendorProfile VendorProfile?
+
+  permissions Json?      // optional JSON object with booleans
+
 }
 
 model VendorProfile {

@@ -14,13 +14,11 @@
 
 //   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 //     e.preventDefault();
-
 //     const res = await signIn("credentials", {
 //       redirect: false,
 //       email,
 //       password,
 //     });
-
 //     if (res?.ok) {
 //       router.refresh();
 //       router.push("/");
@@ -43,34 +41,7 @@
 //         )}
 
 //         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div>
-//             <label className="block mb-1 font-medium text-gray-700">Email</label>
-//             <input
-//               type="email"
-//               required
-//               value={email}
-//               onChange={(e) => setEmail(e.target.value)}
-//               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block mb-1 font-medium text-gray-700">Password</label>
-//             <input
-//               type="password"
-//               required
-//               value={password}
-//               onChange={(e) => setPassword(e.target.value)}
-//               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
-//             />
-//           </div>
-
-//           <button
-//             type="submit"
-//             className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition active:scale-[0.98]"
-//           >
-//             Sign In
-//           </button>
+//           {/* email + password inputs */}
 //         </form>
 //       </div>
 //     </div>
@@ -82,7 +53,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignInForm() {
@@ -95,14 +67,27 @@ export default function SignInForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     const res = await signIn("credentials", {
       redirect: false,
       email,
       password,
     });
+
     if (res?.ok) {
-      router.refresh();
-      router.push("/");
+      // ✅ fetch the session to get role
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+
+      const role = session?.user?.role;
+
+      if (role === "SUPER_ADMIN" || role === "ADMIN") {
+        router.push("/dashboard/admins");
+      } else if (role === "VENDOR") {
+        router.push("/vendor/dashboard");
+      } else {
+        router.push("/shop");
+      }
     } else {
       alert("Invalid email or password");
     }
@@ -122,8 +107,52 @@ export default function SignInForm() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* email + password inputs */}
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
+            />
+
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-blue-600 hover:underline mt-1 inline-block"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition active:scale-[0.98]"
+          >
+            Sign In
+          </button>
         </form>
+
+        <p className="text-center text-gray-700 mt-6">
+          Don’t have an account?{" "}
+          <Link
+            href="/auth/register/customer-registration"
+            className="text-blue-600 font-semibold hover:underline"
+          >
+            Create Account
+          </Link>
+        </p>
       </div>
     </div>
   );

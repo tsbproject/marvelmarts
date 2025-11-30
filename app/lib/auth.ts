@@ -1,110 +1,15 @@
-// import type { NextAuthOptions, Session } from "next-auth";
-// import CredentialsProvider from "next-auth/providers/credentials";
-// import { prisma } from "@/app/lib/prisma";
-// import { verifyPassword } from "@/app/lib/password";
-// import { JWT } from "next-auth/jwt"; // Import JWT type from next-auth
-
-// // Extend JWT with custom fields
-// interface TokenWithUserId extends JWT {
-//   userId?: string; // Add userId field to the JWT token
-// }
-
-// // Extend the Session type with userId field
-// export interface SessionWithUserId extends Session {
-//   user: {
-//     id: string;
-//     name?: string | null;
-//     email?: string | null;
-//     image?: string | null;
-//   };
-// }
-
-// export const authOptions: NextAuthOptions = {
-//   session: {
-//     strategy: "jwt", // Use JWT-based session
-//   },
-
-//   pages: {
-//     signIn: "/auth/sign-in", // Custom sign-in page
-//   },
-
-//   providers: [
-//     CredentialsProvider({
-//       name: "Credentials",
-//       credentials: {
-//         email: { label: "Email", type: "email" },
-//         password: { label: "Password", type: "password" },
-//       },
-
-//       async authorize(credentials) {
-//         if (!credentials?.email || !credentials?.password) return null;
-
-//         const user = await prisma.user.findUnique({
-//           where: { email: credentials.email },
-//         });
-
-//         if (!user || !user.passwordHash) return null;
-
-//         const valid = await verifyPassword(
-//           credentials.password,
-//           user.passwordHash
-//         );
-//         if (!valid) return null;
-
-//         return {
-//           id: String(user.id), // Ensure ID is a string
-//           name: user.name,
-//           email: user.email,
-//           image: user.image,
-//         };
-//       },
-//     }),
-//   ],
-
-//   callbacks: {
-//     // jwt callback
-//     async jwt({ token, user }) {
-//       const t = token as TokenWithUserId; // Cast token to TokenWithUserId
-
-//       if (user) {
-//         t.userId = String(user.id); // Attach userId as string
-//       }
-
-//       return t; // Return the modified token
-//     },
-
-//     // session callback
-//     async session({ session, token }) {
-//       const s = session;
-//       const t = token as TokenWithUserId;
-
-//       if (s.user && t.userId) {
-//         s.user.id = t.userId; // Attach userId to session's user object
-//       }
-
-//       return s; // Return the session
-//     },
-//   },
-
-//   secret: process.env.NEXTAUTH_SECRET, // Secret for encryption
-// };
-
-
-
 // lib/auth.ts
 import type { NextAuthOptions, Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/lib/prisma";
-import { verifyPassword } from "@/app/lib/password";
+import bcrypt from "bcrypt";
 import { JWT } from "next-auth/jwt";
 
-// Extend JWT with custom fields
 interface TokenWithUserId extends JWT {
   userId?: string;
   role?: string;
 }
 
-// Extend the Session type with userId + role
 export interface SessionWithUserId extends Session {
   user: {
     id: string;
@@ -134,48 +39,58 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-        if (!user || !user.passwordHash) return null;
+        try {
+          const user = await prisma.admin.findUnique({
+            where: { email: credentials.email },
+          });
+          if (!user) return null;
 
-        const valid = await verifyPassword(credentials.password, user.passwordHash);
-        if (!valid) return null;
+          const valid = await bcrypt.compare(credentials.password, user.password);
+          if (!valid) return null;
 
-        return {
-          id: String(user.id),
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          role: user.role, // ✅ include role
-        };
+          return {
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          };
+        } catch (err) {
+          console.error("Authorize error:", err);
+          return null;
+        }
       },
     }),
   ],
 
   callbacks: {
+    // 🔐 Save role & user ID inside JWT
     async jwt({ token, user }) {
-      const t = token as TokenWithUserId;
       if (user) {
-        t.userId = String(user.id);
-        t.role = (user as any).role;
+        return {
+          ...token,
+          userId: String(user.id),
+          role: (user as any).role,
+        };
       }
-      return t;
+      return token;
     },
 
+    // 🔄 Expose JWT fields inside session.user
     async session({ session, token }) {
-      const s = session as SessionWithUserId;
-      const t = token as TokenWithUserId;
-
-      if (s.user) {
-        if (t.userId) s.user.id = t.userId;
-        if (t.role) s.user.role = t.role;
+      if (session.user) {
+        session.user.id = (token as TokenWithUserId)?.userId ?? session.user.id;
+        session.user.role = (token as TokenWithUserId)?.role ?? session.user.role;
       }
-      return s;
+      return session;
     },
+
+  
+redirect() {
+  // Always go to redirect-handler; role-based routing happens there
+  return "/auth/redirect-handler";
+}
+
   },
 
   secret: process.env.NEXTAUTH_SECRET,
 };
-
-
