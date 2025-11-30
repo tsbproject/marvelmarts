@@ -14,11 +14,13 @@ export default function SignInForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const res = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+  const res = await signIn("credentials", {
+  redirect: false,
+  email,
+  password,
+  callbackUrl: `${window.location.origin}/auth/redirect-handler`, // always absolute
+});
+
 
     if (res?.error) {
       setErrorMsg("Invalid email or password");

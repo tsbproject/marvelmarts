@@ -85,10 +85,17 @@ export const authOptions: NextAuthOptions = {
     },
 
   
-redirect() {
-  // Always go to redirect-handler; role-based routing happens there
-  return "/auth/redirect-handler";
+redirect({ url, baseUrl }) {
+  // Only allow relative paths
+  if (url.startsWith("/")) return `${baseUrl}${url}`;
+  // Absolute URL check
+  try {
+    return new URL(url).toString();
+  } catch {
+    return baseUrl; // fallback
+  }
 }
+
 
   },
 

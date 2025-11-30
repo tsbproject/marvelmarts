@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import Link from "next/link";
 
-import EditAdminForm from "./EditAdminForm";
+import EditAdminForm from "../EditAdminForm";
 
 export default async function EditAdminPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
