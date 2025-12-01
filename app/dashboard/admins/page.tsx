@@ -26,10 +26,10 @@ export default async function AdminsPage() {
     <DashboardSidebar>
       <div className="p-8 w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Administrators</h1>
+          <h1 className="text-3xl font-bold">Administrators</h1>
 
           {session.user.role === "SUPER_ADMIN" && (
-            <Link href="/dashboard/admins/create" className="px-4 py-2 bg-black text-white rounded">
+            <Link href="/dashboard/admins/create" className="px-4 py-2 bg-black text-2xl text-white rounded">
               Add Admin
             </Link>
           )}
@@ -37,34 +37,34 @@ export default async function AdminsPage() {
 
         <div className="bg-white rounded shadow overflow-hidden">
           <table className="w-full table-auto">
-            <thead className="bg-gray-50 text-left">
+            <thead className="bg-gray-50 text-2xl text-left">
               <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Role</th>
-                <th className="p-3">Permissions</th>
-                <th className="p-3">Created</th>
-                <th className="p-3">Actions</th>
+                <th className="p-3 text-2xl">Name</th>
+                <th className="p-3 text-2xl">Email</th>
+                <th className="p-3 text-2xl">Role</th>
+                <th className="p-3 text-2xl">Permissions</th>
+                <th className="p-3 text-2xl">Created</th>
+                <th className="p-3 text-2xl">Actions</th>
               </tr>
             </thead>
             <tbody>
               {admins.map((a) => (
                 <tr key={a.id} className="border-t">
-                  <td className="p-3">{a.name}</td>
-                  <td className="p-3">{a.email}</td>
-                  <td className="p-3">{a.role}</td>
-                  <td className="p-3">
+                  <td className="p-3 text-2xl">{a.name}</td>
+                  <td className="p-3 text-2xl">{a.email}</td>
+                  <td className="p-3 text-2xl">{a.role}</td>
+                  <td className="p-3 text-2xl">
                     {a.permissions
                       ? Object.keys(a.permissions).filter(k => a.permissions[k]).join(", ")
                       : "—"}
                   </td>
-                  <td className="p-3">{format(new Date(a.createdAt), "yyyy-MM-dd")}</td>
+                  <td className="p-3 text-2xl">{format(new Date(a.createdAt), "yyyy-MM-dd")}</td>
                   <td className="p-3 space-x-2">
                     {session.user.role === "SUPER_ADMIN" && (
                       <>
                         <Link
                           href={`/dashboard/admins/${a.id}/edit`}
-                          className="text-sm text-blue-600 hover:underline"
+                          className="text-2xl text-blue-600 hover:underline"
                         >
                           Edit
                         </Link>
