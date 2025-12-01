@@ -18,7 +18,7 @@ export default function AdminDeleteButton({ id }) {
   };
 
   return (
-    <button className="text-red-600" onClick={handleDelete}>
+    <button className="text-red-600 text-2xl" onClick={handleDelete}>
       Delete
     </button>
   );
