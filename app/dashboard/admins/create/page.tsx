@@ -4,7 +4,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const defaultPerms = {
+type Permissions = {
+  manageUsers: boolean;
+  manageBlogs: boolean;
+  manageMessages: boolean;
+  manageSettings: boolean;
+  manageAdmins: boolean;
+};
+
+type FormData = {
+  name: string;
+  email: string;
+  password: string;
+  role: "ADMIN" | "SUPER_ADMIN";
+};
+
+const defaultPerms: Permissions = {
   manageUsers: false,
   manageBlogs: false,
   manageMessages: false,
@@ -14,15 +29,20 @@ const defaultPerms = {
 
 export default function CreateAdminPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "ADMIN" });
-  const [perms, setPerms] = useState(defaultPerms);
+  const [form, setForm] = useState<FormData>({
+    name: "",
+    email: "",
+    password: "",
+    role: "ADMIN",
+  });
+  const [perms, setPerms] = useState<Permissions>(defaultPerms);
   const [loading, setLoading] = useState(false);
 
-  function toggle(key: keyof typeof defaultPerms) {
+  function toggle(key: keyof Permissions) {
     setPerms(prev => ({ ...prev, [key]: !prev[key] }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
@@ -34,13 +54,14 @@ export default function CreateAdminPage() {
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    const data: { error?: string } = await res.json();
     setLoading(false);
 
     if (!res.ok) {
       alert(data.error || "Failed to create admin");
       return;
     }
+
     alert("Admin created");
     router.push("/dashboard/admins");
   }
@@ -51,32 +72,60 @@ export default function CreateAdminPage() {
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
         <div>
           <label className="block text-sm font-medium">Name</label>
-          <input name="name" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border p-2 rounded" />
+          <input
+            name="name"
+            required
+            value={form.name}
+            onChange={e => setForm({ ...form, name: e.target.value })}
+            className="w-full border p-2 rounded"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium">Email</label>
-          <input name="email" type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full border p-2 rounded" />
+          <input
+            name="email"
+            type="email"
+            required
+            value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })}
+            className="w-full border p-2 rounded"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium">Password</label>
-          <input name="password" type="password" required value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full border p-2 rounded" />
+          <input
+            name="password"
+            type="password"
+            required
+            value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })}
+            className="w-full border p-2 rounded"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Permissions</label>
           <div className="grid grid-cols-2 gap-2">
-            {Object.keys(perms).map(k => (
-              <label key={k} className="flex items-center space-x-2">
-                <input type="checkbox" checked={(perms as any)[k]} onChange={() => toggle(k as any)} />
-                <span className="text-sm">{k}</span>
+            {(Object.keys(perms) as Array<keyof Permissions>).map(key => (
+              <label key={key} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={perms[key]}
+                  onChange={() => toggle(key)}
+                />
+                <span className="text-sm">{key}</span>
               </label>
             ))}
           </div>
         </div>
 
-        <button disabled={loading} className="px-4 py-2 bg-black text-white rounded">
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 bg-black text-white rounded"
+        >
           {loading ? "Creating..." : "Create Admin"}
         </button>
       </form>
