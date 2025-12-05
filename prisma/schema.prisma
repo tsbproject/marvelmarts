@@ -181,6 +181,8 @@ model User {
   sessions      Session[]
   vendorProfile VendorProfile?
   permissions   Json?
+
+  passwordResetToken PasswordResetToken? // <-- add this back-relation
 }
 
 
@@ -256,11 +258,12 @@ enum UserRole {
 
 
 model PasswordResetToken {
-  id          String   @id @default(uuid())
-  email       String
-  token       String   @unique
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 

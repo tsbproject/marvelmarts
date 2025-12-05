@@ -1,53 +1,123 @@
-import { NextResponse } from "next/server";
+// import { prisma } from "@/app/lib/prisma";
+// import crypto from "crypto";
+// import { sendPasswordResetEmail } from "@/app/lib/mailer";
+
+// export async function POST(req: Request) {
+//   try {
+//     const body = await req.json();
+//     const { email } = body;
+
+//     // Basic validation
+//     if (!email || typeof email !== "string") {
+//       return Response.json(
+//         { success: false, error: "Invalid email" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // 1️⃣ Find ANY user by email (SUPER_ADMIN, ADMIN, CUSTOMER)
+//     const user = await prisma.user.findUnique({
+//       where: { email },
+//     });
+
+//     if (!user) {
+//       return Response.json(
+//         { success: false, error: "No account found with this email" },
+//         { status: 404 }
+//       );
+//     }
+
+//     // 2️⃣ Generate 6-digit reset code
+//     const resetCode = crypto.randomInt(100000, 999999).toString();
+
+//     // 3️⃣ Upsert token (unique by userId)
+//     await prisma.passwordResetToken.upsert({
+//       where: { userId: user.id },
+//       update: {
+//         token: resetCode,
+//         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+//       },
+//       create: {
+//         userId: user.id,
+//         token: resetCode,
+//         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+//       },
+//     });
+
+//     // 4️⃣ Send reset email
+//     await sendPasswordResetEmail(user.email, resetCode);
+
+//     return Response.json(
+//       { success: true, message: "Password reset code sent successfully" },
+//       { status: 200 }
+//     );
+//   } catch (error: unknown) {
+//     console.error("Forgot-password route error:", error);
+//     const message =
+//       error instanceof Error ? error.message : "Internal server error";
+
+//     return Response.json(
+//       { success: false, error: message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
 import { prisma } from "@/app/lib/prisma";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "@/app/lib/mailer";
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const body = await req.json();
+    const { email } = body;
 
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    if (!email || typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+      return Response.json(
+        { success: false, error: "Invalid email" },
+        { status: 400 }
+      );
     }
 
-    // Find user in any table
-    const superAdmin = await prisma.admin.findUnique({ where: { email } });
-    const admin = await prisma.admin.findUnique({ where: { email } });
-    const vendor = await prisma.vendorProfile.findUnique({ where: { email } });
-    const customer = await prisma.user.findUnique({ where: { email } });
-
-    const user = superAdmin || admin || vendor || customer;
-
+    // ✅ Find user by email, any role
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({
-        success: true,
-        message: "If the email exists, a reset link will be sent.",
-      });
+      return Response.json(
+        { success: false, error: "No account found with this email" },
+        { status: 404 }
+      );
     }
 
-    // Create token
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
+    // ✅ Generate 6-digit reset code
+    const resetCode = crypto.randomInt(100000, 999999).toString();
 
-    // Save token in DB
-    await prisma.passwordResetToken.create({
-      data: {
-        email,
-        token,
-        expiresAt,
+    // ✅ Upsert token
+    await prisma.passwordResetToken.upsert({
+      where: { userId: user.id },
+      update: {
+        token: resetCode,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+      create: {
+        userId: user.id,
+        token: resetCode,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
 
-    // Send email
-    await sendPasswordResetEmail(email, token);
+    // ✅ Send email
+    await sendPasswordResetEmail(user.email, resetCode);
 
-    return NextResponse.json({
-      success: true,
-      message: "Password reset link sent.",
-    });
-  } catch (error) {
-    console.error("Forgot Password Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    return Response.json(
+      { success: true, message: "Password reset code sent successfully" },
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    console.error("Forgot-password route error:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return Response.json({ success: false, error: message }, { status: 500 });
   }
 }
+
+
