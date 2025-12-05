@@ -1,11 +1,13 @@
 import { DefaultSession } from "next-auth";
 
+type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "USER";
+
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: string | null;
-      permissions?: Record<string, boolean>;
+      role: Role;
+      permissions?: Record<string, boolean> | null;
     } & DefaultSession["user"];
   }
 
@@ -14,16 +16,16 @@ declare module "next-auth" {
     name: string | null;
     email: string | null;
     image?: string | null;
-    role: string | null;
-    permissions?: Record<string, boolean>;
-    passwordHash: string;  // required to fix "user.passwordHash" error
+    role: Role;
+    permissions?: Record<string, boolean> | null;
+    passwordHash?: string; // optional for auth logic
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     userId: string;
-    role: string | null;
-    permissions?: Record<string, boolean>;
+    role: Role;
+    permissions?: Record<string, boolean> | null;
   }
 }

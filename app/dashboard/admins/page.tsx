@@ -5,6 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 import { format } from "date-fns";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import AdminDeleteButton from "@/app/_components/AdminDeleteButton";
+import DashboardHeader from "@/app/_components/DashboardHeader";
 
 export default async function AdminsPage() {
   const session = await getServerSession(authOptions);
@@ -25,16 +26,15 @@ export default async function AdminsPage() {
   return (
     <DashboardSidebar>
       <div className="p-8 w-full">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Administrators</h1>
+        {/* --- Reusable Dashboard Header --- */}
+        <DashboardHeader
+          title="Administrators"
+          showAddButton={session.user.role === "SUPER_ADMIN"}
+          addButtonLabel="Add Admin"
+          addButtonLink="/dashboard/admins/create"
+        />
 
-          {session.user.role === "SUPER_ADMIN" && (
-            <Link href="/dashboard/admins/create" className="px-4 py-2 bg-black text-2xl text-white rounded">
-              Add Admin
-            </Link>
-          )}
-        </div>
-
+        {/* --- Admins Table --- */}
         <div className="bg-white rounded shadow overflow-hidden">
           <table className="w-full table-auto">
             <thead className="bg-gray-50 text-2xl text-left">
@@ -69,7 +69,7 @@ export default async function AdminsPage() {
                           Edit
                         </Link>
 
-                        <AdminDeleteButton id={a.id} /> 
+                        <AdminDeleteButton id={a.id} />
                       </>
                     )}
                   </td>
@@ -82,4 +82,3 @@ export default async function AdminsPage() {
     </DashboardSidebar>
   );
 }
-

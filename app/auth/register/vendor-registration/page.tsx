@@ -1,12 +1,273 @@
+// "use client";
+
+// import { useState, useMemo } from "react";
+// import { useNotification } from "@/app/_context/NotificationContext";
+// import { z } from "zod";
+
+// // Validation schema
+// const vendorSchema = z.object({
+//   email: z.string().email("Invalid email"),
+//   verificationCode: z.string().min(4, "Enter verification code"),
+//   firstName: z.string().min(1, "First name is required"),
+//   lastName: z.string().min(1, "Last name is required"),
+//   storeName: z.string().min(1, "Store name is required"),
+//   storePhone: z.string().min(10, "Enter valid phone"),
+//   storeAddress: z.string().min(5, "Store address required"),
+//   country: z.string().min(1),
+//   state: z.string().min(1, "State required"),
+//   password: z.string().min(6, "Password must be at least 6 chars"),
+//   confirmPassword: z.string().min(6),
+//   agree: z.literal(true, { errorMap: () => ({ message: "You must agree to terms" }) }),
+// }).refine(data => data.password === data.confirmPassword, { message: "Passwords do not match", path: ["confirmPassword"] });
+
+// type VendorFormData = z.infer<typeof vendorSchema>;
+
+// const PASSWORD_POLICY = { minLength: 6, requireUpper: true, requireNumber: true };
+// function calcPasswordScore(pw: string) {
+//   let score = 0;
+//   if (pw.length >= PASSWORD_POLICY.minLength) score += 30;
+//   if (/[A-Z]/.test(pw)) score += 30;
+//   if (/\d/.test(pw)) score += 30;
+//   if (/[^A-Za-z0-9]/.test(pw)) score += 10;
+//   return Math.min(100, score);
+// }
+// function sanitize(input: string) { return input.replace(/[<>]/g, "").trim(); }
+
+// export default function VendorRegistration() {
+//   const { notifySuccess, notifyError } = useNotification();
+
+//   const [formData, setFormData] = useState<VendorFormData>({
+//     email: "",
+//     verificationCode: "",
+//     firstName: "",
+//     lastName: "",
+//     storeName: "",
+//     storePhone: "",
+//     storeAddress: "",
+//     country: "Nigeria",
+//     state: "",
+//     password: "",
+//     confirmPassword: "",
+//     agree: false,
+//   });
+
+//   const [honeypot, setHoneypot] = useState("");
+//   const [sentCode, setSentCode] = useState(false);
+//   const [verifying, setVerifying] = useState(false);
+//   const [isVerified, setIsVerified] = useState(false);
+//   const [registering, setRegistering] = useState(false);
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [passwordScore, setPasswordScore] = useState(0);
+
+//   function setField<K extends keyof VendorFormData>(key: K, value: VendorFormData[K]) {
+//     setFormData(prev => ({ ...prev, [key]: value }));
+//     if (key === "password") setPasswordScore(calcPasswordScore(String(value)));
+//   }
+
+//   const isEmailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()), [formData.email]);
+//   const isPasswordStrong = useMemo(() => {
+//     const pw = formData.password;
+//     return pw.length >= PASSWORD_POLICY.minLength && /[A-Z]/.test(pw) && /\d/.test(pw);
+//   }, [formData.password]);
+
+//   async function handleResendCode() {
+//     if (!isEmailValid) return notifyError("Enter valid email");
+
+//     try {
+//       const res = await fetch("/api/auth/register/vendor/send-code", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ email: sanitize(formData.email) }),
+//       });
+//       const data = await res.json();
+//       if (data.success) {
+//         setSentCode(true);
+//         notifySuccess(data.code ? `(dev) Code: ${data.code}` : "Verification code sent");
+//       } else notifyError(data.error ?? "Failed to send code");
+//     } catch (err: unknown) {
+//       notifyError((err as Error)?.message ?? "Unexpected error");
+//     }
+//   }
+
+//   async function handleVerifyCode() {
+//     if (!formData.email || !formData.verificationCode) return notifyError("Email and code required");
+
+//     setVerifying(true);
+//     try {
+//       const res = await fetch("/api/auth/register/vendor/verify-code", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ email: sanitize(formData.email), code: sanitize(formData.verificationCode) }),
+//       });
+//       const data = await res.json();
+//       if (data.success) {
+//         notifySuccess("Code verified — you can continue");
+//         setIsVerified(true);
+//       } else {
+//         notifyError(data.error ?? "Invalid or expired code");
+//         setIsVerified(false);
+//       }
+//     } catch (err: unknown) {
+//       notifyError((err as Error)?.message ?? "Unexpected error");
+//       setIsVerified(false);
+//     } finally {
+//       setVerifying(false);
+//     }
+//   }
+
+//   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+//     e.preventDefault();
+//     if (honeypot) return;
+
+//     const validation = vendorSchema.safeParse(formData);
+//     if (!validation.success) return notifyError(validation.error.errors[0]?.message ?? "Validation failed");
+//     if (!isEmailValid) return notifyError("Invalid email");
+//     if (!isPasswordStrong) return notifyError(`Password must meet policy`);
+//     if (!isVerified) return notifyError("You must verify your email first");
+
+//     setRegistering(true);
+//     try {
+//       const res = await fetch("/api/auth/register/vendor", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ ...formData, email: sanitize(formData.email) }),
+//       });
+//       const data = await res.json();
+//       if (data.success) notifySuccess("Registration complete — please sign in");
+//       else notifyError(data.error ?? "Registration failed");
+//     } catch (err: unknown) {
+//       notifyError((err as Error)?.message ?? "Unexpected error");
+//     } finally {
+//       setRegistering(false);
+//     }
+//   }
+
+//   return (
+//     <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
+//       <div className="w-full max-w-3xl bg-white p-8 rounded shadow">
+//         <h2 className="text-2xl font-bold mb-6">Vendor Registration</h2>
+//         <form onSubmit={handleSubmit} className="space-y-4">
+//           <div style={{ display: "none" }}>
+//             <input value={honeypot} onChange={e => setHoneypot(e.target.value)} />
+//           </div>
+//           <div>
+//             <label>Email *</label>
+//             <input
+//               value={formData.email}
+//               onChange={e => setField("email", e.target.value)}
+//               className={`w-full p-2 border rounded ${formData.email && !isEmailValid ? "border-red-400" : ""}`}
+//             />
+//             {formData.email && !isEmailValid && <p className="text-red-500 text-xs mt-1">Invalid email</p>}
+//           </div>
+
+//           <div className="flex gap-4 items-center">
+//             <input placeholder="Verification code" value={formData.verificationCode} onChange={e => setField("verificationCode", e.target.value)} className="flex-1 p-2 border rounded" />
+//             <button type="button" onClick={handleResendCode} className="px-4 py-2 bg-blue-600 text-white rounded">Send Code</button>
+//             <button type="button" onClick={handleVerifyCode} className="px-4 py-2 bg-green-600 text-white rounded">{verifying ? "Verifying..." : "Verify Code"}</button>
+//             <span className={`ml-2 font-semibold ${isVerified ? "text-green-600" : "text-red-500"}`}>{isVerified ? "Verified" : "Not verified"}</span>
+//           </div>
+
+//           <div className="grid grid-cols-2 gap-4">
+//             <input placeholder="First name" value={formData.firstName} onChange={e => setField("firstName", e.target.value)} className="p-2 border rounded" />
+//             <input placeholder="Last name" value={formData.lastName} onChange={e => setField("lastName", e.target.value)} className="p-2 border rounded" />
+//             <input placeholder="Store name" value={formData.storeName} onChange={e => setField("storeName", e.target.value)} className="p-2 border rounded" />
+//             <input placeholder="Store phone" value={formData.storePhone} onChange={e => setField("storePhone", e.target.value)} className="p-2 border rounded" />
+//             <input placeholder="Store address" value={formData.storeAddress} onChange={e => setField("storeAddress", e.target.value)} className="p-2 border rounded" />
+//             <input placeholder="State" value={formData.state} onChange={e => setField("state", e.target.value)} className="p-2 border rounded" />
+//           </div>
+
+//           <div>
+//             <label>Password *</label>
+//             <div className="relative mt-1">
+//               <input type={showPassword ? "text" : "password"} value={formData.password} onChange={e => setField("password", e.target.value)} className="w-full p-2 border rounded" />
+//               <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm" onClick={() => setShowPassword(!showPassword)}>
+//                 {showPassword ? "Hide" : "Show"}
+//               </button>
+//             </div>
+//             <div className="mt-2 h-2 w-full bg-gray-100 rounded">
+//               <div className={`h-2 rounded ${passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-yellow-400" : "bg-green-500"}`} style={{ width: `${passwordScore}%` }} />
+//             </div>
+//           </div>
+
+//           <div>
+//             <label>Confirm Password *</label>
+//             <input type="password" value={formData.confirmPassword} onChange={e => setField("confirmPassword", e.target.value)} className="w-full p-2 border rounded" />
+//           </div>
+
+//           <div className="flex items-center gap-2">
+//             <input type="checkbox" checked={formData.agree} onChange={() => setField("agree", !formData.agree)} />
+//             <label>I agree to the terms</label>
+//           </div>
+
+//           <button disabled={registering || !isVerified} type="submit" className={`w-full py-2 rounded text-white ${registering || !isVerified ? "bg-gray-400 cursor-not-allowed" : "bg-black"}`}>
+//             {registering ? "Registering..." : "Register"}
+//           </button>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
 "use client";
 
-import { useState } from "react";
-import { useNotification } from "@/app/_context/NotificationContext"; 
+import { useState, useMemo } from "react";
+import { useNotification } from "@/app/_context/NotificationContext";
+import { z } from "zod";
 
-const VendorRegistration = () => {
-  const { addNotification } = useNotification(); 
-  const [formData, setFormData] = useState({
-    username: "",
+// ------------------------
+// Zod schema for validation
+// ------------------------
+const vendorSchema = z
+  .object({
+    email: z.string().email("Invalid email"),
+    verificationCode: z.string().min(4, "Enter verification code"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    storeName: z.string().min(1, "Store name is required"),
+    storePhone: z.string().min(10, "Enter valid phone number"),
+    storeAddress: z.string().min(5, "Store address required"),
+    country: z.string().min(1),
+    state: z.string().min(1, "State required"),
+    password: z.string().min(6, "Password must be at least 6 chars"),
+    confirmPassword: z.string().min(6),
+    agree: z.literal(true, {
+      errorMap: () => ({ message: "You must agree to terms" }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type VendorFormData = z.infer<typeof vendorSchema>;
+
+// ------------------------
+// Password utils
+// ------------------------
+const PASSWORD_POLICY = { minLength: 6, requireUpper: true, requireNumber: true };
+
+function calcPasswordScore(pw: string) {
+  let score = 0;
+  if (pw.length >= PASSWORD_POLICY.minLength) score += 30;
+  if (/[A-Z]/.test(pw)) score += 30;
+  if (/\d/.test(pw)) score += 30;
+  if (/[^A-Za-z0-9]/.test(pw)) score += 10;
+  return Math.min(100, score);
+}
+
+function sanitize(input: string) {
+  return input.replace(/[<>]/g, "").trim();
+}
+
+// ------------------------
+// Component
+// ------------------------
+export default function VendorRegistration() {
+  const { notifySuccess, notifyError } = useNotification();
+
+  const [formData, setFormData] = useState<VendorFormData>({
     email: "",
     verificationCode: "",
     firstName: "",
@@ -21,268 +282,243 @@ const VendorRegistration = () => {
     agree: false,
   });
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [sentCode, setSentCode] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordScore, setPasswordScore] = useState(0);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
-  };
+  // ------------------------
+  // Field handler
+  // ------------------------
+  function setField<K extends keyof VendorFormData>(key: K, value: VendorFormData[K]) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    if (key === "password") setPasswordScore(calcPasswordScore(String(value)));
+  }
 
-  const handleCheckboxChange = () => {
-    setFormData((prevState) => ({
-      ...prevState,
-      agree: !prevState.agree,
-    }));
-  };
+  // ------------------------
+  // Validation helpers
+  // ------------------------
+  const isEmailValid = useMemo(
+    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()),
+    [formData.email]
+  );
 
-  const handleResendCode = async () => {
-    if (!formData.email) {
-      alert("Please provide an email before requesting a code.");
+  const isPasswordStrong = useMemo(() => {
+    const pw = formData.password;
+    return (
+      pw.length >= PASSWORD_POLICY.minLength &&
+      /[A-Z]/.test(pw) &&
+      /\d/.test(pw)
+    );
+  }, [formData.password]);
+
+  // ------------------------
+  // Send verification code
+  // ------------------------
+  async function handleSendCode() {
+    if (!isEmailValid) {
+      notifyError("Enter a valid email first");
       return;
     }
 
     try {
-      const response = await fetch("/api/auth/vendor/send-code", {
+      const res = await fetch("/api/auth/register/vendor/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify({ email: sanitize(formData.email) }),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        alert("Verification code sent successfully!");
-        addNotification("Verification code sent successfully!", "success"); // Trigger success notification
-      } else {
-        setError(data.error || "Failed to send verification code.");
-        addNotification(data.error || "Failed to send verification code.", "error"); // Trigger error notification
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        setError("Error: " + error.message); // Access message safely
-        addNotification("Error: " + error.message, "error"); // Trigger error notification
-      } else {
-        setError("An unknown error occurred"); // Fallback for non-Error objects
-        addNotification("An unknown error occurred", "error"); // Trigger unknown error notification
-      }
-    }
-  };
+      const data: { success: boolean; code?: string; error?: string } = await res.json();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simulating form validation and submission
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all required fields.");
-      addNotification("Please fill in all required fields.", "error"); // Trigger error notification
+      if (data.success) {
+        setSentCode(true);
+        notifySuccess(data.code ? `(dev) Code: ${data.code}` : "Verification code sent");
+      } else {
+        notifyError(data.error ?? "Failed to send code");
+      }
+    } catch (err) {
+      notifyError(err instanceof Error ? err.message : "Unexpected error");
+    }
+  }
+
+  // ------------------------
+  // Verify code
+  // ------------------------
+  async function handleVerifyCode() {
+    if (!formData.email || !formData.verificationCode) {
+      notifyError("Email and verification code required");
       return;
     }
 
-    // Simulate successful registration
-    setSuccess("Registration Successful!");
-    addNotification("Registration Successful!", "success"); // Trigger success notification
-  };
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/auth/register/vendor/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: sanitize(formData.email), code: sanitize(formData.verificationCode) }),
+      });
 
+      const data: { success: boolean; error?: string } = await res.json();
+
+      if (data.success) {
+        notifySuccess("Code verified — you can continue");
+        setIsVerified(true);
+      } else {
+        notifyError(data.error ?? "Invalid or expired code");
+        setIsVerified(false);
+      }
+    } catch (err) {
+      notifyError(err instanceof Error ? err.message : "Unexpected error");
+      setIsVerified(false);
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  // ------------------------
+  // Submit registration
+  // ------------------------
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (honeypot) return; // bot detected
+
+    const validation = vendorSchema.safeParse(formData);
+    if (!validation.success) {
+      notifyError(validation.error.errors[0]?.message ?? "Validation failed");
+      return;
+    }
+
+    if (!isEmailValid) return notifyError("Invalid email");
+    if (!isPasswordStrong)
+      return notifyError(
+        `Password must be at least ${PASSWORD_POLICY.minLength} characters, include 1 uppercase & 1 number.`
+      );
+    if (!isVerified) return notifyError("You must verify your email first");
+
+    setRegistering(true);
+    try {
+      const res = await fetch("/api/auth/register/vendor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, email: sanitize(formData.email) }),
+      });
+
+      const data: { success: boolean; error?: string } = await res.json();
+
+      if (data.success) {
+        notifySuccess("Registration complete — please sign in");
+        // Optionally redirect to sign-in page here
+      } else {
+        notifyError(data.error ?? "Registration failed");
+      }
+    } catch (err) {
+      notifyError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setRegistering(false);
+    }
+  }
+
+  // ------------------------
+  // Render
+  // ------------------------
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-7xl">
-        <h2 className="text-3xl font-semibold text-center mb-8">Vendor Registration</h2>
-        {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
-        {success && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded">{success}</div>}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Username */}
-          <div>
-            <label htmlFor="username" className="block text-lg font-medium text-gray-700">Username *</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              className="w-full mt-2 p-3 border rounded-md"
-              required
-            />
+    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
+      <div className="w-full max-w-3xl bg-white p-8 rounded shadow">
+        <h2 className="text-2xl font-bold mb-6">Vendor Registration</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Honeypot */}
+          <div style={{ display: "none" }}>
+            <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
           </div>
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-lg font-medium text-gray-700">Email *</label>
+            <label>Email *</label>
             <input
-              type="email"
-              id="email"
-              name="email"
               value={formData.email}
-              onChange={handleInputChange}
-              className="w-full mt-2 p-3 border rounded-md"
-              required
+              onChange={(e) => setField("email", e.target.value)}
+              className={`w-full p-2 border rounded ${formData.email && !isEmailValid ? "border-red-400" : ""}`}
             />
+            {formData.email && !isEmailValid && <p className="text-red-500 text-xs mt-1">Invalid email</p>}
           </div>
 
-          {/* Verification Code */}
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <label htmlFor="verificationCode" className="block text-lg font-medium text-gray-700">Verification Code *</label>
-              <input
-                type="text"
-                id="verificationCode"
-                name="verificationCode"
-                value={formData.verificationCode}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleResendCode}
-              className="bg-blue-600 text-white py-3 px-6 rounded-md"
-            >
-              Re-send Code
+          {/* Verification */}
+          <div className="flex gap-4 items-center">
+            <input
+              placeholder="Verification code"
+              value={formData.verificationCode}
+              onChange={(e) => setField("verificationCode", e.target.value)}
+              className="flex-1 p-2 border rounded"
+            />
+            <button type="button" onClick={handleSendCode} className="px-4 py-2 bg-blue-600 text-white rounded">
+              Send Code
             </button>
+            <button type="button" onClick={handleVerifyCode} className="px-4 py-2 bg-green-600 text-white rounded">
+              {verifying ? "Verifying..." : "Verify Code"}
+            </button>
+            <span className={`ml-2 font-semibold ${isVerified ? "text-green-600" : "text-red-500"}`}>
+              {isVerified ? "Verified" : "Not verified"}
+            </span>
           </div>
 
-          {/* Name and Store Info */}
+          {/* Name & Store */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="firstName" className="block text-lg font-medium text-gray-700">First Name *</label>
-              <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="lastName" className="block text-lg font-medium text-gray-700">Last Name *</label>
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="storeName" className="block text-lg font-medium text-gray-700">Store Name *</label>
-              <input
-                type="text"
-                id="storeName"
-                name="storeName"
-                value={formData.storeName}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="storePhone" className="block text-lg font-medium text-gray-700">Store Phone *</label>
-              <input
-                type="tel"
-                id="storePhone"
-                name="storePhone"
-                value={formData.storePhone}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="storeAddress" className="block text-lg font-medium text-gray-700">Store Address *</label>
-              <input
-                type="text"
-                id="storeAddress"
-                name="storeAddress"
-                value={formData.storeAddress}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="country" className="block text-lg font-medium text-gray-700">Country *</label>
-              <select
-                id="country"
-                name="country"
-                value={formData.country}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              >
-                <option value="Nigeria">Nigeria</option>
-                <option value="USA">USA</option>
-                <option value="UK">UK</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="state" className="block text-lg font-medium text-gray-700">State *</label>
-              <input
-                type="text"
-                id="state"
-                name="state"
-                value={formData.state}
-                onChange={handleInputChange}
-                className="w-full mt-2 p-3 border rounded-md"
-                required
-              />
-            </div>
+            <input placeholder="First name" value={formData.firstName} onChange={(e) => setField("firstName", e.target.value)} className="p-2 border rounded" />
+            <input placeholder="Last name" value={formData.lastName} onChange={(e) => setField("lastName", e.target.value)} className="p-2 border rounded" />
+            <input placeholder="Store name" value={formData.storeName} onChange={(e) => setField("storeName", e.target.value)} className="p-2 border rounded" />
+            <input placeholder="Store phone" value={formData.storePhone} onChange={(e) => setField("storePhone", e.target.value)} className="p-2 border rounded" />
+            <input placeholder="Store address" value={formData.storeAddress} onChange={(e) => setField("storeAddress", e.target.value)} className="p-2 border rounded" />
+            <input placeholder="State" value={formData.state} onChange={(e) => setField("state", e.target.value)} className="p-2 border rounded" />
           </div>
 
           {/* Password */}
           <div>
-            <label htmlFor="password" className="block text-lg font-medium text-gray-700">Password *</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full mt-2 p-3 border rounded-md"
-              required
-            />
+            <label>Password *</label>
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={(e) => setField("password", e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+            <div className="mt-2 h-2 w-full bg-gray-100 rounded">
+              <div
+                className={`h-2 rounded ${passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-yellow-400" : "bg-green-500"}`}
+                style={{ width: `${passwordScore}%` }}
+              />
+            </div>
           </div>
 
-          {/* Confirm Password */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-lg font-medium text-gray-700">Confirm Password *</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              className="w-full mt-2 p-3 border rounded-md"
-              required
-            />
+            <label>Confirm Password *</label>
+            <input type="password" value={formData.confirmPassword} onChange={(e) => setField("confirmPassword", e.target.value)} className="w-full p-2 border rounded" />
           </div>
 
-          {/* Agree to Terms */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="agree"
-              name="agree"
-              checked={formData.agree}
-              onChange={handleCheckboxChange}
-              className="h-5 w-5 text-blue-600 rounded border-gray-300"
-            />
-            <label htmlFor="agree" className="ml-2 text-gray-700">I Agree to the Terms & Conditions</label>
+          {/* Agree */}
+          <div className="flex items-center gap-2">
+            <input type="checkbox" checked={formData.agree} onChange={() => setField("agree", !formData.agree)} />
+            <label>I agree to the terms</label>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-center mt-8">
-            <button type="submit" className="bg-blue-600 text-white py-3 px-6 rounded-md">Register</button>
-          </div>
+          {/* Submit */}
+          <button
+            disabled={registering || !isVerified}
+            type="submit"
+            className={`w-full py-2 rounded text-white ${registering || !isVerified ? "bg-gray-400 cursor-not-allowed" : "bg-black"}`}
+          >
+            {registering ? "Registering..." : "Register"}
+          </button>
         </form>
       </div>
     </div>
   );
-};
+}
 
-export default VendorRegistration;

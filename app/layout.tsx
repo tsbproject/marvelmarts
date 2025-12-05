@@ -33,7 +33,7 @@ import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout";
-import { NotificationProvider } from "@/app/_context/NotificationContext"; 
+// import { NotificationProvider } from "@/app/_context/NotificationContext"; 
 
 export const metadata: Metadata = {
   title: "MarvelMarts",
@@ -52,11 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
         {/* Wrap everything with NotificationProvider to give access to the notification context */}
-        <NotificationProvider>
+        
           <ClientLayout>
             {children}
           </ClientLayout>
-        </NotificationProvider>
+      
       </body>
     </html>
   );

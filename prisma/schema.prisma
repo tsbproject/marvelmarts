@@ -164,42 +164,62 @@ model OrderItem {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String?
-  email        String?   @unique
-  passwordHash String?
-  role         String    @default("user") // "admin" | "user" | "staff" | "vendor"
-  image        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  accounts     Account[]
-  addresses    Address[]
-  cart         Cart?
-  orders       Order[]
-  reviews      Review[]
-  sessions     Session[]
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  passwordHash  String
+  role          UserRole        @default(CUSTOMER)
+  image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  // optional vendor relation
+  accounts      Account[]
+  addresses     Address[]
+  cart          Cart?
+  orders        Order[]
+  reviews       Review[]
+  sessions      Session[]
   vendorProfile VendorProfile?
-
-  permissions Json?      // optional JSON object with booleans
-
+  permissions   Json?
 }
+
+
+
 
 model VendorProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName    String
-  lastName     String
-  storeName    String
-  storePhone   String
-  storeAddress String
-  country      String
-  state        String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstName      String
+  lastName       String
+  storeName      String
+  storePhone     String
+  storeAddress   String
+  country        String
+  state          String
+
+  // NEW FIELDS
+  verificationCode String?
+  isVerified        Boolean @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
+
+model VendorVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([code])
+}
+
+
 
 model EmailVerification {
   id        String   @id @default(cuid())
@@ -214,7 +234,7 @@ model Admin {
   id          String   @id @default(cuid())
   name        String
   email       String   @unique
-  password    String
+  passwordHash    String
   role        Role     @default(ADMIN)
   permissions Json?
   createdAt   DateTime @default(now())
@@ -225,6 +245,24 @@ enum Role {
   SUPER_ADMIN
   ADMIN
 }
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  VENDOR
+  CUSTOMER
+}
+
+
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+  email       String
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
 
 
 

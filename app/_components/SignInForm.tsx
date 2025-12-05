@@ -1,103 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function SignInForm() {
+export default function SignInPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [identifier, setIdentifier] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const sanitize = (value: string): string => value.replace(/[<>]/g, "").trim();
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  const res = await signIn("credentials", {
-  redirect: false,
-  email,
-  password,
-  callbackUrl: `${window.location.origin}/auth/redirect-handler`, // always absolute
-});
+    const sanitizedId = sanitize(identifier);
 
-
-    if (res?.error) {
-      setErrorMsg("Invalid email or password");
+    if (!sanitizedId || !password) {
+      setError("Email/Username and password are required");
+      setLoading(false);
       return;
     }
 
-    // ✅ Fetch the session after successful signIn
-    const sessionRes = await fetch("/api/auth/session");
-    const sessionData = await sessionRes.json();
+    const res = await signIn("credentials", {
+      redirect: false,
+      identifier: sanitizedId,
+      password,
+    });
 
-    const role = sessionData?.user?.role;
-
-    if (role === "SUPER_ADMIN" || role === "ADMIN") {
-      router.push("/dashboard/admins");
-    } else if (role === "VENDOR") {
-      router.push("/account/vendor");
-    } else if (role === "CUSTOMER") {
-      router.push("/account/customer");
-    } else {
-      router.push("/"); // fallback
+    if (res?.error) {
+      setError("Invalid credentials");
+      setLoading(false);
+      return;
     }
-  }
+
+    // fetch session to get role
+    const sessionRes = await fetch("/api/auth/session");
+    if (!sessionRes.ok) {
+      setError("Failed to fetch session");
+      setLoading(false);
+      return;
+    }
+
+    const session: { user?: { id: string; role: string } } = await sessionRes.json();
+    let role = session?.user?.role;
+    if (role === "user") role = "CUSTOMER";
+    if (role) role = role.toUpperCase();
+
+    switch (role) {
+      case "SUPER_ADMIN":
+      case "ADMIN":
+        router.push("/dashboard/admins");
+        break;
+      case "VENDOR":
+        router.push("/account/vendor");
+        break;
+      case "CUSTOMER":
+        router.push("/account/customer");
+        break;
+      default:
+        setError("Unknown role. Contact support.");
+        break;
+    }
+
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-900">Sign In</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold mb-6 text-center">Sign In</h1>
 
-        {errorMsg && (
-          <p className="mb-4 text-center text-red-600 font-medium bg-red-50 py-2 rounded-lg">
-            {errorMsg}
-          </p>
+        {error && (
+          <p className="mb-4 text-center text-red-600 bg-red-50 py-2 rounded">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 font-medium text-gray-700">Email</label>
+            <label className="block mb-1 font-medium">Email or Username</label>
             <input
-              type="email"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full p-3 border rounded"
+              placeholder="Enter your email or username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block mb-1 font-medium text-gray-700">Password</label>
+            <label className="block mb-1 font-medium">Password</label>
             <input
               type="password"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none transition"
+              className="w-full p-3 border rounded"
+              placeholder="••••••••"
+              required
             />
-            <Link
-              href="/auth/forgot-password"
-              className="text-sm text-blue-600 hover:underline mt-1 inline-block"
-            >
+            <Link href="/auth/forgot-password" className="text-blue-600 mt-1 inline-block">
               Forgot Password?
             </Link>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition active:scale-[0.98]"
+            disabled={loading}
+            className={`w-full py-3 bg-black text-white rounded font-semibold hover:bg-gray-900 ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-gray-700 mt-6">
+        <p className="mt-6 text-center">
           Don’t have an account?{" "}
-          <Link
-            href="/auth/register/customer-registration"
-            className="text-blue-600 font-semibold hover:underline"
-          >
+          <Link href="/auth/register/customer-registration" className="text-blue-600 font-semibold">
             Create Account
           </Link>
         </p>

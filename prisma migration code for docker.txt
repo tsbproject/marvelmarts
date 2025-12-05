@@ -39,3 +39,9 @@ npx prisma migrate deploy
 
 npx prisma studio | to check and edit DATABASE
 
+npx ts-node scripts/create-super-admin.ts
+
+npm run create-super-admin
+
+
+

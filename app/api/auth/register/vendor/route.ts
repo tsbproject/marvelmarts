@@ -1,79 +1,77 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
-import { prisma } from "@/app/lib/prisma"; 
+import { z } from "zod";
 
+const vendorSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  storeName: z.string().min(1),
+  storePhone: z.string().min(10),
+  storeAddress: z.string().min(5),
+  country: z.string().min(1),
+  state: z.string().min(1),
+  verificationCode: z.string().min(4),
+});
 
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const parsed = vendorSchema.safeParse(body);
 
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      storeName,
-      storePhone,
-      storeAddress,
-      country,
-      state
-    } = body;
-
-    // Check for missing fields
-    if (!firstName || !lastName || !email || !password || !storeName || !storePhone || !storeAddress) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.errors[0]?.message ?? "Validation failed" },
+        { status: 400 }
+      );
     }
 
-    // Check if the email already exists in the User model
+    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, country, state, verificationCode } = parsed.data;
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return NextResponse.json({ error: "Email already exists" }, { status: 400 });
-    }
+    if (existingUser) return NextResponse.json({ success: false, error: "Email already registered" }, { status: 400 });
 
-    // Hash the password
-    const hashed = await bcrypt.hash(password, 10);
+    // Check verification code
+    const vCode = await prisma.vendorVerification.findFirst({
+      where: { email, code: verificationCode, used: false, expiresAt: { gte: new Date() } },
+    });
+    if (!vCode) return NextResponse.json({ success: false, error: "Invalid or expired verification code" }, { status: 400 });
 
-    // Create a new User in the database
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user + vendor profile
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: hashed,
-        // Other user fields if applicable, e.g., firstName, lastName, etc.
-      }
+        passwordHash,
+        role: "VENDOR",
+        vendorProfile: {
+          create: {
+            firstName,
+            lastName,
+            storeName,
+            storePhone,
+            storeAddress,
+            country,
+            state,
+            verificationCode,
+            isVerified: true,
+          },
+        },
+      },
+      include: { vendorProfile: true },
     });
 
-    // Create a new VendorProfile and associate it with the newly created User
-    const vendorProfile = await prisma.vendorProfile.create({
-      data: {
-        firstName,
-        lastName,
-        storeName,
-        storePhone,
-        storeAddress,
-        country,
-        state,
-        userId: user.id,  // Associate the vendor profile with the user
-      }
-    });
+    // Mark verification code as used
+    await prisma.vendorVerification.update({ where: { id: vCode.id }, data: { used: true } });
 
-    // Return the vendor profile data (excluding sensitive information like password)
-    return NextResponse.json({
-      success: true,
-      vendorProfile: {
-        id: vendorProfile.id,
-        firstName: vendorProfile.firstName,
-        lastName: vendorProfile.lastName,
-        email: user.email,  // Returning the user's email here
-        storeName: vendorProfile.storeName,
-        storePhone: vendorProfile.storePhone,
-        storeAddress: vendorProfile.storeAddress,
-        country: vendorProfile.country,
-        state: vendorProfile.state,
-      }
-    });
+    return NextResponse.json({ success: true, user: { id: user.id, email: user.email } });
   } catch (err) {
-    console.error("Error during vendor registration:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error(err);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
