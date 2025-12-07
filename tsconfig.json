@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -11,34 +15,41 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
-     "paths": {
-      "@/*": ["./*"]
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
     },
-    "typeRoots": ["./types", "./node_modules/@types"],
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ],
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     "app/page.tsx",
-    "app/_components/Logo.js"
-, "prisma.config.ts.DISABLE", "scripts/create-super-admin.ts", "app/api/auth/forgot-password", "app/_components/UserMenu.tsx"  ],
-  "exclude": ["node_modules"]
+    "app/_components/Logo.js",
+    "prisma.config.ts.DISABLE",
+    "scripts/create-super-admin.ts",
+    "app/api/auth/forgot-password",
+    "app/_components/UserMenu.tsx",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
-
-
-
-
 // {
 //   "compilerOptions": {
 //     "target": "ES2020",
@@ -62,10 +73,6 @@
 //    "ts-node": {
 //     "esm": true
 //   },
-
 //   "include": ["prisma/**/*.ts"],
 //   "exclude": ["node_modules"]
 // }
-
-
-

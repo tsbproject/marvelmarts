@@ -1,44 +1,65 @@
+// app/api/admin/create/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 
+interface AdminRequestBody {
+  name: string;
+  email: string;
+  password: string;
+  role: "ADMIN" | "SUPER_ADMIN";
+  permissions?: Record<string, boolean>;
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { name, email, password, role, permissions } = body;
+    const { name, email, password, role, permissions } = (await req.json()) as AdminRequestBody;
 
-    // Check existing user
-    const existing = await prisma.user.findUnique({
-      where: { email },
+    // ------------------------------------------------------
+    // 1. Normalize email before ANY DB operation
+    // ------------------------------------------------------
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ------------------------------------------------------
+    // 2. Check for existing admin using normalized email
+    // ------------------------------------------------------
+    const existingAdmin = await prisma.admin.findUnique({
+      where: { email: normalizedEmail },
     });
 
-    if (existing) {
+    if (existingAdmin) {
       return NextResponse.json(
         { error: "Admin with this email already exists" },
         { status: 400 }
       );
     }
 
-    // Hash password into `passwordHash`
-    const hashed = await bcrypt.hash(password, 10);
+    // ------------------------------------------------------
+    // 3. Hash password securely
+    // ------------------------------------------------------
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create admin correctly using passwordHash
-    const newAdmin = await prisma.user.create({
+    // ------------------------------------------------------
+    // 4. Create admin with CLEAN email + safe permissions
+    // ------------------------------------------------------
+    const newAdmin = await prisma.admin.create({
       data: {
         name,
-        email,
-        passwordHash: hashed, // ← FIXED
-        role, // ADMIN or SUPER_ADMIN
-        permissions, // JSON field is OK
+        email: normalizedEmail,
+        passwordHash,
+        role,
+        permissions: permissions ?? {}, // ensure always an object
       },
     });
 
     return NextResponse.json({ admin: newAdmin }, { status: 201 });
-  } catch (err) {
-    console.error("Admin create error:", err);
+
+  } catch (error: unknown) {
+    console.error("Admin creation error:", error);
     return NextResponse.json(
-      { error: "Server error" },
+      { error: error instanceof Error ? error.message : "Server error" },
       { status: 500 }
     );
   }
 }
+

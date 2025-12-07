@@ -217,11 +217,9 @@ model VendorVerification {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([email, code])
   @@index([email])
-  @@index([code])
 }
-
-
 
 model EmailVerification {
   id        String   @id @default(cuid())

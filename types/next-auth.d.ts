@@ -1,13 +1,46 @@
+// import { DefaultSession } from "next-auth";
+
+// type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
+
+// declare module "next-auth" {
+//   interface Session {
+//     user: {
+//       id: string;
+//       role: Role;
+//       permissions: Record<string, boolean>; // required internally
+//     } & DefaultSession["user"];
+//   }
+
+//   interface User {
+//     id: string;
+//     name: string | null;
+//     email: string | null;
+//     image?: string | null;
+//     role: Role;
+//     permissions: Record<string, boolean>; // required internally
+//     passwordHash?: string; // optional for auth logic
+//   }
+// }
+
+// declare module "next-auth/jwt" {
+//   interface JWT {
+//     userId: string;
+//     role: Role;
+//     permissions: Record<string, boolean>; // required internally
+//   }
+// }
+
+// types/next-auth.d.ts
 import { DefaultSession } from "next-auth";
 
-type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "USER";
+type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       role: Role;
-      permissions?: Record<string, boolean> | null;
+      permissions: Record<string, boolean>;
     } & DefaultSession["user"];
   }
 
@@ -17,8 +50,8 @@ declare module "next-auth" {
     email: string | null;
     image?: string | null;
     role: Role;
-    permissions?: Record<string, boolean> | null;
-    passwordHash?: string; // optional for auth logic
+    permissions: Record<string, boolean>;
+    passwordHash?: string;
   }
 }
 
@@ -26,6 +59,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     userId: string;
     role: Role;
-    permissions?: Record<string, boolean> | null;
+    permissions: Record<string, boolean>;
   }
 }

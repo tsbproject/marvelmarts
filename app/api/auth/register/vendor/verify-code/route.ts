@@ -1,37 +1,35 @@
-// app/api/auth/register/vendor/verify-code/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma"; // adjust your path
-
-interface VerifyCodeRequestBody {
-  email: string;
-  code: string;
-}
+import { prisma } from "@/app/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const body: VerifyCodeRequestBody = await req.json();
-    const email = body.email.trim().toLowerCase();
-    const code = body.code.trim().toUpperCase();
+    const { email, code } = await req.json();
+    if (!email || !code) {
+      return NextResponse.json({ success: false, error: "Email and code are required" }, { status: 400 });
+    }
 
-    if (!email || !code) return NextResponse.json({ success: false, error: "Email and code are required" }, { status: 400 });
-
-    // Find valid code
-    const record = await prisma.vendorVerification.findFirst({
-      where: { email, code, used: false, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: "desc" },
+    const vCode = await prisma.vendorVerification.findFirst({
+      where: {
+        email,
+        code,
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
     });
 
-    if (!record) return NextResponse.json({ success: false, error: "Invalid or expired code" }, { status: 400 });
+    if (!vCode) {
+      return NextResponse.json({ success: false, error: "Invalid or expired verification code" }, { status: 400 });
+    }
 
-    // Mark code as used
+    // Mark as used
     await prisma.vendorVerification.update({
-      where: { id: record.id },
+      where: { id: vCode.id },
       data: { used: true },
     });
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Verify code error:", err);
-    return NextResponse.json({ success: false, error: "Unexpected server error" }, { status: 500 });
+    console.error(err);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

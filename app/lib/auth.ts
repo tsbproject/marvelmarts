@@ -1,47 +1,164 @@
+// // app/lib/auth.ts
+// import type { NextAuthOptions } from "next-auth";
+// import CredentialsProvider from "next-auth/providers/credentials";
+// import { prisma } from "@/app/lib/prisma";
+// import bcrypt from "bcrypt";
+
+// type AdminRole = "SUPER_ADMIN" | "ADMIN";
+// type VendorRole = "VENDOR";
+// type CustomerRole = "CUSTOMER";
+// type UnifiedRole = AdminRole | VendorRole | CustomerRole;
+
+// interface AuthUser {
+//   id: string;
+//   name: string | null;
+//   email: string;
+//   role: UnifiedRole;
+//   permissions: Record<string, boolean>;
+//   passwordHash?: string;
+// }
+
+// export const authOptions: NextAuthOptions = {
+//   session: { strategy: "jwt" },
+
+//   pages: {
+//     signIn: "/auth/sign-in",
+//   },
+
+//   providers: [
+//     CredentialsProvider({
+//       name: "Credentials",
+//       credentials: {
+//         identifier: { label: "Email or Username", type: "text" },
+//         password: { label: "Password", type: "password" },
+//       },
+
+//       async authorize(credentials): Promise<AuthUser | null> {
+//         if (!credentials?.identifier || !credentials.password) return null;
+//         const identifier = credentials.identifier.toLowerCase().trim();
+
+//         // 1) ADMIN: check admin table
+//         // 1) ADMIN: strict lookup in admin table
+           
+        
+//         // 1) ADMIN login
+//                   const admin = await prisma.admin.findUnique({
+//                     where: { email: identifier },
+//                   });
+
+//                   if (admin) {
+//                     const isValid = await bcrypt.compare(credentials.password, admin.passwordHash);
+//                     if (!isValid) return null;
+
+//                     return {
+//                       id: admin.id,
+//                       name: admin.name,
+//                       email: admin.email,
+//                       role: admin.role,
+//                       permissions: admin.permissions ?? {},
+//                     };
+//                   }
+
+
+
+//         // 2) VENDOR: check vendorProfile -> user
+//         const vendor = await prisma.vendorProfile.findFirst({
+//           where: { user: { email: { equals: identifier, mode: "insensitive" } } },
+//           include: { user: true },
+//         });
+
+//         if (vendor?.user?.passwordHash) {
+//           const ok = await bcrypt.compare(credentials.password, vendor.user.passwordHash);
+//           if (!ok) return null;
+
+//           return {
+//             id: vendor.user.id,
+//             name: vendor.user.name ?? null,
+//             email: vendor.user.email,
+//             role: "VENDOR",
+//             permissions: {},
+//             passwordHash: vendor.user.passwordHash,
+//           };
+//         }
+
+//         // 3) CUSTOMER: check user table
+//         const customer = await prisma.user.findFirst({
+//           where: { email: { equals: identifier, mode: "insensitive" } },
+//         });
+
+//         if (customer?.passwordHash) {
+//           const ok = await bcrypt.compare(credentials.password, customer.passwordHash);
+//           if (!ok) return null;
+
+//           return {
+//             id: customer.id,
+//             name: customer.name ?? null,
+//             email: customer.email,
+//             role: "CUSTOMER",
+//             permissions: {},
+//             passwordHash: customer.passwordHash,
+//           };
+//         }
+
+//         // no match
+//         return null;
+//       },
+//     }),
+//   ],
+
+//   callbacks: {
+//     async jwt({ token, user }) {
+//       if (user) {
+//         // user comes from authorize return object
+//         token.userId = user.id;
+//         token.role = user.role;
+//         token.permissions = (user.permissions ?? {}) as Record<string, boolean>;
+//       }
+//       return token;
+//     },
+
+//     async session({ session, token }) {
+//       if (session.user) {
+//         session.user.id = token.userId as string;
+//         session.user.role = token.role as UnifiedRole;
+//         session.user.permissions = (token.permissions ?? {}) as Record<string, boolean>;
+//       }
+//       return session;
+//     },
+
+//     redirect({ url, baseUrl }) {
+//       if (url.startsWith("/")) return baseUrl + url;
+//       try {
+//         return new URL(url).toString();
+//       } catch {
+//         return baseUrl;
+//       }
+//     },
+//   },
+
+//   secret: process.env.NEXTAUTH_SECRET,
+// };
+
+
+
+
+// app/lib/auth.ts
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 
-// -----------------------------
-// ROLE TYPES
-// -----------------------------
-type AdminRole = "SUPER_ADMIN" | "ADMIN";
-type VendorRole = "VENDOR";
-type CustomerRole = "CUSTOMER";
-type UnifiedRole = AdminRole | VendorRole | CustomerRole;
+export type UnifiedRole = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
 
-// -----------------------------
-// ACCOUNT TYPES
-// -----------------------------
-interface AdminAccount {
+interface AuthUser {
   id: string;
+  name: string | null;
   email: string;
-  name?: string | null;
-  role: AdminRole;
-  permissions?: Record<string, boolean> | null;
-  passwordHash: string;
+  role: UnifiedRole;
+  permissions: Record<string, boolean>;
+  passwordHash?: string; // used internally only
 }
 
-interface VendorAccount {
-  id: string;
-  email: string;
-  name?: string | null;
-  passwordHash: string;
-}
-
-interface CustomerAccount {
-  id: string;
-  email: string;
-  name?: string | null;
-  passwordHash: string;
-}
-
-type Account = AdminAccount | VendorAccount | CustomerAccount;
-
-// -----------------------------
-// NEXTAUTH CONFIG
-// -----------------------------
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
 
@@ -53,112 +170,105 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        identifier: { label: "Email or Username", type: "text" },
+        identifier: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials): Promise<AuthUser | null> {
         if (!credentials?.identifier || !credentials.password) return null;
-
-        const identifier = credentials.identifier.toLowerCase().trim();
-        let account: Account | null = null;
-        let role: UnifiedRole | null = null;
+        const email = credentials.identifier.toLowerCase().trim();
 
         // -------------------------
-        // 1. ADMIN LOGIN
+        // 1) ADMIN LOGIN (email only)
         // -------------------------
-        const admin = await prisma.admin.findFirst({
-          where: { email: { equals: identifier, mode: "insensitive" } },
+        const admin = await prisma.admin.findUnique({ where: { email } });
+        if (admin) {
+          const valid = await bcrypt.compare(credentials.password, admin.passwordHash);
+          if (!valid) return null;
+
+          return {
+            id: admin.id,
+            name: admin.name,
+            email: admin.email,
+            role: admin.role,
+            permissions: admin.permissions ?? {},
+          };
+        }
+
+        // -------------------------
+        // 2) VENDOR LOGIN
+        // -------------------------
+        const vendor = await prisma.vendorProfile.findFirst({
+          where: { user: { email: { equals: email, mode: "insensitive" } } },
+          include: { user: true },
         });
 
-        if (admin) {
-          account = admin as AdminAccount;
-          role = admin.role;
+        if (vendor?.user?.passwordHash) {
+          const valid = await bcrypt.compare(credentials.password, vendor.user.passwordHash);
+          if (!valid) return null;
+
+          return {
+            id: vendor.user.id,
+            name: vendor.user.name ?? null,
+            email: vendor.user.email,
+            role: "VENDOR",
+            permissions: {},
+          };
         }
 
         // -------------------------
-        // 2. VENDOR LOGIN
+        // 3) CUSTOMER LOGIN
         // -------------------------
-        if (!account) {
-          const vendor = await prisma.vendorProfile.findFirst({
-            where: { user: { email: { equals: identifier, mode: "insensitive" } } },
-            include: { user: true }, // fetch user info
-          });
+        const customer = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        });
 
-          if (vendor && vendor.user?.passwordHash) {
-            account = {
-              id: vendor.user.id,
-              email: vendor.user.email,
-              name: vendor.user.name ?? null,
-              passwordHash: vendor.user.passwordHash,
-            };
-            role = "VENDOR";
-          }
+        if (customer?.passwordHash) {
+          const valid = await bcrypt.compare(credentials.password, customer.passwordHash);
+          if (!valid) return null;
+
+          return {
+            id: customer.id,
+            name: customer.name ?? null,
+            email: customer.email,
+            role: "CUSTOMER",
+            permissions: {},
+          };
         }
 
-        // -------------------------
-        // 3. CUSTOMER LOGIN
-        // -------------------------
-        if (!account) {
-          const customer = await prisma.user.findFirst({
-            where: { email: { equals: identifier, mode: "insensitive" } },
-          });
-
-          if (customer && customer.passwordHash) {
-            account = {
-              id: customer.id,
-              email: customer.email,
-              name: customer.name ?? null,
-              passwordHash: customer.passwordHash,
-            };
-            role = "CUSTOMER";
-          }
-        }
-
-        // -------------------------
-        // VALIDATE ACCOUNT
-        // -------------------------
-        if (!account || !account.passwordHash) return null;
-
-        const isValid = await bcrypt.compare(credentials.password, account.passwordHash);
-        if (!isValid) return null;
-
-        // -------------------------
-        // RETURN USER OBJECT
-        // -------------------------
-        return {
-          id: account.id,
-          name: account.name,
-          email: account.email,
-          role,
-          permissions: "permissions" in account ? account.permissions ?? null : null,
-        };
+        return null;
       },
     }),
   ],
 
-  // -----------------------------
-  // CALLBACKS
-  // -----------------------------
   callbacks: {
+    // -------------------------
+    // JWT callback
+    // -------------------------
     async jwt({ token, user }) {
       if (user) {
         token.userId = user.id;
         token.role = user.role;
-        token.permissions = user.permissions ?? null;
+        token.permissions = user.permissions ?? {};
       }
       return token;
     },
 
+    // -------------------------
+    // Session callback
+    // -------------------------
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.userId;
-        session.user.role = token.role;
-        session.user.permissions = token.permissions ?? null;
+        session.user.id = token.userId as string;
+        session.user.role = token.role as UnifiedRole;
+        session.user.permissions = token.permissions as Record<string, boolean>;
       }
       return session;
     },
 
+    // -------------------------
+    // Redirect callback
+    // -------------------------
     redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return baseUrl + url;
       try {
@@ -171,3 +281,4 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET,
 };
+

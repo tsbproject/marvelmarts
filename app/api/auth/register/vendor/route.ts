@@ -13,7 +13,6 @@ const vendorSchema = z.object({
   storeAddress: z.string().min(5),
   country: z.string().min(1),
   state: z.string().min(1),
-  verificationCode: z.string().min(4),
 });
 
 export async function POST(req: NextRequest) {
@@ -22,23 +21,20 @@ export async function POST(req: NextRequest) {
     const parsed = vendorSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.errors[0]?.message ?? "Validation failed" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: parsed.error.errors[0]?.message ?? "Validation failed" }, { status: 400 });
     }
 
-    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, country, state, verificationCode } = parsed.data;
+    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, country, state } = parsed.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) return NextResponse.json({ success: false, error: "Email already registered" }, { status: 400 });
 
-    // Check verification code
-    const vCode = await prisma.vendorVerification.findFirst({
-      where: { email, code: verificationCode, used: false, expiresAt: { gte: new Date() } },
+    // Check if email has verified OTP
+    const verified = await prisma.vendorVerification.findFirst({
+      where: { email, used: true },
     });
-    if (!vCode) return NextResponse.json({ success: false, error: "Invalid or expired verification code" }, { status: 400 });
+    if (!verified) return NextResponse.json({ success: false, error: "Email not verified" }, { status: 400 });
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
@@ -58,16 +54,12 @@ export async function POST(req: NextRequest) {
             storeAddress,
             country,
             state,
-            verificationCode,
             isVerified: true,
           },
         },
       },
       include: { vendorProfile: true },
     });
-
-    // Mark verification code as used
-    await prisma.vendorVerification.update({ where: { id: vCode.id }, data: { used: true } });
 
     return NextResponse.json({ success: true, user: { id: user.id, email: user.email } });
   } catch (err) {
