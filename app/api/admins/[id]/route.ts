@@ -39,20 +39,26 @@ export async function GET(
     }
 
     return NextResponse.json(
-      {
-        user: {
-          ...user,
-          adminProfile: {
-            ...user.adminProfile,
-            permissions: {
-              ...DEFAULT_PERMISSIONS,
-              ...(user.adminProfile?.permissions ?? {}),
+        {
+          user: {
+            ...user,
+            adminProfile: {
+              ...user.adminProfile,
+              permissions: {
+                ...DEFAULT_PERMISSIONS,
+                ...(typeof user.adminProfile?.permissions === "object" &&
+                  user.adminProfile?.permissions !== null &&
+                  !Array.isArray(user.adminProfile?.permissions)
+                  ? (user.adminProfile.permissions as Record<string, boolean>)
+                  : {}),
+              },
             },
           },
         },
-      },
-      { status: 200 }
-    );
+        { status: 200 }
+      );
+
+    
   } catch (err) {
     console.error("GET /api/admins/[id] error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
