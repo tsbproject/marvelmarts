@@ -68,14 +68,16 @@ export async function POST(req: Request) {
       );
     }
 
+  
     // 🔹 4. Create session payload
-    const sessionData = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: profile.name ?? "User",
-      profileId: profile.id,
-    };
+        const sessionData = {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name ?? "User",   // ✅ use user.name instead of profile.name
+          profileId: profile.id,
+        };
+
 
     // 🔹 5. Set session cookie
     const response = NextResponse.json({
