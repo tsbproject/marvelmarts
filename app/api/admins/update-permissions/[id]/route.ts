@@ -5,7 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -14,9 +14,10 @@ export async function PATCH(
   }
 
   try {
-    const { id } = params;
-    const body = await req.json();
+    // ✅ unwrap the Promise
+    const { id } = await params;
 
+    const body = await req.json();
     const { permissions } = body;
 
     if (!permissions || typeof permissions !== "object") {
