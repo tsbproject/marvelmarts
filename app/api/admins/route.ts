@@ -105,14 +105,24 @@ export async function POST(req: Request) {
       include: { adminProfile: true },
     });
 
+
     // Normalize and return
+      
     const normalized = {
-      ...user,
-      adminProfile: {
-        ...user.adminProfile,
-        permissions: { ...DEFAULT_PERMISSIONS, ...(user.adminProfile?.permissions ?? {}) },
-      },
-    };
+        ...user,
+        adminProfile: {
+          ...user.adminProfile,
+          permissions: {
+            ...DEFAULT_PERMISSIONS,
+            ...(typeof user.adminProfile?.permissions === "object" &&
+              user.adminProfile?.permissions !== null &&
+              !Array.isArray(user.adminProfile?.permissions)
+              ? (user.adminProfile.permissions as Record<string, boolean>)
+              : {}),
+          },
+        },
+      };
+
 
     return NextResponse.json({ user: normalized }, { status: 201 });
   } catch (err) {
