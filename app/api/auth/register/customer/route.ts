@@ -14,14 +14,17 @@ export async function POST(req: Request) {
   try {
     const body: unknown = await req.json();
     const parsed = registerSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? "Validation failed" },
-        { status: 400 }
-      );
-    }
+    
+   if (!parsed.success) {
+  return NextResponse.json(
+   { error: parsed.error.issues[0]?.message ?? "Validation failed" }
 
-    const { email } = parsed.data;
+  );
+}
+
+// At this point, parsed.data is guaranteed to be RegisterBody
+const { email } = parsed.data as RegisterBody;
+
 
     // Reject if already registered
     const existing = await prisma.user.findUnique({ where: { email } });
