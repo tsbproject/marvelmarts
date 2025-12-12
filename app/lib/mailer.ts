@@ -1,167 +1,95 @@
-
-
-
-// // /app/_lib/mailer.ts
-// import fetch from "node-fetch"; // if needed in your environment
-
-// const RESEND_API_URL = "https://api.resend.com/emails";
-// const RESEND_API_KEY = process.env.RESEND_API_KEY;
-// const FROM_PROD = process.env.RESEND_FROM_EMAIL || "Marvel Marts <no-reply@marvelmarts.com>";
-// const FROM_DEV = "Marvel Marts <onboarding@resend.dev>";
-
-// if (!RESEND_API_KEY) {
-//   console.warn("RESEND_API_KEY not set — emails will fail");
-// }
-
-// export async function sendVerificationEmail(to: string, code: string) {
-//   if (!code) throw new Error("Missing verification code");
-
-//   const isLocal = process.env.NODE_ENV === "development";
-//   const from = isLocal ? FROM_DEV : FROM_PROD;
-//   const resetText = `Your verification code is ${code}. It expires in 10 minutes.`;
-
-//   const payload = {
-//     from,
-//     to,
-//     subject: "Your MarvelMarts verification code",
-//     text: resetText,
-//     html: `
-//       <div style="font-family: Inter, Arial, sans-serif; color:#111;">
-//         <h3>Your verification code</h3>
-//         <p style="font-size:20px; font-weight:600;">${code}</p>
-//         <p>This code expires in 10 minutes.</p>
-//       </div>
-//     `,
-//   };
-
-//   if (!RESEND_API_KEY) {
-//     console.warn("No RESEND_API_KEY — skipping real send (dev fallback).");
-//     return { ok: true, debug: "no_api_key" };
-//   }
-
-//   const res = await fetch(RESEND_API_URL, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//       Authorization: `Bearer ${RESEND_API_KEY}`,
-//     },
-//     body: JSON.stringify(payload),
-//   });
-
-//   const data = await res.json();
-//   if (!res.ok) {
-//     throw new Error(`Resend error: ${res.status} ${JSON.stringify(data)}`);
-//   }
-//   return data;
-// }
-
-
-
-
-// /app/lib/mailer.ts
-import fetch from "node-fetch";
+import nodemailer from "nodemailer";
 
 // ------------------------------
-// CONSTANTS
+// Nodemailer (development)
 // ------------------------------
-const RESEND_API_URL = "https://api.resend.com/emails";
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+export async function sendVerificationEmailWithNodemailer(
+  to: string,
+  code: string,
+  uid: string,
+  name: string
+) {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 
-const FROM_PROD =
-  process.env.RESEND_FROM_EMAIL || "Marvel Marts <no-reply@marvelmarts.com>";
-const FROM_DEV = "Marvel Marts <onboarding@resend.dev>";
+  await transporter.verify()
+  .then(() => console.log("SMTP connection is OK"))
+  .catch(err => console.error("SMTP connection failed:", err));
 
-if (!RESEND_API_KEY) {
-  console.warn("RESEND_API_KEY is missing — emails will NOT send in production.");
+
+  const verifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`;
+
+ try {
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: "Verify your account",
+    text: `Hi ${name},\n\nYour verification code is: ${code}\n\nOr click this link: ${verifyUrl}`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>Your verification code is: <b>${code}</b></p>
+      <p>Or click this link: <a href="${verifyUrl}">${verifyUrl}</a></p>
+    `,
+  });
+
+  console.log("Verification email sent:", info.messageId);
+} catch (err: any) {
+  console.error("Failed to send verification email:", err);
+}
+
+
+  console.log("Verification email sent:", info.messageId);
 }
 
 // ------------------------------
-// SHARED SEND FUNCTION
+// Resend (production)
 // ------------------------------
-async function sendEmail({
-  to,
-  subject,
-  html,
-  text,
-}: {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-}) {
-  const from =
-    process.env.NODE_ENV === "development" ? FROM_DEV : FROM_PROD;
-
-  const payload = {
-    from,
-    to,
-    subject,
-    text,
-    html,
-  };
-
-  if (!RESEND_API_KEY) {
-    console.warn(
-      "RESEND_API_KEY missing — skipping real email (development fallback)."
-    );
-    return { ok: true, debug: "no_api_key" };
-  }
-
-  const res = await fetch(RESEND_API_URL, {
+async function sendVerificationEmailWithResend(
+  to: string,
+  code: string,
+  uid: string,
+  name: string
+) {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${RESEND_API_KEY}`,
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL,
+      to,
+      subject: "Verify your account",
+      text: `Hi ${name}, your code is ${code}. Or click: ${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`,
+    }),
   });
 
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(
-      `Resend API error: ${res.status} — ${JSON.stringify(data)}`
-    );
+    throw new Error(`Resend API error: ${res.status}`);
   }
 
-  return data;
+  return res.json();
 }
 
 // ------------------------------
-// VERIFICATION EMAIL (registration)
+// Wrapper (exported)
 // ------------------------------
-export async function sendVerificationEmail(to: string, code: string) {
-  if (!code) throw new Error("Missing verification code");
-
-  const subject = "Your MarvelMarts verification code";
-  const text = `Your verification code is ${code}. It expires in 10 minutes.`;
-  const html = `
-    <div style="font-family: Inter, Arial, sans-serif; color:#111;">
-      <h3>Your verification code</h3>
-      <p style="font-size:20px; font-weight:600;">${code}</p>
-      <p>This code expires in 10 minutes.</p>
-    </div>
-  `;
-
-  return sendEmail({ to, subject, text, html });
+export async function sendVerificationEmail(
+  to: string,
+  code: string,
+  uid: string,
+  name: string
+) {
+  if (process.env.NODE_ENV === "development") {
+    return sendVerificationEmailWithNodemailer(to, code, uid, name);
+  } else {
+    return sendVerificationEmailWithResend(to, code, uid, name);
+  }
 }
-
-// ------------------------------
-// PASSWORD RESET EMAIL
-// ------------------------------
-export async function sendPasswordResetEmail(to: string, code: string) {
-  if (!code) throw new Error("Missing password reset code");
-
-  const subject = "Your MarvelMarts password reset code";
-  const text = `Your password reset code is ${code}. It expires in 10 minutes.`;
-  const html = `
-    <div style="font-family: Inter, Arial, sans-serif; color:#111;">
-      <h3>Password Reset Code</h3>
-      <p style="font-size:20px; font-weight:600;">${code}</p>
-      <p>This code expires in 10 minutes.</p>
-    </div>
-  `;
-
-  return sendEmail({ to, subject, text, html });
-}
-

@@ -1,67 +1,52 @@
 // app/proxy.ts
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// Routes that require authentication
-const PROTECTED_ROUTES = [
-  "/dashboard",
-  "/dashboard/admins",
-  "/dashboard/admins/",
-  "/dashboard/admins/**",
-  "/account/vendor",
-  "/account/vendor/**",
-  "/account/customer",
-  "/account/customer/**",
-];
+export type UnifiedRole = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
 
-export default async function middleware(request: Request) {
-  const url = new URL(request.url);
-  const { pathname } = url;
+// ✅ Protected routes map with allowed roles
+const PROTECTED_ROUTES: Record<string, UnifiedRole[]> = {
+  "/dashboard/admins": ["SUPER_ADMIN", "ADMIN"],
+  "/account/vendor": ["VENDOR"],
+  "/account/customer": ["CUSTOMER"],
+};
 
-  // Check if route is protected
-  const isProtected = PROTECTED_ROUTES.some((route) => {
-    if (route.endsWith("/**")) {
-      const base = route.replace("/**", "");
-      return pathname.startsWith(base);
-    }
-    return pathname === route || pathname.startsWith(route + "/");
-  });
+// Helper: check if pathname starts with base route
+const matchRoute = (pathname: string, baseRoute: string) =>
+  pathname === baseRoute || pathname.startsWith(baseRoute + "/");
 
-  if (!isProtected) return NextResponse.next();
+// ⭐ New required function name in Next.js 16+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  // Get token using next-auth
+  // Check if current path is protected
+  const matchedRoute = Object.keys(PROTECTED_ROUTES).find((route) =>
+    matchRoute(pathname, route)
+  );
+
+  if (!matchedRoute) return NextResponse.next();
+
+  // Retrieve JWT token from NextAuth
   const token = await getToken({ req: request });
 
-  // Not logged in → redirect to login
   if (!token) {
+    // Not authenticated → redirect to login
     return NextResponse.redirect(new URL("/auth/sign-in", request.url));
   }
 
-  const role = token.role as string;
+  const role = token.role as UnifiedRole | undefined;
 
-  // Role-based restrictions
-  if (pathname.startsWith("/dashboard/admins")) {
-    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/access-denied", request.url));
-    }
+  if (!role || !PROTECTED_ROUTES[matchedRoute].includes(role)) {
+    // Authenticated but role not allowed → redirect to access denied
+    return NextResponse.redirect(new URL("/access-denied", request.url));
   }
 
-  if (pathname.startsWith("/account/vendor")) {
-    if (role !== "VENDOR") {
-      return NextResponse.redirect(new URL("/access-denied", request.url));
-    }
-  }
-
-  if (pathname.startsWith("/account/customer")) {
-    if (role !== "CUSTOMER") {
-      return NextResponse.redirect(new URL("/access-denied", request.url));
-    }
-  }
-
+  // Authorized → allow request
   return NextResponse.next();
 }
 
-// Next.js 15 equivalent of middleware matcher
+// 🟦 Equivalent to middleware matcher
 export const config = {
   matcher: ["/dashboard/:path*", "/account/:path*"],
 };

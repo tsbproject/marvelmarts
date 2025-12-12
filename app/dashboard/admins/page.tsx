@@ -1,176 +1,119 @@
+// // app/dashboard/admins/page.tsx
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/lib/auth";
+// import { prisma } from "@/app/lib/prisma";
+// import DashboardSidebar from "@/app/_components/DashboardSidebar";
+// import DashboardHeader from "@/app/_components/DashboardHeader";
+// import AdminsTable, { AdminTableRow } from "./AdminsTable";
+// import { redirect } from "next/navigation";
+
+// export default async function AdminsPage() {
+//   const session = await getServerSession(authOptions);
+//   const user = session?.user;
+
+//   if (!user) redirect("/auth/sign-in");
+
+//   const isSuperAdmin = user.role === "SUPER_ADMIN";
+//   const canViewPage = isSuperAdmin || user.role === "ADMIN";
+//   const canManageAdmins = isSuperAdmin || user.permissions?.manageAdmins;
+
+//   if (!canViewPage) return <div className="p-8">Access denied</div>;
+
+//   const admins = await prisma.user.findMany({
+//     where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+//     select: {
+//       id: true,
+//       name: true,
+//       email: true,
+//       role: true,
+//       createdAt: true,
+//       adminProfile: { select: { permissions: true } },
+//     },
+//     orderBy: { createdAt: "desc" },
+//   });
+
+//   const normalizedAdmins: AdminTableRow[] = admins
+//     .filter((a) => a.id !== user.id)
+//     .map((a) => ({
+//       id: a.id,
+//       name: a.name,
+//       email: a.email,
+//       role: a.role as "ADMIN" | "SUPER_ADMIN",
+//       createdAt: a.createdAt.toISOString(),
+//       permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
+//     }));
+
+//   return (
+//     <DashboardSidebar>
+//       <div className="p-8 w-full">
+//         <DashboardHeader
+//           title="Administrators"
+//           showAddButton={canManageAdmins}
+//           addButtonLabel="Add Admin"
+//           addButtonLink="/dashboard/admins/create"
+//         />
+//         <AdminsTable admins={normalizedAdmins} canManageAdmins={canManageAdmins} />
+//       </div>
+//     </DashboardSidebar>
+//   );
+// }
+
+
+// app/dashboard/admins/page.tsx
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
-import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import AdminDeleteButton from "@/app/_components/AdminDeleteButton";
-import { format } from "date-fns";
+import AdminsTable, { AdminRow } from "./AdminsTable";
+import { useNotification } from "@/app/_context/NotificationContext";
 
-interface Admin {
-  id: string;
-  name: string;
-  email: string;
-  role: "ADMIN" | "SUPER_ADMIN";
-  permissions: Record<string, boolean>;
-  createdAt: string;
-}
-
-interface AdminsApiResponse {
-  admins: Admin[];
-}
-
-export default function AdminsPage() {
-  const { data: session, status } = useSession();
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [search, setSearch] = useState("");
+export default function AdminsPageClient() {
+  const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { notifyError } = useNotification();
 
-  const user = session?.user;
-
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const canManageAdmins = isSuperAdmin || user?.permissions?.manageAdmins;
-  const canViewPage = isSuperAdmin || user?.role === "ADMIN";
-
-  // -----------------------------
-  // Fetch admins (allow ADMIN to VIEW only)
-  // -----------------------------
-  useEffect(() => {
-    if (!user) return;
-
-    async function fetchAdmins() {
-      try {
-        const res = await fetch("/api/admin/list");
-        if (!res.ok) throw new Error("Failed to fetch admins");
-        const data: AdminsApiResponse = await res.json();
-
-        // Remove current user from list to avoid self-management
-        const filtered = data.admins.filter((a) => a.id !== user.id);
-
-        setAdmins(filtered);
-      } catch (err) {
-        console.error("Error fetching admins:", err);
-      } finally {
-        setLoading(false);
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admins");
+      const data = await res.json();
+      if (!res.ok) {
+        notifyError(data.error || "Failed to load admins");
+        return;
       }
+      // data.admins expected
+      setAdmins(data.admins ?? []);
+    } catch (err) {
+      notifyError("Server error loading admins");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchAdmins();
-  }, [user]);
-
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-  };
-
-  // -----------------------------
-  // Access control logic
-  // -----------------------------
-  if (status === "loading") return <div className="p-8">Loading session...</div>;
-  if (!user || !canViewPage) return <div className="p-8">Access denied</div>;
-
-  const filteredAdmins = admins.filter(
-    (a) =>
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.email.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <DashboardSidebar>
       <div className="p-8 w-full">
-
         <DashboardHeader
           title="Administrators"
-          showAddButton={canManageAdmins} // Only super admin or admins with permission
+          showAddButton={true}
           addButtonLabel="Add Admin"
           addButtonLink="/dashboard/admins/create"
         />
 
-        <div className="my-4 flex justify-end">
-          <input
-            type="text"
-            placeholder="Search admins..."
-            value={search}
-            onChange={handleSearchChange}
-            className="p-2 rounded border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
-          />
-        </div>
-
-        <div className="overflow-x-auto bg-white rounded-lg shadow mt-4">
+        <div className="mt-4">
           {loading ? (
-            <div className="p-4 text-center text-gray-500">Loading admins...</div>
+            <div className="p-4 text-center">Loading admins...</div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Name</th>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Email</th>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Role</th>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Permissions</th>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Created</th>
-                  <th className="px-6 py-3 text-left text-xl font-semibold text-gray-700">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-200">
-                {filteredAdmins.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No admins found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAdmins.map((a) => (
-                    <tr key={a.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-xl font-medium text-gray-900">{a.name}</td>
-                      <td className="px-6 py-4 text-xl text-gray-600">{a.email}</td>
-                      <td className="px-6 py-4 text-xl text-gray-600">{a.role}</td>
-
-                      <td className="px-6 py-4 text-xl text-gray-600">
-                        {a.permissions
-                          ? Object.keys(a.permissions)
-                              .filter((k) => a.permissions[k])
-                              .join(", ")
-                          : "—"}
-                      </td>
-
-                      <td className="px-6 py-4 text-xl text-gray-600">
-                        {format(new Date(a.createdAt), "yyyy-MM-dd")}
-                      </td>
-
-                      <td className="px-6 py-4 text-sm flex space-x-2">
-                        {canManageAdmins ? (
-                          <>
-                            <Link
-                              href={`/dashboard/admins/${a.id}/edit`}
-                              className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
-                            >
-                              Edit
-                            </Link>
-
-                            <Link
-                              href={`/dashboard/admins/${a.id}/change-password`}
-                              className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition"
-                            >
-                              Change Password
-                            </Link>
-
-                            <AdminDeleteButton id={a.id} />
-                          </>
-                        ) : (
-                          <span className="text-gray-400 text-2xl italic">
-                            No permission
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <AdminsTable admins={admins} refresh={load} />
           )}
         </div>
       </div>
     </DashboardSidebar>
   );
 }
+

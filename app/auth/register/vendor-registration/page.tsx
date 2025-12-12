@@ -3,9 +3,21 @@
 import { useState, useMemo } from "react";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { z } from "zod";
+import { useRouter } from "next/navigation";
+
+// ---------------------------------
+// Nigeria States + FCT Abuja
+// ---------------------------------
+const NIGERIAN_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe",
+  "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
+  "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
+  "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT Abuja",
+];
 
 // ------------------------
-// Zod schema for validation
+// Zod schema
 // ------------------------
 const vendorSchema = z
   .object({
@@ -20,9 +32,9 @@ const vendorSchema = z
     state: z.string().min(1, "State required"),
     password: z.string().min(6, "Password must be at least 6 chars"),
     confirmPassword: z.string().min(6, "Confirm your password"),
-    agree: z.literal(true, {
-      errorMap: () => ({ message: "You must agree to terms" }),
-    }),
+    agree: z.literal(true).refine(val => val === true, {
+    message: "You must agree to terms",
+}),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -31,9 +43,9 @@ const vendorSchema = z
 
 type VendorFormData = z.infer<typeof vendorSchema>;
 
-// ------------------------
-// Password utils
-// ------------------------
+// -----------------------------
+// Password utilities
+// -----------------------------
 const PASSWORD_POLICY = {
   minLength: 6,
   requireUpper: true,
@@ -53,11 +65,13 @@ function sanitize(value: string): string {
   return value.replace(/[<>]/g, "").trim();
 }
 
-// ------------------------
+// -----------------------------
 // Component
-// ------------------------
+// -----------------------------
 export default function VendorRegistration() {
+  const router = useRouter();
   const { notifyError, notifySuccess } = useNotification();
+  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<VendorFormData>({
     email: "",
@@ -82,178 +96,163 @@ export default function VendorRegistration() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordScore, setPasswordScore] = useState(0);
 
-  // ------------------------
-  // Handlers
-  // ------------------------
-  function setField<K extends keyof VendorFormData>(
-    key: K,
-    value: VendorFormData[K]
-  ) {
+  // -----------------------------
+  // Field handler
+  // -----------------------------
+  function setField<K extends keyof VendorFormData>(key: K, value: VendorFormData[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
-    if (key === "password") {
-      setPasswordScore(calcPasswordScore(String(value)));
-    }
+    if (key === "password") setPasswordScore(calcPasswordScore(String(value)));
   }
 
-  // ------------------------
-  // Validation helpers
-  // ------------------------
-  const isEmailValid = useMemo(() => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
-  }, [formData.email]);
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  const isEmailValid = useMemo(
+    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()),
+    [formData.email]
+  );
 
   const isPasswordStrong = useMemo(() => {
     const pw = formData.password;
-    return (
-      pw.length >= PASSWORD_POLICY.minLength &&
-      /[A-Z]/.test(pw) &&
-      /\d/.test(pw)
-    );
+    return pw.length >= PASSWORD_POLICY.minLength && /[A-Z]/.test(pw) && /\d/.test(pw);
   }, [formData.password]);
 
-  // ------------------------
-  // SEND CODE
-  // ------------------------
+  // -----------------------------
+  // Send verification code
+  // -----------------------------
   async function handleSendCode() {
-    if (!isEmailValid) {
-      notifyError("Enter a valid email first");
-      return;
-    }
+    if (!isEmailValid) return notifyError("Enter a valid email first");
 
     try {
       const res = await fetch("/api/auth/register/vendor/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: sanitize(formData.email) }),
+        body: JSON.stringify({
+          email: sanitize(formData.email),
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          storeName: formData.storeName,
+          storePhone: formData.storePhone,
+          storeAddress: formData.storeAddress,
+          country: formData.country,
+          state: formData.state,
+        }),
       });
 
-      const data: { success: boolean; code?: string; error?: string } =
-        await res.json();
+      const data = await res.json();
 
-      if (data.success) {
+      if (data.success && data.verificationId) {
         setSentCode(true);
-        notifySuccess(
-          data.code ? `(dev) Code: ${data.code}` : "Verification code sent"
-        );
-      } else {
-        notifyError(data.error ?? "Failed to send code");
-      }
-    } catch (err) {
-      notifyError("Unexpected error while sending code");
+        setVerificationId(data.verificationId);
+        notifySuccess("Verification code sent in your email");
+      } else notifyError(data.error ?? "Failed to send code");
+    } catch {
+      notifyError("Unexpected error sending code");
     }
   }
 
-  // ------------------------
-  // VERIFY CODE
-  // ------------------------
+  // -----------------------------
+  // Verify code
+  // -----------------------------
   async function handleVerifyCode() {
-    if (!formData.email || !formData.verificationCode) {
-      notifyError("Email and verification code required");
-      return;
-    }
+    if (!formData.verificationCode) return notifyError("Verification code required");
+    if (!verificationId) return notifyError("Send code first");
 
     setVerifying(true);
     try {
-      const res = await fetch("/api/auth/register/vendor/verify-code", {
+      const res = await fetch("/api/auth/register/vendor/verify-vendor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: sanitize(formData.email),
+          uid: verificationId,
           code: sanitize(formData.verificationCode),
         }),
       });
 
-      const data: { success: boolean; error?: string } = await res.json();
+      const data = await res.json();
 
-      if (data.success) {
+      if (res.ok && data.success) {
         setIsVerified(true);
-        notifySuccess("Code verified — you can continue");
+        notifySuccess("Code verified, you can continue ");
       } else {
         setIsVerified(false);
         notifyError(data.error ?? "Invalid or expired code");
       }
     } catch {
-      setIsVerified(false);
       notifyError("Unexpected error verifying code");
     } finally {
       setVerifying(false);
     }
   }
 
-  // ------------------------
-  // SUBMIT FORM
-  // ------------------------
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (honeypot) return;
+  // -----------------------------
+  // Submit
+  // -----------------------------
+ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  if (honeypot) return;
+  if (!isVerified) return notifyError("Verify email first");
 
-    const validation = vendorSchema.safeParse(formData);
-    if (!validation.success) {
-      notifyError(
-        validation.error.errors?.[0]?.message ?? "Validation failed"
-      );
-      return;
+  setRegistering(true);
+  try {
+    const payload = {
+      email: sanitize(formData.email),
+      password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      storeName: formData.storeName,
+      storePhone: formData.storePhone,
+      storeAddress: formData.storeAddress,
+      country: formData.country,
+      state: formData.state,
+      verificationCode: formData.verificationCode,
+      agree: formData.agree,
+    };
+
+    const res = await fetch("/api/auth/register/vendor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      notifySuccess("Registration complete");
+      setTimeout(() => router.push("/auth/sign-in"), 1500);
+    } else {
+      notifyError(data.error ?? "Registration failed");
     }
-
-    if (!isEmailValid) {
-      notifyError("Invalid email");
-      return;
-    }
-
-    if (!isPasswordStrong) {
-      notifyError(
-        `Password must be at least ${PASSWORD_POLICY.minLength} characters, include 1 uppercase & 1 number.`
-      );
-      return;
-    }
-
-    if (!isVerified) {
-      notifyError("You must verify your email first");
-      return;
-    }
-
-    setRegistering(true);
-
-    try {
-      const res = await fetch("/api/auth/register/vendor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          email: sanitize(formData.email),
-          verificationCode: sanitize(formData.verificationCode),
-        }),
-      });
-
-      const data: { success: boolean; error?: string } = await res.json();
-
-      if (data.success) {
-        notifySuccess("Registration complete — please sign in");
-      } else {
-        notifyError(data.error ?? "Registration failed");
-      }
-    } catch {
-      notifyError("Unexpected error during registration");
-    } finally {
-      setRegistering(false);
-    }
+  } catch {
+    notifyError("Unexpected error during registration");
+  } finally {
+    setRegistering(false);
   }
+}
 
-  // ------------------------
-  // RENDER
-  // ------------------------
+
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
-      <div className="w-full max-w-3xl bg-white p-8 rounded shadow">
+      
+      <div className="w-full max-w-5xl bg-white p-8 rounded shadow">
         <h2 className="text-2xl font-bold mb-6">Vendor Registration</h2>
+        <h3 className="text-red-700 text-lg font-extrabold mb-0 -mt-4">Important Instruction &#x3A;</h3>
+        <ol className="list-decimal text-md text-red-600 mb-4">
+          <li>insert your email and  complete all other form details including passwords</li>
+          <li> Click on send code</li>
+          <li>Check your email inbox and spam folder for registration code</li>
+          <li> insert the code receive and click on verify</li>
+          <li>Then click on Register</li>
+        </ol>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Honeypot */}
           <div style={{ display: "none" }}>
-            <input
-              value={honeypot}
-              onChange={(e) => setHoneypot(e.target.value)}
-            />
+            <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
           </div>
 
           {/* Email */}
@@ -262,13 +261,10 @@ export default function VendorRegistration() {
             <input
               value={formData.email}
               onChange={(e) => setField("email", e.target.value)}
-              className={`w-full p-2 border rounded ${
+              className={`w-full text-xl p-2 border rounded ${
                 formData.email && !isEmailValid ? "border-red-400" : ""
               }`}
             />
-            {formData.email && !isEmailValid && (
-              <p className="text-red-500 text-xs mt-1">Invalid email</p>
-            )}
           </div>
 
           {/* Verification */}
@@ -277,77 +273,50 @@ export default function VendorRegistration() {
               placeholder="Verification code"
               value={formData.verificationCode}
               onChange={(e) => setField("verificationCode", e.target.value)}
-              className="flex-1 p-2 border rounded"
+              className="flex-1 text-xl p-2 border rounded"
             />
-
-            <button
-              type="button"
-              onClick={handleSendCode}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
+            <button type="button" onClick={handleSendCode} className="px-4 py-2 text-xl bg-blue-600 text-white rounded">
               Send Code
             </button>
-
-            <button
-              type="button"
-              onClick={handleVerifyCode}
-              className="px-4 py-2 bg-green-600 text-white rounded"
-            >
-              {verifying ? "Verifying..." : "Verify Code"}
+            <button type="button" onClick={handleVerifyCode} className="px-4 py-2 text-xl bg-green-600 text-white rounded">
+              {verifying ? "Verifying..." : "Verify"}
             </button>
-
-            <span
-              className={`ml-2 font-semibold ${
-                isVerified ? "text-green-600" : "text-red-500"
-              }`}
-            >
-              {isVerified ? "Verified" : "Not verified"}
+            <span className={`ml-2 text-xl font-semibold ${isVerified ? "text-green-600" : "text-red-500"}`}>
+              {isVerified ? "Verified" : "Not Verified"}
             </span>
           </div>
 
-          {/* Fields */}
+          {/* Name & Store */}
           <div className="grid grid-cols-2 gap-4">
-            <input
-              placeholder="First name"
-              value={formData.firstName}
-              onChange={(e) => setField("firstName", e.target.value)}
-              className="p-2 border rounded"
-            />
+            <input placeholder="First name" value={formData.firstName} onChange={(e) => setField("firstName", e.target.value)} className="p-2 text-xl border rounded" />
+            <input placeholder="Last name" value={formData.lastName} onChange={(e) => setField("lastName", e.target.value)} className="p-2 text-xl border rounded" />
+            <input placeholder="Store name" value={formData.storeName} onChange={(e) => setField("storeName", e.target.value)} className="p-2 text-xl border rounded" />
+            <input placeholder="Store phone" value={formData.storePhone} onChange={(e) => setField("storePhone", e.target.value)} className="p-2 text-xl border rounded" />
+            <input placeholder="Store address" value={formData.storeAddress} onChange={(e) => setField("storeAddress", e.target.value)} className="p-2 text-xl border rounded" />
 
-            <input
-              placeholder="Last name"
-              value={formData.lastName}
-              onChange={(e) => setField("lastName", e.target.value)}
-              className="p-2 border rounded"
-            />
+            {/* Country SELECT */}
+            <select
+              value={formData.country}
+              onChange={(e) => setField("country", e.target.value)}
+              className="p-2 text-xl border rounded"
+            >
+              <option value="Nigeria">Nigeria</option>
+              {/* If you want to add more countries, add here */}
+            </select>
 
-            <input
-              placeholder="Store name"
-              value={formData.storeName}
-              onChange={(e) => setField("storeName", e.target.value)}
-              className="p-2 border rounded"
-            />
-
-            <input
-              placeholder="Store phone"
-              value={formData.storePhone}
-              onChange={(e) => setField("storePhone", e.target.value)}
-              className="p-2 border rounded"
-            />
-
-            <input
-              placeholder="Store address"
-              value={formData.storeAddress}
-              onChange={(e) => setField("storeAddress", e.target.value)}
-              className="p-2 border rounded"
-            />
-
-            <input
-              placeholder="State"
+            {/* Nigerian States SELECT */}
+            <select
               value={formData.state}
               onChange={(e) => setField("state", e.target.value)}
-              className="p-2 border rounded"
-            />
+              className="p-2 text-xl border rounded"
+            >
+              <option value="">Select State</option>
+              {NIGERIAN_STATES.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Password */}
@@ -358,9 +327,8 @@ export default function VendorRegistration() {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(e) => setField("password", e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full text-xl p-2 border rounded"
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
@@ -370,38 +338,31 @@ export default function VendorRegistration() {
               </button>
             </div>
 
-            <div className="mt-2 h-2 w-full bg-gray-100 rounded">
+            {/* Strength Meter */}
+            <div className="mt-2 text-xl h-2 w-full bg-gray-100 rounded">
               <div
-                className={`h-2 rounded ${
-                  passwordScore < 40
-                    ? "bg-red-500"
-                    : passwordScore < 70
-                    ? "bg-yellow-400"
-                    : "bg-green-500"
+                className={`h-2 rounded text-xl ${
+                  passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-yellow-400" : "bg-green-500"
                 }`}
                 style={{ width: `${passwordScore}%` }}
               />
             </div>
           </div>
 
-          {/* Confirm */}
+          {/* Confirm Password */}
           <div>
             <label>Confirm Password *</label>
             <input
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setField("confirmPassword", e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full text-xl p-2 border rounded"
             />
           </div>
 
-          {/* Terms */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.agree}
-              onChange={() => setField("agree", !formData.agree)}
-            />
+          {/* Agree */}
+          <div className="flex items-center gap-2 text-xl">
+            <input type="checkbox" checked={formData.agree} onChange={() => setField("agree", !formData.agree)} />
             <label>I agree to the terms</label>
           </div>
 
@@ -409,10 +370,8 @@ export default function VendorRegistration() {
           <button
             type="submit"
             disabled={registering || !isVerified}
-            className={`w-full py-2 rounded text-white ${
-              registering || !isVerified
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-black"
+            className={`w-full py-2 text-2xl rounded text-white ${
+              registering || !isVerified ? "bg-gray-400 cursor-not-allowed" : "bg-black"
             }`}
           >
             {registering ? "Registering..." : "Register"}
@@ -422,4 +381,3 @@ export default function VendorRegistration() {
     </div>
   );
 }
-

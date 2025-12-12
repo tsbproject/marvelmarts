@@ -1,108 +1,386 @@
-"use client";
+// "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { useNotification } from "@/app/_context/NotificationContext";
 
-// Permissions type
-type Permissions = {
-  manageUsers?: boolean;
-  manageBlogs?: boolean;
-  manageMessages?: boolean;
-  manageSettings?: boolean;
-  manageAdmins?: boolean;
-};
+// export type Permissions = {
+//   manageAdmins: boolean;
+//   manageUsers: boolean;
+//   manageBlogs: boolean;
+//   manageProducts: boolean;
+//   manageOrders: boolean;
+//   manageMessages: boolean;
+//   manageSettings: boolean;
+// };
 
-// Admin type exactly matches Prisma select
-interface Admin {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  role?: string | null;
-  permissions?: Record<string, boolean> | null;
-}
+// const DEFAULT_PERMISSIONS: Permissions = {
+//   manageAdmins: false,
+//   manageUsers: false,
+//   manageBlogs: false,
+//   manageProducts: false,
+//   manageOrders: false,
+//   manageMessages: false,
+//   manageSettings: false,
+// };
 
-// Optional global window payload for client-side usage
-declare global {
-  interface Window {
-    __ADMIN_PAYLOAD?: Admin;
-  }
-}
+// export default function EditAdminForm({
+//   mode,
+//   initialData,
+// }: {
+//   mode: "create" | "edit";
+//   initialData?: any;
+// }) {
+//   const { notifySuccess, notifyError } = useNotification();
+//   const router = useRouter();
 
-interface EditAdminFormProps {
-  admin?: Admin;
-}
+//   const [name, setName] = useState(initialData?.name || "");
+//   const [email, setEmail] = useState(initialData?.email || "");
+//   const [password, setPassword] = useState("");
+//   const [role, setRole] = useState<"ADMIN" | "SUPER_ADMIN">(
+//     initialData?.role || "ADMIN"
+//   );
 
-export default function EditAdminForm({ admin }: EditAdminFormProps) {
-  const router = useRouter();
+//   const [permissions, setPermissions] = useState<Permissions>({
+//     ...DEFAULT_PERMISSIONS,
+//     ...(initialData?.adminProfile?.permissions || {}),
+//   });
 
-  // Initialize admin from prop or global window payload
-  const initial: Admin | undefined =
-    admin ?? (typeof window !== "undefined" ? window.__ADMIN_PAYLOAD : undefined);
+//   function toggle(key: keyof Permissions) {
+//     setPermissions((p) => ({ ...p, [key]: !p[key] }));
+//   }
 
-  const [perms, setPerms] = useState<Permissions>(initial?.permissions ?? {});
-  const [loading, setLoading] = useState(false);
+//   async function submit(e: React.FormEvent) {
+//     e.preventDefault();
 
-  function toggle(key: keyof Permissions) {
-    setPerms((p) => ({ ...p, [key]: !p[key] }));
-  }
+//     const body: any = {
+//       name,
+//       email,
+//       role,
+//       permissions,
+//     };
 
-  async function save() {
-    if (!initial?.id) return;
+//     if (mode === "create") body.password = password;
+//     else if (password.trim().length > 0) body.password = password;
 
-    setLoading(true);
+//     try {
+//       const res = await fetch(
+//         mode === "create"
+//           ? "/api/admins"
+//           : `/api/admins/${initialData.id}`,
+//         {
+//           method: mode === "create" ? "POST" : "PUT",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify(body),
+//         }
+//       );
 
-    const res = await fetch(`/api/admin/update-permissions/${initial.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ permissions: perms }),
-    });
+//       const data = await res.json();
 
-    const data: { error?: string } = await res.json();
-    setLoading(false);
+//       if (!res.ok) {
+//         notifyError(data.error || "Error saving admin");
+//       } else {
+//         notifySuccess(
+//           mode === "create"
+//             ? "Admin created successfully"
+//             : "Admin updated successfully"
+//         );
+//         router.push("/dashboard/admins");
+//       }
+//     } catch {
+//       notifyError("Server error");
+//     }
+//   }
 
-    if (!res.ok) {
-      alert(data.error || "Failed");
-      return;
-    }
+//   return (
+//     <form
+//       onSubmit={submit}
+//       className="bg-white shadow rounded-xl p-6 space-y-6"
+//     >
+//       {/* Name */}
+//       <div>
+//         <label className="block font-medium mb-1">Name</label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           value={name}
+//           onChange={(e) => setName(e.target.value)}
+//           required
+//         />
+//       </div>
 
-    alert("Saved");
-    router.push("/dashboard/admins");
-  }
+//       {/* Email */}
+//       <div>
+//         <label className="block font-medium mb-1">Email</label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           type="email"
+//           value={email}
+//           onChange={(e) => setEmail(e.target.value)}
+//           required
+//         />
+//       </div>
 
-  if (!initial) return <div className="p-4">Admin data not found</div>;
+//       {/* Password (optional for edit) */}
+//       <div>
+//         <label className="block font-medium mb-1">
+//           {mode === "create" ? "Password" : "New Password (optional)"}
+//         </label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           type="password"
+//           value={password}
+//           onChange={(e) => setPassword(e.target.value)}
+//           minLength={mode === "create" ? 6 : 0}
+//         />
+//       </div>
 
-  return (
-    <div className="bg-white p-6 rounded shadow">
-      <h2 className="text-lg font-semibold mb-3">Permissions for {initial.name}</h2>
+//       {/* Role */}
+//       <div>
+//         <label className="block font-medium mb-1">Role</label>
+//         <select
+//           className="w-full px-3 py-2 border rounded-md"
+//           value={role}
+//           onChange={(e) =>
+//             setRole(e.target.value as "ADMIN" | "SUPER_ADMIN")
+//           }
+//         >
+//           <option value="ADMIN">Admin</option>
+//           <option value="SUPER_ADMIN">Super Admin</option>
+//         </select>
+//       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {(
-          ["manageUsers", "manageBlogs", "manageMessages", "manageSettings", "manageAdmins"] as Array<
-            keyof Permissions
-          >
-        ).map((key) => (
-          <label key={key} className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!perms[key]} onChange={() => toggle(key)} />
-            <span className="text-sm">{key}</span>
-          </label>
-        ))}
-      </div>
+//       {/* Permissions */}
+//       <div>
+//         <label className="block font-medium mb-2">Permissions</label>
+//         <div className="grid grid-cols-2 gap-3">
+//           {Object.keys(DEFAULT_PERMISSIONS).map((key) => (
+//             <label key={key} className="flex items-center gap-2">
+//               <input
+//                 type="checkbox"
+//                 checked={permissions[key as keyof Permissions]}
+//                 onChange={() =>
+//                   toggle(key as keyof Permissions)
+//                 }
+//               />
+//               <span className="capitalize">
+//                 {key.replace(/([A-Z])/g, " $1")}
+//               </span>
+//             </label>
+//           ))}
+//         </div>
+//       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={save}
-          disabled={loading}
-          className="px-4 py-2 bg-black text-white rounded"
-        >
-          {loading ? "Saving..." : "Save"}
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/admins")}
-          className="px-4 py-2 border rounded"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
+//       <button
+//         type="submit"
+//         className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+//       >
+//         {mode === "create" ? "Create Admin" : "Update Admin"}
+//       </button>
+//     </form>
+//   );
+// }
+
+// "use client";
+
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { useNotification } from "@/app/_context/NotificationContext";
+
+// export type Permissions = {
+//   manageAdmins: boolean;
+//   manageUsers: boolean;
+//   manageBlogs: boolean;
+//   manageProducts: boolean;
+//   manageOrders: boolean;
+//   manageMessages: boolean;
+//   manageSettings: boolean;
+// };
+
+// export type AdminProfile = {
+//   id: string;
+//   userId: string;
+//   permissions?: Permissions;
+//   notes?: string | null;
+// };
+
+// export type AdminUser = {
+//   id: string; // User.id (canonical)
+//   name?: string | null;
+//   email: string;
+//   role: "ADMIN" | "SUPER_ADMIN" | "CUSTOMER"; // your schema default is CUSTOMER; API should return ADMIN/SUPER_ADMIN for this page
+//   image?: string | null;
+//   adminProfile?: AdminProfile | null;
+// };
+
+// const DEFAULT_PERMISSIONS: Permissions = {
+//   manageAdmins: false,
+//   manageUsers: false,
+//   manageBlogs: false,
+//   manageProducts: false,
+//   manageOrders: false,
+//   manageMessages: false,
+//   manageSettings: false,
+// };
+
+// type Props =
+//   | { mode: "create"; initialData?: undefined }
+//   | { mode: "edit"; initialData: AdminUser };
+
+// export default function EditAdminForm(props: Props) {
+//   const { mode } = props;
+//   const initialData = mode === "edit" ? props.initialData : undefined;
+
+//   const { notifySuccess, notifyError } = useNotification();
+//   const router = useRouter();
+
+//   const [name, setName] = useState<string>(initialData?.name ?? "");
+//   const [email, setEmail] = useState<string>(initialData?.email ?? "");
+//   const [password, setPassword] = useState<string>("");
+//   const [role, setRole] = useState<"ADMIN" | "SUPER_ADMIN">(
+//     (initialData?.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN")
+//   );
+
+//   const [permissions, setPermissions] = useState<Permissions>({
+//     ...DEFAULT_PERMISSIONS,
+//     ...(initialData?.adminProfile?.permissions ?? {}),
+//   });
+
+//   function toggle(key: keyof Permissions) {
+//     setPermissions((p) => ({ ...p, [key]: !p[key] }));
+//   }
+
+//   async function submit(e: React.FormEvent<HTMLFormElement>) {
+//     e.preventDefault();
+
+//     const body: {
+//       name?: string;
+//       email?: string;
+//       role?: "ADMIN" | "SUPER_ADMIN";
+//       password?: string;
+//       permissions?: Permissions;
+//     } = {
+//       name,
+//       email,
+//       role,
+//       permissions,
+//     };
+
+//     if (mode === "create") {
+//       body.password = password;
+//     } else if (password.trim().length > 0) {
+//       body.password = password;
+//     }
+
+//     try {
+//       const url =
+//         mode === "create"
+//           ? "/api/admins"
+//           : `/api/admins/${initialData!.id}`; // IMPORTANT: this is User.id
+
+//       const res = await fetch(url, {
+//         method: mode === "create" ? "POST" : "PUT",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(body),
+//       });
+
+//       const data = (await res.json()) as { error?: string };
+
+//       if (!res.ok) {
+//         notifyError(data.error || "Error saving admin");
+//       } else {
+//         notifySuccess(
+//           mode === "create"
+//             ? "Admin created successfully"
+//             : "Admin updated successfully"
+//         );
+//         router.push("/dashboard/admins");
+//       }
+//     } catch {
+//       notifyError("Server error while saving admin");
+//     }
+//   }
+
+//   return (
+//     <form onSubmit={submit} className="bg-white shadow rounded-xl p-6 space-y-6">
+//       {/* Name */}
+//       <div>
+//         <label className="block font-medium mb-1">Name</label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           value={name}
+//           onChange={(e) => setName(e.target.value)}
+//           required
+//         />
+//       </div>
+
+//       {/* Email */}
+//       <div>
+//         <label className="block font-medium mb-1">Email</label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           type="email"
+//           value={email}
+//           onChange={(e) => setEmail(e.target.value)}
+//           required
+//         />
+//       </div>
+
+//       {/* Password (optional for edit) */}
+//       <div>
+//         <label className="block font-medium mb-1">
+//           {mode === "create" ? "Password" : "New Password (optional)"}
+//         </label>
+//         <input
+//           className="w-full px-3 py-2 border rounded-md"
+//           type="password"
+//           value={password}
+//           onChange={(e) => setPassword(e.target.value)}
+//           minLength={mode === "create" ? 6 : 0}
+//         />
+//       </div>
+
+//       {/* Role */}
+//       <div>
+//         <label className="block font-medium mb-1">Role</label>
+//         <select
+//           className="w-full px-3 py-2 border rounded-md"
+//           value={role}
+//           onChange={(e) =>
+//             setRole(e.target.value as "ADMIN" | "SUPER_ADMIN")
+//           }
+//         >
+//           <option value="ADMIN">Admin</option>
+//           <option value="SUPER_ADMIN">Super Admin</option>
+//         </select>
+//       </div>
+
+//       {/* Permissions */}
+//       <div>
+//         <label className="block font-medium mb-2">Permissions</label>
+//         <div className="grid grid-cols-2 gap-3">
+//           {(
+//             Object.keys(DEFAULT_PERMISSIONS) as Array<keyof Permissions>
+//           ).map((key) => (
+//             <label key={key} className="flex items-center gap-2">
+//               <input
+//                 type="checkbox"
+//                 checked={permissions[key]}
+//                 onChange={() => toggle(key)}
+//               />
+//               <span className="capitalize">
+//                 {String(key).replace(/([A-Z])/g, " $1")}
+//               </span>
+//             </label>
+//           ))}
+//         </div>
+//       </div>
+
+//       <button
+//         type="submit"
+//         className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+//       >
+//         {mode === "create" ? "Create Admin" : "Update Admin"}
+//       </button>
+//     </form>
+//   );
+// }

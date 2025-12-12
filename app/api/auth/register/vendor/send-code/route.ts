@@ -1,37 +1,63 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/auth/register/vendor/send-code/route.ts
 import { prisma } from "@/app/lib/prisma";
+import { VerificationType, Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { NextResponse } from "next/server";
 
-function generateOTP(length = 6) {
-  return Math.floor(Math.random() * 10 ** length)
-    .toString()
-    .padStart(length, "0");
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ success: false, error: "Invalid email" }, { status: 400 });
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      storeName,
+      storePhone,
+      storeAddress,
+      country,
+      state,
+    } = await req.json();
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return NextResponse.json({ error: "Email already registered" }, { status: 400 });
     }
 
-    // Generate OTP
-    const otp = generateOTP(6);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 5 minutes
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const code = crypto.randomBytes(3).toString("hex");
 
-    // Save OTP to DB
-    await prisma.vendorVerification.create({
+    const vendorData: Prisma.JsonObject = {
+      firstName,
+      lastName,
+      storeName,
+      storePhone,
+      storeAddress,
+      country,
+      state,
+    };
+
+    const verification = await prisma.verificationCode.create({
       data: {
         email,
-        code: otp,
-        expiresAt,
+        hashedPassword,
+        code,
+        type: VerificationType.VENDOR_REGISTRATION,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        used: false,
+        vendorData,
       },
     });
 
-    // TODO: send otp via email here
-
-    return NextResponse.json({ success: true, code: otp }); // code for dev/testing only
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: true, verificationId: verification.id },
+      { status: 201 }
+    );
+  } catch (err: any) {
+    console.error("Vendor send-code error:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: err.message },
+      { status: 500 }
+    );
   }
 }

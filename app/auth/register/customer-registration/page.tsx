@@ -1,230 +1,202 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useNotification } from "@/app/_context/NotificationContext";
-
-interface CustomerFormData {
-  name: string;
-  email: string;
-  password: string;
-  honeypot?: string;
-}
+import { useState, useMemo, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 const PASSWORD_POLICY = {
   minLength: 8,
   requireUpper: true,
   requireNumber: true,
+  requireSpecial: true,
 };
 
 function sanitize(input: string) {
-  return input.replace(/[<>]/g, "").trim();
+  return input.replace(/[<>'";]/g, "").trim();
 }
 
-function calcPasswordScore(pw: string) {
-  let score = 0;
-  if (pw.length >= PASSWORD_POLICY.minLength) score += 30;
-  if (/[A-Z]/.test(pw)) score += 30;
-  if (/\d/.test(pw)) score += 30;
-  if (/[^A-Za-z0-9]/.test(pw)) score += 10;
-  return Math.min(100, score);
+function validateEmail(input: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 }
 
-export default function CustomerRegistration(): JSX.Element {
-  const { notifySuccess, notifyError } = useNotification();
+export default function CustomerRegistrationPage() {
+  const router = useRouter();
 
-  const [form, setForm] = useState<CustomerFormData>({
-    name: "",
-    email: "",
-    password: "",
-    honeypot: "",
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordScore, setPasswordScore] = useState(0);
+  const [honeypot, setHoneypot] = useState("");
 
-  const isEmailValid = useMemo(
-    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()),
-    [form.email]
-  );
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const isPasswordStrong = useMemo(() => {
-    const pw = form.password;
     return (
-      pw.length >= PASSWORD_POLICY.minLength &&
-      /[A-Z]/.test(pw) &&
-      /\d/.test(pw)
+      password.length >= PASSWORD_POLICY.minLength &&
+      /[A-Z]/.test(password) &&
+      /\d/.test(password) &&
+      /[^A-Za-z0-9]/.test(password)
     );
-  }, [form.password]);
+  }, [password]);
 
-  function updateField<K extends keyof CustomerFormData>(
-    key: K,
-    value: CustomerFormData[K]
-  ) {
-    setForm((s) => ({ ...s, [key]: value }));
-
-    if (key === "password") {
-      setPasswordScore(calcPasswordScore(String(value)));
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setMessage("");
+    setIsSuccess(false);
 
-    if (form.honeypot) return;
+    if (honeypot) return; // Bot detected
 
-    if (!form.name.trim() || !form.email.trim()) {
-      notifyError("Please complete all fields.");
+    if (!name.trim()) {
+      setMessage("Please enter your full name.");
       return;
     }
 
-    if (!isEmailValid) {
-      notifyError("Invalid email address.");
+    if (!validateEmail(email)) {
+      setMessage("Enter a valid email address.");
       return;
     }
 
     if (!isPasswordStrong) {
-      notifyError(
-        `Password must be at least ${PASSWORD_POLICY.minLength} characters, include 1 uppercase letter and 1 number.`
+      setMessage(
+        `Password must be at least ${PASSWORD_POLICY.minLength} characters, include 1 uppercase, 1 number, and 1 special character.`
       );
       return;
     }
 
     setLoading(true);
+
     try {
-      const payload = {
-        name: sanitize(form.name),
-        email: sanitize(form.email).toLowerCase(),
-        password: form.password,
-      };
+  const res = await fetch("/api/auth/register/customer/send-code", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Form-Security": "secure-customer-registration-v2",
+    },
+    body: JSON.stringify({
+      name: sanitize(name),
+      email: sanitize(email),
+      password,
+    }),
+  });
 
-      const res = await fetch("/api/auth/register/customer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Form-Security": "customer-registration-v1"
-        },
-        body: JSON.stringify(payload),
-      });
+  const data = await res.json();
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        notifySuccess("Account created successfully! You may now sign in.");
-        setForm({ name: "", email: "", password: "", honeypot: "" });
-        setPasswordScore(0);
-        return;
-      }
-
-      notifyError(data.error || "Registration failed.");
-    } catch {
-      notifyError("Network error. Try again.");
-    } finally {
-      setLoading(false);
-    }
+  if (!res.ok) {
+    setMessage(data.error || data.details || "Registration failed.");
+    setIsSuccess(false);
+    setLoading(false);
+    return;
   }
 
+  // ✅ Updated message
+  setMessage("Verification email sent! Please check your inbox to continue.");
+  setIsSuccess(true);
+
+  // ✅ Redirect stays the same
+  setTimeout(() => {
+    router.push(`/auth/verify/verify-customer?uid=${data.verificationId}`);
+  }, 1500);
+} catch {
+  setMessage("Network error. Please try again.");
+  setIsSuccess(false);
+}
+
+    setLoading(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg px-8 py-10">
-        <header className="mb-6">
-          <h1 className="text-3xl font-semibold text-gray-900">Create Your Account</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Passwords are securely hashed using industry-grade encryption.
+    <div className="min-h-screen flex justify-center items-center bg-gray-50 p-6">
+      <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          Customer Registration
+        </h1>
+
+        {/* Honeypot */}
+        <div style={{ display: "none" }}>
+          <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+        </div>
+
+        {message && (
+          <p
+            className={`mb-4 text-center text-2xl ${
+              isSuccess ? "text-green-600 font-semibold" : "text-red-600"
+            }`}
+          >
+            {message}
           </p>
-        </header>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
-          {/* Honeypot */}
-          <div style={{ display: "none" }}>
-            <input
-              name="honeypot"
-              value={form.honeypot}
-              onChange={(e) => updateField("honeypot", e.target.value)}
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Full name</label>
+            <label className="font-medium text-xl text-gray-700">Full Name</label>
             <input
-              type="text"
-              value={form.name}
-              onChange={(e) => updateField("name", e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black/10 p-3"
-              placeholder="Jane Doe"
+              className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter full name"
             />
           </div>
 
-          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="font-medium text-xl text-gray-700">Email</label>
             <input
-              type="email"
-              value={form.email}
-              onChange={(e) => updateField("email", e.target.value)}
               required
-              className={`mt-1 block w-full rounded-md border ${
-                isEmailValid ? "border-gray-300" : "border-red-400"
-              } shadow-sm focus:border-black focus:ring-black/10 p-3`}
-              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
+              placeholder="example@gmail.com"
             />
-            {!isEmailValid && form.email && (
-              <p className="text-xs text-red-500 mt-1">Enter a valid email.</p>
-            )}
           </div>
 
-          {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-
-            <div className="mt-1 relative">
+            <label className="font-medium text-xl text-gray-700">Password</label>
+            <div className="relative">
               <input
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={(e) => updateField("password", e.target.value)}
                 required
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black/10 p-3"
+                type={passwordVisible ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
                 placeholder="Strong password"
               />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-2 top-2 text-sm text-gray-500 select-none"
+              <span
+                onClick={() => setPasswordVisible(!passwordVisible)}
+                className="absolute right-3 top-3 text-xl text-gray-500 cursor-pointer"
               >
-                {showPassword ? "Hide" : "Show"}
-              </button>
+                {passwordVisible ? "Hide" : "Show"}
+              </span>
             </div>
-
-            {/* Password strength bar */}
-            <div className="mt-2">
-              <div className="w-full bg-gray-100 h-2 rounded">
-                <div
-                  className={`h-2 rounded transition-all ${
-                    passwordScore < 40
-                      ? "bg-red-500"
-                      : passwordScore < 70
-                      ? "bg-yellow-400"
-                      : "bg-green-500"
-                  }`}
-                  style={{ width: `${passwordScore}%` }}
-                />
-              </div>
-            </div>
+            <p className="text-xl text-gray-500 mt-1">
+              At least {PASSWORD_POLICY.minLength} chars, 1 uppercase, 1 number, 1 special character
+            </p>
           </div>
 
           <button
-            type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-black text-white font-semibold py-3 hover:bg-gray-900 disabled:opacity-50"
+            className={`w-full text-2xl bg-accent-navy text-white p-3 rounded font-semibold transition ${
+              loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+            }`}
           >
-            {loading ? "Creating account…" : "Create account"}
+            {loading ? "Creating Account..." : "Register"}
           </button>
         </form>
+
+        <p className="text-center text-xl text-gray-600 mt-4">
+          Already have an account?{" "}
+          <a href="/auth/sign-in" className="text-blue-600 text-xl font-medium underline">
+            Sign in
+          </a>
+        </p>
+
+        <p className="text-center text-4xl text-brand-primary mt-2">
+          Are you a vendor?{" "}
+          <a href="/auth/register/vendor-registration" className="text-accent-navy font-medium underline">
+            Register here
+          </a>
+        </p>
       </div>
     </div>
   );

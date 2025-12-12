@@ -1,69 +1,143 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/auth/register/vendor/route.ts
 import { prisma } from "@/app/lib/prisma";
-import bcrypt from "bcrypt";
-import { z } from "zod";
+import { VerificationType } from "@prisma/client";
+import { NextResponse } from "next/server";
 
-const vendorSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  storeName: z.string().min(1),
-  storePhone: z.string().min(10),
-  storeAddress: z.string().min(5),
-  country: z.string().min(1),
-  state: z.string().min(1),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const parsed = vendorSchema.safeParse(body);
+    // Frontend now sends the full payload again on final submit.
+    // We accept it so we can merge with what's already stored in verification.vendorData.
+    const {
+      email,
+      firstName,
+      lastName,
+      storeName,
+      storePhone,
+      storeAddress,
+      country,
+      state,
+    } = await req.json();
 
-    if (!parsed.success) {
-      return NextResponse.json({ success: false, error: parsed.error.errors[0]?.message ?? "Validation failed" }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, country, state } = parsed.data;
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) return NextResponse.json({ success: false, error: "Email already registered" }, { status: 400 });
-
-    // Check if email has verified OTP
-    const verified = await prisma.vendorVerification.findFirst({
-      where: { email, used: true },
+    // Look up the latest verified code for this email
+    const verification = await prisma.verificationCode.findFirst({
+      where: { email, type: VerificationType.VENDOR_REGISTRATION, used: true },
+      orderBy: { createdAt: "desc" },
     });
-    if (!verified) return NextResponse.json({ success: false, error: "Email not verified" }, { status: 400 });
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    if (!verification) {
+      return NextResponse.json({ error: "Email not verified" }, { status: 400 });
+    }
 
-    // Create user + vendor profile
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        role: "VENDOR",
-        vendorProfile: {
-          create: {
-            firstName,
-            lastName,
-            storeName,
-            storePhone,
-            storeAddress,
-            country,
-            state,
-            isVerified: true,
+    // Merge data from the verification record with the payload from this request.
+    // Payload values take precedence in case the user updated fields after sending the code.
+    const verifiedVendorData = (verification.vendorData ?? {}) as Record<string, any>;
+    const vendorData = {
+      firstName: firstName ?? verifiedVendorData.firstName ?? "",
+      lastName: lastName ?? verifiedVendorData.lastName ?? "",
+      storeName: storeName ?? verifiedVendorData.storeName ?? "",
+      storePhone: storePhone ?? verifiedVendorData.storePhone ?? "",
+      storeAddress: storeAddress ?? verifiedVendorData.storeAddress ?? "",
+      country: country ?? verifiedVendorData.country ?? "",
+      state: state ?? verifiedVendorData.state ?? "",
+    };
+
+    // Simple server-side checks to avoid empty inserts
+    const requiredMissing = Object.entries({
+      firstName: vendorData.firstName,
+      lastName: vendorData.lastName,
+      storeName: vendorData.storeName,
+      storePhone: vendorData.storePhone,
+      storeAddress: vendorData.storeAddress,
+      country: vendorData.country,
+      state: vendorData.state,
+    }).filter(([_, v]) => !String(v || "").trim());
+
+    if (requiredMissing.length) {
+      return NextResponse.json(
+        {
+          error: `Missing fields: ${requiredMissing.map(([k]) => k).join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create or update the user and vendor profile
+    let user = await prisma.user.findUnique({ where: { email: verification.email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          name: `${vendorData.firstName} ${vendorData.lastName}`.trim(),
+          email: verification.email,
+          // Password hash was created in send-code and is stored on the verification record
+          passwordHash: verification.hashedPassword,
+          role: "VENDOR",
+          IsVerified: true,
+          vendorProfile: {
+            create: {
+              firstName: vendorData.firstName,
+              lastName: vendorData.lastName,
+              storeName: vendorData.storeName,
+              storePhone: vendorData.storePhone,
+              storeAddress: vendorData.storeAddress,
+              country: vendorData.country,
+              state: vendorData.state,
+              isVerified: true,
+            },
           },
         },
-      },
-      include: { vendorProfile: true },
+      });
+    } else {
+      // Ensure role and verification flags are correct
+      if (user.role !== "VENDOR" || !user.IsVerified) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: "VENDOR", IsVerified: true },
+        });
+      }
+
+      // Upsert vendor profile with merged data
+      await prisma.vendorProfile.upsert({
+        where: { userId: user.id },
+        update: {
+          firstName: vendorData.firstName,
+          lastName: vendorData.lastName,
+          storeName: vendorData.storeName,
+          storePhone: vendorData.storePhone,
+          storeAddress: vendorData.storeAddress,
+          country: vendorData.country,
+          state: vendorData.state,
+          isVerified: true,
+        },
+        create: {
+          userId: user.id,
+          firstName: vendorData.firstName,
+          lastName: vendorData.lastName,
+          storeName: vendorData.storeName,
+          storePhone: vendorData.storePhone,
+          storeAddress: vendorData.storeAddress,
+          country: vendorData.country,
+          state: vendorData.state,
+          isVerified: true,
+        },
+      });
+    }
+
+    // Clean up verification codes for this email (optional but recommended)
+    await prisma.verificationCode.deleteMany({
+      where: { email, type: VerificationType.VENDOR_REGISTRATION },
     });
 
-    return NextResponse.json({ success: true, user: { id: user.id, email: user.email } });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ success: true, userId: user.id }, { status: 200 });
+  } catch (err: any) {
+    console.error("Vendor registration error:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: err.message },
+      { status: 500 }
+    );
   }
 }
