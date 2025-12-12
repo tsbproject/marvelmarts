@@ -1,24 +1,11 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
-type PermissionsShape = Record<string, boolean>;
-
-const DEFAULT_PERMISSIONS: PermissionsShape = {
-  manageAdmins: false,
-  manageUsers: false,
-  manageBlogs: false,
-  manageProducts: false,
-  manageOrders: false,
-  manageMessages: false,
-  manageSettings: false,
-};
-
 export async function PATCH(
   req: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -27,47 +14,22 @@ export async function PATCH(
   }
 
   try {
-    const { id } = context.params;
-
+    const { id } = params;
     const body = await req.json();
+
     const { permissions } = body;
 
     if (!permissions || typeof permissions !== "object") {
       return NextResponse.json(
-        { error: "Invalid permissions payload" },
+        { error: "Invalid permissions format" },
         { status: 400 }
       );
     }
-
-    // Ensure target admin exists
-    const target = await prisma.user.findUnique({
-      where: { id },
-      include: { adminProfile: true },
-    });
-
-    if (!target)
-      return NextResponse.json(
-        { error: "Admin not found" },
-        { status: 404 }
-      );
-
-    if (!["ADMIN", "SUPER_ADMIN"].includes(target.role)) {
-      return NextResponse.json(
-        { error: "User is not an admin" },
-        { status: 400 }
-      );
-    }
-
-    // Merge with default and update
-    const safePermissions = {
-      ...DEFAULT_PERMISSIONS,
-      ...(permissions as PermissionsShape),
-    };
 
     const updatedProfile = await prisma.adminProfile.upsert({
       where: { userId: id },
-      update: { permissions: safePermissions },
-      create: { userId: id, permissions: safePermissions },
+      update: { permissions },
+      create: { userId: id, permissions },
       include: { user: true },
     });
 
@@ -81,8 +43,8 @@ export async function PATCH(
         permissions: updatedProfile.permissions,
       },
     });
-  } catch (err) {
-    console.error("PATCH /api/admins/[id]/permissions error:", err);
+  } catch (error) {
+    console.error("PATCH update-permissions error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
