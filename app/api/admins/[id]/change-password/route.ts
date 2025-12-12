@@ -1,48 +1,60 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+// Must match Next.js App Router type signature
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    // Await params because Next.js wraps params in a Promise
+    const { id } = await context.params;
+
     const session = await getServerSession(authOptions);
+
     if (!session || session.user.role !== "SUPER_ADMIN") {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
     const { newPassword } = await req.json();
+
     if (!newPassword || newPassword.length < 8) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Password must be at least 8 characters" }),
+      return NextResponse.json(
+        { success: false, error: "Password must be at least 8 characters" },
         { status: 400 }
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { id: params.id } });
+    const user = await prisma.user.findUnique({ where: { id } });
+
     if (!user) {
-      return new Response(
-        JSON.stringify({ success: false, error: "User not found" }),
+      return NextResponse.json(
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: { passwordHash: hashedPassword },
     });
 
-    return new Response(
-      JSON.stringify({ success: true, message: "Password updated successfully" }),
+    return NextResponse.json(
+      { success: true, message: "Password updated successfully" },
       { status: 200 }
     );
   } catch (err) {
-    console.error(err);
-    return new Response(
-      JSON.stringify({ success: false, error: "Internal server error" }),
+    console.error("Change password error:", err);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
