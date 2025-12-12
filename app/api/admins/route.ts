@@ -1,7 +1,3 @@
-
-
-
-
 // app/api/admins/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
@@ -42,12 +38,19 @@ export async function GET() {
 
     // Normalize permissions so front-end can safely consume
     const normalized = admins.map((u) => ({
-      ...u,
-      adminProfile: {
-        ...u.adminProfile,
-        permissions: { ...DEFAULT_PERMISSIONS, ...(u.adminProfile?.permissions ?? {}) },
-      },
-    }));
+  ...u,
+  adminProfile: {
+    ...u.adminProfile,
+    permissions: {
+      ...DEFAULT_PERMISSIONS,
+      ...(typeof u.adminProfile?.permissions === "object" &&
+         u.adminProfile?.permissions !== null &&
+         !Array.isArray(u.adminProfile?.permissions)
+        ? (u.adminProfile.permissions as Record<string, boolean>)
+        : {}),
+    },
+  },
+}));
 
     return NextResponse.json({ admins: normalized }, { status: 200 });
   } catch (err) {
