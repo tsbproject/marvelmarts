@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import EditAdminForm from "./EditAdminForm";
+import EditAdminForm from "@/app/_components/EditAdminForm";
 import { useNotification } from "@/app/_context/NotificationContext";
 
 export default function EditAdminPage() {

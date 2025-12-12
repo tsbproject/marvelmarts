@@ -93,3 +93,38 @@ export async function sendVerificationEmail(
     return sendVerificationEmailWithResend(to, code, uid, name);
   }
 }
+
+
+
+
+// PASSWORD RESET 
+
+
+export async function sendPasswordResetEmail(to: string, resetCode: string) {
+  // Configure transporter (replace with your SMTP settings)
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST, // e.g. "smtp.gmail.com"
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.SMTP_USER, // your email
+      pass: process.env.SMTP_PASS, // your email password or app password
+    },
+  });
+
+  const mailOptions = {
+    from: `"Support" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Password Reset Request",
+    text: `You requested a password reset. Your reset code is: ${resetCode}. 
+This code will expire in 10 minutes.`,
+    html: `
+      <h2>Password Reset Request</h2>
+      <p>You requested a password reset. Use the code below:</p>
+      <h3 style="color:#111">${resetCode}</h3>
+      <p>This code will expire in 10 minutes.</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
