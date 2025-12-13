@@ -1,8 +1,5 @@
 import nodemailer from "nodemailer";
 
-// ------------------------------
-// Nodemailer (development)
-// ------------------------------
 export async function sendVerificationEmailWithNodemailer(
   to: string,
   code: string,
@@ -12,23 +9,17 @@ export async function sendVerificationEmailWithNodemailer(
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
-    secure: true,
+    secure: Number(process.env.SMTP_PORT) === 465, // true only for 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
 
-  await transporter.verify()
-  .then(() => console.log("SMTP connection is OK"))
-  .catch(err => console.error("SMTP connection failed:", err));
-
-
   const verifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`;
 
- try {
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `"Support" <${process.env.SMTP_USER}>`,
     to,
     subject: "Verify your account",
     text: `Hi ${name},\n\nYour verification code is: ${code}\n\nOr click this link: ${verifyUrl}`,
@@ -37,94 +28,72 @@ export async function sendVerificationEmailWithNodemailer(
       <p>Your verification code is: <b>${code}</b></p>
       <p>Or click this link: <a href="${verifyUrl}">${verifyUrl}</a></p>
     `,
-  });
+  };
 
-  console.log("Verification email sent:", info.messageId);
-} catch (err: any) {
-  console.error("Failed to send verification email:", err);
-}
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Verification email sent successfully");
+  } catch (err) {
+    console.error("Failed to send verification email:", err);
 
-
-  console.log("Verification email sent:", info.messageId);
-}
-
-// ------------------------------
-// Resend (production)
-// ------------------------------
-async function sendVerificationEmailWithResend(
-  to: string,
-  code: string,
-  uid: string,
-  name: string
-) {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL,
-      to,
-      subject: "Verify your account",
-      text: `Hi ${name}, your code is ${code}. Or click: ${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Resend API error: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-// ------------------------------
-// Wrapper (exported)
-// ------------------------------
-export async function sendVerificationEmail(
-  to: string,
-  code: string,
-  uid: string,
-  name: string
-) {
-  if (process.env.NODE_ENV === "development") {
-    return sendVerificationEmailWithNodemailer(to, code, uid, name);
-  } else {
-    return sendVerificationEmailWithResend(to, code, uid, name);
+    // ✅ Development fallback
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `⚠️ SMTP failed, but here’s the verification code for ${to}: ${code}`
+      );
+      console.log(`Verification link: ${verifyUrl}`);
+    } else {
+      throw err; // rethrow in production
+    }
   }
 }
 
 
 
-
-// PASSWORD RESET 
-
+//PASSWORD RESET
 
 export async function sendPasswordResetEmail(to: string, resetCode: string) {
-  // Configure transporter (replace with your SMTP settings)
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST, // e.g. "smtp.gmail.com"
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false, // true for 465, false for other ports
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: Number(process.env.SMTP_PORT) === 465, // true only for 465
     auth: {
-      user: process.env.SMTP_USER, // your email
-      pass: process.env.SMTP_PASS, // your email password or app password
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
 
+  // Construct reset link
+  const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/reset-password?code=${resetCode}&email=${encodeURIComponent(to)}`;
+
   const mailOptions = {
-    from: `"Support" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM || `"Support" <${process.env.SMTP_USER}>`,
     to,
     subject: "Password Reset Request",
-    text: `You requested a password reset. Your reset code is: ${resetCode}. 
-This code will expire in 10 minutes.`,
+    text: `You requested a password reset.\n\nYour reset code is: ${resetCode}\n\nOr click this link to reset your password: ${resetUrl}\n\nThis code will expire in 10 minutes.`,
     html: `
       <h2>Password Reset Request</h2>
       <p>You requested a password reset. Use the code below:</p>
       <h3 style="color:#111">${resetCode}</h3>
+      <p>Or click this link to reset your password:</p>
+      <p><a href="${resetUrl}" style="color:#1a73e8">${resetUrl}</a></p>
       <p>This code will expire in 10 minutes.</p>
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Password reset email sent:", info.messageId);
+  } catch (err) {
+    console.error("Failed to send password reset email:", err);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`⚠️ SMTP failed, reset code for ${to}: ${resetCode}`);
+      console.log(`Reset link: ${resetUrl}`);
+    } else {
+      throw err;
+    }
+  }
 }
+
+
