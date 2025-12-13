@@ -1,20 +1,25 @@
-import { prisma } from '@/app/lib/prisma';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { prisma } from "@/app/lib/prisma";
+import Image from "next/image";
+import { notFound } from "next/navigation";
 
 interface CategoryPageProps {
-  params: { slug: string };
+  params: { slug?: string }; // slug may be undefined if route params are misconfigured
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { slug } = params;
+  const slug = params?.slug;
+
+  // Guard against missing slug
+  if (!slug) {
+    notFound();
+  }
 
   // Fetch category by slug including its products
   const category = await prisma.category.findUnique({
-    where: { slug },
+    where: { slug }, // ✅ guaranteed non‑undefined here
     include: {
       products: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           images: true,
           variants: true,
@@ -40,7 +45,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               <h2 className="text-xl font-semibold">{product.title}</h2>
               <p className="text-gray-600">{product.description}</p>
               <span className="text-lg font-bold">
-                ₦{product.price.toLocaleString()}
+                ₦{Number(product.price).toLocaleString()}
               </span>
               {product.images.length > 0 && (
                 <Image
