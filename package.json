@@ -19,7 +19,8 @@
     "seed": "tsc -P tsconfig.seed.json && node dist/prisma/seed.js"
   },
   "prisma": {
-    "seed": "tsc -P tsconfig.seed.json && node dist/prisma/seed.js"
+   
+    "seed":  "ts-node --esm ./prisma/seed.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
