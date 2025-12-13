@@ -20,7 +20,7 @@
   },
   "prisma": {
    
-    "seed":  "ts-node --esm ./prisma/seed.ts"
+    "seed":"node --loader ts-node/esm ./prisma/seed.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
