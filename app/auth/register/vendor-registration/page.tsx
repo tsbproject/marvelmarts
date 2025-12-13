@@ -32,9 +32,9 @@ const vendorSchema = z
     state: z.string().min(1, "State required"),
     password: z.string().min(6, "Password must be at least 6 chars"),
     confirmPassword: z.string().min(6, "Confirm your password"),
-    agree: z.literal(true).refine(val => val === true, {
-    message: "You must agree to terms",
-}),
+    agree: z.boolean().refine(val => val === true, {
+      message: "You must agree to terms",
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -42,6 +42,7 @@ const vendorSchema = z
   });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
+
 
 // -----------------------------
 // Password utilities
