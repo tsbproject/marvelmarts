@@ -56,6 +56,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@types/twilio": "^3.19.2",
+    "@types/webpack": "^5.28.5",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "prisma": "^7.1.0",
