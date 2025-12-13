@@ -1,39 +1,7 @@
-// import { DefaultSession } from "next-auth";
-
-// type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
-
-// declare module "next-auth" {
-//   interface Session {
-//     user: {
-//       id: string;
-//       role: Role;
-//       permissions: Record<string, boolean>; // required internally
-//     } & DefaultSession["user"];
-//   }
-
-//   interface User {
-//     id: string;
-//     name: string | null;
-//     email: string | null;
-//     image?: string | null;
-//     role: Role;
-//     permissions: Record<string, boolean>; // required internally
-//     passwordHash?: string; // optional for auth logic
-//   }
-// }
-
-// declare module "next-auth/jwt" {
-//   interface JWT {
-//     userId: string;
-//     role: Role;
-//     permissions: Record<string, boolean>; // required internally
-//   }
-// }
-
 // types/next-auth.d.ts
 import { DefaultSession } from "next-auth";
 
-type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
 
 declare module "next-auth" {
   interface Session {
