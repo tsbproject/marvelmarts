@@ -33,17 +33,18 @@ export default async function AdminsPage() {
   });
 
   const normalizedAdmins: Admin[] = admins
-    .filter((a) => a.id !== user.id)
-    .map((a) => ({
-      id: a.id,
-      name: a.name,
-      email: a.email,
-      role: a.role as "ADMIN" | "SUPER_ADMIN",
-      createdAt: a.createdAt.toISOString(),
-      adminProfile: {
-        permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
-      },
-    }));
+  .filter((a) => a.id !== user.id)
+  .map((a) => ({
+    id: a.id,
+    name: a.name ?? "", // ✅ convert null to empty string
+    email: a.email,
+    role: a.role as "ADMIN" | "SUPER_ADMIN",
+    createdAt: a.createdAt.toISOString(),
+    adminProfile: {
+      permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
+    },
+  }));
+
 
   return (
     <DashboardSidebar>
