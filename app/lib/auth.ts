@@ -57,7 +57,12 @@ export const authOptions: NextAuthOptions = {
           include: { vendorProfile: true },
         });
 
+          // maybe removed if goes wrong
         if (!user) return null;
+            if (!user.passwordHash) {
+              console.error("User missing passwordHash");
+              return null;
+            }
 
         // ✅ Compare password using bcryptjs
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
