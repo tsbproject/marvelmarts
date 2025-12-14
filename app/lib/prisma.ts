@@ -46,7 +46,7 @@
 // export default prisma;
 
 
-CHATGPT VERSION
+//CHATGPT VERSION
 
 import { PrismaClient } from "@prisma/client";
 
