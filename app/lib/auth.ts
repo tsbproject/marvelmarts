@@ -28,6 +28,12 @@ export type SessionWithUserId = Session & {
 
 
 export const authOptions: NextAuthOptions = {
+  debug: false,
+  logger: {
+    error() {},
+    warn() {},
+    debug() {},
+  },
   session: { strategy: "jwt" },
 
   pages: {
