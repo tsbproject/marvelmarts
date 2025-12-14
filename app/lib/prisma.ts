@@ -54,15 +54,14 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+// ✅ Use standard Prisma client, no adapter
 export const prisma =
   global.prisma ??
   new PrismaClient({
-    log: ["error", "warn"],
+    log: ["query", "error", "warn"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
+if (process.env.NODE_ENV !== "production") global.prisma = prisma;
 
 export default prisma;
 
