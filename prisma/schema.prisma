@@ -1,6 +1,3 @@
-// -------------------------------
-// Prisma Setup
-// -------------------------------
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,137 +6,88 @@ datasource db {
   provider = "postgresql"
 }
 
-// -------------------------------
-// ENUMS
-// -------------------------------
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-}
-
-enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-  VENDOR
-  CUSTOMER
-}
-
-// -------------------------------
-// USER
-// -------------------------------
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  passwordHash  String
-  role          UserRole        @default(CUSTOMER)
-  IsVerified        Boolean @default(false)
-  image         String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  // Existing relations
-  accounts      Account[]
-  addresses     Address[]
-  cart          Cart?
-  orders        Order[]
-  reviews       Review[]
-  sessions      Session[]
-
-  verificationCodes VerificationCode[]
-
-  // IMPORTANT — add relation names to match child models
-  adminProfile    AdminProfile?    @relation("AdminProfileUser")
-  vendorProfile   VendorProfile?   @relation("VendorProfileUser")
-  customerProfile CustomerProfile? @relation("CustomerProfileUser")
-
-  
-
-  permissions   Json?
-
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  passwordHash       String
+  image              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  name               String?
+  permissions        Json?
+  role               UserRole            @default(CUSTOMER)
+  IsVerified         Boolean             @default(false)
+  accounts           Account[]
+  addresses          Address[]
+  adminProfile       AdminProfile?       @relation("AdminProfileUser")
+  cart               Cart?
+  customerProfile    CustomerProfile?    @relation("CustomerProfileUser")
+  orders             Order[]
   passwordResetToken PasswordResetToken?
+  reviews            Review[]
+  sessions           Session[]
+  vendorProfile      VendorProfile?      @relation("VendorProfileUser")
+  verificationCodes  VerificationCode[]
 }
 
 model VerificationCode {
-  id             String   @id @default(cuid())
-  userId         String?  // optional link to User
+  id             String           @id @default(cuid())
+  userId         String?
   email          String
-  hashedPassword String   // always required
-  name           String?  // optional, used for customers
+  hashedPassword String
+  name           String?
   code           String
   type           VerificationType
   expiresAt      DateTime
-  used           Boolean  @default(false)
-  createdAt      DateTime @default(now())
-
-  vendorData     Json?    // store vendor-specific fields until verified
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  used           Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  vendorData     Json?
+  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum VerificationType {
-  CUSTOMER_REGISTRATION
-  VENDOR_REGISTRATION
-}
-
-
-// -------------------------------
-// ROLE PROFILES
-// -------------------------------
 model AdminProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(name: "AdminProfileUser", fields: [userId], references: [id], onDelete: Cascade)
-
+  id          String   @id @default(cuid())
+  userId      String   @unique
   permissions Json?
   notes       String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation("AdminProfileUser", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VendorProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           User     @relation(name: "VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
-
-  firstName      String
-  lastName       String
-  storeName      String
-  storePhone     String
-  storeAddress   String
-  country        String
-  state          String
-
-  isVerified        Boolean @default(false)
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  firstName    String
+  lastName     String
+  storeName    String
+  storePhone   String
+  storeAddress String
+  country      String
+  state        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isVerified   Boolean  @default(false)
+  user         User     @relation("VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CustomerProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
-  user      User     @relation(name: "CustomerProfileUser", fields: [userId], references: [id], onDelete: Cascade)
-
   phone     String?
   address   String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation("CustomerProfileUser", fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// -------------------------------
-// AUTH SYSTEM
-// -------------------------------
 model PasswordResetToken {
   id        String   @id @default(uuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmailVerification {
@@ -163,12 +111,6 @@ model VendorVerification {
   @@index([email])
 }
 
-
-
-
-// -------------------------------
-// PRODUCTS & INVENTORY
-// -------------------------------
 model Category {
   id        String     @id @default(cuid())
   name      String
@@ -177,10 +119,8 @@ model Category {
   position  Int        @default(0)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
   parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryToCategory")
-
   products  Product[]
 }
 
@@ -199,13 +139,12 @@ model Product {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   categoryId    String?
-
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
   category      Category?      @relation(fields: [categoryId], references: [id])
   images        ProductImage[]
   reviews       Review[]
   variants      Variant[]
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
 }
 
 model ProductImage {
@@ -214,7 +153,6 @@ model ProductImage {
   url       String
   alt       String?
   position  Int     @default(0)
-
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
@@ -226,21 +164,16 @@ model Variant {
   price      Decimal     @db.Decimal(10, 2)
   stock      Int         @default(0)
   attrs      Json?
-
-  product    Product     @relation(fields: [productId], references: [id])
   cartItems  CartItem[]
   orderItems OrderItem[]
+  product    Product     @relation(fields: [productId], references: [id])
 }
 
-// -------------------------------
-// CART & ORDERS
-// -------------------------------
 model Cart {
   id        String     @id @default(cuid())
   userId    String     @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
 }
@@ -252,7 +185,6 @@ model CartItem {
   variantId String?
   qty       Int      @default(1)
   unitPrice Decimal  @db.Decimal(10, 2)
-
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id])
   variant   Variant? @relation(fields: [variantId], references: [id])
@@ -268,7 +200,6 @@ model Order {
   total           Decimal     @db.Decimal(10, 2)
   paymentIntentId String?
   createdAt       DateTime    @default(now())
-
   user            User        @relation(fields: [userId], references: [id])
   items           OrderItem[]
 }
@@ -280,15 +211,11 @@ model OrderItem {
   variantId String?
   qty       Int
   unitPrice Decimal  @db.Decimal(10, 2)
-
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id])
   variant   Variant? @relation(fields: [variantId], references: [id])
 }
 
-// -------------------------------
-// MISC
-// -------------------------------
 model Review {
   id        String   @id @default(cuid())
   productId String
@@ -297,7 +224,6 @@ model Review {
   title     String?
   body      String?
   createdAt DateTime @default(now())
-
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -313,7 +239,6 @@ model Address {
   country String
   zip     String
   phone   String?
-
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -330,7 +255,6 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -341,6 +265,22 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  VENDOR
+  CUSTOMER
+}
+
+enum VerificationType {
+  CUSTOMER_REGISTRATION
+  VENDOR_REGISTRATION
 }
