@@ -1,14 +1,14 @@
 // app/auth/error/page.tsx
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
-  // Map NextAuth error codes to friendly messages
   const errorMessages: Record<string, string> = {
     CredentialsSignin: "Invalid email or password. Please try again.",
     AccessDenied: "You do not have permission to sign in.",
@@ -31,5 +31,13 @@ export default function AuthErrorPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div>Loading error page…</div>}>
+      <ErrorContent />
+    </Suspense>
   );
 }
