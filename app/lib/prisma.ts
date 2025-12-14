@@ -1,3 +1,4 @@
+//current working
 // import { PrismaClient } from "@prisma/client";
 // import { PrismaNeon } from "@prisma/adapter-neon";
 
@@ -21,26 +22,52 @@
 
 // export default prisma;
 
+//COPILOT  VERSION
+// import { PrismaClient } from "@prisma/client";
+// import { PrismaNeon } from "@prisma/adapter-neon";
+
+// const adapter = new PrismaNeon({
+//   connectionString: process.env.DATABASE_URL!,
+// });
+
+// const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+
+// export const prisma =
+//   globalForPrisma.prisma ||
+//   new PrismaClient({
+//     adapter,
+//     log: ["query", "error", "warn"],
+//   });
+
+// if (process.env.NODE_ENV !== "production") {
+//   globalForPrisma.prisma = prisma;
+// }
+
+// export default prisma;
+
+
+//CHATGPT VERSION
 
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
 
-const adapter = new PrismaNeon({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
 export const prisma =
-  globalForPrisma.prisma ||
+  global.prisma ??
   new PrismaClient({
-    adapter,
-    log: ["query", "error", "warn"],
+    log: ["error", "warn"],
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  global.prisma = prisma;
 }
 
 export default prisma;
+
+
+
+
+
 
