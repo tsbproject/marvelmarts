@@ -3,6 +3,10 @@ import  prisma  from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 interface SessionUser {
   id: string; // id is a string according to the Prisma schema
   name?: string | null;

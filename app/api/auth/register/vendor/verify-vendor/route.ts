@@ -2,6 +2,10 @@ import { prisma } from "@/app/lib/prisma";
 import { VerificationType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function POST(req: Request) {
   try {
     const { uid, code } = await req.json();

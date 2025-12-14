@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import prisma  from "@/app/lib/prisma";
 import type { ProductUpdate } from "@/types/product"; 
 
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 // GET /api/products
 export async function GET() {
   try {

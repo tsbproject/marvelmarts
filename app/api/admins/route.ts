@@ -17,6 +17,10 @@ const DEFAULT_PERMISSIONS: PermissionsShape = {
   manageSettings: false,
 };
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function GET() {
   try {
     // Return all users with admin roles

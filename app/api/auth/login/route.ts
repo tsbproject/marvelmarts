@@ -6,6 +6,10 @@ import ws from "ws";
 // Neon requires a WebSocket global for Prisma Accelerate
 (global as any).WebSocket = ws;
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();

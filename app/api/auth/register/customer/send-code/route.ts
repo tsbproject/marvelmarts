@@ -8,6 +8,10 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendVerificationEmailWithNodemailer } from "@/app/lib/mailer";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();

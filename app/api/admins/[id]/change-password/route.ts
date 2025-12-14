@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 // Must match Next.js App Router type signature
 export async function POST(
   req: NextRequest,

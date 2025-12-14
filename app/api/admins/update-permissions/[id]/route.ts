@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

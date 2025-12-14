@@ -3,6 +3,11 @@ import { prisma } from "@/app/lib/prisma";
 import { VerificationType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 export async function POST(req: Request) {
   try {
     // Frontend now sends the full payload again on final submit.

@@ -16,6 +16,10 @@ const DEFAULT_PERMISSIONS: PermissionsShape = {
   manageSettings: false,
 };
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+
 /* ============================================================
    GET: Fetch Admin by ID
    ============================================================ */
