@@ -191,7 +191,7 @@ export default function CustomerRegistrationPage() {
           </a>
         </p>
 
-        <p className="text-center text-4xl text-brand-primary mt-2">
+        <p className="text-center text-3xl md:text-3xl text-brand-primary mt-2">
           Are you a vendor?{" "}
           <a href="/auth/register/vendor-registration" className="text-accent-navy font-medium underline">
             Register here
