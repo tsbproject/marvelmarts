@@ -40,7 +40,8 @@ export default function Header() {
     absolute -top-6 visible lg:invisible
     [@media(min-width:300px)]:right-[250px]
     [@media(min-width:300px)]:top-12
-    [@media(min-width:400px)]:right-[350px]
+    [@media(min-width:350px)]:right-[300px]
+    [@media(min-width:400px)]:right-[360px]
     [@media(min-width:400px)]:mb-60
     [@media(min-width:500px)]:left-10
     [@media(max-width:600px)]:-right-[230px]
@@ -55,7 +56,8 @@ export default function Header() {
 <div className='
 absolute visible lg:invisible
     [@media(min-width:300px)]:left-100 [@media(min-width:300px)]:top-17
-    [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
+    [@media(min-width:350px)]:left-120 [@media(min-width:350px)]:top-21
+    [@media(min-width:400px)]:left-100 [@media(min-width:400px)]:top-21
     [@media(min-width:500px)]:left-180 [@media(min-width:500px)]:top-20
     [@media(min-width:600px)]:left-220 [@media(min-width:600px)]:top-20
     [@media(min-width:900px)]:left-320  [@media(min-width:900px)]:top-21
