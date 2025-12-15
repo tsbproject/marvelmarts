@@ -43,7 +43,7 @@ export default function CartDrawer() {
         aria-label="Open Cart"
         className="relative text-gray-800 hover:text-blue-600 transition-colors duration-200"
       >
-        <ShoppingCart className="w-8 h-8" />
+        <ShoppingCart className="w-8 h-8 text-amber-50" />
         {cart && cart.items.length > 0 && (
           <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
             {cart.items.length}
@@ -109,9 +109,9 @@ export default function CartDrawer() {
                         />
                         <div className="flex-1">
                           <h3 className="text-lg font-medium">{item.product.title}</h3>
-                          <p className="text-sm text-gray-500">{item.variant?.name}</p>
+                          <p className="text-md text-gray-500">{item.variant?.name}</p>
                           <span className="text-sm font-semibold">${item.unitPrice}</span>
-                          <div className="text-sm">Qty: {item.qty}</div>
+                          <div className="text-md">Qty: {item.qty}</div>
                         </div>
                       </li>
                     ))}

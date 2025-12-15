@@ -50,9 +50,10 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
       <button
         onClick={() => setMenuOpen(true)}
         aria-label="Open Menu"
-        className="text-brand-primary hover:text-blue-600 transition-colors duration-200"
+        className="text-brand-primary text-xl uppercase hover:text-blue-600 transition-colors duration-200"
       >
         <Menu className="w-12 h-12 border rounded-lg p-2" />
+        <span className='text-lg font-medium uppercase text-white'>Menu</span>
       </button>
 
       <AnimatePresence>
