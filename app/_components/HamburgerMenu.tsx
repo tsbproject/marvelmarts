@@ -69,7 +69,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
               </div>
 
               {/* Search */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 text-lg border-b border-gray-200">
                 <SearchBar />
               </div>
 
@@ -102,11 +102,11 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                     {menuItems.map(({ label, icon, highlight }) => (
                       <li
                         key={label}
-                        className={`flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition hover:bg-gray-100 ${
-                          highlight ? 'bg-orange-100 text-orange-600 font-semibold' : 'text-gray-800'
+                        className={`flex items-center justify-between px-4 py-3 rounded-lg text-2xl cursor-pointer transition hover:bg-gray-100 ${
+                          highlight ? 'bg-orange-100 text-brand-dark font-semibold' : 'text-gray-800'
                         }`}
                       >
-                        <span className="flex items-center gap-2 text-base">{icon}{label}</span>
+                        <span className="flex items-center gap-2 text-2xl">{icon}{label}</span>
                         {label === 'Languages' && <ChevronRight className="w-4 h-4 text-gray-400" />}
                       </li>
                     ))}
