@@ -45,7 +45,7 @@
     "app/api/auth/forgot-password",
     "app/_components/UserMenu.tsx",
     ".next/dev/types/**/*.ts"
-  ],
+, "app/_components/SearchBar.tsxx"  ],
   "exclude": [
     "node_modules"
   ]

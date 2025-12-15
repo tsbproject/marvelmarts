@@ -56,5 +56,18 @@ body {
 }
 
 
+:root {
+  --bp-largest: 75em;  /* 1200px/16 = 75em */
+  --bp-large: 68.75em; /* 1100px/16 */
+  --bp-medium: 56.25em; /* 900px/16 */
+  --bp-small: 37.05em; /* 600px/16 */
+  --bp-smaller: 31.25em; /* 500px/16 */
+  --bp-smallest: 25em; /* 400px/16 */
+  --bp-x-smallest: 18.75em; /* 300px/16 */
+
+  
+}
+
+
 
 
