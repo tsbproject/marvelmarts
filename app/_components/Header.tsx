@@ -58,7 +58,7 @@ absolute visible lg:invisible
     [@media(min-width:400px)]:left-135 [@media(min-width:400px)]:top-21
     [@media(min-width:500px)]:left-180 [@media(min-width:500px)]:top-20
     [@media(min-width:600px)]:left-220 [@media(min-width:600px)]:top-20
-    [@media(min-width:900px)]:left-600  [@media(min-width:900px)]:top-21
+    [@media(min-width:900px)]:left-400  [@media(min-width:900px)]:top-21
 '>
   <CartDrawer />
 </div>
