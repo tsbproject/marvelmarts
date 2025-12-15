@@ -9,11 +9,11 @@ import NewArrivals from './_components/NewArrival';
 export default function HomePage() {
   return (
     <>
-    <div className="relative top-o md:-top-5">
+    <div className="relative top-o md:top-0">
        <EcommerceCarousel />
-       <div className='hidden md:block relative md:-top-164  left-27'>
+       {/* <div className='hidden md:block relative md:-top-164  left-27'>
       <CategorySidebar />
-    </div>
+    </div> */}
       
       
       

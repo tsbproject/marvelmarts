@@ -21,18 +21,18 @@ export default function Header() {
       </div>
 
       {/* Mobile Hamburger */}
-      <div className="absolute left-100 top-8 lg:hidden">
+      <div className="absolute left-230 top-8 lg:hidden">
         <NavigationLeftMobile />
       </div>
 
       {/* 👇 RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-40 top-4 flex items-center gap-6 z-40">
+      <div className="absolute right-60 top-0 flex items-center gap-6 z-40 invisible lg:visible">
   <NavigationRight />
 
 </div>
 
 
-<div className="absolute right-20 top-25 flex items-center gap-6 z-40">
+<div className="absolute right-40 top-22 flex items-center gap-6 z-40 invisible lg:visible">
  <UserMenu />
 </div>
 
