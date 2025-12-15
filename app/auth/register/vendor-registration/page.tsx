@@ -240,15 +240,15 @@ export default function VendorRegistration() {
   <div className="flex justify-center items-start min-h-screen bg-gray-100 px-4 py-10">
     <div className="w-full max-w-5xl bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8">
       {/* Header */}
-      <h2 className="text-xl sm:text-2xl font-bold mb-2">
+      <h2 className="text-2xl sm:text-2xl font-bold mb-2">
         Vendor Registration
       </h2>
 
-      <h3 className="text-red-700 font-semibold mb-1">
+      <h3 className="text-red-700 text-xl sm:text-2xl font-semibold mb-1">
         Important Instructions:
       </h3>
 
-      <ol className="list-decimal pl-5 text-sm sm:text-base text-red-600 mb-6 space-y-1">
+      <ol className="list-decimal pl-5 text-lg sm:text-lg text-red-600 mb-6 space-y-1">
         <li>Fill in your email and all required details.</li>
         <li>Click <strong>Send Code</strong>.</li>
         <li>Check your inbox and spam folder.</li>
@@ -264,10 +264,11 @@ export default function VendorRegistration() {
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-lg text-black font-semibold mb-1">
             Email *
           </label>
           <input
+           placeholder="Enter your email address"
             value={formData.email}
             onChange={(e) => setField("email", e.target.value)}
             className={`w-full p-2.5 text-base border rounded-md focus:outline-none focus:ring ${
@@ -279,19 +280,19 @@ export default function VendorRegistration() {
         </div>
 
         {/* Verification */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="flex flex-col text-black sm:flex-row gap-3 sm:items-center">
           <input
             placeholder="Verification code"
             value={formData.verificationCode}
             onChange={(e) => setField("verificationCode", e.target.value)}
-            className="w-full sm:flex-1 p-2.5 text-base border rounded-md"
+            className="w-full sm:flex-1 p-2.5 text-base text-black border rounded-md"
           />
 
           <div className="flex gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleSendCode}
-              className="flex-1 sm:flex-none px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-md"
+              className="flex-1 sm:flex-none px-4 py-2 text-lg sm:text-lg font-semibold bg-accent-navy text-white rounded-md"
             >
               Send Code
             </button>
@@ -299,7 +300,7 @@ export default function VendorRegistration() {
             <button
               type="button"
               onClick={handleVerifyCode}
-              className="flex-1 sm:flex-none px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded-md"
+              className="flex-1 sm:flex-none px-4 py-2 text-lg sm:text-lg font-semibold bg-green-600 text-white rounded-md"
             >
               {verifying ? "Verifying..." : "Verify"}
             </button>
