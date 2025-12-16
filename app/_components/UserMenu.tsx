@@ -31,12 +31,12 @@ export default function UserMenu() {
   };
 
   return (
-    <div className="relative">
+    <div className="   relative ">
       {/* User Icon */}
       <button
         onClick={() => setUserOpen(true)}
         className="
-          relative z-30 
+          relative z-10 gap-2
           flex items-center justify-center 
           p-2 rounded-full 
           text-brand-primary
@@ -50,8 +50,9 @@ export default function UserMenu() {
         "
       >
         <User className="w-10 h-10" />
+        <span className="text-2xl text-white  "> Account</span>
       </button>
-
+            
       {/* Overlay + Menu */}
       <AnimatePresence>
         {userOpen && (
@@ -87,8 +88,8 @@ export default function UserMenu() {
                 >
                   <X className="w-10 h-10" />
                 </button>
+                 
               </div>
-
               <ul className="flex-1 overflow-y-auto">
                 {menuItems.map((item) => (
                   <li
@@ -113,6 +114,7 @@ export default function UserMenu() {
           </>
         )}
       </AnimatePresence>
+    
     </div>
   );
 }

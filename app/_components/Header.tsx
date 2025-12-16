@@ -8,7 +8,7 @@ import CartDrawer from './CartDrawer';
 
 export default function Header() {
   return (
-    <header className="bg-accent-navy h-35 md:h-40 shadow p-4 md:p-4 relative overflow-x-hidden overflow-y-hidden">
+    <header className="bg-accent-navy h-35 md:h-40 shadow p-4 md:p-4 relative ">
 
      
 
@@ -69,14 +69,14 @@ absolute visible lg:invisible
 
 
       {/* 👇 RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-60 top-0 flex items-center gap-6 z-40 invisible lg:visible">
+      <div className="absolute right-90 top-3 flex items-center gap-6 z-20 invisible lg:visible">
   <NavigationRight />
 
 </div>
 
 
-<div className="absolute right-40 top-22 flex items-center gap-6 z-40 invisible lg:visible">
- <UserMenu />
+<div className=" absolute right-45 top-24 flex items-center  invisible lg:visible">
+ <UserMenu /> 
 </div>
 
 
