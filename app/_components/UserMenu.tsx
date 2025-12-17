@@ -153,7 +153,23 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
 
   return (
     <div className="relative">
-      {/* Overlay + Menu */}
+      {/* Account button with icon + label in white */}
+      <button
+        onClick={() => {
+          // open the drawer
+          if (!open) {
+            onClose(); // ensure any other menus close first
+          }
+        }}
+        className="flex items-center gap-2 p-2 rounded-full 
+                   text-white hover:text-blue-200 transition-colors duration-200
+                   relative z-10"
+      >
+        <User className="w-8 h-8" />
+        <span className="text-xl font-semibold">Account</span>
+      </button>
+
+      {/* Overlay + Menu Drawer */}
       <AnimatePresence>
         {open && (
           <>
@@ -175,12 +191,15 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                          bg-white shadow-2xl z-30 rounded-l-2xl flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-800">User Menu</h2>
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+                  <User className="w-6 h-6 text-blue-600" />
+                  Account
+                </h2>
                 <button
                   onClick={onClose}
                   className="text-gray-500 hover:text-red-500 transition-colors"
                 >
-                  <X className="w-10 h-10" />
+                  <X className="w-8 h-8" />
                 </button>
               </div>
               <ul className="flex-1 overflow-y-auto">

@@ -80,7 +80,7 @@ absolute visible lg:invisible
 </div>
 
 
-<div className=" absolute right-45 top-20 flex items-center  invisible lg:visible">
+<div className=" absolute right-45 top-20 flex items-center invisible lg:visible">
   <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} /> 
 </div>
 
