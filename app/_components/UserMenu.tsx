@@ -47,15 +47,16 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
               transition={{ duration: 0.25 }}
               onClick={onClose}
             />
+                <motion.div
+                  initial={{ x: "100%", opacity: 0, scale: 0.95 }}
+                  animate={{ x: 0, opacity: 1, scale: 1 }}
+                  exit={{ x: "100%", opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 120, damping: 15, delay: 0.25 }} // delay matches Hamburger exit
+                  className="fixed top-0 right-0 h-full w-[80%] max-w-sm 
+                            bg-white shadow-2xl z-30 rounded-l-2xl flex flex-col"
+>
 
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 120, damping: 15 }}
-              className="fixed top-0 right-0 h-full w-[80%] max-w-sm 
-                         bg-white shadow-2xl z-30 rounded-l-2xl flex flex-col"
-            >
+           
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
                 <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
                   <User className="w-6 h-6 text-blue-600" />

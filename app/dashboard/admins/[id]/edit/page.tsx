@@ -92,7 +92,7 @@ import { useParams, useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader";
 import EditAdminForm from "@/app/_components/EditAdminForm";
-import { Admin, Permissions } from "@/app/types/admin";
+import { Admin, Permissions } from "@/types/admin";
 import { useNotification } from "@/app/_context/NotificationContext";
 
 export default function EditAdminPage() {

@@ -26,6 +26,7 @@
     "typeRoots": [
       "./types",
       "./node_modules/@types"
+      
     ],
     "plugins": [
       {
@@ -50,29 +51,4 @@
     "node_modules"
   ]
 }
-// {
-//   "compilerOptions": {
-//     "target": "ES2020",
-//     "lib": ["dom", "dom.iterable", "esnext"],
-//     "allowJs": true,
-//     "skipLibCheck": true,
-//     "strict": true,
-//     "esModuleInterop": true,
-//     "module": "Node16",            // ✅ use Node16 module to match moduleResolution
-//     "moduleResolution": "node16",  // ✅ Node-style resolution
-//     "resolveJsonModule": true,
-//     "isolatedModules": false,      // ✅ allow normal TS compilation
-//     "jsx": "preserve",
-//     "incremental": true,
-//      "baseUrl": ".",
-//       "paths": {
-//        "@/*": ["./*"]
-//      },
-//     "typeRoots": ["./types", "./node_modules/@types"]
-//   },
-//    "ts-node": {
-//     "esm": true
-//   },
-//   "include": ["prisma/**/*.ts"],
-//   "exclude": ["node_modules"]
-// }
+

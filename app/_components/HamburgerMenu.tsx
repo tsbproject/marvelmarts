@@ -20,13 +20,13 @@ interface HamburgerMenuProps {
 }
 
 const menuItems = [
-  { label: "Register as a Vendor", href: "auth/register/vendor-registration", icon: null },
+  { label: "Register as a Vendor", href: "/auth/register/vendor-registration", icon: null },
   { label: "Marvelmarts FAQs", href: "/faqs", icon: null },
   { label: "Track Orders", href: "/orders/track-order", icon: null, highlight: true },
   { label: "My Cart", href: "/cart", icon: <ShoppingCart className="w-5 h-5 text-blue-600" /> },
-  { label: "Languages", href: "#", icon: <ChevronRight className="w-4 h-4" />, hasSubmenu: true },
+  { label: "Languages", href: "#", icon: <ChevronRight className="w-5 h-5" />, hasSubmenu: true },
   { label: "Wishlist", href: "/wishlist", icon: <Heart className="w-5 h-5 text-pink-500" /> },
-  { label: "Login / Register", href: "/auth/sign-in", icon: <User className="w-5 h-5 text-blue-600" /> },
+  // { label: "Login / Register", href: "/auth/sign-in", icon: <User className="w-5 h-5 text-blue-600" /> },
 ];
 
 const languageOptions = [
@@ -43,7 +43,6 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
   const [loading, setLoading] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Handler for navigation clicks
   const handleNavClick = () => {
     setMenuOpen(false);
     setLoading(true);
@@ -76,13 +75,16 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
             />
 
             {/* Drawer */}
+
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 120, damping: 18 }}
-              className="fixed top-0 left-0 w-120 h-screen bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
+              transition={{ type: "spring", stiffness: 120, damping: 18, duration: 0.25 }} // faster exit
+              className="fixed top-0 left-0 w-90 h-screen bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
             >
+
+            
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <h2 className="text-2xl font-bold text-accent-navy">Mobile Menu</h2>
@@ -192,13 +194,17 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                       </li>
                     ))}
 
-                    {/* Account button */}
+                    {/* Account button inside Hamburger */}
                     <li className="px-4 py-3">
-                     <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
-
-                      <button className="flex items-center gap-2 text-lg font-semibold text-gray-800" onClick={() => setUserMenuOpen(true)}>
-                        <User className="w-6 h-6 text-blue-600" />
-                        <span className="text-grey-600 text-2xl">Account</span>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false); // close hamburger
+                          setTimeout(() => setUserMenuOpen(true), 300); // open user menu after delay
+                        }}
+                        className="flex items-center gap-2 text-lg font-semibold text-gray-800 hover:text-accent-navy transition-colors"
+                      >
+                        <User className="w-5 h-5 text-blue-600" />
+                        <span className="text-2xl text-grey-700 font-medium">Account</span>
                       </button>
                     </li>
                   </ul>
@@ -210,7 +216,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
       </AnimatePresence>
 
       {/* UserMenu rendered independently */}
-     
+      <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
 
       {/* Loading Spinner Overlay */}
       <AnimatePresence>
@@ -228,7 +234,3 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
     </div>
   );
 }
-
-
-
-
