@@ -196,7 +196,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                     ))}
                     {/* ✅ Cart Drawer inside HamburgerMenu */}
                     <li className="px-4 py-3">
-                      <UserMenu />
+                     <UserMenu onOpen={() => setMenuOpen(false)} />
                       
                     </li>
                   </ul>
