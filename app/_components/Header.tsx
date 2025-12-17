@@ -30,7 +30,7 @@ export default function Header() {
 
 
  {/* Search Bar - Desktop */}
-      <div className='hidden lg:block '>
+      <div className='absolute top-20  left-100 hidden lg:block'>
         <SearchBar />
       </div>
 
@@ -58,11 +58,11 @@ export default function Header() {
 {/*CartDrawer*/}
 <div className='
 absolute visible lg:invisible
-    [@media(min-width:300px)]:left-100 [@media(min-width:300px)]:top-17
-    [@media(min-width:350px)]:left-120 [@media(min-width:350px)]:top-21
-    [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
-    [@media(min-width:500px)]:left-180 [@media(min-width:500px)]:top-20
-    [@media(min-width:600px)]:left-220 [@media(min-width:600px)]:top-20
+    [@media(min-width:300px)]:left-90 [@media(min-width:300px)]:top-17
+    [@media(min-width:350px)]:left-110 [@media(min-width:350px)]:top-21
+    [@media(min-width:400px)]:left-128 [@media(min-width:400px)]:top-21
+    [@media(min-width:500px)]:left-170 [@media(min-width:500px)]:top-20
+    [@media(min-width:600px)]:left-210 [@media(min-width:600px)]:top-20
     [@media(min-width:900px)]:left-320  [@media(min-width:900px)]:top-21
 '>
   <CartDrawer />
@@ -72,13 +72,13 @@ absolute visible lg:invisible
 
 
       {/* 👇 RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-90 top-3 flex items-center gap-6 z-20 invisible lg:visible">
+      <div className="absolute right-90 -top-3 flex items-center gap-6 z-20 invisible lg:visible">
   <NavigationRight />
 
 </div>
 
 
-<div className=" absolute right-45 top-24 flex items-center  invisible lg:visible">
+<div className=" absolute right-45 top-20 flex items-center  invisible lg:visible">
  <UserMenu /> 
 </div>
 

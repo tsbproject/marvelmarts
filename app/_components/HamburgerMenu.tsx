@@ -1,6 +1,3 @@
-
-
-
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,7 +26,7 @@ const menuItems = [
   { label: 'My Cart', href: '/cart', icon: <ShoppingCart className="w-5 h-5 text-blue-600" /> },
   { label: 'Languages', href: '#', icon: <ChevronRight className="w-4 h-4" />, hasSubmenu: true },
   { label: 'Wishlist', href: '/wishlist', icon: <Heart className="w-5 h-5 text-pink-500" /> },
-  { label: 'Login / Register', href: '/auth/register/customer-registration', icon: <User className="w-5 h-5 text-blue-600" /> },
+  { label: 'Login / Register', href: '/auth/sign-in', icon: <User className="w-5 h-5 text-blue-600" /> },
 ];
 
 const languageOptions = [
@@ -43,6 +40,15 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'categories' | 'menu'>('menu');
   const [languagesOpen, setLanguagesOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Handler for navigation clicks
+  const handleNavClick = () => {
+    setMenuOpen(false);
+    setLoading(true);
+    // Simulate loading until Next.js completes navigation
+    setTimeout(() => setLoading(false), 1200);
+  };
 
   return (
     <div>
@@ -53,7 +59,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
         className="text-brand-primary text-xl uppercase hover:text-blue-600 transition-colors duration-200"
       >
         <Menu className="w-12 h-12 border rounded-lg p-2" />
-        <span className='text-lg font-medium uppercase text-white'>Menu</span>
+        <span className="text-lg font-medium uppercase text-white">Menu</span>
       </button>
 
       <AnimatePresence>
@@ -148,7 +154,11 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                             />
                           </button>
                         ) : (
-                          <Link href={href} className="flex items-center justify-between w-full">
+                          <Link
+                            href={href}
+                            className="flex items-center justify-between w-full"
+                            onClick={handleNavClick} // ✅ close + show loading
+                          >
                             <span className="flex items-center gap-2 text-2xl">
                               {icon}
                               {label}
@@ -171,18 +181,18 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                                   <Link
                                     href={href}
                                     className="block px-2 py-1 rounded-md hover:bg-gray-100 transition"
+                                    onClick={handleNavClick} // ✅ close + show loading
                                   >
                                     {label}
                                   </Link>
                                 </li>
-                                
                               ))}
                             </motion.ul>
                           )}
                         </AnimatePresence>
                       </li>
                     ))}
-                     {/* ✅ Cart Drawer inside HamburgerMenu */}
+                    {/* ✅ Cart Drawer inside HamburgerMenu */}
                     <li className="px-4 py-3">
                       <CartDrawer />
                     </li>
@@ -191,6 +201,20 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ Loading Spinner Overlay */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/40 z-999"
+          >
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
