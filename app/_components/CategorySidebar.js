@@ -41,7 +41,7 @@ export default function CategorySidebar() {
       >
         <div className="flex items-center space-x-2">
           <Grid className="w-6 h-6" />
-          <span className="font-semibold uppercase text-lg sm:text-xl">Browse Categories</span>
+          <span className="font-semibold uppercase text-xl sm:text-2xl">Browse Categories</span>
         </div>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.3 }}>
           <ChevronRight className="w-6 h-6" />
@@ -68,7 +68,7 @@ export default function CategorySidebar() {
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="w-6 h-6 text-gray-500" />
-                    <span className="text-base sm:text-lg font-medium text-gray-700">{name}</span>
+                    <span className="text-xl sm:text-xl font-semibold text-gray-800">{name}</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </li>
