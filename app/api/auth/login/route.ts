@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 import ws from "ws";
+import { UserRole } from "@prisma/client";
 
 // Neon requires a WebSocket global for Prisma Accelerate
 (global as any).WebSocket = ws;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 
 export async function POST(req: Request) {
   try {
@@ -21,9 +21,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 1. Check user in User table
+    // 🔹 1. Find user
     const user = await prisma.user.findUnique({ where: { email } });
-
     if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -31,7 +30,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 2. Verify password
+    // 🔹 2. Verify password (guard against null)
+    if (!user.passwordHash) {
+      // Social login users have no passwordHash
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 400 }
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -41,30 +48,23 @@ export async function POST(req: Request) {
     }
 
     // 🔹 3. Load correct profile based on role
-    let profile = null;
+    let profile: { id: string } | null = null;
 
     switch (user.role) {
-      case "SUPER_ADMIN":
-      case "ADMIN":
-        profile = await prisma.adminProfile.findUnique({
-          where: { userId: user.id },
-        });
+      case UserRole.SUPER_ADMIN:
+      case UserRole.ADMIN:
+        profile = await prisma.adminProfile.findUnique({ where: { userId: user.id } });
         break;
 
-      case "VENDOR":
-        profile = await prisma.vendorProfile.findUnique({
-          where: { userId: user.id },
-        });
+      case UserRole.VENDOR:
+        profile = await prisma.vendorProfile.findUnique({ where: { userId: user.id } });
         break;
 
-      case "CUSTOMER":
-        profile = await prisma.customerProfile.findUnique({
-          where: { userId: user.id },
-        });
+      case UserRole.CUSTOMER:
+        profile = await prisma.customerProfile.findUnique({ where: { userId: user.id } });
         break;
     }
 
-    // Safety: ensure profile exists
     if (!profile) {
       return NextResponse.json(
         { error: "Profile not found for this user." },
@@ -72,16 +72,14 @@ export async function POST(req: Request) {
       );
     }
 
-  
     // 🔹 4. Create session payload
-        const sessionData = {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name ?? "User",   // ✅ use user.name instead of profile.name
-          profileId: profile.id,
-        };
-
+    const sessionData = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name ?? "User",
+      profileId: profile.id,
+    };
 
     // 🔹 5. Set session cookie
     const response = NextResponse.json({
@@ -105,6 +103,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-// trigger redeploy
-
