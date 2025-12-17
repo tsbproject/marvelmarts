@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Logo from './Logo'
 import NavigationRight from "./NavigationRight";
 import NavigationLeftMobile from './NavigationLeftMobile';
@@ -7,6 +8,7 @@ import HamburgerMenu from '@/app/_components/HamburgerMenu';
 import CartDrawer from './CartDrawer';
 
 export default function Header() {
+   const [userMenuOpen, setUserMenuOpen] = useState(false);
   return (
     <header className="bg-accent-navy h-35 md:h-40 shadow p-4 md:p-4 relative ">
 
@@ -79,7 +81,7 @@ absolute visible lg:invisible
 
 
 <div className=" absolute right-45 top-20 flex items-center  invisible lg:visible">
- <UserMenu /> 
+  <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} /> 
 </div>
 
 
