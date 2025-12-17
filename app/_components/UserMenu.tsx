@@ -1,3 +1,6 @@
+
+
+
 // "use client";
 
 // import { useState } from "react";
@@ -11,7 +14,11 @@
 //   link?: string;
 // }
 
-// export default function UserMenu() {
+// interface UserMenuProps {
+//   onOpen?: () => void; // ✅ new prop
+// }
+
+// export default function UserMenu({ onOpen }: UserMenuProps) {
 //   const [userOpen, setUserOpen] = useState(false);
 //   const router = useRouter();
 
@@ -30,29 +37,27 @@
 //     }
 //   };
 
+//   const handleToggle = () => {
+//     const next = !userOpen;
+//     setUserOpen(next);
+//     if (next && onOpen) {
+//       onOpen(); // ✅ notify parent when opening
+//     }
+//   };
+
 //   return (
-//     <div className="   relative ">
+//     <div className="relative">
 //       {/* User Icon */}
 //       <button
-//         onClick={() => setUserOpen(true)}
-//         className="
-//           relative z-10 gap-2
-//           flex items-center justify-center 
-//           p-2 rounded-full 
-//           text-brand-primary
-//           hover:text-blue-600 
-//           transition-colors duration-200
-          
-//           /* FIXED POSITIONING — NO HYDRATION ISSUES */
-//           lg:absolute 
-//           lg:top-0 
-//           lg:right-0
-//         "
+//         onClick={handleToggle}
+//         className="relative z-10 gap-2 flex items-center justify-center 
+//                    p-2 rounded-full text-brand-primary hover:text-blue-600 
+//                    transition-colors duration-200 lg:absolute lg:top-0 lg:right-0"
 //       >
 //         <User className="w-10 h-10" />
-//         <span className="text-2xl text-white  "> Account</span>
+//         <span className="text-2xl text-white">Account</span>
 //       </button>
-            
+
 //       {/* Overlay + Menu */}
 //       <AnimatePresence>
 //         {userOpen && (
@@ -71,40 +76,29 @@
 //               animate={{ x: 0 }}
 //               exit={{ x: "100%" }}
 //               transition={{ type: "spring", stiffness: 120, damping: 15 }}
-//               className="
-//                 fixed top-0 right-0 
-//                 h-full w-[80%] max-w-sm 
-//                 bg-white shadow-2xl z-30 
-//                 rounded-l-2xl flex flex-col
-//               "
+//               className="fixed top-0 right-0 h-full w-[80%] max-w-sm 
+//                          bg-white shadow-2xl z-30 rounded-l-2xl flex flex-col"
 //             >
 //               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-//                 <h2 className="text-lg font-semibold text-gray-800">
-//                   User Menu
-//                 </h2>
+//                 <h2 className="text-lg font-semibold text-gray-800">User Menu</h2>
 //                 <button
 //                   onClick={() => setUserOpen(false)}
 //                   className="text-gray-500 hover:text-red-500 transition-colors"
 //                 >
 //                   <X className="w-10 h-10" />
 //                 </button>
-                 
 //               </div>
 //               <ul className="flex-1 overflow-y-auto">
 //                 {menuItems.map((item) => (
 //                   <li
 //                     key={item.label}
 //                     onClick={() => handleClick(item)}
-//                     className={`
-//                       px-6 py-4 cursor-pointer 
-//                       border-b border-gray-100 
-//                       transition-all duration-200 text-2xl
-//                       ${
-//                         item.type === "auth"
-//                           ? "bg-color-accent-navy text-blue-600 font-semibold hover:bg-blue-50"
-//                           : "text-gray-700 hover:bg-gray-100"
-//                       }
-//                     `}
+//                     className={`px-6 py-4 cursor-pointer border-b border-gray-100 
+//                                 transition-all duration-200 text-2xl ${
+//                                   item.type === "auth"
+//                                     ? "bg-color-accent-navy text-blue-600 font-semibold hover:bg-blue-50"
+//                                     : "text-gray-700 hover:bg-gray-100"
+//                                 }`}
 //                   >
 //                     {item.label}
 //                   </li>
@@ -114,7 +108,6 @@
 //           </>
 //         )}
 //       </AnimatePresence>
-    
 //     </div>
 //   );
 // }
@@ -135,7 +128,7 @@ interface MenuItem {
 }
 
 interface UserMenuProps {
-  onOpen?: () => void; // ✅ new prop
+  onOpen?: () => void; // ✅ callback from HamburgerMenu
 }
 
 export default function UserMenu({ onOpen }: UserMenuProps) {
@@ -159,9 +152,14 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
 
   const handleToggle = () => {
     const next = !userOpen;
-    setUserOpen(next);
-    if (next && onOpen) {
-      onOpen(); // ✅ notify parent when opening
+    if (next) {
+      // Close Hamburger first, then open UserMenu
+      if (onOpen) {
+        onOpen();
+      }
+      setTimeout(() => setUserOpen(true), 300); // ✅ delay for smooth hand-off
+    } else {
+      setUserOpen(false);
     }
   };
 
@@ -231,3 +229,4 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
     </div>
   );
 }
+

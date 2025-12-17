@@ -13,7 +13,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import SearchBar from '@/app/_components/SearchBar';
 import CategorySidebar from '@/app/_components/CategorySidebar';
-import CartDrawer from '@/app/_components/CartDrawer';
 import UserMenu from './UserMenu';
 
 interface HamburgerMenuProps {
@@ -196,7 +195,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                     ))}
                     {/* ✅ Cart Drawer inside HamburgerMenu */}
                     <li className="px-4 py-3">
-                     <UserMenu onOpen={() => setMenuOpen(false)} />
+                       <UserMenu onOpen={() => setMenuOpen(false)} />
                       
                     </li>
                   </ul>
