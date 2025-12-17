@@ -2,7 +2,7 @@ import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout";
-// import { NotificationProvider } from "@/app/_context/NotificationContext"; 
+
 
 export const metadata: Metadata = {
   title: "MarvelMarts",

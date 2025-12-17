@@ -55,6 +55,17 @@ body {
   }
 }
 
+/*LOADING SPINNER SYLES*/
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+
 
 :root {
   --bp-largest: 75em;  /* 1200px/16 = 75em */
