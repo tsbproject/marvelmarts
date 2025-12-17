@@ -42,6 +42,19 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'menu'>('menu');
   const [languagesOpen, setLanguagesOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+
+
+<AnimatePresence>
+  {menuOpen && (
+    <motion.div> ...hamburger drawer... </motion.div>
+  )}
+</AnimatePresence>
+
+{/* Render UserMenu independently */}
+<UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
+
 
   // Handler for navigation clicks
   const handleNavClick = () => {
@@ -194,10 +207,20 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                       </li>
                     ))}
                     {/* ✅ Cart Drawer inside HamburgerMenu */}
-                    <li className="px-4 py-3">
-                       <UserMenu onOpen={() => setMenuOpen(false)} />
-                      
-                    </li>
+                    {/* In HamburgerMenu.tsx */}
+                        <li className="px-4 py-3">
+                          <button
+                            onClick={() => {
+                              setMenuOpen(false); // close hamburger
+                              setTimeout(() => setUserMenuOpen(true), 300); // open user menu after delay
+                            }}
+                            className="flex items-center gap-2 text-2xl"
+                          >
+                            <User className="w-5 h-5 text-blue-600" />
+                            Account
+                          </button>
+                        </li>
+
                   </ul>
                 )}
               </div>

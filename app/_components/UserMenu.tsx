@@ -1,6 +1,3 @@
-
-
-
 // "use client";
 
 // import { useState } from "react";
@@ -15,12 +12,14 @@
 // }
 
 // interface UserMenuProps {
-//   onOpen?: () => void; // ✅ new prop
+//   open: boolean;
+//   onClose: () => void;
 // }
 
-// export default function UserMenu({ onOpen }: UserMenuProps) {
+// export default function UserMenu({ open, onClose }: UserMenuProps) {
 //   const [userOpen, setUserOpen] = useState(false);
 //   const router = useRouter();
+  
 
 //   const menuItems: MenuItem[] = [
 //     { label: "Sign In", type: "auth", link: "/auth/sign-in" },
@@ -39,9 +38,14 @@
 
 //   const handleToggle = () => {
 //     const next = !userOpen;
-//     setUserOpen(next);
-//     if (next && onOpen) {
-//       onOpen(); // ✅ notify parent when opening
+//     if (next) {
+//       // Close Hamburger first, then open UserMenu
+//       if (onOpen) {
+//         onOpen();
+//       }
+//       setTimeout(() => setUserOpen(true), 300); // ✅ delay for smooth hand-off
+//     } else {
+//       setUserOpen(false);
 //     }
 //   };
 
@@ -112,11 +116,8 @@
 //   );
 // }
 
-
-
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -128,11 +129,11 @@ interface MenuItem {
 }
 
 interface UserMenuProps {
-  onOpen?: () => void; // ✅ callback from HamburgerMenu
+  open: boolean;       // controlled open state
+  onClose: () => void; // callback to close
 }
 
-export default function UserMenu({ onOpen }: UserMenuProps) {
-  const [userOpen, setUserOpen] = useState(false);
+export default function UserMenu({ open, onClose }: UserMenuProps) {
   const router = useRouter();
 
   const menuItems: MenuItem[] = [
@@ -146,39 +147,15 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
   const handleClick = (item: MenuItem) => {
     if (item.link) {
       router.push(item.link);
-      setUserOpen(false);
-    }
-  };
-
-  const handleToggle = () => {
-    const next = !userOpen;
-    if (next) {
-      // Close Hamburger first, then open UserMenu
-      if (onOpen) {
-        onOpen();
-      }
-      setTimeout(() => setUserOpen(true), 300); // ✅ delay for smooth hand-off
-    } else {
-      setUserOpen(false);
+      onClose();
     }
   };
 
   return (
     <div className="relative">
-      {/* User Icon */}
-      <button
-        onClick={handleToggle}
-        className="relative z-10 gap-2 flex items-center justify-center 
-                   p-2 rounded-full text-brand-primary hover:text-blue-600 
-                   transition-colors duration-200 lg:absolute lg:top-0 lg:right-0"
-      >
-        <User className="w-10 h-10" />
-        <span className="text-2xl text-white">Account</span>
-      </button>
-
       {/* Overlay + Menu */}
       <AnimatePresence>
-        {userOpen && (
+        {open && (
           <>
             <motion.div
               className="fixed inset-0 bg-black/40 z-20"
@@ -186,7 +163,7 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              onClick={() => setUserOpen(false)}
+              onClick={onClose}
             />
 
             <motion.div
@@ -200,7 +177,7 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">User Menu</h2>
                 <button
-                  onClick={() => setUserOpen(false)}
+                  onClick={onClose}
                   className="text-gray-500 hover:text-red-500 transition-colors"
                 >
                   <X className="w-10 h-10" />
@@ -229,4 +206,3 @@ export default function UserMenu({ onOpen }: UserMenuProps) {
     </div>
   );
 }
-
