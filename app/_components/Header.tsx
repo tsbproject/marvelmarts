@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { User } from  "lucide-react";
 import Logo from './Logo'
 import NavigationRight from "./NavigationRight";
 import NavigationLeftMobile from './NavigationLeftMobile';
@@ -80,8 +81,13 @@ absolute visible lg:invisible
 </div>
 
 
-<div className=" absolute right-45 top-20 flex items-center invisible lg:visible">
-  <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} /> 
+<div className="  absolute right-45 top-22 flex items-center invisible lg:visible">
+ <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
+
+<button className='flex items-center gap-2 text-lg font-semibold text-gray-800' onClick={() => setUserMenuOpen(true)}>
+  <User className="w-10 h-10 text-brand-primary" />
+  <span className="text-white text-2xl">Account</span>
+</button>
 </div>
 
 
