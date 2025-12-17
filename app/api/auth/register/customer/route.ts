@@ -1,107 +1,77 @@
-// app/api/auth/register/customer/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { VerificationType } from "@prisma/client";
+import { VerificationType, UserRole } from "@prisma/client";
 import { z } from "zod";
-
-const registerSchema = z.object({
-  email: z.string().email("Valid email required"),
-});
-
-type RegisterBody = z.infer<typeof registerSchema>;
+import { getLatestVerification, validateVerification, cleanupVerification } from "@/app/lib/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// --- Zod schema ---
+const customerRegisterSchema = z.object({
+  email: z.string().email("Valid email required"),
+  name: z.string().min(1, "Name is required"),
+});
+
+type CustomerRegisterBody = z.infer<typeof customerRegisterSchema>;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const parsed = registerSchema.safeParse(body);
+    const parsed = customerRegisterSchema.safeParse(body);
 
     if (!parsed.success) {
-      // ✅ use .issues instead of .errors
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Validation failed" },
+        { error: "Invalid payload", details: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    // ✅ parsed.data is now typed as RegisterBody
-    const { email } = parsed.data;
+    const { email, name } = parsed.data;
 
-    // Reject if already registered
+    // --- Check if user already exists ---
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email already registered" }, { status: 400 });
     }
 
-    // Must have a verified, unexpired code
-    const verification = await prisma.verificationCode.findFirst({
-      where: {
-        email,
-        type: VerificationType.CUSTOMER_REGISTRATION,
-        used: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!verification) {
-      return NextResponse.json(
-        { error: "Email not verified" },
-        { status: 400 }
-      );
-    }
-    if (verification.expiresAt < new Date()) {
-      return NextResponse.json(
-        { error: "Verification expired" },
-        { status: 400 }
-      );
+    // --- Verification checks ---
+    const verification = await getLatestVerification(email, VerificationType.CUSTOMER_REGISTRATION);
+    const check = validateVerification(verification);
+    if (!check.valid) {
+      return NextResponse.json({ error: check.error }, { status: 400 });
     }
 
-    if (!verification.hashedPassword) {
-      return NextResponse.json(
-        { error: "Password missing from verification record" },
-        { status: 400 }
-      );
+    if (!verification?.hashedPassword) {
+      return NextResponse.json({ error: "Password missing from verification record" }, { status: 400 });
     }
 
-    // Create user + customer profile
+    // --- Customer profile data ---
+    const customerProfileData = {
+      // add any customer-specific fields here if needed
+    };
+
+    // --- Create user + customer profile ---
     const user = await prisma.user.create({
       data: {
-        name: verification.name ?? "",
+        name,
         email,
         passwordHash: verification.hashedPassword,
-        role: "CUSTOMER",
-        customerProfile: {
-          create: {},
-        },
+        role: UserRole.CUSTOMER,
+        IsVerified: true,
+        customerProfile: { create: customerProfileData },
       },
-      select: { id: true, email: true },
+      select: { id: true, email: true, role: true },
     });
 
-    // Cleanup: remove all verification records for this email/type
-    await prisma.verificationCode.deleteMany({
-      where: { email, type: VerificationType.CUSTOMER_REGISTRATION },
-    });
+    // --- Cleanup verification codes ---
+    await cleanupVerification(email, VerificationType.CUSTOMER_REGISTRATION);
 
     return NextResponse.json({ success: true, user }, { status: 201 });
   } catch (err) {
     console.error("Customer registration error:", err);
-
-    // ✅ safe error handling
-    if (err instanceof Error) {
-      return NextResponse.json(
-        { error: "Internal Server Error", details: err.message },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json(
-      { error: "Internal Server Error", details: "Unknown error" },
+      { error: "Internal Server Error", details: err instanceof Error ? err.message : "Unknown error" },
       { status: 500 }
     );
   }
