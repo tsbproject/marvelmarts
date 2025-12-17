@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SearchBar from '@/app/_components/SearchBar';
 import CategorySidebar from '@/app/_components/CategorySidebar';
 import CartDrawer from '@/app/_components/CartDrawer';
+import UserMenu from './UserMenu';
 
 interface HamburgerMenuProps {
   children?: React.ReactNode;
@@ -27,6 +28,7 @@ const menuItems = [
   { label: 'Languages', href: '#', icon: <ChevronRight className="w-4 h-4" />, hasSubmenu: true },
   { label: 'Wishlist', href: '/wishlist', icon: <Heart className="w-5 h-5 text-pink-500" /> },
   { label: 'Login / Register', href: '/auth/sign-in', icon: <User className="w-5 h-5 text-blue-600" /> },
+  
 ];
 
 const languageOptions = [
@@ -194,7 +196,8 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
                     ))}
                     {/* ✅ Cart Drawer inside HamburgerMenu */}
                     <li className="px-4 py-3">
-                      <CartDrawer />
+                      <UserMenu />
+                      
                     </li>
                   </ul>
                 )}
