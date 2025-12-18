@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { z } from "zod";
 
@@ -9,7 +9,11 @@ const updateSchema = z.object({
   position: z.number().optional(),
 });
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+// 🔹 Update Category
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await req.json();
     const parsed = updateSchema.safeParse(body);
@@ -23,9 +27,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // Optional: check slug conflict if slug is being updated
     if (parsed.data.slug) {
-      const existing = await prisma.category.findUnique({ where: { slug: parsed.data.slug } });
+      const existing = await prisma.category.findUnique({
+        where: { slug: parsed.data.slug },
+      });
       if (existing && existing.id !== params.id) {
-        return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Slug already exists" },
+          { status: 400 }
+        );
       }
     }
 
@@ -38,21 +47,28 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   } catch (err) {
     console.error("Category update error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err instanceof Error ? err.message : "Unknown error" },
+      {
+        error: "Internal Server Error",
+        details: err instanceof Error ? err.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
 }
 
-
-
 // 🔹 Delete Category
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await prisma.category.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     console.error("Category delete error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
