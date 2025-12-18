@@ -1,5 +1,3 @@
-
-
 // "use client";
 
 // import { useSession } from "next-auth/react";
@@ -31,8 +29,9 @@
 //         {actions
 //           .filter((a) => a.show !== false)
 //           .filter((a) => {
-//             // 🔹 Hide Add Admin if not SUPER_ADMIN
-//             if (a.label.toLowerCase().includes("admin")) {
+//             // 🔹 Restrict Add Admin and Add Category to SUPER_ADMIN only
+//             const label = a.label.toLowerCase();
+//             if (label.includes("admin") || label.includes("category")) {
 //               return isSuperAdmin;
 //             }
 //             return true;
@@ -85,9 +84,18 @@ type ActionButton = {
 type DashboardHeaderProps = {
   title: string;
   actions?: ActionButton[];
+  showAddButton?: boolean;       // 🔹 new optional prop
+  addButtonLabel?: string;       // 🔹 new optional prop
+  addButtonLink?: string;        // 🔹 new optional prop
 };
 
-export default function DashboardHeader({ title, actions = [] }: DashboardHeaderProps) {
+export default function DashboardHeader({
+  title,
+  actions = [],
+  showAddButton,
+  addButtonLabel,
+  addButtonLink,
+}: DashboardHeaderProps) {
   const { data: session } = useSession();
   const role = session?.user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
@@ -97,10 +105,21 @@ export default function DashboardHeader({ title, actions = [] }: DashboardHeader
       <h1 className="text-3xl font-bold">{title}</h1>
 
       <div className="flex items-center space-x-4">
+        {/* 🔹 Render Add button if props are passed */}
+        {showAddButton && addButtonLabel && addButtonLink && (
+          <Link
+            href={addButtonLink}
+            className="px-4 py-2 rounded text-white font-medium transition bg-blue-600 hover:bg-blue-700"
+          >
+            {addButtonLabel}
+          </Link>
+        )}
+
+        {/* 🔹 Render any extra actions */}
         {actions
           .filter((a) => a.show !== false)
           .filter((a) => {
-            // 🔹 Restrict Add Admin and Add Category to SUPER_ADMIN only
+            // Restrict Add Admin and Add Category to SUPER_ADMIN only
             const label = a.label.toLowerCase();
             if (label.includes("admin") || label.includes("category")) {
               return isSuperAdmin;
