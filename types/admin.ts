@@ -1,4 +1,6 @@
-export type Permissions = {
+// types/admin.ts
+
+export interface Permissions {
   manageAdmins: boolean;
   manageUsers: boolean;
   manageBlogs: boolean;
@@ -6,7 +8,9 @@ export type Permissions = {
   manageOrders: boolean;
   manageMessages: boolean;
   manageSettings: boolean;
-};
+  manageCategories: boolean; // 🔹 add this
+}
+
 
 export type AdminRole = "ADMIN" | "SUPER_ADMIN";
 
