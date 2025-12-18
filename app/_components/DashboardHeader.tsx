@@ -1,36 +1,123 @@
+
+
+// "use client";
+
+// import { useSession } from "next-auth/react";
+// import SignOutButton from "./SignOutButton";
+// import Link from "next/link";
+
+// type ActionButton = {
+//   label: string;
+//   link: string;
+//   show?: boolean;
+//   style?: string;
+// };
+
+// type DashboardHeaderProps = {
+//   title: string;
+//   actions?: ActionButton[];
+// };
+
+// export default function DashboardHeader({ title, actions = [] }: DashboardHeaderProps) {
+//   const { data: session } = useSession();
+//   const role = session?.user?.role;
+//   const isSuperAdmin = role === "SUPER_ADMIN";
+
+//   return (
+//     <div className="flex items-center justify-between mb-6">
+//       <h1 className="text-3xl font-bold">{title}</h1>
+
+//       <div className="flex items-center space-x-4">
+//         {actions
+//           .filter((a) => a.show !== false)
+//           .filter((a) => {
+//             // 🔹 Hide Add Admin if not SUPER_ADMIN
+//             if (a.label.toLowerCase().includes("admin")) {
+//               return isSuperAdmin;
+//             }
+//             return true;
+//           })
+//           .map((action) => (
+//             <Link
+//               key={action.label}
+//               href={action.link}
+//               className={`px-4 py-2 rounded text-white font-medium transition ${
+//                 action.style ?? "bg-black hover:bg-gray-900"
+//               }`}
+//             >
+//               {action.label}
+//             </Link>
+//           ))}
+
+//         {session?.user && (
+//           <div className="flex items-center space-x-2">
+//             <span className="text-lg text-gray-700">
+//               {session.user.name} ({session.user.role})
+//             </span>
+
+//             <SignOutButton
+//               redirectPath="/auth/sign-in"
+//               label="Sign Out"
+//               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+//             />
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
 "use client";
 
 import { useSession } from "next-auth/react";
 import SignOutButton from "./SignOutButton";
+import Link from "next/link";
 
-type DashboardHeaderProps = {
-  title: string;           // Page title
-  showAddButton?: boolean; // Optional: show an add button (for Admins)
-  addButtonLabel?: string;
-  addButtonLink?: string;
+type ActionButton = {
+  label: string;
+  link: string;
+  show?: boolean;
+  style?: string;
 };
 
-export default function DashboardHeader({
-  title,
-  showAddButton = false,
-  addButtonLabel,
-  addButtonLink,
-}: DashboardHeaderProps) {
+type DashboardHeaderProps = {
+  title: string;
+  actions?: ActionButton[];
+};
+
+export default function DashboardHeader({ title, actions = [] }: DashboardHeaderProps) {
   const { data: session } = useSession();
+  const role = session?.user?.role;
+  const isSuperAdmin = role === "SUPER_ADMIN";
 
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-3xl font-bold">{title}</h1>
 
       <div className="flex items-center space-x-4">
-        {showAddButton && addButtonLink && addButtonLabel && (
-          <a
-            href={addButtonLink}
-            className="px-4 py-2 bg-black text-2xl text-white rounded hover:bg-gray-900 transition"
-          >
-            {addButtonLabel}
-          </a>
-        )}
+        {actions
+          .filter((a) => a.show !== false)
+          .filter((a) => {
+            // 🔹 Restrict Add Admin and Add Category to SUPER_ADMIN only
+            const label = a.label.toLowerCase();
+            if (label.includes("admin") || label.includes("category")) {
+              return isSuperAdmin;
+            }
+            return true;
+          })
+          .map((action) => (
+            <Link
+              key={action.label}
+              href={action.link}
+              className={`px-4 py-2 rounded text-white font-medium transition ${
+                action.style ?? "bg-black hover:bg-gray-900"
+              }`}
+            >
+              {action.label}
+            </Link>
+          ))}
 
         {session?.user && (
           <div className="flex items-center space-x-2">

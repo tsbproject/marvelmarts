@@ -1,10 +1,117 @@
+
+
+
+
+// // app/dashboard/admins/page.tsx
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/lib/auth";
+// import { prisma } from "@/app/lib/prisma";
+// import DashboardSidebar from "@/app/_components/DashboardSidebar";
+// import DashboardHeader from "@/app/_components/DashboardHeader";
+// import AdminsTable, { Admin } from "./AdminsTable";
+// import { redirect } from "next/navigation";
+
+// export default async function AdminsPage() {
+//   const session = await getServerSession(authOptions);
+//   const user = session?.user;
+
+//   if (!user) redirect("/auth/sign-in");
+
+//   const isSuperAdmin = user.role === "SUPER_ADMIN";
+//   const isAdmin = user.role === "ADMIN";
+
+//   if (!isSuperAdmin && !isAdmin) {
+//     return <div className="p-8">Access denied</div>;
+//   }
+
+//   let normalizedAdmins: Admin[] = [];
+
+//   // 🔹 SUPER_ADMIN: fetch all admins
+//   if (isSuperAdmin) {
+//     const admins = await prisma.user.findMany({
+//       where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+//       select: {
+//         id: true,
+//         name: true,
+//         email: true,
+//         role: true,
+//         createdAt: true,
+//         adminProfile: { select: { permissions: true } },
+//       },
+//       orderBy: { createdAt: "desc" },
+//     });
+
+//     normalizedAdmins = admins
+//       .filter((a) => a.id !== user.id) // hide self from table
+//       .map((a) => ({
+//         id: a.id,
+//         name: a.name ?? "",
+//         email: a.email,
+//         role: a.role as "ADMIN" | "SUPER_ADMIN",
+//         createdAt: a.createdAt.toISOString(),
+//         adminProfile: {
+//           permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
+//         },
+//       }));
+//   }
+
+//   // 🔹 ADMIN: only show their own row
+//   if (isAdmin) {
+//     normalizedAdmins = [
+//       {
+//         id: user.id,
+//         name: user.name ?? "",
+//         email: user.email,
+//         role: "ADMIN",
+//         createdAt: new Date().toISOString(),
+//         adminProfile: {
+//           permissions: (user.permissions ?? {}) as Record<string, boolean>,
+//         },
+//       },
+//     ];
+//   }
+
+//   return (
+//     <DashboardSidebar>
+//       <div className="p-8 w-full">
+//         <DashboardHeader
+//           title="Administrators"
+//           actions={
+//             isSuperAdmin
+//               ? [
+//                   {
+//                     label: "Add Admin",
+//                     link: "/dashboard/admins/create",
+//                     style: "bg-blue-600 hover:bg-blue-700",
+//                   },
+//                   {
+//                     label: "Add Category",
+//                     link: "/dashboard/admins/categories/create",
+//                     style: "bg-green-600 hover:bg-green-700",
+//                   },
+//                 ]
+//               : []
+//           }
+//         />
+
+//         <AdminsTable
+//           admins={normalizedAdmins}
+//           canManageAdmins={isSuperAdmin}
+//           currentUserId={user.id}
+//         />
+//       </div>
+//     </DashboardSidebar>
+//   );
+// }
+
+
 // app/dashboard/admins/page.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import AdminsTable, { Admin } from "./AdminsTable";   // ✅ import Admin instead of AdminTableRow
+import AdminsTable, { Admin } from "./AdminsTable";
 import { redirect } from "next/navigation";
 
 export default async function AdminsPage() {
@@ -14,48 +121,86 @@ export default async function AdminsPage() {
   if (!user) redirect("/auth/sign-in");
 
   const isSuperAdmin = user.role === "SUPER_ADMIN";
-  const canViewPage = isSuperAdmin || user.role === "ADMIN";
-  const canManageAdmins = isSuperAdmin || user.permissions?.manageAdmins;
+  const isAdmin = user.role === "ADMIN";
 
-  if (!canViewPage) return <div className="p-8">Access denied</div>;
+  if (!isSuperAdmin && !isAdmin) {
+    return <div className="p-8">Access denied</div>;
+  }
 
-  const admins = await prisma.user.findMany({
-    where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      adminProfile: { select: { permissions: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Always initialize as an array
+  let normalizedAdmins: Admin[] = [];
 
-  const normalizedAdmins: Admin[] = admins
-  .filter((a) => a.id !== user.id)
-  .map((a) => ({
-    id: a.id,
-    name: a.name ?? "", // ✅ convert null to empty string
-    email: a.email,
-    role: a.role as "ADMIN" | "SUPER_ADMIN",
-    createdAt: a.createdAt.toISOString(),
-    adminProfile: {
-      permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
-    },
-  }));
+  if (isSuperAdmin) {
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        adminProfile: { select: { permissions: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
+    normalizedAdmins = admins
+      .filter((a) => a.id !== user.id) // hide self from table
+      .map((a) => ({
+        id: a.id,
+        name: a.name ?? "",
+        email: a.email,
+        role: a.role as "ADMIN" | "SUPER_ADMIN",
+        createdAt: a.createdAt.toISOString(),
+        adminProfile: {
+          permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
+        },
+      }));
+  }
+
+  if (isAdmin) {
+    normalizedAdmins = [
+      {
+        id: user.id,
+        name: user.name ?? "",
+        email: user.email,
+        role: "ADMIN",
+        createdAt: new Date().toISOString(),
+        adminProfile: {
+          permissions: (user.permissions ?? {}) as Record<string, boolean>,
+        },
+      },
+    ];
+  }
 
   return (
     <DashboardSidebar>
       <div className="p-8 w-full">
         <DashboardHeader
           title="Administrators"
-          showAddButton={canManageAdmins}
-          addButtonLabel="Add Admin"
-          addButtonLink="/dashboard/admins/create"
+          actions={
+            isSuperAdmin
+              ? [
+                  {
+                    label: "Add Admin",
+                    link: "/dashboard/admins/create",
+                    style: "bg-blue-600 hover:bg-blue-700",
+                  },
+                  {
+                    label: "Add Category",
+                    link: "/dashboard/admins/categories/create",
+                    style: "bg-green-600 hover:bg-green-700",
+                  },
+                ]
+              : []
+          }
         />
-        <AdminsTable admins={normalizedAdmins} canManageAdmins={canManageAdmins} />
+
+        <AdminsTable
+          admins={normalizedAdmins}
+          canManageAdmins={isSuperAdmin}
+          currentUserId={user.id}
+        />
       </div>
     </DashboardSidebar>
   );

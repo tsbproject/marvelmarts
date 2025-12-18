@@ -1,11 +1,9 @@
-
-
-
-// app/_components/AdminDeleteButton.tsx
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useNotification } from "@/app/_context/NotificationContext";
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
 interface AdminDeleteButtonProps {
   id: string;
@@ -13,25 +11,31 @@ interface AdminDeleteButtonProps {
 
 export default function AdminDeleteButton({ id }: AdminDeleteButtonProps) {
   const { notifySuccess, notifyError } = useNotification();
-  const [loading, setLoading] = useState(false);
+  const { setLoading } = useLoadingOverlay();
+  const router = useRouter();
+
+  const [loading, setLocalLoading] = useState(false);
 
   async function handleDelete() {
     if (!confirm("Are you sure you want to delete this admin?")) return;
 
-    setLoading(true);
+    setLocalLoading(true);
+    setLoading(true); // 🔹 global overlay spinner
+
     try {
       const res = await fetch(`/api/admins/${id}`, { method: "DELETE" });
       const data = await res.json();
 
       if (res.ok && data.success) {
         notifySuccess("Admin deleted successfully");
-        // Optionally refresh the page or router
+        router.refresh(); // 🔹 refresh page so table updates
       } else {
         notifyError(data.error ?? "Failed to delete admin");
       }
     } catch {
       notifyError("Unexpected error deleting admin");
     } finally {
+      setLocalLoading(false);
       setLoading(false);
     }
   }
@@ -46,4 +50,5 @@ export default function AdminDeleteButton({ id }: AdminDeleteButtonProps) {
     </button>
   );
 }
+
 

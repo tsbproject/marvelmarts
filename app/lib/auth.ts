@@ -1,127 +1,3 @@
-// // app/lib/auth.ts
-// import type { NextAuthOptions } from "next-auth";
-// import CredentialsProvider from "next-auth/providers/credentials";
-// import { prisma } from "@/app/lib/prisma";
-// import bcrypt from "bcryptjs"; // ✅ match registration hashing library
-
-// export type UnifiedRole = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
-
-// interface AuthUser {
-//   id: string;
-//   name: string | null;
-//   email: string;
-//   role: UnifiedRole;
-//   permissions: Record<string, boolean>;
-// }
-
-// import type { Session } from "next-auth";
-
-// export type SessionWithUserId = Session & {
-//   user: {
-//     id: string;
-//     email: string;
-//     role: UnifiedRole;
-//     permissions: Record<string, boolean>;
-//     name?: string | null;
-//   };
-// };
-
-
-// export const authOptions: NextAuthOptions = {
-//   debug: false,
-//   logger: {
-//     error() {},
-//     warn() {},
-//     debug() {},
-//   },
-//   session: { strategy: "jwt" },
-
-//   pages: {
-//     signIn: "/auth/sign-in",
-//   },
-
-//   providers: [
-//     CredentialsProvider({
-//       name: "Credentials",
-//       credentials: {
-//         identifier: { label: "Email", type: "text" },
-//         password: { label: "Password", type: "password" },
-//       },
-//       async authorize(credentials): Promise<AuthUser | null> {
-//         if (!credentials?.identifier || !credentials.password) return null;
-//         const email = credentials.identifier.toLowerCase().trim();
-
-//         // 🔎 Fetch user once
-//         const user = await prisma.user.findUnique({
-//           where: { email },
-//           include: { vendorProfile: true },
-//         });
-
-//           // maybe removed if goes wrong
-//         if (!user) return null;
-//             if (!user.passwordHash) {
-//               console.error("User missing passwordHash");
-//               return null;
-//             }
-
-//         // ✅ Compare password using bcryptjs
-//         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-//         if (!valid) return null;
-
-//         // ✅ Type-safe permissions fallback
-//         const permissions =
-//           typeof user.permissions === "object" && user.permissions !== null
-//             ? (user.permissions as Record<string, boolean>)
-//             : {};
-
-//         // ✅ Return unified AuthUser object
-//         return {
-//           id: user.id,
-//           name: user.name,
-//           email: user.email,
-//           role: user.role as UnifiedRole,
-//           permissions,
-//         };
-//       },
-//     }),
-//   ],
-
-//   callbacks: {
-//     async jwt({ token, user }) {
-//       if (user) {
-//         token.userId = user.id;
-//         token.role = user.role;
-//         token.permissions =
-//           typeof user.permissions === "object" && user.permissions !== null
-//             ? (user.permissions as Record<string, boolean>)
-//             : {};
-//       }
-//       return token;
-//     },
-
-//     async session({ session, token }) {
-//       if (session.user) {
-//         session.user.id = token.userId as string;
-//         session.user.role = token.role as UnifiedRole;
-//         session.user.permissions = token.permissions as Record<string, boolean>;
-//       }
-//       return session;
-//     },
-
-//     redirect({ url, baseUrl }) {
-//       if (url.startsWith("/")) return baseUrl + url;
-//       try {
-//         return new URL(url).toString();
-//       } catch {
-//         return baseUrl;
-//       }
-//     },
-//   },
-
-//   secret: process.env.NEXTAUTH_SECRET,
-// };
-
-
 
 
 import type { NextAuthOptions, Session } from "next-auth";
@@ -132,10 +8,8 @@ import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 
-// --- Role type ---
 export type Role = "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
 
-// --- Extend NextAuth types ---
 declare module "next-auth" {
   interface Session {
     user: {
@@ -148,9 +22,6 @@ declare module "next-auth" {
   }
 }
 
-
-
-// --- AuthUser type for credentials ---
 interface AuthUser {
   id: string;
   name: string | null;
@@ -161,9 +32,10 @@ interface AuthUser {
 
 const DEFAULT_SOCIAL_ROLE: UserRole = "CUSTOMER";
 
-// --- Helper to normalize permissions ---
 function normalizePermissions(value: unknown): Record<string, boolean> {
-  return typeof value === "object" && value !== null ? (value as Record<string, boolean>) : {};
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, boolean>)
+    : {};
 }
 
 export const authOptions: NextAuthOptions = {
@@ -187,7 +59,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: identifier },
-          include: { vendorProfile: true },
+          include: { adminProfile: true, vendorProfile: true },
         });
         if (!user?.passwordHash) return null;
 
@@ -199,7 +71,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role as UserRole,
-          permissions: normalizePermissions(user.permissions),
+          // ✅ pull from adminProfile.permissions
+          permissions: normalizePermissions(user.adminProfile?.permissions),
         };
       },
     }),
@@ -215,41 +88,47 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
-    callbacks: {
-        async jwt({ token, user, account }) {
-      const isOAuth = !!account && !!user;
-      const email = user?.email?.toLowerCase();
+  callbacks: {
+    async jwt({ token, user, account }) {
+  const isOAuth = !!account && !!user;
+  const email = user?.email?.toLowerCase();
 
-      if (isOAuth && email) {
-        let dbUser = await prisma.user.findUnique({ where: { email } });
+  if (isOAuth && email) {
+    let dbUser = await prisma.user.findUnique({
+      where: { email },
+      include: { adminProfile: true },
+    });
 
-        if (!dbUser) {
-              dbUser = await prisma.user.create({
-                data: {
-                  email,
-                  name: user.name,
-                  role: DEFAULT_SOCIAL_ROLE,
-                  permissions: {},
-                },
-              });
-            }
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
+        data: {
+          email,
+          name: user.name,
+          role: DEFAULT_SOCIAL_ROLE,
+          // create adminProfile only if role is ADMIN/SUPER_ADMIN
+          adminProfile: {
+            create: {
+              permissions: {}, // default empty permissions
+            },
+          },
+        },
+        include: { adminProfile: true },
+      });
+    }
 
-        // ✅ Respect existing DB role if found
-        token.userId = dbUser.id;
-        token.role = dbUser.role; // SUPER_ADMIN, ADMIN, VENDOR, CUSTOMER
-        token.permissions = normalizePermissions(dbUser.permissions);
-      }
+    token.userId = dbUser.id;
+    token.role = dbUser.role;
+    token.permissions = normalizePermissions(dbUser.adminProfile?.permissions);
+  }
 
-      if (!isOAuth && user) {
-        // Credentials login → respect DB role
-        token.userId = user.id;
-        token.role = user.role as UserRole;
-        token.permissions = normalizePermissions(user.permissions);
-      }
+  if (!isOAuth && user) {
+    token.userId = user.id;
+    token.role = user.role as UserRole;
+    token.permissions = normalizePermissions(user.permissions);
+  }
 
-      return token;
-    },
-
+  return token;
+},
 
     async session({ session, token }) {
       if (session.user) {
@@ -259,7 +138,6 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-
 
     redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return baseUrl + url;
