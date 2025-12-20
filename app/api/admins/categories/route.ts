@@ -1,19 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
 import { z } from "zod";
 
-const categorySchema = z.object({
+const createSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   parentId: z.string().optional(),
   position: z.number().optional(),
 });
 
-// 🔹 Create Category
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parsed = categorySchema.safeParse(body);
+    const parsed = createSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -22,35 +23,92 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, slug, parentId, position } = parsed.data;
-
-    const existing = await prisma.category.findUnique({ where: { slug } });
+    // Slug conflict check
+    const existing = await prisma.category.findUnique({
+      where: { slug: parsed.data.slug },
+    });
     if (existing) {
-      return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Slug already exists" },
+        { status: 400 }
+      );
     }
 
     const category = await prisma.category.create({
-      data: { name, slug, parentId, position: position ?? 0 },
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        parentId: parsed.data.parentId && parsed.data.parentId !== "" 
+          ? parsed.data.parentId 
+          : null, // 🔹 normalize empty string to null
+        position: parsed.data.position ?? 0,
+      },
     });
 
     return NextResponse.json({ success: true, category }, { status: 201 });
   } catch (err) {
-    console.error("Category creation error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Category create error:", err);
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+        details: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
 
+
 // 🔹 List Categories
-export async function GET() {
-  try {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+
+  const all = searchParams.get("all") === "true"; // 🔹 flag for full list
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
+  const search = searchParams.get("search") || "";
+  const sortBy = searchParams.get("sortBy") || "position";
+  const sortOrder = searchParams.get("sortOrder") || "asc";
+
+  const where: Prisma.CategoryWhereInput | undefined = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { slug: { contains: search, mode: "insensitive" } },
+        ],
+      }
+    : undefined;
+
+  if (all) {
+    // 🔹 Return full list (for create/edit dropdowns)
     const categories = await prisma.category.findMany({
-      include: { children: true, parent: true },
-      orderBy: { position: "asc" },
+      where,
+      include: { parent: true, children: true },
+      orderBy: { [sortBy]: sortOrder },
     });
 
-    return NextResponse.json({ success: true, categories }, { status: 200 });
-  } catch (err) {
-    console.error("Category fetch error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: true, categories });
   }
+
+  // 🔹 Paginated mode (for table view)
+  const [categories, total] = await Promise.all([
+    prisma.category.findMany({
+      where,
+      include: { parent: true, children: true },
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.category.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    categories,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+    sortBy,
+    sortOrder,
+  });
 }

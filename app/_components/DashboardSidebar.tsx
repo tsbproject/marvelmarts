@@ -190,13 +190,13 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
     const management = [
       {
         label: "Admins",
-        href: "/dashboard/admins",
+        href: "/dashboard/admins/admins",
         icon: <ShieldCheckIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageAdmins,
       },
       {
         label: "Users",
-        href: "/dashboard/users",
+        href: "/dashboard/admins/users",
         icon: <UsersIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageUsers,
       },
@@ -208,25 +208,25 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
       },
       {
         label: "Products",
-        href: "/dashboard/products",
+        href: "/dashboard/admins/products",
         icon: <KeyIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageProducts,
       },
       {
         label: "Orders",
-        href: "/dashboard/orders",
+        href: "/dashboard/admins/orders",
         icon: <KeyIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageOrders,
       },
       {
         label: "Categories",
-        href: "/dashboard/categories",
+        href: "/dashboard/admins/categories",
         icon: <Squares2X2Icon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageCategories,
       },
       {
         label: "Settings",
-        href: "/dashboard/settings",
+        href: "/dashboard/admins/settings",
         icon: <Cog6ToothIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageSettings,
       },

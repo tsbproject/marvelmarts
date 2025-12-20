@@ -14,6 +14,7 @@ import Link from "next/link";
 import SearchBar from "@/app/_components/SearchBar";
 import CategorySidebar from "@/app/_components/CategorySidebar";
 import UserMenu from "./UserMenu";
+import CategoryMenu from "./CategoryMenu";
 
 interface HamburgerMenuProps {
   children?: React.ReactNode;
@@ -129,7 +130,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
               {/* Content */}
               <div className="p-4">
                 {activeTab === "categories" ? (
-                  <CategorySidebar />
+                  <CategoryMenu />
                 ) : (
                   <ul className="space-y-3">
                     {menuItems.map(({ label, icon, highlight, href, hasSubmenu }) => (

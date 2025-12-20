@@ -1,29 +1,26 @@
+// app/categories/[slug]/page.tsx
 import { prisma } from "@/app/lib/prisma";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface CategoryPageProps {
-  params: { slug?: string }; // slug may be undefined if route params are misconfigured
+  params: { slug: string }; // ✅ slug is required
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const slug = params?.slug;
+  const slug = params.slug;
 
-  // Guard against missing slug
   if (!slug) {
-    notFound();
+    notFound(); // ✅ guard against missing slug
   }
 
-  // Fetch category by slug including its products
   const category = await prisma.category.findUnique({
-    where: { slug }, // ✅ guaranteed non‑undefined here
+    where: { slug },
     include: {
       products: {
         orderBy: { createdAt: "desc" },
-        include: {
-          images: true,
-          variants: true,
-        },
+        include: { images: true, variants: true },
       },
       children: true,
     },
@@ -36,30 +33,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-4xl font-bold">{category.name}</h1>
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {category.products.length === 0 ? (
-          <p>No products found in this category.</p>
-        ) : (
-          category.products.map((product) => (
-            <div key={product.id} className="border p-4 rounded-lg">
-              <h2 className="text-xl font-semibold">{product.title}</h2>
-              <p className="text-gray-600">{product.description}</p>
-              <span className="text-lg font-bold">
-                ₦{Number(product.price).toLocaleString()}
-              </span>
-              {product.images.length > 0 && (
-                <Image
-                  src={product.images[0].url}
-                  alt={product.images[0].alt || product.title}
-                  width={400}
-                  height={300}
-                  className="mt-2 w-full h-40 object-cover rounded"
-                />
-              )}
-            </div>
-          ))
-        )}
-      </div>
+      {/* render children + products here */}
     </div>
   );
 }

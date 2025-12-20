@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useState } from "react";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
-export default function DeleteCategoryPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function DeleteCategoryPage() {
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id; // ✅ extract id safely
   const router = useRouter();
   const { notifySuccess, notifyError } = useNotification();
   const { setLoading } = useLoadingOverlay();
@@ -15,6 +16,11 @@ export default function DeleteCategoryPage({ params }: { params: { id: string } 
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
+    if (!id) {
+      setError("Invalid category ID");
+      return;
+    }
+
     setSubmitting(true);
     setLoading(true);
     setError(null);
@@ -67,4 +73,3 @@ export default function DeleteCategoryPage({ params }: { params: { id: string } 
     </div>
   );
 }
-
