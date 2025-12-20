@@ -1,5 +1,9 @@
-// //app/api/admins/categories/[id]/route
 
+
+
+
+
+// // app/api/admins/categories/[id]/route.ts
 // import { NextRequest, NextResponse } from "next/server";
 // import { prisma } from "@/app/lib/prisma";
 // import { z } from "zod";
@@ -7,14 +11,14 @@
 // const updateSchema = z.object({
 //   name: z.string().min(1).optional(),
 //   slug: z.string().min(1).optional(),
-//   parentId: z.string().optional(),
+//   parentId: z.string().nullable().optional(), // ✅ allow null
 //   position: z.number().optional(),
 // });
 
-// // 🔹 Update Category
+
 // export async function PUT(
 //   req: NextRequest,
-//   { params }: { params: { id: string } }
+//   { params }: { params: { id: string } }   // ✅ correct typing
 // ) {
 //   try {
 //     const body = await req.json();
@@ -29,12 +33,12 @@
 
 //     const data = parsed.data;
 
-//     // 🔹 Normalize parentId
+//     // Normalize parentId
 //     if (data.parentId === "") {
 //       data.parentId = null;
 //     }
 
-//     // 🔹 Slug conflict check
+//     // Slug conflict check
 //     if (data.slug) {
 //       const existing = await prisma.category.findUnique({
 //         where: { slug: data.slug },
@@ -47,9 +51,9 @@
 //       }
 //     }
 
-//     // 🔹 Update category
+//     // Update category
 //     const category = await prisma.category.update({
-//       where: { id: params.id },
+//       where: { id: params.id },   // ✅ params.id is now defined
 //       data,
 //     });
 
@@ -57,24 +61,18 @@
 //   } catch (err: any) {
 //     console.error("Category update error:", err);
 //     return NextResponse.json(
-//       {
-//         error: "Internal Server Error",
-//         details: err.message || "Unknown error",
-//       },
+//       { error: "Internal Server Error", details: err.message },
 //       { status: 500 }
 //     );
 //   }
 // }
 
-
-// //DELETE CATEGORY
-
+// // 🔹 Delete Category
 // export async function DELETE(
 //   _req: NextRequest,
-//   context: { params: Promise<{ id: string }> }
+//   { params }: { params: { id: string } }
 // ) {
-//   // 🔹 Await the params
-//   const { id } = await context.params;
+//   const { id } = params;
 
 //   if (!id) {
 //     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
@@ -105,11 +103,12 @@ const updateSchema = z.object({
   position: z.number().optional(),
 });
 
-
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }   // ✅ correct typing
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
+
   try {
     const body = await req.json();
     const parsed = updateSchema.safeParse(body);
@@ -133,7 +132,7 @@ export async function PUT(
       const existing = await prisma.category.findUnique({
         where: { slug: data.slug },
       });
-      if (existing && existing.id !== params.id) {
+      if (existing && existing.id !== id) {
         return NextResponse.json(
           { error: "Slug already exists" },
           { status: 400 }
@@ -143,7 +142,7 @@ export async function PUT(
 
     // Update category
     const category = await prisma.category.update({
-      where: { id: params.id },   // ✅ params.id is now defined
+      where: { id },
       data,
     });
 
@@ -160,9 +159,9 @@ export async function PUT(
 // 🔹 Delete Category
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = context.params;
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
@@ -177,3 +176,4 @@ export async function DELETE(
 
   return NextResponse.json({ success: true }, { status: 200 });
 }
+
