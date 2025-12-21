@@ -135,12 +135,14 @@ export default function CategoriesTable({
 
   // 🔹 Sort rows
   const sortedRows = [...filteredRows].sort((a, b) => {
-    const valA = a[sortBy];
-    const valB = b[sortBy];
-    if (valA < valB) return sortOrder === "asc" ? -1 : 1;
-    if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  });
+  const valA = a[sortBy] ?? ""; // fallback for null/undefined
+  const valB = b[sortBy] ?? "";
+
+  if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+  if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+  return 0;
+});
+
 
   // 🔹 Paginate rows
   const totalPages = Math.ceil(sortedRows.length / pageSize);
