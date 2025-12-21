@@ -135,13 +135,24 @@ export default function CategoriesTable({
 
   // 🔹 Sort rows
   const sortedRows = [...filteredRows].sort((a, b) => {
-  const valA = a[sortBy] ?? ""; // fallback for null/undefined
-  const valB = b[sortBy] ?? "";
+  let valA = a[sortBy];
+  let valB = b[sortBy];
 
-  if (valA < valB) return sortOrder === "asc" ? -1 : 1;
-  if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-  return 0;
+  // normalize nulls
+  if (valA == null) valA = "";
+  if (valB == null) valB = "";
+
+  // compare numbers vs strings
+  if (typeof valA === "number" && typeof valB === "number") {
+    return sortOrder === "asc" ? valA - valB : valB - valA;
+  }
+
+  // string comparison
+  return sortOrder === "asc"
+    ? String(valA).localeCompare(String(valB))
+    : String(valB).localeCompare(String(valA));
 });
+
 
 
   // 🔹 Paginate rows

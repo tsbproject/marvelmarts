@@ -132,11 +132,7 @@ export default async function CategoriesPage({
         <CategoriesTable
           categories={normalizedCategories}
           canManageCategories={canManageCategories}
-          totalPages={Math.ceil(total / pageSize)}
-          currentPage={page}
-          search={search}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
+        
         />
       </div>
     </DashboardSidebar>
