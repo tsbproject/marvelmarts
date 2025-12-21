@@ -1,4 +1,4 @@
-// app/data/categories.ts
+// app/data/CategorySidebar.ts
 import {
   Grid,
   Laptop,
@@ -61,7 +61,7 @@ export const categories: Category[] = [
   {
     name: "Automobile",
     icon: Car,
-    subcategories: ["Car Parts", "Accessories"],
+    subcategories: ["Car Parts", " Car accessories"],
     banner: "/images/auto-banner.jpg",
     highlight: true,
   },
@@ -84,3 +84,5 @@ export const categories: Category[] = [
     banner: "/images/other-banner.jpg",
   },
 ];
+
+

@@ -138,7 +138,7 @@ export default function CreateCategoryPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto p-8">
+    <div className="max-w-4xl max-h-screen my-auto mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">Create Category</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -147,7 +147,7 @@ export default function CreateCategoryPage() {
           placeholder="Name"
           value={form.name}
           onChange={handleNameChange}
-          className="border p-2 w-full rounded"
+          className="border text-2xl p-2 w-full rounded"
           required
         />
 
@@ -161,7 +161,7 @@ export default function CreateCategoryPage() {
             validateSlug(e.target.value);
           }}
           onBlur={() => validateSlug(form.slug)} // 🔹 validate on blur too
-          className="border p-2 w-full rounded"
+          className="border text-2xl p-2 w-full rounded"
           required
         />
 
@@ -169,9 +169,9 @@ export default function CreateCategoryPage() {
         {finalSlug && (
           <p className="text-sm">
             Final slug:{" "}
-            <span className="font-mono text-blue-700">{finalSlug}</span>{" "}
+            <span className="font-mono text-2xl text-blue-700">{finalSlug}</span>{" "}
             {slugAvailable === true && (
-              <span className="text-green-600">✓ Available</span>
+              <span className=" text-2xl text-green-600">✓ Available</span>
             )}
             {slugAvailable === false && (
               <span className="text-red-600">✗ Already taken</span>
@@ -182,7 +182,7 @@ export default function CreateCategoryPage() {
       <select
         value={form.parentId}
         onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-        className="border p-2 w-full rounded"
+        className="border text-2xl p-2 w-full rounded"
       >
         <option value="">No Parent (Main Category)</option>
         {categories.map((cat) => (
@@ -199,7 +199,7 @@ export default function CreateCategoryPage() {
           placeholder="Position"
           value={form.position}
           onChange={(e) => setForm({ ...form, position: Number(e.target.value) })}
-          className="border p-2 w-full rounded"
+          className="border text-2xl p-2 w-full rounded"
         />
 
         {error && <p className="text-red-600">{error}</p>}
@@ -207,7 +207,7 @@ export default function CreateCategoryPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+          className="bg-green-600 hover:bg-green-700 text-white text-2xl px-4 py-2 rounded-xl transition"
         >
           {submitting ? "Saving..." : "Save Category"}
         </button>

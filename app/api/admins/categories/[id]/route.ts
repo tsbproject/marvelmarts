@@ -1,6 +1,3 @@
-
-
-
 // app/api/admins/categories/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
@@ -9,12 +6,50 @@ import { z } from "zod";
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
-  parentId: z.string().nullable().optional(),
+  parentId: z.string().optional(),
   position: z.number().optional(),
 });
 
-export async function PUT(req: NextRequest, context: any) {
-  const { id } = context.params as { id: string };
+// 🔹 GET handler
+export async function GET(
+  _req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "Category ID is required" },
+      { status: 400 }
+    );
+  }
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+    include: { parent: true, children: true },
+  });
+
+  if (!category) {
+    return NextResponse.json(
+      { error: "Category not found" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ success: true, category }, { status: 200 });
+}
+
+
+  // 🔹 PUT handler
+export async function PUT(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
+
+  if (!id) {
+    return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
+  }
 
   try {
     const body = await req.json();
@@ -28,40 +63,47 @@ export async function PUT(req: NextRequest, context: any) {
     }
 
     const data = parsed.data;
+    const normalizedData = {
+      ...data,
+      parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
+      position: data.position ?? 0,
+    };
 
-    if (data.parentId === "") {
-      data.parentId = null;
+    const existingCategory = await prisma.category.findUnique({ where: { id } });
+    if (!existingCategory) {
+      return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
-    if (data.slug) {
-      const existing = await prisma.category.findUnique({
-        where: { slug: data.slug },
+    if (normalizedData.slug) {
+      const slugConflict = await prisma.category.findUnique({
+        where: { slug: normalizedData.slug },
       });
-      if (existing && existing.id !== id) {
-        return NextResponse.json(
-          { error: "Slug already exists" },
-          { status: 400 }
-        );
+      if (slugConflict && slugConflict.id !== id) {
+        return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
       }
     }
 
     const category = await prisma.category.update({
       where: { id },
-      data,
+      data: normalizedData,
     });
 
     return NextResponse.json({ success: true, category }, { status: 200 });
   } catch (err: any) {
     console.error("Category update error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err.message },
+      { error: "Internal Server Error", details: err.message ?? "Unknown error" },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(_req: NextRequest, context: any) {
-  const { id } = context.params as { id: string };
+// 🔹 DELETE handler
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });

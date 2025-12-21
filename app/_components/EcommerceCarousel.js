@@ -51,7 +51,7 @@ export default function EcommerceCarousel() {
 
   return (
     <div className="relative -mb-170 w-full md:w-full mx-auto  overflow-hidden shadow-2xl">
-      <div className="relative  w-full h-112 md:h-160 bg-gray-200 rounded-2xl">
+      <div className="relative  w-full h-112 md:h-165 bg-gray-200 rounded-2xl">
         <AnimatePresence mode="wait">
           {slides.map(
             (slide, index) =>

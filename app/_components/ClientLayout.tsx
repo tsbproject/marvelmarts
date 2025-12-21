@@ -51,7 +51,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
             <main className="min-h-screen flex">
               {/* Sidebar (desktop) or overlay (mobile) */}
-              <aside className="hidden md:block w-80 border-r">
+              <aside className="hidden md:block w-83 z-30 ml-5 ">
                 <CategoryMenu />
               </aside>
 
