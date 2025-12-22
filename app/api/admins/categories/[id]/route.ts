@@ -13,30 +13,25 @@ const updateSchema = z.object({
 // 🔹 GET handler
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = context.params;
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
   }
 
-  try {
-    const category = await prisma.category.findUnique({
-      where: { id },
-      include: { parent: true, children: true },
-    });
+  const category = await prisma.category.findUnique({
+    where: { id },
+    include: { parent: true, children: true },
+  });
 
-    if (!category) {
-      return NextResponse.json({ error: "Category not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, category }, { status: 200 });
-  } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  if (!category) {
+    return NextResponse.json({ error: "Category not found" }, { status: 404 });
   }
-}
 
+  return NextResponse.json({ success: true, category }, { status: 200 });
+}
 
   // 🔹 PUT handler
 export async function PUT(
