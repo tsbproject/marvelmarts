@@ -59,7 +59,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Header />
 
             {/* Category navigation directly under header */}
+            <div className="hidden lg:block">
             <CategoryMenu />
+            </div>
 
             {/* Page content */}
             <main className="min-h-screen p-4">
