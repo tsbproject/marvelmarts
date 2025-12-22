@@ -18,25 +18,23 @@ export async function GET(
   const { id } = params;
 
   if (!id) {
-    return NextResponse.json(
-      { error: "Category ID is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
   }
 
-  const category = await prisma.category.findUnique({
-    where: { id },
-    include: { parent: true, children: true },
-  });
+  try {
+    const category = await prisma.category.findUnique({
+      where: { id },
+      include: { parent: true, children: true },
+    });
 
-  if (!category) {
-    return NextResponse.json(
-      { error: "Category not found" },
-      { status: 404 }
-    );
+    if (!category) {
+      return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, category }, { status: 200 });
+  } catch (err) {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, category }, { status: 200 });
 }
 
 
