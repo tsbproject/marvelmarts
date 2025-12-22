@@ -13,9 +13,9 @@ const updateSchema = z.object({
 // 🔹 GET handler
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params; // ✅ await because params is Promise
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
@@ -33,12 +33,12 @@ export async function GET(
   return NextResponse.json({ success: true, category }, { status: 200 });
 }
 
-  // 🔹 PUT handler
+// 🔹 PUT handler
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
@@ -94,9 +94,9 @@ export async function PUT(
 // 🔹 DELETE handler
 export async function DELETE(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   if (!id) {
     return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
