@@ -8,17 +8,23 @@ const updateSchema = z.object({
   slug: z.string().min(1).optional(),
   parentId: z.string().optional(),
   position: z.number().optional(),
+  imageUrl: z.string().optional(), // allow any string, not just valid URL
+  metaTitle: z.string().max(60).optional(),
+  metaDescription: z.string().max(160).optional(),
 });
 
 // 🔹 GET handler
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ await because params is Promise
+  const { id } = await context.params;
 
   if (!id) {
-    return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Category ID is required" },
+      { status: 400 }
+    );
   }
 
   const category = await prisma.category.findUnique({
@@ -27,7 +33,10 @@ export async function GET(
   });
 
   if (!category) {
-    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Category not found" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({ success: true, category }, { status: 200 });
@@ -41,7 +50,10 @@ export async function PUT(
   const { id } = await context.params;
 
   if (!id) {
-    return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Category ID is required" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -56,15 +68,31 @@ export async function PUT(
     }
 
     const data = parsed.data;
+
+    // ✅ Normalize optional fields
     const normalizedData = {
       ...data,
-      parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
+      parentId:
+        data.parentId && data.parentId !== "" ? data.parentId : null,
       position: data.position ?? 0,
+      imageUrl:
+        data.imageUrl && data.imageUrl !== "" ? data.imageUrl : null,
+      metaTitle:
+        data.metaTitle && data.metaTitle !== "" ? data.metaTitle : null,
+      metaDescription:
+        data.metaDescription && data.metaDescription !== ""
+          ? data.metaDescription
+          : null,
     };
 
-    const existingCategory = await prisma.category.findUnique({ where: { id } });
+    const existingCategory = await prisma.category.findUnique({
+      where: { id },
+    });
     if (!existingCategory) {
-      return NextResponse.json({ error: "Category not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
     }
 
     if (normalizedData.slug) {
@@ -72,7 +100,10 @@ export async function PUT(
         where: { slug: normalizedData.slug },
       });
       if (slugConflict && slugConflict.id !== id) {
-        return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Slug already exists" },
+          { status: 400 }
+        );
       }
     }
 
@@ -85,7 +116,10 @@ export async function PUT(
   } catch (err: any) {
     console.error("Category update error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err.message ?? "Unknown error" },
+      {
+        error: "Internal Server Error",
+        details: err.message ?? "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -99,12 +133,18 @@ export async function DELETE(
   const { id } = await context.params;
 
   if (!id) {
-    return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Category ID is required" },
+      { status: 400 }
+    );
   }
 
   const category = await prisma.category.findUnique({ where: { id } });
   if (!category) {
-    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Category not found" },
+      { status: 404 }
+    );
   }
 
   await prisma.category.delete({ where: { id } });

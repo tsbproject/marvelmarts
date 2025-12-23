@@ -190,7 +190,7 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
     const management = [
       {
         label: "Admins",
-        href: "/dashboard/admins/admins",
+        href: "/dashboard/admins",
         icon: <ShieldCheckIcon className="w-5 h-5" />,
         visible: isSuperAdmin || permissions.manageAdmins,
       },
