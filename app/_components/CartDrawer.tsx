@@ -1,3 +1,4 @@
+// app/_components/CartDrawer.tsx
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +24,13 @@ interface Cart {
 
 export default function CartDrawer() {
   const { session, status } = useSessionContext();
-  const [cart, setCart] = useState<Cart | null>(null);
+
+  //  Initialize with safe default so items is always an array
+  const [cart, setCart] = useState<Cart>({
+    id: null,
+    userId: null,
+    items: [],
+  });
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -40,16 +47,29 @@ export default function CartDrawer() {
             });
             localStorage.removeItem("guestCart");
             const merged = await fetch("/api/cart").then((r) => r.json());
-            setCart(merged);
+            setCart({
+              id: merged.id ?? null,
+              userId: merged.userId ?? null,
+              items: merged.items ?? [],
+            });
           } else {
-            setCart(data);
+            setCart({
+              id: data.id ?? null,
+              userId: data.userId ?? null,
+              items: data.items ?? [],
+            });
           }
         })
         .catch(console.error);
     } else if (status === "unauthenticated") {
       const guestCart = localStorage.getItem("guestCart");
       if (guestCart) {
-        setCart(JSON.parse(guestCart));
+        const parsed = JSON.parse(guestCart);
+        setCart({
+          id: parsed.id ?? null,
+          userId: parsed.userId ?? null,
+          items: parsed.items ?? [],
+        });
       } else {
         setCart({ id: null, userId: null, items: [] });
       }
@@ -70,9 +90,9 @@ export default function CartDrawer() {
         aria-label="Open Cart"
         className="flex items-center gap-2 relative text-gray-800 hover:text-blue-600 transition-colors duration-200"
       >
-        <ShoppingCart className="w-8 h-8 mb-2 text-brand-primary" />{ /* the shopping cart icon */}
+        <ShoppingCart className="w-8 h-8 mb-2 text-brand-primary" />
         <span className="text-2xl text-white font-medium">Cart</span>
-        {cart && cart.items.length > 0 && (
+        {cart?.items?.length > 0 && (
           <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
             {cart.items.length}
           </span>
@@ -115,13 +135,10 @@ export default function CartDrawer() {
 
               {/* Cart Items */}
               <div className="p-6">
-                {!cart ? (
-                  <p>Loading cart...</p>
-                ) : cart.items.length === 0 ? (
+                {cart?.items?.length === 0 ? (
                   <div className="flex flex-col items-center justify-center text-center space-y-4">
-                    {/* Empty Cart Illustration */}
                     <Image
-                      src="/images/empty-shopping-cart.png" // 👉 place an illustration in your public/images folder
+                      src="/images/empty-shopping-cart.png"
                       alt="Empty Cart"
                       width={120}
                       height={120}
@@ -175,4 +192,3 @@ export default function CartDrawer() {
     </div>
   );
 }
-

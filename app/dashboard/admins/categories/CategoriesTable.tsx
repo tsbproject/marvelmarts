@@ -1,72 +1,90 @@
-
-
-
-
+// // app/dashboard/admins/categories/CategoriesTable.tsx
 // "use client";
 
-// import { useState } from "react";
 // import Link from "next/link";
-// import DeleteCategoryModal from "@/app/_components/DeleteCategoryModal";
+// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
-// export interface CategoryRow {
+// export type CategoryRow = {
 //   id: string;
 //   name: string;
 //   slug: string;
 //   position: number;
 //   parentName: string | null;
-//   childrenCount: number;
+//   children: string[];
 //   createdAt: string;
-// }
+// };
+
+// type CategoriesTableProps = {
+//   categories: CategoryRow[];
+//   canManageCategories: boolean;
+//   total: number;
+//   page: number;
+//   pageSize: number;
+//   search: string;
+// };
 
 // export default function CategoriesTable({
 //   categories,
 //   canManageCategories,
-// }: {
-//   categories: CategoryRow[];
-//   canManageCategories: boolean;
-// }) {
-//   const [rows, setRows] = useState<CategoryRow[]>(categories);
-//   const [selectedCategory, setSelectedCategory] = useState<CategoryRow | null>(null);
+//   total,
+//   page,
+//   pageSize,
+//   search,
+// }: CategoriesTableProps) {
+//   const totalPages = Math.ceil(total / pageSize);
+//   const { setLoading } = useLoadingOverlay();
 
 //   return (
-//     <div className="border rounded-lg overflow-hidden">
+//     <div className="bg-white shadow rounded-lg overflow-hidden">
 //       <table className="w-full border-collapse">
-//         <thead>
-//           <tr className="bg-gray-100 text-left">
-//             <th className="p-2">Name</th>
-//             <th className="p-2">Slug</th>
-//             <th className="p-2">Parent</th>
-//             <th className="p-2">Children</th>
-//             <th className="p-2">Position</th>
-//             <th className="p-2">Created</th>
-//             {canManageCategories && <th className="p-2">Actions</th>}
+//         <thead className="bg-gray-100">
+//           <tr>
+//             <th className="text-left p-3">Name</th>
+//             <th className="text-left p-3">Slug</th>
+//             <th className="text-left p-3">Parent</th>
+//             <th className="text-left p-3">Subcategories</th>
+//             <th className="text-left p-3">Position</th>
+//             <th className="text-left p-3">Created</th>
+//             {canManageCategories && <th className="p-3">Actions</th>}
 //           </tr>
 //         </thead>
 //         <tbody>
-//           {rows.map((cat) => (
+//           {categories.map((cat) => (
 //             <tr key={cat.id} className="border-t">
-//               <td className="p-2">{cat.name}</td>
-//               <td className="p-2">{cat.slug}</td>
-//               <td className="p-2">{cat.parentName ?? "-"}</td>
-//               <td className="p-2">{cat.childrenCount}</td>
-//               <td className="p-2">{cat.position}</td>
-//               <td className="p-2">{new Date(cat.createdAt).toLocaleDateString()}</td>
+//               <td className="p-3 font-medium">{cat.name}</td>
+//               <td className="p-3 text-gray-600">{cat.slug}</td>
+//               <td className="p-3 text-gray-600">{cat.parentName ?? "-"}</td>
+//               <td className="p-3 text-gray-600">
+//                 {cat.children.length > 0 ? (
+//                   <ul className="list-disc list-inside text-sm">
+//                     {cat.children.map((child) => (
+//                       <li key={child}>{child}</li>
+//                     ))}
+//                   </ul>
+//                 ) : (
+//                   <span className="text-gray-400">None</span>
+//                 )}
+//               </td>
+//               <td className="p-3">{cat.position}</td>
+//               <td className="p-3 text-gray-600">
+//                 {new Date(cat.createdAt).toLocaleDateString()}
+//               </td>
 //               {canManageCategories && (
-//                 <td className="p-2">
-//                   <div className="flex items-center gap-2">
-//                     <Link
-//                       href={`/dashboard/admins/categories/${cat.id}/edit`}
-//                       className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-//                     >
-//                       Edit
-//                     </Link>
-//                     <button
-//                       onClick={() => setSelectedCategory(cat)}
-//                       className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-//                     >
-//                       Delete
-//                     </button>
-//                   </div>
+//                 <td className="p-3">
+//                   <Link
+//                     href={`/dashboard/admins/categories/${cat.id}/edit`}
+//                     className="text-blue-600 hover:underline mr-3"
+//                     onClick={() => setLoading(true)}
+//                   >
+//                     Edit
+//                   </Link>
+//                   <Link
+//                     href={`/dashboard/admins/categories/${cat.id}/delete`}
+//                     className="text-red-600 hover:underline"
+//                     onClick={() => setLoading(true)}
+//                   >
+//                     Delete
+//                   </Link>
 //                 </td>
 //               )}
 //             </tr>
@@ -74,164 +92,138 @@
 //         </tbody>
 //       </table>
 
-//       {selectedCategory && (
-//         <DeleteCategoryModal
-//           categoryId={selectedCategory.id}
-//           categoryName={selectedCategory.name}
-//           onClose={() => setSelectedCategory(null)}
-//           onDeleted={(deletedId) =>
-//             setRows((prev) => prev.filter((c) => c.id !== deletedId))
-//           }
-//         />
+//       {/* ✅ Pagination */}
+//       {totalPages > 1 && (
+//         <div className="flex justify-center items-center space-x-2 p-4">
+//           {page > 1 && (
+//             <Link
+//               href={`/dashboard/admins/categories?page=${page - 1}&pageSize=${pageSize}&search=${search}`}
+//               className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+//               onClick={() => setLoading(true)}
+//             >
+//               Prev
+//             </Link>
+//           )}
+
+//           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+//             <Link
+//               key={p}
+//               href={`/dashboard/admins/categories?page=${p}&pageSize=${pageSize}&search=${search}`}
+//               className={`px-3 py-1 rounded ${
+//                 p === page
+//                   ? "bg-blue-600 text-white"
+//                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+//               }`}
+//               onClick={() => setLoading(true)}
+//             >
+//               {p}
+//             </Link>
+//           ))}
+
+//           {page < totalPages && (
+//             <Link
+//               href={`/dashboard/admins/categories?page=${page + 1}&pageSize=${pageSize}&search=${search}`}
+//               className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+//               onClick={() => setLoading(true)}
+//             >
+//               Next
+//             </Link>
+//           )}
+//         </div>
 //       )}
 //     </div>
 //   );
 // }
 
 
+
+// app/dashboard/admins/categories/CategoriesTable.tsx
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import DeleteCategoryModal from "@/app/_components/DeleteCategoryModal";
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
-export interface CategoryRow {
+export type CategoryRow = {
   id: string;
   name: string;
   slug: string;
   position: number;
   parentName: string | null;
-  childrenCount: number;
+  children: string[];
   createdAt: string;
-}
+};
+
+type CategoriesTableProps = {
+  categories: CategoryRow[];
+  canManageCategories: boolean;
+  total: number;
+  page: number;
+  pageSize: number;
+  search: string;
+};
 
 export default function CategoriesTable({
   categories,
   canManageCategories,
-}: {
-  categories: CategoryRow[];
-  canManageCategories: boolean;
-}) {
-  const [rows, setRows] = useState<CategoryRow[]>(categories);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryRow | null>(null);
-
-  // 🔹 Search
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // 🔹 Sorting
-  const [sortBy, setSortBy] = useState<keyof CategoryRow>("position");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
-  // 🔹 Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // 🔹 Filter rows
-  const filteredRows = rows.filter(
-    (cat) =>
-      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // 🔹 Sort rows
-  const sortedRows = [...filteredRows].sort((a, b) => {
-  let valA = a[sortBy];
-  let valB = b[sortBy];
-
-  // normalize nulls
-  if (valA == null) valA = "";
-  if (valB == null) valB = "";
-
-  // compare numbers vs strings
-  if (typeof valA === "number" && typeof valB === "number") {
-    return sortOrder === "asc" ? valA - valB : valB - valA;
-  }
-
-  // string comparison
-  return sortOrder === "asc"
-    ? String(valA).localeCompare(String(valB))
-    : String(valB).localeCompare(String(valA));
-});
-
-
-
-  // 🔹 Paginate rows
-  const totalPages = Math.ceil(sortedRows.length / pageSize);
-  const paginatedRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  // 🔹 Handle sorting toggle
-  const handleSort = (column: keyof CategoryRow) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder("asc");
-    }
-  };
+  total,
+  page,
+  pageSize,
+  search,
+}: CategoriesTableProps) {
+  const totalPages = Math.ceil(total / pageSize);
+  const { setLoading } = useLoadingOverlay();
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      {/* Search bar */}
-      <div className="p-2">
-        <input
-          type="text"
-          placeholder="Search categories..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="border p-2 rounded w-1/3"
-        />
-      </div>
-
+    <div className="bg-white shadow rounded-lg overflow-hidden">
       <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-100 text-left">
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("name")}>
-              Name {sortBy === "name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("slug")}>
-              Slug {sortBy === "slug" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-            </th>
-            <th className="p-2">Parent</th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("childrenCount")}>
-              Children {sortBy === "childrenCount" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("position")}>
-              Position {sortBy === "position" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("createdAt")}>
-              Created {sortBy === "createdAt" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-            </th>
-            {canManageCategories && <th className="p-2">Actions</th>}
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="text-left p-3">Name</th>
+            <th className="text-left p-3">Slug</th>
+            <th className="text-left p-3">Parent</th>
+            <th className="text-left p-3">Subcategories</th>
+            <th className="text-left p-3">Position</th>
+            <th className="text-left p-3">Created</th>
+            {canManageCategories && <th className="p-3">Actions</th>}
           </tr>
         </thead>
         <tbody>
-          {paginatedRows.map((cat) => (
+          {categories.map((cat) => (
             <tr key={cat.id} className="border-t">
-              <td className="p-2">{cat.name}</td>
-              <td className="p-2">{cat.slug}</td>
-              <td className="p-2">{cat.parentName ?? "-"}</td>
-              <td className="p-2">{cat.childrenCount}</td>
-              <td className="p-2">{cat.position}</td>
-              <td className="p-2">{new Date(cat.createdAt).toLocaleDateString()}</td>
+              <td className="p-3 font-medium">{cat.name}</td>
+              <td className="p-3 text-gray-600">{cat.slug}</td>
+              <td className="p-3 text-gray-600">{cat.parentName ?? "-"}</td>
+              <td className="p-3 text-gray-600">
+                {cat.children.length > 0 ? (
+                  <ul className="list-disc list-inside text-sm">
+                    {cat.children.map((child) => (
+                      <li key={child}>{child}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-gray-400">None</span>
+                )}
+              </td>
+              <td className="p-3">{cat.position}</td>
+              <td className="p-3 text-gray-600">
+                {new Date(cat.createdAt).toLocaleDateString()}
+              </td>
               {canManageCategories && (
-                <td className="p-2">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/dashboard/admins/categories/${cat.id}/edit`}
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => setSelectedCategory(cat)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                <td className="p-3">
+                  <Link
+                    href={`/dashboard/admins/categories/${cat.id}/edit`}
+                    className="text-blue-600 hover:underline mr-3"
+                    onClick={() => setLoading(true)}
+                  >
+                    Edit
+                  </Link>
+                  <Link
+                    href={`/dashboard/admins/categories/${cat.id}/delete`}
+                    className="text-red-600 hover:underline"
+                    onClick={() => setLoading(true)}
+                  >
+                    Delete
+                  </Link>
                 </td>
               )}
             </tr>
@@ -239,28 +231,44 @@ export default function CategoriesTable({
         </tbody>
       </table>
 
-      {/* Pagination */}
-      <div className="flex justify-center mt-4 space-x-2">
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 border rounded ${currentPage === i + 1 ? "bg-blue-600 text-white" : ""}`}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </div>
+      {/* ✅ Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 p-4">
+          {page > 1 && (
+            <Link
+              href={`/dashboard/admins/categories?page=${page - 1}&pageSize=${pageSize}&search=${search}`}
+              className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+              onClick={() => setLoading(true)}
+            >
+              Prev
+            </Link>
+          )}
 
-      {selectedCategory && (
-        <DeleteCategoryModal
-          categoryId={selectedCategory.id}
-          categoryName={selectedCategory.name}
-          onClose={() => setSelectedCategory(null)}
-          onDeleted={(deletedId) =>
-            setRows((prev) => prev.filter((c) => c.id !== deletedId))
-          }
-        />
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Link
+              key={p}
+              href={`/dashboard/admins/categories?page=${p}&pageSize=${pageSize}&search=${search}`}
+              className={`px-3 py-1 rounded ${
+                p === page
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+              onClick={() => setLoading(true)}
+            >
+              {p}
+            </Link>
+          ))}
+
+          {page < totalPages && (
+            <Link
+              href={`/dashboard/admins/categories?page=${page + 1}&pageSize=${pageSize}&search=${search}`}
+              className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+              onClick={() => setLoading(true)}
+            >
+              Next
+            </Link>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,3 @@
-
-
 // app/components/CategoryTopbar.tsx
 "use client";
 
@@ -31,7 +29,7 @@ export default function CategoryTopbar() {
       y: 0,
       transition: {
         duration: 0.25,
-        ease: "easeOut" as const, // ✅ fix: literal type
+        ease: "easeOut" as const, 
       },
     },
   };
