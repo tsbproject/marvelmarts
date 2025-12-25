@@ -1,5 +1,3 @@
-
-
 import type { NextAuthOptions, Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -42,7 +40,7 @@ export const authOptions: NextAuthOptions = {
   debug: false,
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/auth/sign-in",
+    // signIn: "/auth/sign-in",
   },
 
   providers: [

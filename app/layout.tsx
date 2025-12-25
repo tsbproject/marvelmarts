@@ -38,7 +38,7 @@ import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout";
 
-// ✅ Force dynamic rendering so query params and client contexts don't break prerender
+//Force dynamic rendering so query params and client contexts don't break prerender
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
