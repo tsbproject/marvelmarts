@@ -39,9 +39,9 @@ function normalizePermissions(value: unknown): Record<string, boolean> {
 export const authOptions: NextAuthOptions = {
   debug: false,
   session: { strategy: "jwt" },
-  pages: {
-    // signIn: "/auth/sign-in",
-  },
+  // pages: {
+  //   signIn: "/auth/sign-in",
+  // },
 
   providers: [
     CredentialsProvider({
