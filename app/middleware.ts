@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
  
 
 
-  // ✅ CRITICAL: allow NextAuth internal routes
+  //CRITICAL: allow NextAuth internal routes
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
