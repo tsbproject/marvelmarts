@@ -181,6 +181,7 @@ model ProductImage {
 model Variant {
   id         String     @id @default(cuid())
   name       String
+   sku       String?   @unique 
   price      Decimal?   @db.Decimal(10, 2)
   stock      Int        @default(0)
   attributes Json?      // flexible attributes like { "size": "M", "color": "Red" }

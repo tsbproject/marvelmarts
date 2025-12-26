@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, ProductStatus, UserRole } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
@@ -34,7 +34,7 @@ async function seedProducts() {
         slug: "nike-air-max-270",
         description: "Breathable mesh upper with responsive cushioning for all-day comfort.",
         price: new Prisma.Decimal(139.99),
-        status: "active",
+        status: ProductStatus.ACTIVE, //enum reference
         stock: 60,
         categoryId: shoesCategory!.id,
       },
@@ -43,7 +43,7 @@ async function seedProducts() {
         slug: "iphone-15-pro",
         description: "Flagship smartphone with A17 chip, ProMotion display, and titanium design.",
         price: new Prisma.Decimal(999.99),
-        status: "active",
+        status: ProductStatus.ACTIVE,
         stock: 25,
         categoryId: electronicsCategory!.id,
       },
@@ -52,7 +52,7 @@ async function seedProducts() {
         slug: "dyson-v12-detect",
         description: "Cordless vacuum with laser dust detection and powerful suction.",
         price: new Prisma.Decimal(599.99),
-        status: "active",
+        status: ProductStatus.ACTIVE,
         stock: 20,
         categoryId: homeCategory!.id,
       },
@@ -61,7 +61,7 @@ async function seedProducts() {
         slug: "levis-501-jeans",
         description: "Classic straight-leg denim with timeless style and durable cotton fabric.",
         price: new Prisma.Decimal(89.99),
-        status: "active",
+        status: ProductStatus.ACTIVE,
         stock: 80,
         categoryId: fashionCategory!.id,
       },
@@ -77,6 +77,7 @@ async function seedProducts() {
         productId: product.id,
         url: `https://via.placeholder.com/600x400?text=${product.title.replace(/\s+/g, "+")}`,
         alt: `${product.title} image`,
+        order: 0, //matches ProductImage type
       },
     });
 
@@ -110,7 +111,7 @@ async function seedProducts() {
 async function seedReviews() {
   const allProducts = await prisma.product.findMany();
   const sampleUsers = await prisma.user.findMany({
-    where: { role: "CUSTOMER" },
+    where: { role: UserRole.CUSTOMER }, //enum reference
     take: 5,
   });
 
@@ -143,7 +144,7 @@ async function main() {
   await seedCategories();
   await seedProducts();
   await seedReviews();
-  console.log("✅ Seeded categories, products, images, variants, and reviews successfully");
+  console.log("Seeded categories, products, images, variants, and reviews successfully");
 }
 
 main()

@@ -19,7 +19,8 @@
     "seed": "tsc -P tsconfig.seed.json && node dist/prisma/seed.js"
   },
   "prisma": {
-    "seed": "node --loader ts-node/esm ./prisma/seed.ts"
+    "seed": "ts-node ./prisma/seed.ts"
+
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,13 +1,27 @@
+// {
+//   "compilerOptions": {
+//     "target": "ES2020",
+//     "module": "CommonJS",
+//     "esModuleInterop": true,
+//     "skipLibCheck": true,
+//     "outDir": "dist",
+//     "rootDir": ".",          // ✅ preserve folder structure
+//     "resolveJsonModule": true
+//   },
+//   "include": ["prisma/**/*.ts"],
+//   "exclude": ["node_modules"]
+// }
+
+
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
+    "module": "NodeNext",            
+    "moduleResolution": "NodeNext",  
     "outDir": "dist",
-    "rootDir": ".",          // ✅ preserve folder structure
-    "resolveJsonModule": true
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
   },
-  "include": ["prisma/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["prisma/seed.ts"]
 }
