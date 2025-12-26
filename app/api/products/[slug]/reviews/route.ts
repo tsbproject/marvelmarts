@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import { z } from "zod";
 
@@ -17,18 +17,16 @@ const reviewSchema = z.object({
 
 // GET /api/products/[slug]/reviews
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
     const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get("page") ?? 1);
     const limit = Number(searchParams.get("limit") ?? 10);
 
-    const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
-    });
-
+    const product = await prisma.product.findUnique({ where: { slug } });
     if (!product) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -51,17 +49,15 @@ export async function GET(
 
 // POST /api/products/[slug]/reviews
 export async function POST(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
     const body = await request.json();
     const parsed = reviewSchema.parse(body);
 
-    const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
-    });
-
+    const product = await prisma.product.findUnique({ where: { slug } });
     if (!product) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -90,12 +86,13 @@ export async function POST(
   }
 }
 
-// DELETE /api/products/[slug]/reviews
+// DELETE /api/products/[slug]/reviews?id=REVIEW_ID
 export async function DELETE(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
     const { searchParams } = new URL(request.url);
     const reviewId = searchParams.get("id");
 
@@ -103,9 +100,7 @@ export async function DELETE(
       return NextResponse.json({ message: "Review ID required" }, { status: 400 });
     }
 
-    await prisma.review.delete({
-      where: { id: reviewId },
-    });
+    await prisma.review.delete({ where: { id: reviewId } });
 
     return NextResponse.json({ message: "Review deleted successfully" });
   } catch (err) {

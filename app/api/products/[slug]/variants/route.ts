@@ -1,11 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-
 
 // Define attributes as a record of string → string
 const attributesSchema = z.record(z.string(), z.string());
@@ -18,17 +16,16 @@ export const variantSchema = z.object({
   attributes: attributesSchema.optional(),
 });
 
-
-
-
 // GET /api/products/[slug]/variants
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
+
     const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { variants: true },
     });
 
@@ -51,17 +48,15 @@ export async function GET(
 
 // POST /api/products/[slug]/variants
 export async function POST(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
     const body = await request.json();
     const parsed = variantSchema.parse(body);
 
-    const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
-    });
-
+    const product = await prisma.product.findUnique({ where: { slug } });
     if (!product) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -90,12 +85,13 @@ export async function POST(
   }
 }
 
-// DELETE /api/products/[slug]/variants
+// DELETE /api/products/[slug]/variants?id=VARIANT_ID
 export async function DELETE(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
     const { searchParams } = new URL(request.url);
     const variantId = searchParams.get("id");
 
@@ -103,9 +99,7 @@ export async function DELETE(
       return NextResponse.json({ message: "Variant ID required" }, { status: 400 });
     }
 
-    await prisma.variant.delete({
-      where: { id: variantId },
-    });
+    await prisma.variant.delete({ where: { id: variantId } });
 
     return NextResponse.json({ message: "Variant deleted successfully" });
   } catch (err) {
