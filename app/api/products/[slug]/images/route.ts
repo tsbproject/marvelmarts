@@ -5,7 +5,7 @@ import { z } from "zod";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Zod schema for JSON-based image input (still useful for API clients)
+// Zod schema for JSON-based image input
 const imageSchema = z.object({
   url: z.string().url("Image URL must be valid"),
   alt: z.string().optional(),
@@ -15,11 +15,13 @@ const imageSchema = z.object({
 // GET /api/products/[slug]/images
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
   try {
+    const { slug } = context.params;
+
     const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { images: true },
     });
 
@@ -38,13 +40,14 @@ export async function GET(
 // POST /api/products/[slug]/images
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
   try {
+    const { slug } = context.params;
     const contentType = request.headers.get("content-type") || "";
 
     const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
     if (!product) {
@@ -79,7 +82,7 @@ export async function POST(
 
       if (mainImage) {
         // TODO: upload to S3/Cloudinary and get URL
-        const url = `https://cdn.example.com/${params.slug}/${mainImage.name}`;
+        const url = `https://cdn.example.com/${slug}/${mainImage.name}`;
         const img = await prisma.productImage.create({
           data: {
             url,
@@ -93,7 +96,7 @@ export async function POST(
 
       for (let i = 0; i < extraImages.length; i++) {
         const file = extraImages[i];
-        const url = `https://cdn.example.com/${params.slug}/${file.name}`;
+        const url = `https://cdn.example.com/${slug}/${file.name}`;
         const img = await prisma.productImage.create({
           data: {
             url,
@@ -122,7 +125,7 @@ export async function POST(
 // DELETE /api/products/[slug]/images?id=IMAGE_ID
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
   try {
     const { searchParams } = new URL(request.url);
