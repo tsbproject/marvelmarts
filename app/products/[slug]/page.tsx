@@ -1,6 +1,3 @@
-
-
-
 import { notFound } from "next/navigation";
 import prisma from "@/app/lib/prisma";
 import Image from "next/image";
@@ -23,7 +20,9 @@ export default async function ProductPage({ params }: Props) {
     where: { slug: params.slug },
     include: {
       category: true,
-      images: true,   // ✅ matches schema
+      images: {
+        orderBy: { order: "asc" }, // ✅ fetch images already sorted
+      },
       variants: true,
     },
   });
@@ -32,17 +31,21 @@ export default async function ProductPage({ params }: Props) {
 
   const typedProduct = product as ProductWithRelations;
 
-  // ✅ Local fallback image (better than external placeholder)
+  // Local fallback image (matches ProductImage type exactly)
   const fallbackImage: ProductImage = {
     id: "placeholder",
     productId: typedProduct.id,
     url: "/no-image.png", // place a file in /public/no-image.png
     alt: "No image available",
-    position: 0,
+    order: 0,
   };
 
-  const imagesToShow =
+  // Use product images if available, otherwise fallback
+  const imagesToShow: ProductImage[] =
     typedProduct.images.length > 0 ? typedProduct.images : [fallbackImage];
+
+  // Ensure images are sorted by order (extra safety)
+  const sortedImages = [...imagesToShow].sort((a, b) => a.order - b.order);
 
   return (
     <div className="container mx-auto p-4">
@@ -63,7 +66,7 @@ export default async function ProductPage({ params }: Props) {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {imagesToShow.map((img) => (
+        {sortedImages.map((img) => (
           <Image
             key={img.id}
             src={img.url}
