@@ -15,10 +15,10 @@ const imageSchema = z.object({
 // GET /api/products/[slug]/images
 export async function GET(
   request: NextRequest,
-  context: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params; // 👈 await params
 
     const product = await prisma.product.findUnique({
       where: { slug },
@@ -40,15 +40,13 @@ export async function GET(
 // POST /api/products/[slug]/images
 export async function POST(
   request: NextRequest,
-  context: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params; // 👈 await params
     const contentType = request.headers.get("content-type") || "";
 
-    const product = await prisma.product.findUnique({
-      where: { slug },
-    });
+    const product = await prisma.product.findUnique({ where: { slug } });
 
     if (!product) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
@@ -81,7 +79,6 @@ export async function POST(
       const createdImages = [];
 
       if (mainImage) {
-        // TODO: upload to S3/Cloudinary and get URL
         const url = `https://cdn.example.com/${slug}/${mainImage.name}`;
         const img = await prisma.productImage.create({
           data: {
@@ -125,9 +122,11 @@ export async function POST(
 // DELETE /api/products/[slug]/images?id=IMAGE_ID
 export async function DELETE(
   request: NextRequest,
-  context: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await context.params; // 👈 await params
+
     const { searchParams } = new URL(request.url);
     const imageId = searchParams.get("id");
 
@@ -135,9 +134,7 @@ export async function DELETE(
       return NextResponse.json({ message: "Image ID required" }, { status: 400 });
     }
 
-    await prisma.productImage.delete({
-      where: { id: imageId },
-    });
+    await prisma.productImage.delete({ where: { id: imageId } });
 
     return NextResponse.json({ message: "Image deleted successfully" });
   } catch (err) {
