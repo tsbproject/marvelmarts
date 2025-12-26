@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Zod schema for image input
+// Zod schema for JSON-based image input (still useful for API clients)
 const imageSchema = z.object({
   url: z.string().url("Image URL must be valid"),
   alt: z.string().optional(),
@@ -14,7 +14,7 @@ const imageSchema = z.object({
 
 // GET /api/products/[slug]/images
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
@@ -37,12 +37,11 @@ export async function GET(
 
 // POST /api/products/[slug]/images
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const body = await request.json();
-    const parsed = imageSchema.parse(body);
+    const contentType = request.headers.get("content-type") || "";
 
     const product = await prisma.product.findUnique({
       where: { slug: params.slug },
@@ -52,16 +51,64 @@ export async function POST(
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    const image = await prisma.productImage.create({
-      data: {
-        url: parsed.url,
-        alt: parsed.alt,
-        order: parsed.order ?? 0,
-        productId: product.id,
-      },
-    });
+    // Case 1: JSON body (API clients)
+    if (contentType.includes("application/json")) {
+      const body = await request.json();
+      const parsed = imageSchema.parse(body);
 
-    return NextResponse.json(image, { status: 201 });
+      const image = await prisma.productImage.create({
+        data: {
+          url: parsed.url,
+          alt: parsed.alt,
+          order: parsed.order ?? 0,
+          productId: product.id,
+        },
+      });
+
+      return NextResponse.json(image, { status: 201 });
+    }
+
+    // Case 2: FormData (file uploads from dashboard)
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+
+      const mainImage = formData.get("mainImage") as File | null;
+      const extraImages = formData.getAll("extraImages") as File[];
+
+      const createdImages = [];
+
+      if (mainImage) {
+        // TODO: upload to S3/Cloudinary and get URL
+        const url = `https://cdn.example.com/${params.slug}/${mainImage.name}`;
+        const img = await prisma.productImage.create({
+          data: {
+            url,
+            alt: "Main image",
+            order: 0,
+            productId: product.id,
+          },
+        });
+        createdImages.push(img);
+      }
+
+      for (let i = 0; i < extraImages.length; i++) {
+        const file = extraImages[i];
+        const url = `https://cdn.example.com/${params.slug}/${file.name}`;
+        const img = await prisma.productImage.create({
+          data: {
+            url,
+            alt: `Extra image ${i + 1}`,
+            order: i + 1,
+            productId: product.id,
+          },
+        });
+        createdImages.push(img);
+      }
+
+      return NextResponse.json(createdImages, { status: 201 });
+    }
+
+    return NextResponse.json({ message: "Unsupported content type" }, { status: 400 });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ errors: err.flatten() }, { status: 400 });
@@ -72,9 +119,9 @@ export async function POST(
   }
 }
 
-// DELETE /api/products/[slug]/images
+// DELETE /api/products/[slug]/images?id=IMAGE_ID
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
