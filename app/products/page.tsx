@@ -1,169 +1,106 @@
-// 'use client';
+"use client";
 
-// import { useEffect, useState } from 'react';
-// import Image from 'next/image';
-// import Link from 'next/link';
-
-// interface Category {
-//   id: string;
-//   name: string;
-// }
-
-// interface ProductImage {
-//   id: string;
-//   url: string;
-//   alt?: string;
-// }
-
-// interface Product {
-//   id: string;
-//   slug: string;
-//   title: string;
-//   description: string;
-//   price: number;
-//   category?: Category | null;
-//   images?: ProductImage[];
-// }
-
-// export default function ProductsPage() {
-//   const [products, setProducts] = useState<Product[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState('');
-
-//   useEffect(() => {
-//     const fetchProducts = async () => {
-//       try {
-//         const res = await fetch('/api/products');
-//         if (!res.ok) throw new Error('Failed to fetch products');
-//         const data = await res.json();
-//         setProducts(data);
-//       } catch (err) {
-//         console.error(err);
-//         setError('Unable to load products. Please try again later.');
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchProducts();
-//   }, []);
-
-//   if (loading) return <div className="p-4 text-center">Loading products...</div>;
-//   if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
-
-//   return (
-//     <div className="container mx-auto p-4">
-//       <h1 className="text-4xl font-bold mb-6">Products</h1>
-
-//       {products.length > 0 ? (
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//           {products.map((product) => (
-//             <div key={product.id} className="border p-4 rounded-lg shadow-sm">
-//               <Link href={`/products/${product.slug}`}>
-//                 <h2 className="text-xl font-semibold hover:underline">{product.title}</h2>
-//               </Link>
-
-//               <p className="text-gray-600 mt-1">{product.description}</p>
-
-//               {product.category && (
-//                 <p className="text-sm text-gray-500 mt-1">
-//                   Category: {product.category.name}
-//                 </p>
-//               )}
-
-//               <p className="text-lg font-bold text-green-600 mt-2">
-//                 ₦{product.price.toLocaleString()}
-//               </p>
-
-//               {product.images && product.images.length > 0 && (
-//                 <div className="mt-3">
-//                   <Image
-//                     src={product.images[0].url}
-//                     alt={product.images[0].alt ?? product.title}
-//                     width={400}
-//                     height={250}
-//                     className="w-full h-48 object-cover rounded"
-//                     onError={(e) => {
-//                       (e.target as HTMLImageElement).src = '/placeholder.jpg';
-//                     }}
-//                   />
-//                 </div>
-//               )}
-//             </div>
-//           ))}
-//         </div>
-//       ) : (
-//         <p className="text-center text-gray-500">No products found.</p>
-//       )}
-//     </div>
-//   );
-// }
-
-
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import prisma from "@/app/lib/prisma";
-import Image from "next/image";
 
-export default async function ProductsPage() {
-  const products = await prisma.product.findMany({
-    include: {
-      images: true,
-      category: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+interface Product {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  imageUrl: string;
+}
 
-  if (products.length === 0) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">All Products</h1>
-        <p className="text-gray-500">No products available.</p>
-      </div>
-    );
-  }
+export default function ProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      const res = await fetch("/api/products?status=ACTIVE");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.items ?? []);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">All Products</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {products.map((product) => {
-          const thumbnail =
-            product.images.length > 0
-              ? product.images[0].url
-              : "https://via.placeholder.com/400x300?text=No+Image";
+    <div className="p-6 md:p-10">
+      <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
+        Our Products
+      </h1>
 
-          return (
-            <Link
+      {products.length === 0 ? (
+        <p className="text-center text-gray-500">No products available.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <div
               key={product.id}
-              href={`/products/${product.slug}`}
-              className="block border rounded-lg p-4 hover:shadow-lg transition"
+              className="border rounded-lg shadow-sm hover:shadow-md transition bg-white flex flex-col"
             >
-              <Image
-                src={thumbnail}
-                alt={product.title}
-                width={400}
-                height={300}
-                className="rounded object-cover w-full h-auto mb-3"
-              />
-              <h2 className="text-xl font-semibold mb-2">{product.title}</h2>
-              <p className="text-gray-600 mb-2 line-clamp-2">
-                {product.description}
-              </p>
-              <p className="text-green-600 font-bold">
-                ₦
-                {Number(product.price).toLocaleString("en-NG", {
-                  minimumFractionDigits: 2,
-                })}
-              </p>
-              {product.category && (
-                <p className="text-sm text-gray-500 mt-1">
-                  {product.category.name}
+              {/* Product Image */}
+              <div className="relative">
+                <img
+                  src={product.imageUrl}
+                  alt={product.title}
+                  className="h-56 w-full object-cover rounded-t-lg"
+                />
+                {product.discountPrice && (
+                  <span className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                    Sale
+                  </span>
+                )}
+              </div>
+
+              {/* Product Details */}
+              <div className="p-4 flex flex-col flex-grow">
+                <h2 className="text-lg font-semibold mb-2">{product.title}</h2>
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                  {product.description}
                 </p>
-              )}
-            </Link>
-          );
-        })}
-      </div>
+
+                {/* Pricing */}
+                <div className="mb-4">
+                  {product.discountPrice ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold text-lg">
+                        ${product.discountPrice}
+                      </span>
+                      <span className="line-through text-gray-400 text-sm">
+                        ${product.price}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-800 font-bold text-lg">
+                      ${product.price}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="mt-auto flex gap-2">
+                  <Link
+                    href={`/products/${product.slug}`}
+                    className="flex-1 bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700 transition"
+                  >
+                    Shop Now
+                  </Link>
+                  <button
+                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+                    onClick={() => alert(`Added ${product.title} to cart`)}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

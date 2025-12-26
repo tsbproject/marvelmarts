@@ -1,7 +1,6 @@
 
 
 
-
 // "use client";
 
 // import {
@@ -28,7 +27,7 @@
 //   const pathname = usePathname();
 //   const searchParams = useSearchParams();
 
-//   /*  STOP SPINNER AFTER NAVIGATION COMPLETES */
+//   //  Stop spinner when navigation completes
 //   useEffect(() => {
 //     setLoading(false);
 //   }, [pathname, searchParams]);
@@ -36,7 +35,9 @@
 //   return (
 //     <LoadingOverlayContext.Provider value={{ setLoading }}>
 //       {children}
-//       <AnimatePresence>{loading && <LoadingSpinner />}</AnimatePresence>
+//       <AnimatePresence>
+//         {loading && <LoadingSpinner />}
+//       </AnimatePresence>
 //     </LoadingOverlayContext.Provider>
 //   );
 // }
@@ -52,7 +53,6 @@
 // }
 
 
-
 "use client";
 
 import {
@@ -60,13 +60,12 @@ import {
   useContext,
   useState,
   ReactNode,
-  useEffect,
 } from "react";
 import { AnimatePresence } from "framer-motion";
-import { usePathname, useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 
 interface LoadingOverlayContextType {
+  loading: boolean;
   setLoading: (value: boolean) => void;
 }
 
@@ -76,16 +75,8 @@ const LoadingOverlayContext =
 export function LoadingOverlayProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  //  Stop spinner when navigation completes
-  useEffect(() => {
-    setLoading(false);
-  }, [pathname, searchParams]);
-
   return (
-    <LoadingOverlayContext.Provider value={{ setLoading }}>
+    <LoadingOverlayContext.Provider value={{ loading, setLoading }}>
       {children}
       <AnimatePresence>
         {loading && <LoadingSpinner />}

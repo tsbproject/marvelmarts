@@ -132,50 +132,87 @@ model Category {
 }
 
 
+// Product status enum for clarity
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
 model Product {
-  id            String         @id @default(cuid())
-  title         String
-  slug          String         @unique
-  description   String
-  brand         String?
-  price         Decimal        @db.Decimal(10, 2)
-  discountPrice Decimal?       @db.Decimal(10, 2)
-  stock         Int            @default(0)
-  status        String         @default("active")
-  rating        Float          @default(0)
-  ratingCount   Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  categoryId    String?
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
-  category      Category?      @relation(fields: [categoryId], references: [id])
-  images        ProductImage[]
-  reviews       Review[]
-  variants      Variant[]
+  id              String         @id @default(cuid())
+  title           String
+  slug            String         @unique
+  description     String
+  brand           String?
+  price           Decimal        @db.Decimal(10, 2)
+  discountPrice   Decimal?       @db.Decimal(10, 2)
+  stock           Int            @default(0)
+  lowStockThreshold Int?         @default(5)
+  status          ProductStatus  @default(ACTIVE)
+  rating          Float          @default(0)
+  ratingCount     Int            @default(0)
+  isFeatured      Boolean        @default(false)
+  isPublished     Boolean        @default(true)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  categoryId      String?
+  category        Category?      @relation(fields: [categoryId], references: [id])
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  images          ProductImage[]
+  reviews         Review[]
+  variants        Variant[]
 }
 
 model ProductImage {
-  id        String  @id @default(cuid())
-  productId String
+  id        String   @id @default(cuid())
   url       String
   alt       String?
-  position  Int     @default(0)
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order     Int      @default(0)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
 }
 
 model Variant {
-  id         String      @id @default(cuid())
-  productId  String
+  id         String     @id @default(cuid())
   name       String
-  sku        String      @unique
-  price      Decimal     @db.Decimal(10, 2)
-  stock      Int         @default(0)
-  attrs      Json?
+  price      Decimal?   @db.Decimal(10, 2)
+  stock      Int        @default(0)
+  attributes Json?      // flexible attributes like { "size": "M", "color": "Red" }
+  productId  String
+  product    Product    @relation(fields: [productId], references: [id])
+
+  // Back-relations
   cartItems  CartItem[]
   orderItems OrderItem[]
-  product    Product     @relation(fields: [productId], references: [id])
 }
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String?
+  body      String?
+  pros      String?
+  cons      String?
+  approved  Boolean   @default(true)
+  flagged   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+
 
 model Cart {
   id        String     @id @default(cuid())
@@ -224,17 +261,7 @@ model OrderItem {
   variant   Variant? @relation(fields: [variantId], references: [id])
 }
 
-model Review {
-  id        String   @id @default(cuid())
-  productId String
-  userId    String
-  rating    Int
-  title     String?
-  body      String?
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+
 
 model Address {
   id      String  @id @default(cuid())
