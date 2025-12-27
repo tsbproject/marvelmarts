@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -51,9 +51,10 @@ export default function HeroCarousel() {
   const prevSlide = () =>
     setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
-  const textVariants = {
+  // ✅ Type-safe variants
+  const textVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
-    visible: (i) => ({
+    visible: (i: number) => ({
       opacity: 1,
       y: 0,
       transition: { delay: i * 0.2, duration: 0.6, ease: 'easeOut' },
@@ -151,5 +152,3 @@ export default function HeroCarousel() {
     </div>
   );
 }
-
-
