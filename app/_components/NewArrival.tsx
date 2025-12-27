@@ -6,12 +6,23 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import { getNewArrivals } from "@/app/lib/api";
 
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  image: string;
+  rating?: {
+    rate: number;
+    count: number;
+  };
+}
+
 export default function NewArrivals() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function fetchNew() {
-      const data = await getNewArrivals();
+      const data: Product[] = await getNewArrivals();
       setProducts(data.slice(0, 8));
     }
     fetchNew();
@@ -43,16 +54,24 @@ export default function NewArrivals() {
                 className="object-contain p-4"
               />
             </div>
+
             <h3 className="text-sm font-semibold text-gray-700 text-center line-clamp-2">
               {product.title}
             </h3>
-            <p className="text-blue-600 font-bold mt-2">${product.price}</p>
+
+            <p className="text-blue-600 font-bold mt-2">
+              ${product.price}
+            </p>
+
             <div className="flex items-center mt-1 space-x-1">
-              {Array.from({ length: Math.round(product.rating?.rate || 4) }).map(
-                (_, i) => (
-                  <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                )
-              )}
+              {Array.from({
+                length: Math.round(product.rating?.rate || 4),
+              }).map((_, i) => (
+                <Star
+                  key={i}
+                  className="w-4 h-4 text-yellow-400 fill-yellow-400"
+                />
+              ))}
             </div>
           </div>
         ))}

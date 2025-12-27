@@ -6,14 +6,23 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import { getAllProducts } from "@/app/lib/api";
 
-
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  category: string;
+  image: string;
+  rating?: {
+    rate: number;
+    count: number;
+  };
+}
 
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filtered, setFiltered] = useState<Product[]>([]);
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
-
 
   const categories = [
     { key: "all", label: "All Products" },
@@ -26,7 +35,7 @@ export default function FeaturedProducts() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const data = await getAllProducts();
+        const data: Product[] = await getAllProducts();
 
         setProducts(data);
         setFiltered(data);
@@ -49,7 +58,6 @@ export default function FeaturedProducts() {
 
   return (
     <section className="w-full bg-linear-to-b from-gray-50 to-white py-20 px-4 md:px-10 mt-163">
-      {/* 🏷️ Section Header */}
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-5xl font-extrabold text-gray-800">
           🌟 Featured Products
@@ -59,7 +67,6 @@ export default function FeaturedProducts() {
         </p>
       </div>
 
-      {/* 🧭 Category Tabs */}
       <div className="flex flex-wrap justify-center gap-3 mb-12">
         {categories.map((cat) => (
           <motion.button
@@ -78,9 +85,10 @@ export default function FeaturedProducts() {
         ))}
       </div>
 
-      {/* 🛍️ Product Grid */}
       {loading ? (
-        <div className="text-center text-lg text-gray-500">Loading products...</div>
+        <div className="text-center text-lg text-gray-500">
+          Loading products...
+        </div>
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
@@ -97,7 +105,6 @@ export default function FeaturedProducts() {
                 whileHover={{ scale: 1.03 }}
                 className="bg-white rounded-2xl shadow-md hover:shadow-2xl p-4 flex flex-col items-center transition-all duration-300"
               >
-                {/* 🖼️ Image */}
                 <div className="relative w-full h-52 flex items-center justify-center mb-4 overflow-hidden rounded-xl bg-gray-50">
                   <Image
                     src={product.image}
@@ -107,7 +114,6 @@ export default function FeaturedProducts() {
                   />
                 </div>
 
-                {/* 🏷️ Info */}
                 <h3 className="font-semibold text-center text-gray-800 text-sm md:text-base line-clamp-2 h-10">
                   {product.title}
                 </h3>
@@ -116,9 +122,10 @@ export default function FeaturedProducts() {
                   ${product.price.toFixed(2)}
                 </p>
 
-                {/* ⭐ Rating */}
                 <div className="flex items-center mt-2 space-x-1">
-                  {Array.from({ length: Math.round(product.rating?.rate || 4) }).map((_, i) => (
+                  {Array.from({
+                    length: Math.round(product.rating?.rate || 4),
+                  }).map((_, i) => (
                     <Star
                       key={i}
                       className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse"
@@ -129,7 +136,6 @@ export default function FeaturedProducts() {
                   </span>
                 </div>
 
-                {/* 🛒 Button */}
                 <button className="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-full font-semibold transition-all duration-300">
                   Add to Cart
                 </button>

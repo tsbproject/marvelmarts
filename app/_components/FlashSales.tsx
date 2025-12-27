@@ -6,8 +6,19 @@ import Image from "next/image";
 import { Star, Zap } from "lucide-react";
 import { getFlashProducts } from "@/app/lib/api";
 
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  image: string;
+  rating?: {
+    rate: number;
+    count: number;
+  };
+}
+
 export default function FlashSales() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [timeLeft, setTimeLeft] = useState({ h: 3, m: 15, s: 42 });
 
   // ⏱️ Countdown logic
@@ -33,7 +44,7 @@ export default function FlashSales() {
   // 🛒 Fetch products
   useEffect(() => {
     async function fetchFlash() {
-      const data = await getFlashProducts();
+      const data: Product[] = await getFlashProducts();
       setProducts(data);
     }
     fetchFlash();
@@ -42,7 +53,7 @@ export default function FlashSales() {
   return (
     <section className="mt-24 relative overflow-hidden">
       {/* 🔥 Flash Sale Banner */}
-      <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 text-white px-6 md:px-12 py-10 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center md:justify-between mb-10">
+      <div className="bg-linear-to-r from-red-600 via-orange-500 to-yellow-400 text-white px-6 md:px-12 py-10 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center md:justify-between mb-10">
         <div className="flex items-center gap-3">
           <Zap className="w-10 h-10 animate-pulse" />
           <h2 className="text-3xl md:text-4xl font-extrabold drop-shadow-md">
@@ -74,8 +85,10 @@ export default function FlashSales() {
       >
         {products.map((product) => {
           const discount = Math.floor(Math.random() * 40) + 10;
-          const discountedPrice = (product.price * (1 - discount / 100)).toFixed(2);
-          const stockLeft = Math.floor(Math.random() * 80) + 20; // Fake stock
+          const discountedPrice = (
+            product.price * (1 - discount / 100)
+          ).toFixed(2);
+          const stockLeft = Math.floor(Math.random() * 80) + 20;
 
           return (
             <motion.div
@@ -109,13 +122,19 @@ export default function FlashSales() {
 
               {/* 💰 Price */}
               <div className="flex items-center gap-2 mt-2">
-                <p className="text-blue-600 font-bold text-lg">${discountedPrice}</p>
-                <p className="text-gray-400 text-sm line-through">${product.price}</p>
+                <p className="text-blue-600 font-bold text-lg">
+                  ${discountedPrice}
+                </p>
+                <p className="text-gray-400 text-sm line-through">
+                  ${product.price}
+                </p>
               </div>
 
               {/* ⭐ Rating */}
               <div className="flex items-center mt-1 space-x-1">
-                {Array.from({ length: Math.round(product.rating?.rate || 4) }).map((_, i) => (
+                {Array.from({
+                  length: Math.round(product.rating?.rate || 4),
+                }).map((_, i) => (
                   <Star
                     key={i}
                     className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse"
@@ -126,9 +145,9 @@ export default function FlashSales() {
               {/* 📊 Stock Progress */}
               <div className="mt-3 w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-orange-500 to-red-600 h-full"
+                  className="bg-linear-to-r from-orange-500 to-red-600 h-full"
                   style={{ width: `${stockLeft}%` }}
-                ></div>
+                />
               </div>
               <p className="text-xs text-gray-500 mt-1">{stockLeft}% sold</p>
 
@@ -143,4 +162,3 @@ export default function FlashSales() {
     </section>
   );
 }
-
