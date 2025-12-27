@@ -10,20 +10,20 @@ const slides = [
     id: 1,
     title: 'Step Into Style',
     subtitle: 'Explore the latest fashion collections for every season.',
-    img: '/images/slide1.jpg',
-    bgColor: 'from-purple-500 via-pink-500 to-orange-400',
+    img: '/images/slide0001.jpg',
+    bgColor: 'from-purple-300 via-pink-300 to-orange-200',
   },
   {
     id: 2,
     title: 'Upgrade Your Tech',
     subtitle: 'Find premium gadgets and accessories at unbeatable prices.',
     img: '/images/slide2.jpg',
-    bgColor: 'from-indigo-500 via-sky-500 to-cyan-400',
+    bgColor: 'from-indigo-300 via-sky-300 to-cyan-200',
   },
   {
     id: 3,
-    title: 'Your Home, Reimagined',
-    subtitle: 'Discover elegant furniture and home décor collections.',
+    title: 'Online Shopping , Redefined',
+    subtitle: 'Discover more and more of your favorites items on MarvelMarts.',
     img: '/images/slide3.jpg',
     bgColor: 'from-green-400 via-lime-500 to-yellow-400',
   },
@@ -71,6 +71,7 @@ export default function EcommerceCarousel() {
                       alt={slide.title}
                       fill
                       priority
+                      quality={50}
                       className="object-cover opacity-40"
                     />
                   </div>

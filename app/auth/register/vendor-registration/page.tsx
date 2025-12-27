@@ -238,17 +238,35 @@ export default function VendorRegistration() {
   // -----------------------------
  return (
   <div className="flex justify-center items-start min-h-screen bg-gray-100 px-4 py-10">
-    <div className="w-full max-w-5xl bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8">
+    <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8">
+        
+          {/* Back arrow at top-left */}
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="absolute top-4 left-4  flex items-center text-gray-700 hover:text-gray-900"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z"/>
+                    <path d="M5 12l14 0" />
+                    <path d="M5 12l6 6" />
+                    <path d="M5 12l6 -6" />
+                  </svg>
+
+
+                  <span className="sr-only">Go back</span>
+                </button>
+
       {/* Header */}
-      <h2 className="text-2xl sm:text-2xl font-bold mb-2">
+      <h2 className="text-2xl sm:text-2xl font-bold ml-10 mb-2">
         Vendor Registration
       </h2>
 
-      <h3 className="text-red-700 text-xl sm:text-2xl font-semibold mb-1">
+      <h3 className="text-red-700 text-xl sm:text-2xl font-semibold ml-10 mb-1">
         Important Instructions:
       </h3>
 
-      <ol className="list-decimal pl-5 text-lg sm:text-lg text-red-600 mb-6 space-y-1">
+      <ol className="list-decimal pl-5 text-lg sm:text-lg text-red-600 ml-10 mb-6 space-y-1">
         <li>Fill in your email and all required details.</li>
         <li>Click <strong>Send Code</strong>.</li>
         <li>Check your inbox and spam folder.</li>

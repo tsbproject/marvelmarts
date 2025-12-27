@@ -108,10 +108,32 @@ export default function CustomerRegistrationPage() {
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-50 p-6">
-      <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
-          Customer Registration
+      <div className="relative w-full px-15 md:min-h-200 max-w-2xl md:max-w-4xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+               
+                {/* Back arrow at top-left */}
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="absolute top-4 left-4  flex items-center text-gray-700 hover:text-gray-900"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z"/>
+                    <path d="M5 12l14 0" />
+                    <path d="M5 12l6 6" />
+                    <path d="M5 12l6 -6" />
+                  </svg>
+
+
+                  <span className="sr-only">Go back</span>
+                </button>
+
+
+        <h1 className="text-3xl md:text-4xl mt-13 font-bold mb-6 text-center text-gray-800">
+          Create Customer Account
         </h1>
+
+         <p className="text-center -mt-5 text-2xl md:text-3xl font-normal text-brand-primary"> Let’s help make this a pleasant experience</p>
+       
 
         {/* Honeypot */}
         <div style={{ display: "none" }}>
@@ -128,12 +150,12 @@ export default function CustomerRegistrationPage() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-6">
           <div>
-            <label className="font-medium text-xl text-gray-700">Full Name</label>
+            <label className="font-medium  text-xl text-gray-700">Full Name</label>
             <input
               required
-              className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 text-xl md:text-4xl border rounded focus:ring-2 focus:ring-blue-500"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter full name"
@@ -146,7 +168,7 @@ export default function CustomerRegistrationPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 text-xl md:text-4xl border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="example@gmail.com"
             />
           </div>
@@ -159,7 +181,7 @@ export default function CustomerRegistrationPage() {
                 type={passwordVisible ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 text-xl border rounded focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 text-xl md:text-4xl border rounded focus:ring-2 focus:ring-blue-500"
                 placeholder="Strong password"
               />
               <span
@@ -169,14 +191,14 @@ export default function CustomerRegistrationPage() {
                 {passwordVisible ? "Hide" : "Show"}
               </span>
             </div>
-            <p className="text-xl text-gray-500 mt-1">
+            <p className="text-xl  text-gray-500 mt-1">
               At least {PASSWORD_POLICY.minLength} chars, 1 uppercase, 1 number, 1 special character
             </p>
           </div>
 
           <button
             disabled={loading}
-            className={`w-full text-2xl bg-accent-navy text-white p-3 rounded font-semibold transition ${
+            className={`w-full text-2xl md:text-4xl bg-accent-navy text-white p-3 rounded font-semibold transition ${
               loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
             }`}
           >
@@ -191,7 +213,7 @@ export default function CustomerRegistrationPage() {
           </a>
         </p>
 
-        <p className="text-center text-3xl md:text-3xl text-brand-primary mt-2">
+        <p className="text-center  text-xl md:text-3xl text-brand-primary mt-2">
           Are you a vendor?{" "}
           <a href="/auth/register/vendor-registration" className="text-accent-navy font-medium underline">
             Register here
