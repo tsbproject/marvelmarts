@@ -1,3 +1,6 @@
+
+
+
 // import { getServerSession } from "next-auth";
 // import { authOptions } from "@/app/lib/auth";
 // import { prisma } from "@/app/lib/prisma";
@@ -60,12 +63,12 @@
 //   }
 
 //   return (
-//     <div className="w-full xs:w-50 px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
+//     <div className="w-full px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
 //       {/* Page Header */}
-//       <DashboardHeader title="" />
+//       <DashboardHeader title="Administrators" />
 
 //       {/* Table wrapper */}
-//       <div className="mt-4 mr-50 overflow-x-auto">
+//       <div className="mt-4 overflow-x-auto">
 //         <AdminsTable
 //           admins={normalizedAdmins}
 //           canManageAdmins={isSuperAdmin ?? false}
@@ -75,7 +78,6 @@
 //     </div>
 //   );
 // }
-
 
 
 import { getServerSession } from "next-auth";
@@ -140,7 +142,7 @@ export default async function AdminsPage() {
   }
 
   return (
-    <div className="w-full px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
+    <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-xl">
       {/* Page Header */}
       <DashboardHeader title="Administrators" />
 
@@ -155,4 +157,3 @@ export default async function AdminsPage() {
     </div>
   );
 }
-
