@@ -142,18 +142,19 @@ export default async function AdminsPage() {
   }
 
   return (
-    <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-xl">
-      {/* Page Header */}
-      <DashboardHeader title="Administrators" />
+  <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-xl">
+    {/* Page Header */}
+    <DashboardHeader title="Administrators" />
 
-      {/* Table wrapper */}
-      <div className="mt-4 overflow-x-auto">
-        <AdminsTable
-          admins={normalizedAdmins}
-          canManageAdmins={isSuperAdmin ?? false}
-          currentUserId={user?.id ?? ""}
-        />
-      </div>
+    {/* Table wrapper */}
+    <div className="mt-4 overflow-x-auto">
+      <AdminsTable
+        admins={normalizedAdmins}
+        canManageAdmins={isSuperAdmin ?? false}
+        currentUserId={user?.id ?? ""}
+      />
     </div>
-  );
+  </div>
+);
+
 }
