@@ -85,7 +85,7 @@ absolute visible lg:invisible
  <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
 
 <button className='flex items-center gap-2 text-lg font-semibold text-gray-800' onClick={() => setUserMenuOpen(true)}>
-  <User className="w-10 h-10 text-brand-primary" />
+  <User className="w-12 h-12 border-2 rounded-[50%] p-2 text-brand-primary" />
   <span className="text-white text-2xl">Account</span>
 </button>
 </div>

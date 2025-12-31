@@ -17,6 +17,16 @@
 
   --color-accent-teal: #009FB7;
   --color-accent-navy: #002B5B;
+
+
+  
+}
+
+@theme{
+  --breakpoint-xs: 400px; 
+  --breakpoint-sm: 500px; 
+  --breakpoint-md: 600px; 
+  --breakpoint-lg: 900px;
 }
 
 @layer base {
