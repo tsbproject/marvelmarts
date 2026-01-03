@@ -1,8 +1,9 @@
+
 // "use client";
 
 // import Link from "next/link";
 // import { useSession } from "next-auth/react";
-// import { ReactNode, useMemo } from "react";
+// import { ReactNode, useMemo, useState } from "react";
 // import {
 //   HomeIcon,
 //   UsersIcon,
@@ -10,7 +11,7 @@
 //   ShieldCheckIcon,
 //   KeyIcon,
 //   Squares2X2Icon,
-//   Cog6ToothIcon, // 🔹 icon for Settings
+//   Cog6ToothIcon,
 // } from "@heroicons/react/24/outline";
 
 // interface DashboardSidebarProps {
@@ -22,6 +23,9 @@
 //   const permissions = session?.user?.permissions ?? {};
 //   const role = session?.user?.role;
 //   const isSuperAdmin = role === "SUPER_ADMIN";
+
+//   // 🔹 Mobile sidebar toggle
+//   const [showSidebar, setShowSidebar] = useState(false);
 
 //   const sections = useMemo(() => {
 //     const general = [
@@ -78,12 +82,11 @@
 //       },
 //     ];
 
-//     // 🔹 Build a Permissions section for ADMIN
 //     const permissionsMenu = Object.entries(permissions)
-//       .filter(([_, value]) => value) // only enabled permissions
+//       .filter(([_, value]) => value)
 //       .map(([key]) => ({
-//         label: key.replace(/([A-Z])/g, " $1"), // format nicely
-//         href: "#", // or link to a permissions info page
+//         label: key.replace(/([A-Z])/g, " $1"),
+//         href: "#",
 //         icon: <ShieldCheckIcon className="w-5 h-5" />,
 //         visible: true,
 //       }));
@@ -97,7 +100,38 @@
 
 //   return (
 //     <div className="flex min-h-screen bg-gray-50">
-//       <aside className="w-75 bg-brand-primary border-r shadow-sm flex flex-col">
+//       {/* ================= MOBILE TOGGLE ================= */}
+//       {!showSidebar && (
+//         <div className="lg:hidden fixed top-4 left-4 z-50">
+//           <button
+//             onClick={() => setShowSidebar(true)}
+//             className="px-4 py-2 mt-40 rounded-lg bg-brand-primary text-white text-sm font-semibold shadow"
+//           >
+//             Show Sidebar
+//           </button>
+//         </div>
+//       )}
+
+//       {/* ================= SIDEBAR ================= */}
+//       <aside
+//         className={`
+//           w-75 bg-brand-primary border-r shadow-sm flex flex-col
+//           inset-y-0 left-0 z-40
+//           transform transition-transform duration-300
+//           ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+//           lg:translate-x-0 lg:static
+//         `}
+//       >
+//         {/* Mobile close button inside sidebar */}
+//         <div className="lg:hidden px-4 py-2">
+//           <button
+//             onClick={() => setShowSidebar(false)}
+//             className="rounded bg-gray-800 text-white px-3 py-1 text-sm"
+//           >
+//             Hide Sidebar
+//           </button>
+//         </div>
+
 //         <div className="px-6 py-4 border-b">
 //           <h2 className="text-2xl font-bold text-gray-900">MarvelMarts</h2>
 //           <p className="text-xl text-gray-50">Dashboard</p>
@@ -114,6 +148,7 @@
 //                   <li key={link.href}>
 //                     <Link
 //                       href={link.href}
+//                       onClick={() => setShowSidebar(false)}
 //                       className="flex items-center text-2xl gap-2 px-3 py-2 rounded-lg text-gray-950 hover:bg-gray-100 hover:text-black transition"
 //                     >
 //                       {link.icon}
@@ -135,6 +170,7 @@
 //                   <li key={link.href}>
 //                     <Link
 //                       href={link.href}
+//                       onClick={() => setShowSidebar(false)}
 //                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-black text-2xl hover:bg-gray-50 hover:text-black transition"
 //                     >
 //                       {link.icon}
@@ -146,7 +182,6 @@
 //             </div>
 //           )}
 
-//           {/* 🔹 Permissions section for ADMIN */}
 //           {!isSuperAdmin && sections.permissionsMenu.length > 0 && (
 //             <div>
 //               <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">
@@ -168,11 +203,14 @@
 
 //         <div className="px-4 py-4 border-t text-sm text-gray-500">
 //           Signed in as{" "}
-//           <span className="font-medium">{session?.user?.email ?? "Unknown"}</span>
+//           <span className="font-medium">
+//             {session?.user?.email ?? "Unknown"}
+//           </span>
 //         </div>
 //       </aside>
 
-//       <main className="flex-1 p-8">{children}</main>
+//       {/* ================= MAIN CONTENT ================= */}
+//       <main className="flex-1 p-8 lg:ml-0">{children}</main>
 //     </div>
 //   );
 // }
@@ -192,6 +230,8 @@ import {
   KeyIcon,
   Squares2X2Icon,
   Cog6ToothIcon,
+  Bars3Icon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 interface DashboardSidebarProps {
@@ -204,8 +244,7 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
   const role = session?.user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
 
-  // 🔹 Mobile sidebar toggle
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const sections = useMemo(() => {
     const general = [
@@ -280,38 +319,8 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* ================= MOBILE TOGGLE ================= */}
-      {!showSidebar && (
-        <div className="lg:hidden fixed top-4 left-4 z-50">
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="px-4 py-2 mt-40 rounded-lg bg-brand-primary text-white text-sm font-semibold shadow"
-          >
-            Show Sidebar
-          </button>
-        </div>
-      )}
-
-      {/* ================= SIDEBAR ================= */}
-      <aside
-        className={`
-          w-75 bg-brand-primary border-r shadow-sm flex flex-col
-          inset-y-0 left-0 z-40
-          transform transition-transform duration-300
-          ${showSidebar ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 lg:static
-        `}
-      >
-        {/* Mobile close button inside sidebar */}
-        <div className="lg:hidden px-4 py-2">
-          <button
-            onClick={() => setShowSidebar(false)}
-            className="rounded bg-gray-800 text-white px-3 py-1 text-sm"
-          >
-            Hide Sidebar
-          </button>
-        </div>
-
+      {/* ================= DESKTOP SIDEBAR ================= */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-brand-primary border-r shadow-sm">
         <div className="px-6 py-4 border-b">
           <h2 className="text-2xl font-bold text-gray-900">MarvelMarts</h2>
           <p className="text-xl text-gray-50">Dashboard</p>
@@ -320,15 +329,12 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
         <nav className="flex-1 px-4 py-6 space-y-6">
           {sections.general.length > 0 && (
             <div>
-              <p className="text-xl font-semibold text-gray-50 uppercase mb-2">
-                General
-              </p>
+              <p className="text-xl font-semibold text-gray-50 uppercase mb-2">General</p>
               <ul className="space-y-3">
                 {sections.general.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      onClick={() => setShowSidebar(false)}
                       className="flex items-center text-2xl gap-2 px-3 py-2 rounded-lg text-gray-950 hover:bg-gray-100 hover:text-black transition"
                     >
                       {link.icon}
@@ -342,15 +348,12 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
 
           {sections.management.length > 0 && (
             <div>
-              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">
-                Management
-              </p>
+              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">Management</p>
               <ul className="space-y-2">
                 {sections.management.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      onClick={() => setShowSidebar(false)}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-black text-2xl hover:bg-gray-50 hover:text-black transition"
                     >
                       {link.icon}
@@ -364,9 +367,7 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
 
           {!isSuperAdmin && sections.permissionsMenu.length > 0 && (
             <div>
-              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">
-                My Permissions
-              </p>
+              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">My Permissions</p>
               <ul className="space-y-2">
                 {sections.permissionsMenu.map((link) => (
                   <li key={link.label}>
@@ -382,15 +383,56 @@ export default function DashboardSidebar({ children }: DashboardSidebarProps) {
         </nav>
 
         <div className="px-4 py-4 border-t text-sm text-gray-500">
-          Signed in as{" "}
-          <span className="font-medium">
-            {session?.user?.email ?? "Unknown"}
-          </span>
+          Signed in as <span className="font-medium">{session?.user?.email ?? "Unknown"}</span>
         </div>
       </aside>
 
+      {/* ================= MOBILE TOPBAR ================= */}
+      <header className="lg:hidden w-full bg-brand-primary text-white flex items-center justify-between px-4 py-3">
+        <div>
+          <h2 className="text-lg font-bold">MarvelMarts</h2>
+          <p className="text-sm">Dashboard</p>
+        </div>
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2">
+          {mobileOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+        </button>
+      </header>
+
+      {/* ================= MOBILE DROPDOWN MENU ================= */}
+      {mobileOpen && (
+        <nav className="lg:hidden bg-gray-700 text-white px-4 py-2 space-y-2">
+          {sections.general.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className="block hover:bg-gray-600 rounded px-3 py-2"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {sections.management.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className="block hover:bg-gray-600 rounded px-3 py-2"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {!isSuperAdmin &&
+            sections.permissionsMenu.map((link) => (
+              <span key={link.label} className="block px-3 py-2 text-gray-300">
+                {link.label}
+              </span>
+            ))}
+        </nav>
+      )}
+
       {/* ================= MAIN CONTENT ================= */}
-      <main className="flex-1 p-8 lg:ml-0">{children}</main>
+      <main className="flex-1 p-8">{children}</main>
     </div>
   );
 }
+

@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import React, { useEffect, useId, useState } from "react";
@@ -23,7 +20,6 @@ interface ProductFormProps {
   onSubmit: (payload: FormData) => Promise<void>;
 }
 
-// Format number as ₦ currency for display
 function formatNaira(value: number) {
   if (!value) return "";
   return new Intl.NumberFormat("en-NG", {
@@ -33,7 +29,6 @@ function formatNaira(value: number) {
   }).format(value);
 }
 
-// Parse currency-formatted string back to raw number
 function parseNaira(input: string) {
   const digits = input.replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
@@ -45,7 +40,6 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
   const [previewExtras, setPreviewExtras] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Stable IDs for react-select to prevent hydration mismatch
   const selectInstanceId = useId();
   const selectInputId = `${selectInstanceId}-input`;
   const selectPlaceholderId = `${selectInstanceId}-placeholder`;
@@ -56,7 +50,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     price: 0,
     discountPrice: 0,
     status: "ACTIVE",
-    categories: [] as string[], // multiple subcategory IDs (we’ll submit first as categoryId)
+    categories: [] as string[],
     sku: "",
     stock: 0,
     brand: "",
@@ -76,7 +70,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
           setCategories(Array.isArray(data) ? data : data.items ?? []);
         }
       } catch {
-        // Optional: setError("Failed to load categories");
+        // optional error handling
       }
     }
     fetchCategories();
@@ -134,10 +128,10 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     const fd = new FormData();
     fd.append("title", form.title);
     fd.append("description", form.description);
-    fd.append("price", String(form.price)); // backend should parse to number
+    fd.append("price", String(form.price));
     fd.append("discountPrice", String(form.discountPrice || 0));
     fd.append("status", form.status);
-    fd.append("categoryId", form.categories[0]); // backend expects single categoryId
+    fd.append("categoryId", form.categories[0]);
     fd.append("sku", form.sku);
     fd.append("stock", String(form.stock));
     fd.append("brand", form.brand);
@@ -149,7 +143,6 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     await onSubmit(fd);
   }
 
-  // Group categories by parent: parent label with child options
   type Option = { value: string; label: string };
   type GroupedOption = { label: string; options: Option[] };
   const groupedOptions: GroupedOption[] = categories
@@ -166,7 +159,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
   const selectedValue = flatOptions.filter((opt) => form.categories.includes(opt.value));
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl  mx-auto">
       <h1 className="text-center text-3xl md:text-5xl font-bold mb-8 text-gray-800">
         Create Product
       </h1>
@@ -242,7 +235,8 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
                 value={form.status}
-                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+
+                                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
               >
                 <option value="ACTIVE">Active</option>
@@ -253,7 +247,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
           </div>
         </div>
 
-        {/* Categories & Subcategories (grouped multi-select) */}
+        {/* Categories & Subcategories */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
           <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-orange-700">
             <Squares2X2Icon className="h-6 w-6" />
@@ -279,24 +273,6 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             placeholder="Select subcategories..."
             className="w-full"
             classNamePrefix="select"
-            styles={{
-              control: (base) => ({
-                ...base,
-                borderColor: "#e5e7eb",
-                boxShadow: "none",
-                minHeight: "42px",
-                "&:hover": { borderColor: "#c7cdd4" },
-              }),
-              menu: (base) => ({
-                ...base,
-                zIndex: 50,
-              }),
-              groupHeading: (base) => ({
-                ...base,
-                fontWeight: 600,
-                color: "#92400e",
-              }),
-            }}
           />
           <span id={selectPlaceholderId} className="sr-only">
             Select subcategories...
@@ -314,13 +290,32 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             <PhotoIcon className="h-6 w-6" />
             Product images
           </h2>
+
+          {/* Main image upload zone */}
           <label className="block text-sm font-medium mb-1">Main image</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleMainImageChange}
-            className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-pink-500"
-          />
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50 text-center">
+            <svg
+              className="w-12 h-12 text-gray-400 mb-2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M4 12l4-4m0 0l4 4m-4-4v12"
+              />
+            </svg>
+            <p className="text-sm text-gray-600">Upload a File</p>
+            <p className="text-xs text-gray-500">Drag and drop files here</p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleMainImageChange}
+              className="mt-4 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
           {previewMain && (
             <img
               src={previewMain}
@@ -329,6 +324,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             />
           )}
 
+          {/* Extra images */}
           <label className="block text-sm font-medium mt-4 mb-1">Extra images</label>
           <input
             type="file"
@@ -393,7 +389,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
           </div>
         </div>
 
-        {/* Tags (optional) */}
+        {/* Tags */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
             <TagIcon className="h-6 w-6" />
@@ -433,4 +429,3 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     </div>
   );
 }
-
