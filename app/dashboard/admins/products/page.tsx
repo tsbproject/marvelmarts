@@ -1,8 +1,3 @@
-
-
-
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -55,6 +50,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     let cancelled = false;
+
     async function load() {
       setLoading(true);
       setError(null);
@@ -66,29 +62,26 @@ export default function ProductsPage() {
           headers: { Accept: "application/json" },
         });
 
-        // If API returns a non-JSON (e.g., HTML error), avoid res.json crash
         const contentType = res.headers.get("content-type") || "";
         const isJson = contentType.includes("application/json");
 
         if (!res.ok) {
-          const text = isJson ? (await res.json()) : await res.text();
+          const payload = isJson ? await res.json() : await res.text();
           const message = isJson
-            ? (text.message || "Failed to fetch products")
-            : `Failed to fetch products: ${res.status} ${text}`;
+            ? payload?.message || "Failed to fetch products"
+            : `Failed to fetch products: ${res.status} ${payload}`;
           throw new Error(message);
         }
 
         const data: ProductResponse = isJson ? await res.json() : { items: [], total: 0 };
 
-        if (data.success === false) {
-          if (!cancelled) {
+        if (!cancelled) {
+          if (data.success === false) {
             setError(data.message || "Failed to fetch products");
             setValidationErrors(data.errors || null);
             setProducts([]);
             setTotal(0);
-          }
-        } else {
-          if (!cancelled) {
+          } else {
             setProducts(data.items || []);
             setTotal(data.total || 0);
             setError(null);
@@ -130,9 +123,12 @@ export default function ProductsPage() {
     );
   }
 
-  return {
-    /* Wrapper */
-  } && (
+  function formatPrice(n: number) {
+    // Adjust currency/locale as needed
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(n);
+  }
+
+  return (
     <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <DashboardHeader
         title="Products"
@@ -158,11 +154,7 @@ export default function ProductsPage() {
         </button>
       </form>
 
-      {/* Status messages */}
-      {loading && (
-        <p className="mb-3 text-sm sm:text-base text-gray-600">Loading products…</p>
-      )}
-
+      {/* Error state */}
       {error && (
         <div className="mb-4 text-red-600 text-sm sm:text-base">
           {error}
@@ -178,81 +170,122 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Products list */}
-      {!loading && !error && (products ?? []).length === 0 ? (
-        <p className="text-sm sm:text-base">No products found.</p>
-      ) : (
-        !loading && !error && (
-          <>
-            {/* Mobile cards */}
-            <div className="space-y-4 lg:hidden">
-              {products.map((p) => (
-                <div
-                  key={p.id}
-                  className="rounded border bg-white p-4 shadow-sm text-sm sm:text-base"
-                >
-                  <p className="font-semibold">{p.title}</p>
-                  <p className="text-gray-600">Price: ${p.price}</p>
-                  <p className="text-gray-600">Status: {p.status}</p>
-                  <p className="text-gray-600">Category: {p.category?.name ?? "-"}</p>
-                  <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                    <Link
-                      href={`/dashboard/admins/products/${p.slug}`}
-                      className="px-3 py-2 bg-indigo-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
-                    >
-                      View
-                    </Link>
-                    <Link
-                      href={`/dashboard/admins/products/${p.slug}/edit`}
-                      className="px-3 py-2 bg-yellow-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
-                    >
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
+      {/* Loading skeletons */}
+      {loading && (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded border bg-white p-4 shadow-sm animate-pulse"
+            >
+              <div className="h-4 bg-gray-300 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
+              <div className="h-4 bg-gray-300 rounded w-1/2"></div>
             </div>
+          ))}
+        </div>
+      )}
 
-            {/* Desktop table */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="min-w-full border-collapse border border-gray-300 text-sm sm:text-base">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="px-4 py-2 text-left">Title</th>
-                    <th className="px-4 py-2 text-left">Price</th>
-                    <th className="px-4 py-2 text-left">Status</th>
-                    <th className="px-4 py-2 text-left">Category</th>
-                    <th className="px-4 py-2 text-left">Actions</th>
+      {/* Empty state */}
+      {!loading && !error && (products ?? []).length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <svg
+            className="w-16 h-16 text-gray-400 mb-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 3h18M9 3v18m6-18v18M3 9h18m-9 6h9"
+            />
+          </svg>
+          <p className="text-gray-600 text-sm sm:text-base">
+            No products found. Try adjusting your search or add a new product.
+          </p>
+          <Link
+            href="/dashboard/admins/products/new"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded text-sm sm:text-base"
+          >
+            Add Product
+          </Link>
+        </div>
+      )}
+
+      {/* Products list */}
+      {!loading && !error && (products ?? []).length > 0 && (
+        <>
+          {/* Mobile cards */}
+          <div className="space-y-4 lg:hidden">
+            {products.map((p) => (
+              <div
+                key={p.id}
+                className="rounded border bg-white p-4 shadow-sm text-sm sm:text-base transition-opacity duration-300"
+              >
+                <p className="font-semibold">{p.title}</p>
+                <p className="text-gray-600">Price: {formatPrice(p.price)}</p>
+                <p className="text-gray-600">Status: {p.status}</p>
+                <p className="text-gray-600">Category: {p.category?.name ?? "-"}</p>
+                <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                  <Link
+                    href={`/dashboard/admins/products/${p.slug}`}
+                    className="px-3 py-2 bg-indigo-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
+                  >
+                    View
+                  </Link>
+                  <Link
+                    href={`/dashboard/admins/products/${p.slug}/edit`}
+                    className="px-3 py-2 bg-yellow-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
+                  >
+                    Edit
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300 text-sm sm:text-base">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-2 text-left">Title</th>
+                  <th className="px-4 py-2 text-left">Price</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Category</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => (
+                  <tr key={p.id} className="hover:bg-gray-50 transition">
+                    <td className="border px-4 py-2">{p.title}</td>
+                    <td className="border px-4 py-2">{formatPrice(p.price)}</td>
+                    <td className="border px-4 py-2">{p.status}</td>
+                    <td className="border px-4 py-2">{p.category?.name ?? "-"}</td>
+                    <td className="border px-4 py-2">
+                      <Link
+                        href={`/dashboard/admins/products/${p.slug}`}
+                        className="px-3 py-2 bg-indigo-600 text-white rounded text-xs sm:text-sm hover:bg-indigo-700 transition"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/dashboard/admins/products/${p.slug}/edit`}
+                        className="ml-2 px-3 py-2 bg-yellow-600 text-white rounded text-xs sm:text-sm hover:bg-yellow-700 transition"
+                      >
+                        Edit
+                      </Link>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition">
-                      <td className="border px-4 py-2">{p.title}</td>
-                      <td className="border px-4 py-2">${p.price}</td>
-                      <td className="border px-4 py-2">{p.status}</td>
-                      <td className="border px-4 py-2">{p.category?.name ?? "-"}</td>
-                      <td className="border px-4 py-2">
-                        <Link
-                          href={`/dashboard/admins/products/${p.slug}`}
-                          className="px-3 py-2 bg-indigo-600 text-white rounded text-xs sm:text-sm hover:bg-indigo-700 transition"
-                        >
-                          View
-                        </Link>
-                        <Link
-                          href={`/dashboard/admins/products/${p.slug}/edit`}
-                          className="ml-2 px-3 py-2 bg-yellow-600 text-white rounded text-xs sm:text-sm hover:bg-yellow-700 transition"
-                        >
-                          Edit
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Pagination */}
