@@ -6,22 +6,22 @@ import { Readable } from "stream";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
-import { ProductStatus, Prisma } from "@prisma/client"; // ✅ import enum + Prisma types
+import { ProductStatus, Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /* ===========================
-   Zod schema aligned with Prisma
+   Zod schema for product creation
 =========================== */
 const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"), // required
+  description: z.string().min(1, "Description is required"),
   brand: z.string().optional(),
   price: z.coerce.number().positive("Price must be positive"),
   discountPrice: z.coerce.number().nullable().optional(),
-  categoryId: z.string().nullable().optional(), // ✅ allow null
-  status: z.nativeEnum(ProductStatus).default(ProductStatus.ACTIVE), // ✅ enum
+  categoryId: z.string().nullable().optional(),
+  status: z.nativeEnum(ProductStatus).default(ProductStatus.ACTIVE),
   stock: z.coerce.number().default(0),
   sku: z.string().optional(),
   metaTitle: z.string().optional(),
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       data: {
         ...data,
         slug,
-        categoryId: data.categoryId ?? null, // ✅ normalize undefined → null
+        categoryId: data.categoryId ?? null,
         images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
       },
       include: { images: true, category: true },
@@ -116,18 +116,23 @@ const listQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().optional(),
   category: z.string().optional(),
-  status: z.nativeEnum(ProductStatus).optional(), // ✅ enum filter
+  status: z
+    .string()
+    .transform((val) => val.toUpperCase())
+    .pipe(z.nativeEnum(ProductStatus))
+    .optional(),
 });
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+
     const parsed = listQuerySchema.safeParse({
-      page: searchParams.get("page"),
-      pageSize: searchParams.get("pageSize"),
-      search: searchParams.get("search") ?? undefined,
-      category: searchParams.get("category") ?? undefined,
-      status: searchParams.get("status") as ProductStatus | undefined,
+      page: searchParams.get("page") || undefined,
+      pageSize: searchParams.get("pageSize") || undefined,
+      search: searchParams.get("search") || undefined,
+      category: searchParams.get("category") || undefined,
+      status: searchParams.get("status") || undefined,
     });
 
     if (!parsed.success) {
@@ -139,7 +144,6 @@ export async function GET(request: Request) {
 
     const { page, pageSize, search, category, status } = parsed.data;
 
-    // ✅ use Prisma.ProductWhereInput
     const where: Prisma.ProductWhereInput = {
       status: status ?? undefined,
       category: category ? { slug: category } : undefined,

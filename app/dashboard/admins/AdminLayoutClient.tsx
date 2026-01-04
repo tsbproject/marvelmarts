@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -48,18 +46,18 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Framer Motion variants
-  const containerVariants = 
-{ hidden: { opacity: 0 }, 
-show: 
-{ opacity: 1, 
-transition: { 
-duration: 0.5, 
-ease: easeInOut, 
-staggerChildren: 0.1,
-}, 
-}, 
-exit: { opacity: 0 }, };
-    
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+        ease: easeInOut,
+        staggerChildren: 0.1,
+      },
+    },
+    exit: { opacity: 0 },
+  };
 
   const itemVariants = {
     hidden: { opacity: 0, y: -10 },
@@ -70,9 +68,9 @@ exit: { opacity: 0 }, };
     <AdminProviders>
       <div className="flex min-h-screen bg-gray-50">
         {/* ================= DESKTOP SIDEBAR ================= */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block flex-1">
           <DashboardSidebar>
-            <div className="w-full max-w-screen-2xl mx-auto px-6 py-6 flex flex-col gap-6">
+            <div className="w-full px-6 py-6 flex flex-col gap-6">
               {/* Global header */}
               <div className="flex justify-between items-center gap-3">
                 <h2 className="text-2xl font-bold">Dashboard</h2>
@@ -206,3 +204,4 @@ exit: { opacity: 0 }, };
     </AdminProviders>
   );
 }
+
