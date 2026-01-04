@@ -5,6 +5,7 @@ import formidable, { File } from "formidable";
 import path from "path";
 import fs from "fs/promises";
 import { z } from "zod";
+import { Readable } from "stream";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,27 +69,18 @@ function toImageUrlsFromFiles(files: ParsedForm["files"]): string[] {
   const urls: string[] = [];
 
   const pushFile = (f: File) => {
-    // Optional MIME check
     if (f.mimetype && !f.mimetype.startsWith("image/")) return;
     urls.push(`/uploads/${path.basename(f.filepath)}`);
   };
 
   const main = files.mainImage;
   if (main) {
-    if (Array.isArray(main)) {
-      main.forEach(pushFile);
-    } else {
-      pushFile(main);
-    }
+    Array.isArray(main) ? main.forEach(pushFile) : pushFile(main);
   }
 
   const extras = files.extraImages;
   if (extras) {
-    if (Array.isArray(extras)) {
-      extras.forEach(pushFile);
-    } else {
-      pushFile(extras);
-    }
+    Array.isArray(extras) ? extras.forEach(pushFile) : pushFile(extras);
   }
 
   return urls;
@@ -108,8 +100,11 @@ async function parseForm(req: Request): Promise<ParsedForm> {
     keepExtensions: true,
   });
 
+  // Convert Web Request body to Node.js Readable
+  const nodeReq = Readable.fromWeb(req.body as any) as unknown as NodeJS.ReadableStream;
+
   return new Promise<ParsedForm>((resolve, reject) => {
-    form.parse(req as unknown as NodeJS.ReadableStream, (err, fields, files) => {
+    form.parse(nodeReq, (err, fields, files) => {
       if (err) return reject(err);
 
       const normalized = normalizeFields(fields as FormFieldsRaw);
@@ -232,7 +227,6 @@ export async function GET(request: Request) {
       },
     });
 
-    // Ensure numeric fields are plain numbers (in case of Decimal types)
     const normalizedItems = items.map((p) => ({
       id: p.id,
       slug: p.slug,
