@@ -11,18 +11,20 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /* ===========================
-   Zod schema
+   Zod schema aligned with Prisma
 =========================== */
 const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  brand: z.string().optional(),
+  description: z.string().min(1, "Description is required"), // ✅ required
+  brand: z.string().optional(), // ✅ optional
   price: z.coerce.number().positive("Price must be positive"),
-  discountPrice: z.coerce.number().nullable().optional(),
-  categoryId: z.string().min(1, "Category is required"),
+  discountPrice: z.coerce.number().nullable().optional(), // ✅ optional
+  categoryId: z.string().optional(), // ✅ optional
   status: z.string().default("ACTIVE"),
   stock: z.coerce.number().default(0),
   sku: z.string().optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
 });
 
 type ProductFormFields = z.infer<typeof productSchema>;
@@ -87,15 +89,11 @@ export async function POST(request: Request) {
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "");
 
-    // ✅ Normalize undefined → null for optional fields
+    // ✅ Save product in DB
     const product = await prisma.product.create({
       data: {
         ...data,
         slug,
-        description: data.description ?? null,
-        brand: data.brand ?? null,
-        sku: data.sku ?? null,
-        discountPrice: data.discountPrice ?? null,
         images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
       },
       include: { images: true, category: true },
