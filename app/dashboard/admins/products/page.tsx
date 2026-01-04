@@ -248,8 +248,8 @@ export default function ProductsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300 text-sm sm:text-base">
+          <div className="hidden lg:block overflow-x-auto w-full">
+            <table className="w-full border-collapse border border-gray-300 text-sm sm:text-base">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="px-4 py-2 text-left">Title</th>
