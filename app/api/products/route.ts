@@ -15,11 +15,11 @@ export const dynamic = "force-dynamic";
 =========================== */
 const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"), // ✅ required
-  brand: z.string().optional(), // ✅ optional
+  description: z.string().min(1, "Description is required"), // required
+  brand: z.string().optional(),
   price: z.coerce.number().positive("Price must be positive"),
-  discountPrice: z.coerce.number().nullable().optional(), // ✅ optional
-  categoryId: z.string().optional(), // ✅ optional
+  discountPrice: z.coerce.number().nullable().optional(),
+  categoryId: z.string().nullable().optional(), // ✅ allow null
   status: z.string().default("ACTIVE"),
   stock: z.coerce.number().default(0),
   sku: z.string().optional(),
@@ -59,7 +59,6 @@ async function parseMultipart(req: Request): Promise<{ fields: Record<string, st
     bb.on("finish", () => resolve({ fields, files }));
     bb.on("error", reject);
 
-    // ✅ feed chunks manually into Busboy
     nodeStream.on("data", (chunk) => bb.write(chunk));
     nodeStream.on("end", () => bb.end());
   });
@@ -72,7 +71,6 @@ export async function POST(request: Request) {
   try {
     const { fields, files } = await parseMultipart(request);
 
-    // Validate fields with Zod
     const parsed = productSchema.safeParse(fields);
     if (!parsed.success) {
       return NextResponse.json(
@@ -83,17 +81,16 @@ export async function POST(request: Request) {
 
     const data: ProductFormFields = parsed.data;
 
-    // Generate slug
     const slug = data.title
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "");
 
-    // ✅ Save product in DB
     const product = await prisma.product.create({
       data: {
         ...data,
         slug,
+        categoryId: data.categoryId ?? null, // ✅ normalize undefined → null
         images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
       },
       include: { images: true, category: true },
