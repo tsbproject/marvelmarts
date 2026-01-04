@@ -35,14 +35,15 @@ async function parseMultipart(req: Request): Promise<{ fields: Record<string, st
     const fields: Record<string, string> = {};
     const files: string[] = [];
 
-    const busboy = Busboy({ headers: Object.fromEntries(req.headers) });
+    // ✅ instantiate Busboy with `new`
+    const bb = new Busboy({ headers: Object.fromEntries(req.headers) });
     const nodeStream = Readable.fromWeb(req.body as any);
 
     const uploadDir = path.join(process.cwd(), "public/uploads");
     fs.mkdirSync(uploadDir, { recursive: true });
 
-    busboy.on("file", (fieldname, file, filename) => {
-      const saveTo = path.join(uploadDir, `${Date.now()}-${filename}`);
+    bb.on("file", (fieldname, file, info) => {
+      const saveTo = path.join(uploadDir, `${Date.now()}-${info.filename}`);
       const writeStream = fs.createWriteStream(saveTo);
       file.pipe(writeStream);
 
@@ -51,17 +52,17 @@ async function parseMultipart(req: Request): Promise<{ fields: Record<string, st
       });
     });
 
-    busboy.on("field", (fieldname, val) => {
+    bb.on("field", (fieldname, val) => {
       fields[fieldname] = val;
     });
 
-    busboy.on("finish", () => {
+    bb.on("finish", () => {
       resolve({ fields, files });
     });
 
-    busboy.on("error", reject);
+    bb.on("error", reject);
 
-    nodeStream.pipe(busboy);
+    nodeStream.pipe(bb);
   });
 }
 
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   try {
     const { fields, files } = await parseMultipart(request);
 
-    // Validate fields with Zod
+    // ✅ Validate fields with Zod
     const parsed = productSchema.safeParse(fields);
     if (!parsed.success) {
       return NextResponse.json(
@@ -83,13 +84,13 @@ export async function POST(request: Request) {
 
     const data: ProductFormFields = parsed.data;
 
-    // Generate slug
+    // ✅ Generate slug
     const slug = data.title
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "");
 
-    // Save product in DB
+    // ✅ Save product in DB
     const product = await prisma.product.create({
       data: {
         ...data,
