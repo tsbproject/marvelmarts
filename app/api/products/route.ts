@@ -1,24 +1,18 @@
 // app/api/products/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
-import formidable, { File } from "formidable";
-import path from "path";
-import fs from "fs/promises";
-import { z } from "zod";
+import Busboy from "busboy";
 import { Readable } from "stream";
+import path from "path";
+import fs from "fs";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Disable Next.js body parsing for formidable
-export const config = {
-  api: { bodyParser: false },
-};
-
 /* ===========================
-   Zod schemas and types
+   Zod schema
 =========================== */
-
 const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -33,166 +27,53 @@ const productSchema = z.object({
 
 type ProductFormFields = z.infer<typeof productSchema>;
 
-interface ParsedForm {
-  fields: ProductFormFields;
-  files: {
-    mainImage?: File | File[];
-    extraImages?: File | File[];
-  };
-}
-
-type FormFieldsRaw = Record<string, string | string[]>;
-type FilesRaw = Record<string, File | File[]>;
-
 /* ===========================
-   Utilities
+   Helper: parse multipart with Busboy
 =========================== */
+async function parseMultipart(req: Request): Promise<{ fields: Record<string, string>; files: string[] }> {
+  return new Promise((resolve, reject) => {
+    const fields: Record<string, string> = {};
+    const files: string[] = [];
 
-async function ensureUploadsDir(dir: string) {
-  try {
-    await fs.access(dir);
-  } catch {
-    await fs.mkdir(dir, { recursive: true });
-  }
-}
+    const busboy = Busboy({ headers: Object.fromEntries(req.headers) });
+    const nodeStream = Readable.fromWeb(req.body as any);
 
-function normalizeFields(fields: FormFieldsRaw): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(fields).map(([key, value]) => [
-      key,
-      Array.isArray(value) ? (value[0] ?? "") : (value ?? ""),
-    ])
-  );
-}
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+    fs.mkdirSync(uploadDir, { recursive: true });
 
-function toImageUrlsFromFiles(files: ParsedForm["files"]): string[] {
-  const urls: string[] = [];
+    busboy.on("file", (fieldname, file, filename) => {
+      const saveTo = path.join(uploadDir, `${Date.now()}-${filename}`);
+      const writeStream = fs.createWriteStream(saveTo);
+      file.pipe(writeStream);
 
-  const pushFile = (f: File) => {
-    if (f.mimetype && !f.mimetype.startsWith("image/")) return;
-    urls.push(`/uploads/${path.basename(f.filepath)}`);
-  };
-
-  const main = files.mainImage;
-  if (main) {
-    Array.isArray(main) ? main.forEach(pushFile) : pushFile(main);
-  }
-
-  const extras = files.extraImages;
-  if (extras) {
-    Array.isArray(extras) ? extras.forEach(pushFile) : pushFile(extras);
-  }
-
-  return urls;
-}
-
-/* ===========================
-   Formidable parser
-=========================== */
-
-async function parseForm(req: Request): Promise<ParsedForm> {
-  const uploadDir = path.join(process.cwd(), "public/uploads");
-  await ensureUploadsDir(uploadDir);
-
-  const form = formidable({
-    multiples: true,
-    uploadDir,
-    keepExtensions: true,
-  });
-
-  // Convert Web Request body to Node.js Readable
-  const nodeReq = Readable.fromWeb(req.body as any) as unknown as NodeJS.ReadableStream;
-
-  return new Promise<ParsedForm>((resolve, reject) => {
-    form.parse(nodeReq, (err, fields, files) => {
-      if (err) return reject(err);
-
-      const normalized = normalizeFields(fields as FormFieldsRaw);
-      const parsed = productSchema.safeParse(normalized);
-      if (!parsed.success) return reject(parsed.error);
-
-      resolve({
-        fields: parsed.data,
-        files: files as FilesRaw as ParsedForm["files"],
+      writeStream.on("close", () => {
+        files.push(`/uploads/${path.basename(saveTo)}`);
       });
     });
+
+    busboy.on("field", (fieldname, val) => {
+      fields[fieldname] = val;
+    });
+
+    busboy.on("finish", () => {
+      resolve({ fields, files });
+    });
+
+    busboy.on("error", reject);
+
+    nodeStream.pipe(busboy);
   });
 }
 
 /* ===========================
    POST /api/products
 =========================== */
-
 export async function POST(request: Request) {
   try {
-    const { fields, files } = await parseForm(request);
+    const { fields, files } = await parseMultipart(request);
 
-    const slug = fields.title
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-]+/g, "");
-
-    const imageUrls = toImageUrlsFromFiles(files);
-
-    const product = await prisma.product.create({
-      data: {
-        ...fields,
-        slug,
-        images: imageUrls.length ? { create: imageUrls.map((url) => ({ url })) } : undefined,
-      },
-      include: { images: true, category: true },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Product created successfully",
-        product,
-        imageUrls,
-      },
-      { status: 201 }
-    );
-  } catch (err) {
-    console.error("POST /api/products error:", err);
-
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, errors: err.flatten().fieldErrors, product: null },
-        { status: 400 }
-      );
-    }
-
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { success: false, message, product: null },
-      { status: 500 }
-    );
-  }
-}
-
-/* ===========================
-   GET /api/products
-=========================== */
-
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(10),
-  search: z.string().trim().optional(),
-  category: z.string().optional(),
-  status: z.string().optional(),
-});
-
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const parsed = listQuerySchema.safeParse({
-      page: searchParams.get("page"),
-      pageSize: searchParams.get("pageSize"),
-      search: searchParams.get("search") ?? undefined,
-      category: searchParams.get("category") ?? undefined,
-      status: searchParams.get("status") ?? undefined,
-    });
-
+    // Validate fields with Zod
+    const parsed = productSchema.safeParse(fields);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, errors: parsed.error.flatten().fieldErrors },
@@ -200,65 +81,31 @@ export async function GET(request: Request) {
       );
     }
 
-    const { page, pageSize, search, category, status } = parsed.data;
+    const data: ProductFormFields = parsed.data;
 
-    const where: Parameters<typeof prisma.product.findMany>[0]["where"] = {
-      status: status ?? undefined,
-      category: category ? { slug: category } : undefined,
-      OR: search
-        ? [
-            { title: { contains: search, mode: "insensitive" } },
-            { description: { contains: search, mode: "insensitive" } },
-          ]
-        : undefined,
-    };
+    // Generate slug
+    const slug = data.title
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]+/g, "");
 
-    const total = await prisma.product.count({ where });
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(Math.max(page, 1), totalPages);
-
-    const items = await prisma.product.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (safePage - 1) * pageSize,
-      take: pageSize,
-      include: {
-        category: { select: { name: true } },
+    // Save product in DB
+    const product = await prisma.product.create({
+      data: {
+        ...data,
+        slug,
+        images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
       },
+      include: { images: true, category: true },
     });
-
-    const normalizedItems = items.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      title: p.title,
-      price: Number(p.price),
-      status: p.status,
-      category: p.category ? { name: p.category.name } : undefined,
-    }));
-
-    return NextResponse.json({
-      success: true,
-      items: normalizedItems,
-      total,
-      page: safePage,
-      pageSize,
-      totalPages,
-    });
-  } catch (err) {
-    console.error("GET /api/products error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
 
     return NextResponse.json(
-      {
-        success: false,
-        message,
-        items: [],
-        total: 0,
-        page: 1,
-        pageSize: 10,
-        totalPages: 1,
-      },
-      { status: 500 }
+      { success: true, message: "Product created successfully", product, imageUrls: files },
+      { status: 201 }
     );
+  } catch (err) {
+    console.error("POST /api/products error:", err);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
