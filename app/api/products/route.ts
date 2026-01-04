@@ -1,3 +1,4 @@
+// app/api/products/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import Busboy from "busboy";
@@ -86,11 +87,15 @@ export async function POST(request: Request) {
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "");
 
-    // Save product in DB
+    // ✅ Normalize undefined → null for optional fields
     const product = await prisma.product.create({
       data: {
         ...data,
         slug,
+        description: data.description ?? null,
+        brand: data.brand ?? null,
+        sku: data.sku ?? null,
+        discountPrice: data.discountPrice ?? null,
         images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
       },
       include: { images: true, category: true },
