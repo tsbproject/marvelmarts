@@ -1,24 +1,11 @@
 // types/busboy.d.ts
 declare module "busboy" {
   import { IncomingHttpHeaders } from "http";
-  import { Readable } from "stream";
+  import { Writable } from "stream";
 
   export interface BusboyConfig {
     headers: IncomingHttpHeaders;
-    defCharset?: string;
-    defParamCharset?: string;
-    highWaterMark?: number;
-    fileHwm?: number;
-    preservePath?: boolean;
-    limits?: {
-      fieldNameSize?: number;
-      fieldSize?: number;
-      fields?: number;
-      fileSize?: number;
-      files?: number;
-      parts?: number;
-      headerPairs?: number;
-    };
+    // … other options …
   }
 
   export interface FileInfo {
@@ -27,15 +14,11 @@ declare module "busboy" {
     mimeType: string;
   }
 
-  export type BusboyEvents = {
-    file: (fieldname: string, stream: Readable, info: FileInfo) => void;
-    field: (fieldname: string, value: string, info: { nameTruncated: boolean; valueTruncated: boolean; encoding: string; mimeType: string }) => void;
-    finish: () => void;
-    error: (err: Error) => void;
-  };
-
-  export default class Busboy extends Readable {
+  export default class Busboy extends Writable {
     constructor(config: BusboyConfig);
-    on<U extends keyof BusboyEvents>(event: U, listener: BusboyEvents[U]): this;
+    on(event: "file", listener: (fieldname: string, stream: NodeJS.ReadableStream, info: FileInfo) => void): this;
+    on(event: "field", listener: (fieldname: string, value: string) => void): this;
+    on(event: "finish", listener: () => void): this;
+    on(event: "error", listener: (err: Error) => void): this;
   }
 }
