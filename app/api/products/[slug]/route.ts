@@ -1,3 +1,4 @@
+// app/api/products/[slug]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import { productSchema } from "@/app/lib/validations/product"; // Zod schema
@@ -5,14 +6,14 @@ import { productSchema } from "@/app/lib/validations/product"; // Zod schema
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Reusable type for context
+type SlugContext = { params: { slug: string } };
+
 /* ===========================
    GET /api/products/[slug]
    Fetch single product by slug
 =========================== */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function GET(request: NextRequest, { params }: SlugContext) {
   try {
     const { slug } = params;
 
@@ -52,10 +53,7 @@ export async function GET(
    PUT /api/products/[slug]
    Update product by slug
 =========================== */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function PUT(request: NextRequest, { params }: SlugContext) {
   try {
     const { slug } = params;
     const body = await request.json();
@@ -104,10 +102,7 @@ export async function PUT(
    DELETE /api/products/[slug]
    Delete product by slug
 =========================== */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: SlugContext) {
   try {
     const { slug } = params;
 
