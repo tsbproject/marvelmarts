@@ -5,13 +5,16 @@ import { productSchema } from "@/app/lib/validations/product"; // Zod schema
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/products/[slug]
+/* ===========================
+   GET /api/products/[slug]
+   Fetch single product by slug
+=========================== */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const { slug } = params;
 
     const product = await prisma.product.findUnique({
       where: { slug },
@@ -29,26 +32,32 @@ export async function GET(
 
     const safeProduct = {
       ...product,
-      price: Number(product.price),
+      price: product.price ? Number(product.price) : 0,
       discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-      variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
+      variants: product.variants.map((v) => ({
+        ...v,
+        price: v.price ? Number(v.price) : 0,
+      })),
     };
 
     return NextResponse.json(safeProduct);
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("GET /api/products/[slug] error:", err);
     return NextResponse.json({ message }, { status: 500 });
   }
 }
 
-// PUT /api/products/[slug]
+/* ===========================
+   PUT /api/products/[slug]
+   Update product by slug
+=========================== */
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const { slug } = params;
     const body = await request.json();
     const parsed = productSchema.parse(body); // validate with Zod
 
@@ -72,15 +81,18 @@ export async function PUT(
 
     const safeProduct = {
       ...product,
-      price: Number(product.price),
+      price: product.price ? Number(product.price) : 0,
       discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-      variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
+      variants: product.variants.map((v) => ({
+        ...v,
+        price: v.price ? Number(v.price) : 0,
+      })),
     };
 
     return NextResponse.json(safeProduct);
-  } catch (err: unknown) {
-    if (err instanceof Error && "errors" in err) {
-      return NextResponse.json({ errors: (err as any).errors }, { status: 400 });
+  } catch (err: any) {
+    if (err?.errors) {
+      return NextResponse.json({ errors: err.errors }, { status: 400 });
     }
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("PUT /api/products/[slug] error:", err);
@@ -88,20 +100,23 @@ export async function PUT(
   }
 }
 
-// DELETE /api/products/[slug]
+/* ===========================
+   DELETE /api/products/[slug]
+   Delete product by slug
+=========================== */
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const { slug } = params;
 
     await prisma.product.delete({
       where: { slug },
     });
 
     return NextResponse.json({ message: "Product deleted successfully" });
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("DELETE /api/products/[slug] error:", err);
     return NextResponse.json({ message }, { status: 500 });

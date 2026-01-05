@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import SignInForm from "@/app/_components/SignInForm";
 
-export const dynamic = "force-dynamic"; // ✅ skip prerender
+export const dynamic = "force-dynamic"; //skip prerender
 
 export default function SignInPage() {
   return (

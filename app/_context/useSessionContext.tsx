@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode } from "react";
 import { useSession } from "next-auth/react";
-import type { Session } from "next-auth"; // ✅ import Session type from core package
+import type { Session } from "next-auth"; //import Session type from core package
 
 // -------------------------
 // Types

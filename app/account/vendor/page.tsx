@@ -1,7 +1,9 @@
+
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader";
+
 
 export default async function VendorDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -10,17 +12,38 @@ export default async function VendorDashboardPage() {
     return <div className="p-8">Unauthorized</div>;
   }
 
+  // Define vendor-specific menu links
+  const vendorSections = {
+    general: [
+      { href: "/account/vendor/products", label: "Products" },
+      { href: "/account/vendor/orders", label: "Orders" },
+      { href: "/account/vendor/sales", label: "Sales" },
+    ],
+  };
+
   return (
-    <DashboardSidebar>
-      <div className="p-8 w-full">
-        {/* --- Reusable Dashboard Header --- */}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Mobile Topbar */}
+      <div className="lg:hidden">
+        {/* <MobileTopbar role="Vendor" sections={vendorSections} /> */}
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block">
+        {/* <DashboardSidebar sections={vendorSections} /> */}
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-1 p-8">
         <DashboardHeader title="Vendor Dashboard" />
 
-        {/* Vendor Content */}
         <div className="bg-white rounded shadow p-6">
-          <h2 className="text-2xl font-semibold mb-4">Welcome, {session.user.name}</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            Welcome, {session.user.name}
+          </h2>
           <p className="text-lg text-gray-700">
-            This is your vendor dashboard. You can manage your products, view orders, and track your sales here.
+            This is your vendor dashboard. You can manage your products, view orders,
+            and track your sales here.
           </p>
 
           {/* Example dashboard cards */}
@@ -39,7 +62,9 @@ export default async function VendorDashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-    </DashboardSidebar>
+      </main>
+    </div>
   );
 }
+
+

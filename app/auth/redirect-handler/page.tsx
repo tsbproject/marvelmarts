@@ -1,38 +1,3 @@
-// "use client";
-
-// import { useEffect } from "react";
-// import { useSession } from "next-auth/react";
-// import { useRouter } from "next/navigation";
-
-// export default function RedirectHandler() {
-//   const { data: session, status } = useSession();
-//   const router = useRouter();
-
-//   useEffect(() => {
-//     if (status === "loading") return;
-
-//     const role = session?.user?.role;
-
-//     if (!role) {
-//       router.replace("/auth/sign-in");
-//       return;
-//     }
-
-//     // 🔥 ROLE-BASED REDIRECTS
-//     if (role === "SUPER_ADMIN") router.replace("/dashboard/admins");
-//     else if (role === "ADMIN") router.replace("/dashboard/admins");
-//     else if (role === "VENDOR") router.replace("/account/vendor");
-//     else if (role === "CUSTOMER") router.replace("/account/customer");
-//     else router.replace("/");
-//   }, [status, session, router]);
-
-//   return (
-//     <div className="w-full h-screen flex flex-col justify-center items-center">
-//       <p className="text-lg font-medium">Redirecting...</p>
-//     </div>
-//   );
-// }
-
 // app/auth/redirect-handler/page.tsx
 "use client";
 
