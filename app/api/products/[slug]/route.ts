@@ -134,10 +134,10 @@ export const dynamic = "force-dynamic";
 =========================== */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     const product = await prisma.product.findUnique({
       where: { slug },
@@ -178,10 +178,10 @@ export async function GET(
 =========================== */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
     const body = await request.json();
     const parsed = productSchema.parse(body);
 
@@ -231,10 +231,10 @@ export async function PUT(
 =========================== */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     await prisma.product.delete({
       where: { slug },
