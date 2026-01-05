@@ -143,6 +143,7 @@ model Product {
   id              String         @id @default(cuid())
   title           String
   slug            String         @unique
+  sku            String?
   description     String
   brand           String?
   price           Decimal        @db.Decimal(10, 2)

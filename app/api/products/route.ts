@@ -1,8 +1,6 @@
 // app/api/products/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
-import Busboy from "busboy";
-import { Readable } from "stream";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
@@ -23,55 +21,32 @@ const productSchema = z.object({
   categoryId: z.string().nullable().optional(),
   status: z.nativeEnum(ProductStatus).default(ProductStatus.ACTIVE),
   stock: z.coerce.number().default(0),
-  sku: z.string().optional(),
+  sku: z.string()
+    .trim()
+    .transform((val) => (val === "" ? undefined : val))
+    .optional(), 
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
 });
 
+
 type ProductFormFields = z.infer<typeof productSchema>;
 
 /* ===========================
-   Helper: parse multipart with Busboy
-=========================== */
-async function parseMultipart(req: Request): Promise<{ fields: Record<string, string>; files: string[] }> {
-  return new Promise((resolve, reject) => {
-    const fields: Record<string, string> = {};
-    const files: string[] = [];
-
-    const bb = new Busboy({ headers: Object.fromEntries(req.headers) });
-    const nodeStream = Readable.fromWeb(req.body as any);
-
-    const uploadDir = path.join(process.cwd(), "public/uploads");
-    fs.mkdirSync(uploadDir, { recursive: true });
-
-    bb.on("file", (fieldname, file, info) => {
-      const saveTo = path.join(uploadDir, `${Date.now()}-${info.filename}`);
-      const writeStream = fs.createWriteStream(saveTo);
-      file.pipe(writeStream);
-      writeStream.on("close", () => {
-        files.push(`/uploads/${path.basename(saveTo)}`);
-      });
-    });
-
-    bb.on("field", (fieldname, val) => {
-      fields[fieldname] = val;
-    });
-
-    bb.on("finish", () => resolve({ fields, files }));
-    bb.on("error", reject);
-
-    nodeStream.on("data", (chunk) => bb.write(chunk));
-    nodeStream.on("end", () => bb.end());
-  });
-}
-
-/* ===========================
    POST /api/products
+   Uses request.formData()
 =========================== */
 export async function POST(request: Request) {
   try {
-    const { fields, files } = await parseMultipart(request);
+    const formData = await request.formData();
 
+    // Extract fields
+    const fields: Record<string, any> = {};
+    formData.forEach((value, key) => {
+      fields[key] = value;
+    });
+
+    // Validate with Zod
     const parsed = productSchema.safeParse(fields);
     if (!parsed.success) {
       return NextResponse.json(
@@ -82,23 +57,61 @@ export async function POST(request: Request) {
 
     const data: ProductFormFields = parsed.data;
 
+    // Generate slug
     const slug = data.title
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "");
 
+    // Handle file uploads
+    const files: string[] = [];
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+    fs.mkdirSync(uploadDir, { recursive: true });
+
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        const arrayBuffer = await value.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const filename = `${Date.now()}-${value.name}`;
+        const saveTo = path.join(uploadDir, filename);
+        fs.writeFileSync(saveTo, buffer);
+        files.push(`/uploads/${filename}`);
+      }
+    }
+
+    // Build product data safely
+    const productData: Prisma.ProductCreateInput = {
+      title: data.title,
+      description: data.description,
+      brand: data.brand,
+      price: data.price,
+      discountPrice: data.discountPrice ?? null,
+      status: data.status,
+      stock: data.stock,
+      slug,
+      ...(data.sku ? { sku: data.sku } : {}), // ✅ only include if defined
+      ...(data.metaTitle ? { metaTitle: data.metaTitle } : {}),
+      ...(data.metaDescription ? { metaDescription: data.metaDescription } : {}),
+      category: data.categoryId
+        ? { connect: { id: data.categoryId } }
+        : undefined,
+      images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
+    };
+
+    // Create product
     const product = await prisma.product.create({
-      data: {
-        ...data,
-        slug,
-        categoryId: data.categoryId ?? null,
-        images: files.length ? { create: files.map((url) => ({ url })) } : undefined,
-      },
+      data: productData,
       include: { images: true, category: true },
     });
 
     return NextResponse.json(
-      { success: true, message: "Product created successfully", product, imageUrls: files },
+      {
+        success: true,
+        message: "Product created successfully",
+        product,
+        slug: product.slug,
+        imageUrls: files,
+      },
       { status: 201 }
     );
   } catch (err) {
@@ -107,6 +120,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
+
 
 /* ===========================
    GET /api/products

@@ -7,25 +7,10 @@ export default function NewProductPage() {
   const router = useRouter();
 
   async function handleCreate(fd: FormData) {
-    // Convert FormData into a plain object
-    const obj: Record<string, any> = {};
-    fd.forEach((value, key) => {
-      // handle arrays if needed (e.g. images[], variants[])
-      if (obj[key]) {
-        if (Array.isArray(obj[key])) {
-          obj[key].push(value);
-        } else {
-          obj[key] = [obj[key], value];
-        }
-      } else {
-        obj[key] = value;
-      }
-    });
-
+    // Send FormData directly, do not convert to JSON
     const res = await fetch("/api/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(obj),
+      body: fd,
     });
 
     if (!res.ok) {

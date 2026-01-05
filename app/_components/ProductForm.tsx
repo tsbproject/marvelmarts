@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useId, useReducer, useState } from "react";
 import Select, { GroupBase } from "react-select";
 import {
   TagIcon,
@@ -34,30 +34,74 @@ function parseNaira(input: string) {
   return digits ? Number(digits) : 0;
 }
 
+type ProductFormState = {
+  title: string;
+  description: string;
+  price: number;
+  discountPrice: number;
+  status: string;
+  categories: string[];
+  sku: string;
+  stock: number;
+  brand: string;
+  tags: string[];
+  mainImage: File | null;
+  extraImages: File[];
+  metaTitle: string;
+  metaDescription: string;
+};
+
+type FormAction =
+  | { type: "SET_FIELD"; field: keyof ProductFormState; value: any }
+  | { type: "SET_MAIN_IMAGE"; file: File }
+  | { type: "SET_EXTRA_IMAGES"; files: File[] }
+  | { type: "RESET" };
+
+const initialFormState: ProductFormState = {
+  title: "",
+  description: "",
+  price: 0,
+  discountPrice: 0,
+  status: "ACTIVE",
+  categories: [],
+  sku: "",
+  stock: 0,
+  brand: "",
+  tags: [],
+  mainImage: null,
+  extraImages: [],
+  metaTitle: "",
+  metaDescription: "",
+};
+
+function formReducer(state: ProductFormState, action: FormAction): ProductFormState {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value };
+    case "SET_MAIN_IMAGE":
+      return { ...state, mainImage: action.file };
+    case "SET_EXTRA_IMAGES":
+      return { ...state, extraImages: action.files };
+    case "RESET":
+      return initialFormState;
+    default:
+      return state;
+  }
+}
+
 export default function ProductForm({ onSubmit }: ProductFormProps) {
+  const [form, dispatch] = useReducer(formReducer, initialFormState);
   const [categories, setCategories] = useState<Category[]>([]);
   const [previewMain, setPreviewMain] = useState<string | null>(null);
   const [previewExtras, setPreviewExtras] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const [isDraggingMain, setIsDraggingMain] = useState(false);
+  const [isDraggingExtra, setIsDraggingExtra] = useState(false);
+
   const selectInstanceId = useId();
   const selectInputId = `${selectInstanceId}-input`;
   const selectPlaceholderId = `${selectInstanceId}-placeholder`;
-
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    price: 0,
-    discountPrice: 0,
-    status: "ACTIVE",
-    categories: [] as string[],
-    sku: "",
-    stock: 0,
-    brand: "",
-    tags: [] as string[],
-    mainImage: null as File | null,
-    extraImages: [] as File[],
-  });
 
   useEffect(() => {
     let mounted = true;
@@ -82,26 +126,14 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
   function handleMainImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Only image files are allowed.");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Main image must be smaller than 2MB.");
-      return;
-    }
-    setForm((prev) => ({ ...prev, mainImage: file }));
+    dispatch({ type: "SET_MAIN_IMAGE", file });
     setPreviewMain(URL.createObjectURL(file));
-    setError(null);
   }
 
   function handleExtraImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const validFiles = files.filter(
-      (f) => f.type.startsWith("image/") && f.size <= 2 * 1024 * 1024
-    );
-    setForm((prev) => ({ ...prev, extraImages: validFiles }));
-    setPreviewExtras(validFiles.map((f) => URL.createObjectURL(f)));
+    dispatch({ type: "SET_EXTRA_IMAGES", files });
+    setPreviewExtras(files.map((f) => URL.createObjectURL(f)));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,10 +164,13 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     fd.append("discountPrice", String(form.discountPrice || 0));
     fd.append("status", form.status);
     fd.append("categoryId", form.categories[0]);
-    fd.append("sku", form.sku);
     fd.append("stock", String(form.stock));
     fd.append("brand", form.brand);
     fd.append("tags", JSON.stringify(form.tags));
+
+    if (form.sku.trim()) fd.append("sku", form.sku.trim());
+    if (form.metaTitle.trim()) fd.append("metaTitle", form.metaTitle.trim());
+    if (form.metaDescription.trim()) fd.append("metaDescription", form.metaDescription.trim());
 
     if (form.mainImage) fd.append("mainImage", form.mainImage);
     form.extraImages.forEach((file) => fd.append("extraImages", file));
@@ -156,10 +191,12 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
     .filter((group) => group.options.length > 0);
 
   const flatOptions: Option[] = groupedOptions.flatMap((g) => g.options);
-  const selectedValue = flatOptions.filter((opt) => form.categories.includes(opt.value));
+  const selectedValue = flatOptions.filter((opt) =>
+    form.categories.includes(opt.value)
+  );
 
   return (
-    <div className="max-w-5xl  mx-auto">
+    <div className="max-w-5xl mx-auto">
       <h1 className="text-center text-3xl md:text-5xl font-bold mb-8 text-gray-800">
         Create Product
       </h1>
@@ -182,7 +219,9 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             type="text"
             placeholder="e.g. Nike Air Max Sneakers"
             value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+            onChange={(e) =>
+              dispatch({ type: "SET_FIELD", field: "title", value: e.target.value })
+            }
             className="border rounded px-3 py-2 w-full mb-4 focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -190,13 +229,15 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
           <textarea
             placeholder="Detailed product description..."
             value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            onChange={(e) =>
+              dispatch({ type: "SET_FIELD", field: "description", value: e.target.value })
+            }
             className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
             rows={4}
           />
         </div>
 
-        {/* Pricing */}
+               {/* Pricing */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-green-700">
             <CurrencyDollarIcon className="h-6 w-6" />
@@ -210,7 +251,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 placeholder="₦25,000"
                 value={form.price ? formatNaira(form.price) : ""}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, price: parseNaira(e.target.value) }))
+                  dispatch({ type: "SET_FIELD", field: "price", value: parseNaira(e.target.value) })
                 }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
@@ -223,10 +264,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 placeholder="₦20,000"
                 value={form.discountPrice ? formatNaira(form.discountPrice) : ""}
                 onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    discountPrice: parseNaira(e.target.value),
-                  }))
+                  dispatch({ type: "SET_FIELD", field: "discountPrice", value: parseNaira(e.target.value) })
                 }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
               />
@@ -235,8 +273,9 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
                 value={form.status}
-
-                                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                onChange={(e) =>
+                  dispatch({ type: "SET_FIELD", field: "status", value: e.target.value })
+                }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
               >
                 <option value="ACTIVE">Active</option>
@@ -265,10 +304,11 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             options={groupedOptions}
             value={selectedValue}
             onChange={(selected) =>
-              setForm((prev) => ({
-                ...prev,
-                categories: (selected ?? []).map((s) => s.value),
-              }))
+              dispatch({
+                type: "SET_FIELD",
+                field: "categories",
+                value: (selected ?? []).map((s) => s.value),
+              })
             }
             placeholder="Select subcategories..."
             className="w-full"
@@ -291,57 +331,50 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
             Product images
           </h2>
 
-          {/* Main image upload zone */}
+          {/* Main image */}
           <label className="block text-sm font-medium mb-1">Main image</label>
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50 text-center">
-            <svg
-              className="w-12 h-12 text-gray-400 mb-2"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M4 12l4-4m0 0l4 4m-4-4v12"
-              />
+          <label
+            htmlFor="mainImageUpload"
+            onDragEnter={() => setIsDraggingMain(true)}
+            onDragLeave={() => setIsDraggingMain(false)}
+            onDrop={() => setIsDraggingMain(false)}
+            className={`cursor-pointer flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 bg-gray-50 text-center transition ${
+              isDraggingMain ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-500"
+            }`}
+          >
+            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M4 12l4-4m0 0l4 4m-4-4v12" />
             </svg>
             <p className="text-sm text-gray-600">Upload a File</p>
-            <p className="text-xs text-gray-500">Drag and drop files here</p>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleMainImageChange}
-              className="mt-4 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-          </div>
+            <p className="text-xs text-gray-500">Click or drag and drop files here</p>
+          </label>
+          <input id="mainImageUpload" type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
           {previewMain && (
-            <img
-              src={previewMain}
-              alt="Main preview"
-              className="mt-3 h-48 w-full object-cover rounded border shadow-sm"
-            />
+            <img src={previewMain} alt="Main preview" className="mt-3 h-48 w-full object-cover rounded border shadow-sm" />
           )}
 
           {/* Extra images */}
           <label className="block text-sm font-medium mt-4 mb-1">Extra images</label>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleExtraImagesChange}
-            className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-pink-500"
-          />
+          <label
+            htmlFor="extraImagesUpload"
+            onDragEnter={() => setIsDraggingExtra(true)}
+            onDragLeave={() => setIsDraggingExtra(false)}
+            onDrop={() => setIsDraggingExtra(false)}
+            className={`cursor-pointer flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 bg-gray-50 text-center transition ${
+              isDraggingExtra ? "border-pink-500 bg-pink-50" : "border-gray-300 hover:border-pink-500"
+            }`}
+          >
+            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M4 12l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+            <p className="text-sm text-gray-600">Upload Files</p>
+            <p className="text-xs text-gray-500">Click or drag and drop multiple images</p>
+          </label>
+          <input id="extraImagesUpload" type="file" accept="image/*" multiple onChange={handleExtraImagesChange} className="hidden" />
           {previewExtras.length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
               {previewExtras.map((src, idx) => (
-                <img
-                  key={idx}
-                  src={src}
-                  alt={`Extra preview ${idx + 1}`}
-                  className="h-28 w-full object-cover rounded-lg border shadow-sm"
-                />
+                <img key={idx} src={src} alt={`Extra preview ${idx + 1}`} className="h-28 w-full object-cover rounded-lg border shadow-sm" />
               ))}
             </div>
           )}
@@ -360,7 +393,9 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 type="text"
                 placeholder="e.g. NIKE-AMAX-001"
                 value={form.sku}
-                onChange={(e) => setForm((prev) => ({ ...prev, sku: e.target.value }))}
+                onChange={(e) =>
+                  dispatch({ type: "SET_FIELD", field: "sku", value: e.target.value })
+                }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -371,7 +406,7 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 placeholder="e.g. 50"
                 value={form.stock}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, stock: Number(e.target.value) }))
+                  dispatch({ type: "SET_FIELD", field: "stock", value: Number(e.target.value) })
                 }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500"
               />
@@ -382,7 +417,9 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 type="text"
                 placeholder="e.g. Nike"
                 value={form.brand}
-                onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))}
+                onChange={(e) =>
+                  dispatch({ type: "SET_FIELD", field: "brand", value: e.target.value })
+                }
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -391,41 +428,83 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
 
         {/* Tags */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-teal-700">
             <TagIcon className="h-6 w-6" />
-            Tags (optional)
+            Tags
           </h2>
-          <label className="block text-sm font-medium mb-1">Tags</label>
+          <label className="block text-sm font-medium mb-1">Tags (comma separated)</label>
           <input
             type="text"
-            placeholder="e.g. running, sportswear, men"
+            placeholder="e.g. sneakers, running, sports"
+            value={form.tags.join(", ")}
             onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                tags: e.target.value
-                  .split(",")
-                  .map((t) => t.trim())
-                  .filter(Boolean),
-              }))
+              dispatch({
+                type: "SET_FIELD",
+                field: "tags",
+                value: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+              })
             }
-            className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
+            className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-teal-500"
           />
-          {form.tags.length > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              {form.tags.length} tag(s): {form.tags.join(", ")}
-            </p>
-          )}
         </div>
 
+        {/* SEO Section */}
+        <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-indigo-700">
+            SEO Settings
+          </h2>
+          <div>
+            <label className="block text-sm font-medium mb-1">Meta Title</label>
+            <input
+              type="text"
+              placeholder="Optional SEO title"
+              value={form.metaTitle}
+              onChange={(e) =>
+                dispatch({ type: "SET_FIELD", field: "metaTitle", value: e.target.value })
+              }
+              className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">Meta Description</label>
+            <textarea
+              placeholder="Optional SEO description"
+              value={form.metaDescription}
+              onChange={(e) =>
+                dispatch({ type: "SET_FIELD", field: "metaDescription", value: e.target.value })
+              }
+              className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"
+              rows={3}
+            />
+          </div>
+        </div>
+
+       
         {/* Submit */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold hover:bg-blue-700 transition shadow-md"
-        >
-          <TagIcon className="h-6 w-6" />
-          Save product
-        </button>
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold hover:bg-blue-700 transition shadow-md"
+          >
+            <TagIcon className="h-6 w-6" />
+            Save product
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              dispatch({ type: "RESET" });
+              setPreviewMain(null);
+              setPreviewExtras([]);
+            }}
+            className="flex-1 bg-gray-200 text-gray-800 py-4 px-6 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold hover:bg-gray-300 transition shadow-md"
+          >
+            Reset
+          </button>
+        </div>
       </form>
     </div>
   );
 }
+
