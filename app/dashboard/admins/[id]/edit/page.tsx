@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
-import DashboardHeaderClient from "@/app/_components/DashboardHeaderClient"; //use client wrapper
+import DashboardHeader from "@/app/_components/DashboardHeader"; 
 import EditAdminForm from "@/app/_components/EditAdminForm";
 import { Admin, Permissions } from "@/types/admin";
 import { useNotification } from "@/app/_context/NotificationContext";
@@ -76,7 +76,7 @@ export default function EditAdminPage() {
   return (
     <DashboardSidebar>
       <div className="p-8 w-full">
-        <DashboardHeaderClient title="Edit Admin" /> {/*use client wrapper */}
+        <DashboardHeader title="Edit Admin" /> 
         <EditAdminForm mode="edit" initialData={admin} />
       </div>
     </DashboardSidebar>

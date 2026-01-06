@@ -111,8 +111,8 @@ export default function AdminsTable({
                 <th className="border px-4 py-3 text-left align-middle w-[18%]">Name</th>
                 <th className="border px-4 py-3 text-left align-middle w-[26%]">Email</th>
                 <th className="border px-4 py-3 text-left align-middle w-[10%]">Role</th>
-                <th className="border px-4 py-3 text-left align-middle w-[15%]">Created</th>
-                <th className="border px-4 py-3 text-left align-middle w-[25%]">Permissions</th>
+                <th className="border px-4 py-3 text-left align-middle w-[20%]">Created</th>
+                <th className="border px-4 py-3 text-left align-middle w-[30%]">Permissions</th>
                 <th className="border px-4 py-3 text-left align-middle w-[34%]">Actions</th>
               </tr>
             </thead>

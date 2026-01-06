@@ -1,6 +1,3 @@
-
-
-
 // app/dashboard/admins/categories/CategoriesTable.tsx
 "use client";
 

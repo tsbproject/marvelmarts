@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import DashboardSidebarClient from "./DashboardSidebarClient";
-import DashboardHeaderClient from "./DashboardHeaderClient";
+import DashboardSidebar from "@/app/_components/DashboardSidebar";
+import DashboardHeader from "@/app/_components/DashboardHeader";
 import SignOutButton from "@/app/_components/SignOutButton";
 import AdminProviders from "@/app/_context/AdminProviders";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -69,7 +69,7 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
       <div className="flex min-h-screen bg-gray-50">
         {/* ================= DESKTOP SIDEBAR ================= */}
         <div className="hidden lg:block flex-1">
-            <DashboardSidebarClient sections={sections}>
+            <DashboardSidebar sections={sections}>
               <div className="w-full px-6 py-6 flex flex-col gap-6">
                 {/* Global header */}
                 <div className="flex justify-between items-center gap-3">
@@ -87,7 +87,7 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
                 </div>
 
         {/* Page-specific header */}
-        <DashboardHeaderClient
+        <DashboardHeader
       title="Administrators"
       actions={
         isSuperAdmin
@@ -110,7 +110,7 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
     {/* Page content */}
     <div className="w-full">{children}</div>
   </div>
-</DashboardSidebarClient>
+</DashboardSidebar>
 
         </div>
 
@@ -177,7 +177,7 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
 
           {/* Page-specific header */}
           <div className="px-4 py-4">
-            <DashboardHeaderClient
+            <DashboardHeader
               title="Administrators"
               actions={
                 isSuperAdmin

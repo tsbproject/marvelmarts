@@ -86,7 +86,7 @@
 //       const data = await res.json();
 
 //       if (!data.exists) {
-//         return candidate; // ✅ free slug found
+//         return candidate; //  free slug found
 //       }
 
 //       candidate = `${baseSlug}-${counter}`;
