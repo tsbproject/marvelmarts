@@ -15,7 +15,7 @@
 
 "use client";
 
-import DashboardSidebar from "@/app/_components/DashboardSidebar"; 
+import DashboardSidebar from "@/app/_components/DashboardSidebar"; //add sidebar
 import DashboardHeaderClient from "@/app/_components/DashboardHeaderClient";
 import EditAdminForm from "@/app/_components/EditAdminForm";
 
