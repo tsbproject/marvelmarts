@@ -124,7 +124,7 @@ import { prisma } from "@/app/lib/prisma";
 import CategoriesTable, { CategoryRow } from "./CategoriesTable";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import DashboardHeader from "@/app/_components/DashboardHeader";
+import DashboardHeaderClient from "./DashboardHeaderClient";
 
 type PageProps = {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -197,7 +197,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
   return (
     <div className="p-8 w-full">
       {/* ---------------- Page Header ---------------- */}
-      <DashboardHeader
+      <DashboardHeaderClient
         title="Categories"
         showAddButton={canManageCategories}
         addButtonLabel="Add Category"

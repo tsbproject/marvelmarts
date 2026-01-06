@@ -69,18 +69,24 @@ export default function MobileTopbar({
               </motion.div>
             ))}
 
-            {sections.management &&
-              sections.management.map((link) => (
-                <motion.div key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="block hover:bg-gray-600 rounded px-3 py-2"
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
+            {sections.management.map((link) => (
+  <motion.div key={link.href}>
+    <Link
+      href={link.href}
+      onClick={() => setMobileOpen(false)}
+      className="block hover:bg-gray-600 rounded px-3 py-2"
+    >
+      {link.label}
+    </Link>
+  </motion.div>
+))}
+
+{!isSuperAdmin &&
+  sections.permissionsMenu.map((link) => (
+    <motion.div key={link.label}>
+      <span className="block px-3 py-2 text-gray-300">{link.label}</span>
+    </motion.div>
+  ))}
 
             {!isSuperAdmin &&
               sections.permissionsMenu &&

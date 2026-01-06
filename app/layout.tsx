@@ -1,8 +1,14 @@
+
+
+
+
 // import "@/app/_styles/globals.css";
 // import { Inter } from "next/font/google";
 // import { Metadata } from "next";
 // import ClientLayout from "./_components/ClientLayout";
 
+// //Force dynamic rendering so query params and client contexts don't break prerender
+// export const dynamic = "force-dynamic";
 
 // export const metadata: Metadata = {
 //   title: "MarvelMarts",
@@ -11,7 +17,17 @@
 
 // const inter = Inter({
 //   subsets: ["latin"],
-//   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+//   weight: [
+//     "100",
+//     "200",
+//     "300",
+//     "400",
+//     "500",
+//     "600",
+//     "700",
+//     "800",
+//     "900",
+//   ],
 //   display: "swap",
 //   variable: "--font-inter",
 // });
@@ -21,11 +37,9 @@
 //     <html lang="en">
 //       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
 //         {/* Wrap everything with NotificationProvider to give access to the notification context */}
-        
-//           <ClientLayout>
-//             {children}
-//           </ClientLayout>
-      
+//         <ClientLayout>
+//           {children}
+//         </ClientLayout>
 //       </body>
 //     </html>
 //   );
@@ -33,12 +47,16 @@
 
 
 
+
+
 import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout";
+import { Provider } from "react-redux";
+import { store } from "@/store"; // <-- Redux store
 
-//Force dynamic rendering so query params and client contexts don't break prerender
+// Force dynamic rendering so query params and client contexts don't break prerender
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -67,11 +85,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
-        {/* Wrap everything with NotificationProvider to give access to the notification context */}
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        {/* Redux Provider wraps the entire app */}
+        <Provider store={store}>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </Provider>
       </body>
     </html>
   );
 }
+

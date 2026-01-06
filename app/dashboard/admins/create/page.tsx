@@ -1,21 +1,15 @@
-
-
-
 "use client";
 
-
-import DashboardHeader from "@/app/_components/DashboardHeader";
+import DashboardHeaderClient from "@/app/_components/DashboardHeaderClient";
 import EditAdminForm from "@/app/_components/EditAdminForm";
 
 export default function CreateAdminPage() {
   return (
- 
-      <div className="p-8 w-full">
-        <DashboardHeader title="Create Admin" />
-
-        <EditAdminForm mode="create" />
-      </div>
-   
+    <div className="p-8 w-full">
+      <DashboardHeaderClient title="Create Admin" />
+      <EditAdminForm mode="create" />
+    </div>
   );
 }
+
 

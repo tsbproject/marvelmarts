@@ -1,28 +1,15 @@
-// // /types/dashboard.ts
-// export type SectionLink = {
-//   href: string;
-//   label: string;
-//   icon?: React.ReactNode;
-//   visible?: boolean;
-// };
-
-// export type Sections = {
-//   general: SectionLink[];
-//   management?: SectionLink[];
-//   permissionsMenu?: { label: string; icon?: React.ReactNode }[];
-// };
-
-
 // /types/dashboard.ts
+import { ReactNode } from "react";
+
 export type SectionLink = {
   href: string;
   label: string;
-  icon?: React.ReactNode;   // optional
-  visible?: boolean;        // optional
+  icon?: ReactNode;       // <-- allow JSX icons
+  visible?: boolean;
 };
 
 export type Sections = {
   general: SectionLink[];
-  management?: SectionLink[];
-  permissionsMenu?: { label: string; icon?: React.ReactNode }[];
+  management: SectionLink[];
+  permissionsMenu: SectionLink[];
 };

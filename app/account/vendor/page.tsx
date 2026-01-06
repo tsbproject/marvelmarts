@@ -1,9 +1,9 @@
-
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import DashboardHeader from "@/app/_components/DashboardHeader";
-
+import MobileTopbar from "@/app/_components/MobileTopbar";
+import DashboardSidebar from "@/app/_components/DashboardSidebar";
+import { vendorSections } from "@/types/dashboardSections";
 
 export default async function VendorDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -12,28 +12,19 @@ export default async function VendorDashboardPage() {
     return <div className="p-8">Unauthorized</div>;
   }
 
-  // Define vendor-specific menu links
-  const vendorSections = {
-    general: [
-      { href: "/account/vendor/products", label: "Products" },
-      { href: "/account/vendor/orders", label: "Orders" },
-      { href: "/account/vendor/sales", label: "Sales" },
-    ],
-  };
-
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Mobile Topbar */}
+      {/* ================= MOBILE TOPBAR ================= */}
       <div className="lg:hidden">
-        {/* <MobileTopbar role="Vendor" sections={vendorSections} /> */}
+        <MobileTopbar role="Vendor" sections={vendorSections} />
       </div>
 
-      {/* Desktop Sidebar */}
+      {/* ================= DESKTOP SIDEBAR ================= */}
       <div className="hidden lg:block">
-        {/* <DashboardSidebar sections={vendorSections} /> */}
+        <DashboardSidebar sections={vendorSections} />
       </div>
 
-      {/* Main Content */}
+      {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-8">
         <DashboardHeader title="Vendor Dashboard" />
 
@@ -66,5 +57,3 @@ export default async function VendorDashboardPage() {
     </div>
   );
 }
-
-
