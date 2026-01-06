@@ -182,6 +182,19 @@ interface AuthUser {
   permissions: Record<string, boolean>;
 }
 
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      role: UserRole;
+      permissions: Record<string, boolean>;
+      name?: string | null;
+    };
+  }
+}
+
+
 const DEFAULT_SOCIAL_ROLE: UserRole = "CUSTOMER";
 
 function normalizePermissions(value: unknown): Record<string, boolean> {

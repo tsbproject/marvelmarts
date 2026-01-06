@@ -72,12 +72,18 @@ function ReduxSessionSync({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (session?.user) {
-      dispatch(setUser(session.user));
-    } else {
-      dispatch(setUser(null));
-    }
-  }, [session, dispatch]);
+  if (session?.user) {
+    dispatch(
+      setUser({
+        ...session.user,
+        name: session.user.name ?? ""  //fallback to empty string
+      })
+    );
+  } else {
+    dispatch(setUser(null));
+  }
+}, [session, dispatch]);
+
 
   return <>{children}</>;
 }
