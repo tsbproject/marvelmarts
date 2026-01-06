@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
-import DashboardHeader from "@/app/_components/DashboardHeader";
+import DashboardHeaderClient from "@/app/_components/DashboardHeaderClient"; //use client wrapper
 import EditAdminForm from "@/app/_components/EditAdminForm";
 import { Admin, Permissions } from "@/types/admin";
 import { useNotification } from "@/app/_context/NotificationContext";
@@ -13,7 +13,6 @@ export default function EditAdminPage() {
   const router = useRouter();
   const { notifyError } = useNotification();
 
-  // Extract the ID properly
   const adminId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [admin, setAdmin] = useState<Admin | null>(null);
@@ -45,7 +44,7 @@ export default function EditAdminPage() {
           manageOrders: false,
           manageMessages: false,
           manageSettings: false,
-          manageCategories: false, // 🔹 include if needed
+          manageCategories: false,
         };
 
         const mappedAdmin: Admin = {
@@ -77,10 +76,7 @@ export default function EditAdminPage() {
   return (
     <DashboardSidebar>
       <div className="p-8 w-full">
-        {/* 🔹 Just pass title; remove showAddButton unless DashboardHeader supports it */}
-        <DashboardHeader title="Edit Admin" />
-
-        {/* ✅ Pass mode="edit" and initialData */}
+        <DashboardHeaderClient title="Edit Admin" /> {/*use client wrapper */}
         <EditAdminForm mode="edit" initialData={admin} />
       </div>
     </DashboardSidebar>

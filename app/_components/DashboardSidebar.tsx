@@ -1,3 +1,6 @@
+
+
+
 "use client";
 
 import Link from "next/link";
@@ -19,7 +22,7 @@ import { Sections } from "@/types/dashboard";
 
 interface DashboardSidebarProps {
   children?: ReactNode;
-  sections: Sections;
+  sections?: Sections; 
 }
 
 export default function DashboardSidebar({ children, sections }: DashboardSidebarProps) {
@@ -102,11 +105,11 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
       };
     }
 
-    // For Customer/Vendor, just use the passed sections
+    // For Customer/Vendor, just use the passed sections (or empty arrays if undefined)
     return {
-      general: sections.general ?? [],
-      management: sections.management ?? [],
-      permissionsMenu: sections.permissionsMenu ?? [],
+      general: sections?.general ?? [],
+      management: sections?.management ?? [],
+      permissionsMenu: sections?.permissionsMenu ?? [],
     };
   }, [role, isSuperAdmin, permissions, sections]);
 
@@ -119,9 +122,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
             <h2 className="text-2xl font-bold text-gray-900">MarvelMarts</h2>
             <p className="text-xl text-gray-50">Dashboard</p>
           </div>
-         
-        
-  </div>
+        </div>
 
         <nav className="flex-1 px-4 py-6 space-y-6">
           {computedSections.general.length > 0 && (
@@ -232,13 +233,12 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
                 {link.label}
               </span>
             ))}
-          
-          
         </nav>
       )}
 
-          {/* ================= MAIN CONTENT ================= */}
+      {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-8">{children}</main>
     </div>
   );
 }
+

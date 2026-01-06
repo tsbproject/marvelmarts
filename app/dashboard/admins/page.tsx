@@ -85,6 +85,7 @@ import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import AdminsTable, { Admin } from "./AdminsTable";
 import DashboardHeaderClient from "./DashboardHeaderClient";
+import DashboardSidebar from "@/app/_components/DashboardSidebar"; // ✅ import sidebar
 import { redirect } from "next/navigation";
 
 export default async function AdminsPage() {
@@ -141,7 +142,6 @@ export default async function AdminsPage() {
     ];
   }
 
-  // Define actions dynamically
   const actions = isSuperAdmin
     ? [
         {
@@ -158,22 +158,20 @@ export default async function AdminsPage() {
     : [];
 
   return (
-    <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-lg">
-      {/* Page Header */}
-      <DashboardHeaderClient
-        title="Administrators, Roles and Permissions"
-        actions={actions}
-      />
-
-      {/* Table wrapper */}
-      <div className="mt-4 overflow-x-auto">
-        <AdminsTable
-          admins={normalizedAdmins}
-          canManageAdmins={isSuperAdmin ?? false}
-          currentUserId={user?.id ?? ""}
+    <DashboardSidebar>
+      <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-lg">
+        <DashboardHeaderClient
+          title="Administrators, Roles and Permissions"
+          actions={actions}
         />
+        <div className="mt-4 overflow-x-auto">
+          <AdminsTable
+            admins={normalizedAdmins}
+            canManageAdmins={isSuperAdmin ?? false}
+            currentUserId={user?.id ?? ""}
+          />
+        </div>
       </div>
-    </div>
+    </DashboardSidebar>
   );
 }
-
