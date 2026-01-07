@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -23,6 +21,8 @@ type DashboardHeaderProps = {
   showSecondaryButton?: boolean;
   secondaryButtonLabel?: string;
   secondaryButtonLink?: string;
+  /**new prop to toggle logout */
+  showLogout?: boolean;
 };
 
 export default function DashboardHeader({
@@ -34,6 +34,7 @@ export default function DashboardHeader({
   showSecondaryButton,
   secondaryButtonLabel,
   secondaryButtonLink,
+  showLogout = true, // default: show logout
 }: DashboardHeaderProps) {
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -42,7 +43,7 @@ export default function DashboardHeader({
   return (
     <div
       className="
-        sticky top-0 z-30
+        sticky top-0 z-5
         bg-white/90 backdrop-blur
         border-b border-gray-200
         mb-6
@@ -55,23 +56,23 @@ export default function DashboardHeader({
         </h1>
 
         {/* Actions + Logout */}
-        <div className="flex flex-col xs:flex-row gap-2 w-full xs:w-auto sm:items-center sm:justify-end">
+        <div className="flex flex-col xs:flex-row gap-4 w-full xs:w-auto sm:items-center sm:justify-end">
           {/* Add button */}
           {showAddButton && addButtonLabel && addButtonLink && (
             <Link
               href={addButtonLink}
               className="
-                inline-flex items-center gap-1 md:gap-2
-                px-2 py-1 xs:px-3 xs:py-2 md:px-4 md:py-2
+                inline-flex items-center justify-center gap-1 md:gap-2
+                px-2 py-1 xs:px-3 xs:py-2 md:px-4 md:py-6
                 rounded-md
                 bg-blue-600 text-white font-medium
-                text-sm md:text-base
+                text-xl md:text-xl
                 hover:bg-blue-700 transition
                 w-full xs:w-auto
               "
             >
-              <Plus size={16} />
-              <span className="hidden xs:inline">{addButtonLabel}</span>
+              <Plus size={25} />
+              <span className=" xs:inline ">{addButtonLabel}</span>
             </Link>
           )}
 
@@ -82,17 +83,17 @@ export default function DashboardHeader({
               <Link
                 href={secondaryButtonLink}
                 className="
-                  inline-flex items-center gap-2
-                  px-2 py-1 xs:px-3 xs:py-2 md:px-4 md:py-2
+                  inline-flex items-center justify-center gap-2
+                  px-2 py-1 xs:px-3 xs:py-2 md:px-4 md:py-6
                   rounded-md
                   bg-green-600 text-white font-medium
-                  text-sm md:text-base
+                  text-xl md:text-xl
                   hover:bg-green-700 transition
                   w-full xs:w-auto
                 "
               >
-                <Settings size={16} />
-                <span className="hidden xs:inline">
+                <Settings size={25} />
+                <span className="xs:inline ">
                   {secondaryButtonLabel}
                 </span>
               </Link>
@@ -119,13 +120,18 @@ export default function DashboardHeader({
               </Link>
             ))}
 
-          {/* Logout button (always visible on desktop) */}
-          <SignOutButton
-            label="Sign Out"
-            className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-          />
+          {/*Optional Logout button (desktop only) */}
+          {showLogout && (
+            <div className="hidden sm:block">
+              <SignOutButton
+                label="Sign Out"
+                className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+

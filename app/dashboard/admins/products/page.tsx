@@ -132,6 +132,7 @@ export default function ProductsPage() {
     <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <DashboardHeader
         title="Products"
+        showLogout={false} 
         showAddButton
         addButtonLabel="Add Product"
         addButtonLink="/dashboard/admins/products/new"

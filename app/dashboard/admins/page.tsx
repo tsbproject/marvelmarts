@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import AdminsTable, { Admin } from "./AdminsTable";
-import DashboardHeader from "@/app/_components/DashboardHeader";
 import { redirect } from "next/navigation";
 
 export default async function AdminsPage() {
@@ -62,7 +61,7 @@ export default async function AdminsPage() {
   return (
   <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 text-base sm:text-lg md:text-lg">
     {/* Page Header */}
-    <DashboardHeader title="Administrators, Roles and Permissions" />
+ 
 
     {/* Table wrapper */}
     <div className="mt-4 overflow-x-auto">

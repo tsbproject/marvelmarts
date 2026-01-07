@@ -23,6 +23,10 @@ export default function AdminsTable({
 }) {
   return (
     <div className="w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+       <div className="mb-6  bg-white py-6 px-10">
+        <h2 className="text-2xl md:text-3xl font-semibold ">Administrators, Roles and Permissions</h2>
+
+       </div>
       {/* ===================== */}
       {/* MOBILE VIEW (Cards) */}
       {/* ===================== */}

@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import Link from "next/link";
@@ -17,7 +14,6 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import SignOutButton from "./SignOutButton";
 import { Sections } from "@/types/dashboard";
 
 interface DashboardSidebarProps {
@@ -116,7 +112,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* ================= DESKTOP SIDEBAR ================= */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-brand-primary border-r shadow-sm">
+      <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-brand-primary border-r shadow-sm">
         <div className="px-6 py-4 border-b flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">MarvelMarts</h2>
@@ -133,7 +129,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-950 hover:bg-gray-100"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-950 hover:bg-gray-100 text-xl md:text-2xl"
                     >
                       {link.icon}
                       {link.label}
@@ -152,7 +148,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-black hover:bg-gray-50"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-black hover:bg-gray-50 text-xl md:text-2xl"
                     >
                       {link.icon}
                       {link.label}
@@ -169,7 +165,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
               <ul className="space-y-2">
                 {computedSections.permissionsMenu.map((link) => (
                   <li key={link.label}>
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 text-xl">
+                    <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 text-xl ">
                       {link.icon}
                       {link.label}
                     </span>
@@ -180,16 +176,10 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
           )}
         </nav>
 
-        {/* Footer with sign-out */}
-        <div className="px-4 py-4 border-t text-lg text-gray-50 flex flex-col gap-2">
+        <div className="px-4 py-4 border-t text-md text-gray-50">
           <span>
-            Signed in as <span className="font-medium text-lg">{session?.user?.email ?? "Unknown"}</span>
+            Signed in as <span className="font-medium text-md">{session?.user?.email ?? "Unknown"}</span>
           </span>
-          <SignOutButton
-            redirectPath="/auth/sign-in"
-            label="Sign Out"
-            className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-          />
         </div>
       </aside>
 
@@ -241,4 +231,5 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
     </div>
   );
 }
+
 
