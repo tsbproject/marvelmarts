@@ -150,7 +150,7 @@ export default function ProductsPage() {
           placeholder="Search products..."
           className="border rounded px-3 py-2 w-full sm:w-64 text-sm sm:text-base"
         />
-        <button className="px-4 py-2 bg-blue-600 text-white rounded w-full sm:w-auto text-sm sm:text-base">
+        <button className="px-4 py-2 bg-blue-600 text-white rounded w-full sm:w-auto text-lg sm:text-lg">
           Search
         </button>
       </form>
@@ -233,13 +233,13 @@ export default function ProductsPage() {
                 <div className="mt-2 flex flex-col sm:flex-row gap-2">
                   <Link
                     href={`/dashboard/admins/products/${p.slug}`}
-                    className="px-3 py-2 bg-indigo-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
+                    className="px-3 py-2 bg-indigo-600 text-white rounded text-center text-lg sm:text-sm w-full sm:w-auto"
                   >
                     View
                   </Link>
                   <Link
                     href={`/dashboard/admins/products/${p.slug}/edit`}
-                    className="px-3 py-2 bg-yellow-600 text-white rounded text-center text-xs sm:text-sm w-full sm:w-auto"
+                    className="px-3 py-2 bg-yellow-600 text-white rounded text-center text-lg sm:text-sm w-full sm:w-auto"
                   >
                     Edit
                   </Link>
@@ -253,21 +253,21 @@ export default function ProductsPage() {
             <table className="w-full border-collapse border border-gray-300 text-sm sm:text-base">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-4 py-2 text-left">Title</th>
-                  <th className="px-4 py-2 text-left">Price</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-left">Category</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
+                  <th className="px-4 text-xl py-2 text-left">Title</th>
+                  <th className="px-4 text-xl py-2 text-left">Price</th>
+                  <th className="px-4 text-xl py-2 text-left">Status</th>
+                  <th className="px-4 text-xl py-2 text-left">Category</th>
+                  <th className="px-4 text-xl py-2 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition">
-                    <td className="border px-4 py-2">{p.title}</td>
-                    <td className="border px-4 py-2">{formatPrice(p.price)}</td>
-                    <td className="border px-4 py-2">{p.status}</td>
-                    <td className="border px-4 py-2">{p.category?.name ?? "-"}</td>
-                    <td className="border px-4 py-2">
+                    <td className="border text-xl px-4 py-2">{p.title}</td>
+                    <td className="border text-xl px-4 py-2">{formatPrice(p.price)}</td>
+                    <td className="border text-xl px-4 py-2">{p.status}</td>
+                    <td className="border text-xl px-4 py-2">{p.category?.name ?? "-"}</td>
+                    <td className="border text-xl px-4 py-2">
                       <Link
                         href={`/dashboard/admins/products/${p.slug}`}
                         className="px-3 py-2 bg-indigo-600 text-white rounded text-xs sm:text-sm hover:bg-indigo-700 transition"

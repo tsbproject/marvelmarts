@@ -89,7 +89,7 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
           <MobileTopbar role={user.role} sections={sections} isSuperAdmin={isSuperAdmin} />
 
           {/* Page-specific header (logout hidden on mobile) */}
-          {/* <div className="px-4 py-4">
+          <div className="px-4 py-4">
             <DashboardHeader
               title="Administrators"
               showLogout={false}   //hide logout on mobile
@@ -99,18 +99,18 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
                       {
                         label: "Add Admin",
                         link: "/dashboard/admins/create",
-                        style: "bg-blue-600 hover:bg-blue-700 w-full sm:w-32 text-center",
+                        style: "bg-blue-600 hover:bg-blue-700 w-full py-5 sm:w-32 text-center",
                       },
                       {
                         label: "Add Category",
                         link: "/dashboard/admins/categories/create",
-                        style: "bg-green-600 hover:bg-green-700 w-full sm:w-36 text-center",
+                        style: "bg-green-600 hover:bg-green-700 w-full py-5 sm:w-36 text-center",
                       },
                     ]
                   : []
               }
             />
-          </div> */}
+          </div>
 
           {/* Page content */}
           <main className="flex-1 px-4 pb-6">{children}</main>
