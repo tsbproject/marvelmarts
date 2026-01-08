@@ -9,7 +9,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params; // ✅ await the promise
+  const { slug } = await params; // await the promise
 
   try {
     const category = await prisma.category.findUnique({
