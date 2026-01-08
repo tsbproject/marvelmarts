@@ -27,6 +27,8 @@
   --breakpoint-sm: 500px; 
   --breakpoint-md: 600px; 
   --breakpoint-lg: 900px;
+  --breakpoint-xl: 1100px;
+  --breakpoint-xxi: 1200px;
 }
 
 @layer base {

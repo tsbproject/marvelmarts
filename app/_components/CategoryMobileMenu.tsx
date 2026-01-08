@@ -1,11 +1,7 @@
-
-
-
-
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Category } from "@prisma/client";
 
 // 🔹 Recursive type: a Category plus its children
@@ -16,10 +12,18 @@ interface CategoryMobileMenuProps {
 }
 
 export default function CategoryMobileMenu({ categories }: CategoryMobileMenuProps) {
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
-  const toggleCategory = (name: string) => {
-    setOpenCategory(openCategory === name ? null : name);
+  const toggleCategory = (id: string) => {
+    setOpenIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -29,7 +33,7 @@ export default function CategoryMobileMenu({ categories }: CategoryMobileMenuPro
           <CategoryItem
             key={cat.id}
             category={cat}
-            openCategory={openCategory}
+            openIds={openIds}
             toggleCategory={toggleCategory}
           />
         ))}
@@ -41,21 +45,29 @@ export default function CategoryMobileMenu({ categories }: CategoryMobileMenuPro
 // 🔹 Recursive item renderer
 function CategoryItem({
   category,
-  openCategory,
+  openIds,
   toggleCategory,
 }: {
   category: CategoryTree;
-  openCategory: string | null;
-  toggleCategory: (name: string) => void;
+  openIds: Set<string>;
+  toggleCategory: (id: string) => void;
 }) {
-  const isOpen = openCategory === category.name;
+  const isOpen = openIds.has(category.id);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [category.children]);
 
   return (
     <li>
       {/* Category button */}
       <button
-        onClick={() => toggleCategory(category.name)}
-        className="w-full flex justify-between items-center text-xl font-semibold text-accent-navy hover:text-brand-primary transition-colors"
+        onClick={() => toggleCategory(category.id)}
+        className="w-full flex justify-between items-center text-lg font-semibold text-accent-navy hover:text-brand-primary transition-colors"
       >
         {category.name}
         {category.children?.length > 0 && (
@@ -66,16 +78,18 @@ function CategoryItem({
       {/* Subcategories accordion */}
       {category.children?.length > 0 && (
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            isOpen ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0"
-          }`}
+          ref={contentRef}
+          style={{
+            maxHeight: isOpen ? `${height}px` : "0px",
+          }}
+          className={`overflow-hidden transition-all duration-500 ease-in-out`}
         >
-          <ul className="ml-4 space-y-1">
+          <ul className="ml-4 mt-2 space-y-1">
             {category.children.map((sub) => (
               <CategoryItem
                 key={sub.id}
                 category={sub}
-                openCategory={openCategory}
+                openIds={openIds}
                 toggleCategory={toggleCategory}
               />
             ))}
