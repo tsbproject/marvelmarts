@@ -13,7 +13,7 @@ export const CategoryTreeSchema: z.ZodType<CategoryTree> = z.lazy(() =>
     imageUrl: z.string().nullable(),
     metaTitle: z.string().nullable(),
     metaDescription: z.string().nullable(),
-    children: z.array(CategoryTreeSchema),
+    children: z.array(CategoryTreeSchema).default([]), // safe default
   })
 );
 

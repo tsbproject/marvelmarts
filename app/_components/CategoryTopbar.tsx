@@ -5,7 +5,7 @@
 // import { useState, useEffect } from "react";
 // import type { Category } from "@prisma/client";
 
-// // Recursive type: Category plus children
+// // 🔹 Recursive type: Category plus children
 // export type CategoryTree = Category & { children: CategoryTree[] };
 
 // export default function CategoryTopbar() {
@@ -97,6 +97,11 @@
 //                             />
 //                           )}
 
+//                           {/* Breadcrumb trail */}
+//                           <div className="text-xs text-gray-500 mb-1">
+//                             {cat.name} &gt; {sub.name}
+//                           </div>
+
 //                           {/* Child category name */}
 //                           <Link
 //                             href={`/categories/${sub.slug}`}
@@ -135,31 +140,22 @@
 // }
 
 
-
 "use client";
 
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Category } from "@prisma/client";
 
 // 🔹 Recursive type: Category plus children
 export type CategoryTree = Category & { children: CategoryTree[] };
 
-export default function CategoryTopbar() {
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [categories, setCategories] = useState<CategoryTree[]>([]);
+interface CategoryTopbarProps {
+  categories: CategoryTree[];
+}
 
-  useEffect(() => {
-    async function loadCategories() {
-      const res = await fetch("/api/categories");
-      const data: CategoryTree[] = await res.json();
-      // Only keep top-level categories
-      const topLevel = data.filter((cat) => cat.parentId === null);
-      setCategories(topLevel);
-    }
-    loadCategories();
-  }, []);
+export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
+  const [hovered, setHovered] = useState<string | null>(null);
 
   // Framer Motion variants
   const listVariants = {
@@ -218,7 +214,6 @@ export default function CategoryTopbar() {
                     variants={listVariants}
                     className="absolute left-0 top-full bg-white shadow-xl rounded-md mt-3 z-50 w-[900px] p-6"
                   >
-                    {/* Flex row instead of vertical list */}
                     <motion.ul className="flex flex-wrap gap-8">
                       {cat.children.map((sub) => (
                         <motion.li
