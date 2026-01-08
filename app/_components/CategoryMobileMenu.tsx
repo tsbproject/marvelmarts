@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import type { Category } from "@prisma/client";
 
-// 🔹 Recursive type: a Category plus its children
+//Recursive type: a Category plus its children
 export type CategoryTree = Category & { children: CategoryTree[] };
 
 interface CategoryMobileMenuProps {
@@ -42,7 +42,7 @@ export default function CategoryMobileMenu({ categories }: CategoryMobileMenuPro
   );
 }
 
-// 🔹 Recursive item renderer
+//  Recursive item renderer
 function CategoryItem({
   category,
   openIds,
@@ -67,7 +67,7 @@ function CategoryItem({
       {/* Category button */}
       <button
         onClick={() => toggleCategory(category.id)}
-        className="w-full flex justify-between items-center text-lg font-semibold text-accent-navy hover:text-brand-primary transition-colors"
+        className="w-full flex justify-between items-center text-xl font-semibold text-accent-navy hover:text-brand-primary transition-colors"
       >
         {category.name}
         {category.children?.length > 0 && (

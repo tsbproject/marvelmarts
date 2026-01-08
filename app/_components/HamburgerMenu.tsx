@@ -82,7 +82,7 @@ export default function HamburgerMenu({ children }: HamburgerMenuProps) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 120, damping: 18, duration: 0.25 }} // faster exit
-              className="fixed top-0 left-0 w-90 h-screen bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
+              className="fixed top-0 left-0 w-100 h-screen bg-white shadow-2xl z-50 overflow-y-auto rounded-r-2xl"
             >
 
             
