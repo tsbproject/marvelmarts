@@ -88,7 +88,7 @@ const linkVariants: Variants = {
               initial="hidden"
               animate="show"
               exit="exit"
-              className="absolute top-full left-0 right-0 bg-gray-700 text-white px-4 py-3 space-y-2 rounded-b-lg shadow-lg z-50"
+              className="absolute top-full left-0 right-0 text-center bg-gray-700 text-white text-2xl px-4 py-3 space-y-2 rounded-b-lg shadow-lg z-50"
             >
               {sections.general.map((link) => (
                 <motion.div key={link.href} variants={linkVariants}>
