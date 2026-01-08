@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import Link from "next/link";
 import SearchBar from "@/app/_components/SearchBar";
-import CategorySidebar from "@/app/_components/CategorySidebar";
+// import CategorySidebar from "@/app/_components/CategorySidebar";
 import UserMenu from "./UserMenu";
 import CategoryMenu from "./CategoryMenu";
 
