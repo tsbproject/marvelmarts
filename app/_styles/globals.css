@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+@theme {
   --color-brand-primary: #F7931E;
   --color-brand-dark: #CC6E00;
   --color-brand-light: #FFE8CC;
@@ -15,6 +18,11 @@
   --color-accent-teal: #009FB7;
   --color-accent-navy: #002B5B;
 
+
+  
+}
+
+@theme{
   --breakpoint-xs: 400px; 
   --breakpoint-sm: 500px; 
   --breakpoint-md: 600px; 
