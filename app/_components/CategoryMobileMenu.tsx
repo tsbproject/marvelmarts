@@ -175,8 +175,8 @@ function CategoryItem({
     level === 0
       ? "main-category w-full flex justify-between items-center text-xl font-bold text-accent-navy hover:text-brand-primary transition-colors"
       : level === 1
-      ? "sub-category w-full flex justify-between items-center text-md font-semibold text-brand-primary hover:text-brand-primary transition-colors"
-      : "child-category w-full flex justify-between items-center text-md font-medium text-brand-primary hover:text-brand-primary transition-colors";
+      ? "sub-category w-full flex justify-between items-center text-md font-semibold text-accent-teal hover:text-brand-primary transition-colors"
+      : "child-category w-full flex justify-between items-center text-md font-medium text-brand-dark hover:text-brand-primary transition-colors";
 
   return (
     <li>
