@@ -1,8 +1,3 @@
-
-
-
-
-
 "use client";
 
 import Link from "next/link";
@@ -61,7 +56,7 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
               <Link
                 href={`/categories/${cat.slug}`}
                 className="text-gray-100 py-2 font-medium hover:text-brand-primary transition-colors duration-200 text-[7px] 
-                sm:text-md md:text-[7px] lg:text-[7px] xl:text-[11px] 2xl:text-[11px] rounded-xl 
+                sm:text-md md:text-[7px] lg:text-[7px] xl:text-[9px] 2xl:text-[10px] rounded-xl 
                 relative after:block after:h-0.5 after:bg-brand-primary after:scale-x-0 hover:after:scale-x-100
                 after:transition-transform after:duration-200 after:origin-left after:absolute after:bottom-1 after:left-0"
               >
@@ -78,12 +73,12 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
                     variants={listVariants}
                     className="
                       absolute -left-31 top-full bg-white shadow-xl text-xl  rounded-md mt-3 z-50 
-                      w-[900px] max-w-[90vw] px-20 pt-2
-                      max-h-[70vh] overflow-hidden
+                      w-[700px] max-w-[90vw] px-40 pt-2
+                      max-h-[85vh] overflow-hidden
                     "
                   >
                     {/* Scrollable content area */}
-                    <div className="max-h-[65vh] overflow-y-auto pr-6 scrollbar-accent">
+                    <div className="max-h-[70vh] overflow-y-auto pr-6 scrollbar-accent px-20">
                       <motion.ul className="flex flex-wrap gap-8">
                         {cat.children.map((sub) => (
                           <motion.li
