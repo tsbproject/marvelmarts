@@ -22,8 +22,8 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   const { setLoading } = useLoadingOverlay(); //spinner overlay
 
   const menuItems: MenuItem[] = [
-    { label: "Sign In", type: "auth", link: "/auth/sign-in" },
-    { label: "Register", type: "auth", link: "/auth/register/customer-registration" },
+    { label: "Sign In / Register", type: "auth", link: "/auth/sign-in" },
+    // { label: "Register", type: "auth", link: "/auth/register/customer-registration" },
     { label: "My Orders", type: "normal", link: "/orders" },
     { label: "Wishlist", type: "normal", link: "/wishlist" },
     { label: "Product Reviews", type: "normal", link: "/reviews" },

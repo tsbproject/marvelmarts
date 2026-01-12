@@ -91,7 +91,7 @@ export default function CartDrawer() {
         className="flex items-center gap-2 relative text-gray-800 hover:text-blue-600 transition-colors duration-200"
       >
         <ShoppingCart className="w-8 h-8 mb-2 text-brand-primary" />
-        <span className="text-2xl text-white font-medium">Cart</span>
+        {/* <span className="text-2xl text-white font-medium">Cart</span> */}
         {cart?.items?.length > 0 && (
           <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
             {cart.items.length}
