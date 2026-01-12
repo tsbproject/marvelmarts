@@ -53,14 +53,14 @@ export default function HelpMenu() {
             animate="visible"
             exit="exit"
             variants={listVariants}
-            className="absolute left-0 top-15 bg-accent-navy shadow-lg rounded-lg overflow-hidden w-80 z-50 border border-gray-100"
+            className="absolute  -left-30  md:left-0 top-15 bg-accent-navy shadow-lg rounded-lg overflow-hidden w-50 md:w-80 z-50 border border-gray-100"
           >
             <motion.ul className="divide-y divide-gray-100">
               {menuItems.map((item) => (
                 <motion.li key={item.label} variants={itemVariants}>
                   <a
                     href={item.href}
-                    className="block px-4 py-2 text-2xl mt-5 text-brand-primary hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150"
+                    className="block px-4 py-2 text-lg md:text-2xl mt-5 text-brand-primary hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150"
                   >
                     {item.label}
                   </a>
