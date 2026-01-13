@@ -133,10 +133,10 @@ export default function ProductsPage() {
       <DashboardHeader
         title="Products"
         showLogout={false} 
-        showAddButton
+        showAddButton={true}
         addButtonLabel="Add Product"
         addButtonLink="/dashboard/admins/products/new"
-        showSecondaryButton
+        showSecondaryButton={true}
         secondaryButtonLabel="Manage Inventory"
         secondaryButtonLink="/dashboard/admins/products/inventory"
       />

@@ -180,7 +180,7 @@ export default function EditCategoryPage({
   if (loading) return <p className="p-8">Loading category...</p>;
 
   return (
-    <div className="max-w-lg mx-auto p-8">
+    <div className="max-w-3xl mx-auto p-7 bg-white">
       <h1 className="text-2xl font-bold mb-6">Edit Category</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -190,7 +190,7 @@ export default function EditCategoryPage({
           placeholder="Name"
           value={form.name}
           onChange={handleNameChange}
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
           required
         />
 
@@ -205,7 +205,7 @@ export default function EditCategoryPage({
             validateSlug(e.target.value);
           }}
           onBlur={() => validateSlug(form.slug)}
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
           required
         />
 
@@ -226,7 +226,7 @@ export default function EditCategoryPage({
         <select
           value={form.parentId}
           onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
         >
           <option value="">No Parent (Main Category)</option>
           {categories.filter((cat) => cat.id !== id).map((cat) => (
@@ -244,7 +244,7 @@ export default function EditCategoryPage({
           onChange={(e) =>
             setForm({ ...form, position: Number(e.target.value) })
           }
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
         />
 
         {/* Image Upload */}
@@ -268,7 +268,7 @@ export default function EditCategoryPage({
           maxLength={60}
           value={form.metaTitle}
           onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
         />
 
         <textarea
@@ -278,7 +278,7 @@ export default function EditCategoryPage({
           onChange={(e) =>
             setForm({ ...form, metaDescription: e.target.value })
           }
-          className="border p-2 w-full rounded"
+          className="border p-2 text-xl w-full rounded"
         />
 
         {error && <p className="text-red-600">{error}</p>}
@@ -286,7 +286,7 @@ export default function EditCategoryPage({
         <button
           type="submit"
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+          className="bg-accent-navy hover:bg-blue-700 text-white text-2xl px-6 py-4 rounded transition"
         >
           {saving ? "Updating..." : "Update Category"}
         

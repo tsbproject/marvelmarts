@@ -126,7 +126,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
     <div className="p-8 w-full">
       <DashboardHeader
         title="Categories"
-        showAddButton={canManageCategories}
+        showAddButton={false}
         addButtonLabel="Add Category"
         addButtonLink="/dashboard/admins/categories/create"
         showLogout={false}

@@ -72,19 +72,19 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
                     exit="exit"
                     variants={listVariants}
                     className="
-                      absolute -left-31 top-full bg-white shadow-xl text-xl  rounded-md mt-3 z-50 
-                      w-[700px] max-w-[90vw] px-40 pt-2
-                      max-h-[85vh] overflow-hidden
+                      absolute -left-40 top-full bg-white shadow-xl text-xl  rounded-md mt-3 z-50 
+                      w-[700px] max-w-[70vw] px-30 pt-2
+                      max-h-screen overflow-hidden
                     "
                   >
                     {/* Scrollable content area */}
-                    <div className="max-h-[70vh] overflow-y-auto pr-6 scrollbar-accent px-20">
+                    <div className="max-h-[70vh] overflow-y-auto pr-30 scrollbar-accent px-20 -ml-42">
                       <motion.ul className="flex flex-wrap gap-8">
                         {cat.children.map((sub) => (
                           <motion.li
                             key={sub.id}
                             variants={itemVariants}
-                            className="w-1/4 min-w-[200px] flex flex-col items-start"
+                            className="w-1/4 min-w-[100px] flex flex-col items-start"
                           >
                             {/* Category image */}
                             {sub.imageUrl && (
