@@ -36,11 +36,11 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
   };
 
   return (
-    <nav className="bg-accent-navy shadow-md border-t border-gray-200">
-      <div className="flex items-center justify-center px-6 py-3">
+    <nav className="bg-brand-primary shadow-md border-t border-gray-200">
+      <div className="flex items-center justify-center px-10 py-5">
         {/* Title */}
         <span className="mr-8 text-brand-light sm:text-md md:text-[8px] lg:text[10px] xl:text-[11px] font-bold uppercase tracking-wide">
-          Categories
+         All Categories
         </span>
 
         {/* Main categories horizontally */}
@@ -55,8 +55,8 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
               {/* Main category */}
               <Link
                 href={`/categories/${cat.slug}`}
-                className="text-gray-100 py-2 font-medium hover:text-brand-primary transition-colors duration-200 text-[7px] 
-                sm:text-md md:text-[7px] lg:text-[7px] xl:text-[9px] 2xl:text-[10px] rounded-xl 
+                className="text-gray-100 py-2  font-medium hover:text-accent-navy transition-colors duration-200 text-[7px] 
+                sm:text-md md:text-[7px] lg:text-[7px] xl:text-[9px] 2xl:text-[13px] rounded-xl 
                 relative after:block after:h-0.5 after:bg-brand-primary after:scale-x-0 hover:after:scale-x-100
                 after:transition-transform after:duration-200 after:origin-left after:absolute after:bottom-1 after:left-0"
               >

@@ -3,7 +3,20 @@
 // import { useRouter, useSearchParams } from "next/navigation";
 // import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 // import { Prisma } from "@prisma/client";
+// import { 
+//   Edit3, 
+//   Trash2, 
+//   ChevronRight, 
+//   ChevronLeft, 
+//   Layers, 
+//   Calendar, 
+//   Link as LinkIcon, 
+//   MoreHorizontal,
+//   Plus
+// } from "lucide-react";
+// import { format } from "date-fns"; // Recommended for professional date formatting
 
+// /* ---------------- Types ---------------- */
 // export type CategoryChild = {
 //   id: string;
 //   name: string;
@@ -32,64 +45,7 @@
 //   sortOrder: "asc" | "desc";
 // };
 
-// function RenderChildren({
-//   children,
-//   canManageCategories,
-//   setLoading,
-// }: {
-//   children: CategoryChild[];
-//   canManageCategories: boolean;
-//   setLoading: (loading: boolean) => void;
-// }) {
-//   return (
-//     <ul className="list-disc list-inside space-y-1 ml-4">
-//       {children.map((child, index) => (
-//         <li key={child.id ?? child.slug ?? index} className="flex flex-col gap-1">
-//           <div className="flex items-center gap-2">
-//             {child.slug ? (
-//               <a
-//                 href={`/categories/${child.slug}`}
-//                 className="text-blue-600 hover:text-blue-800 font-medium"
-//               >
-//                 {child.name}
-//               </a>
-//             ) : (
-//               child.name
-//             )}
-
-//             {canManageCategories && (
-//               <div className="flex gap-1">
-//                 <a
-//                   href={`/dashboard/admins/categories/${child.id}/edit`}
-//                   className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-lg md:text-xl"
-//                   onClick={() => setLoading(true)}
-//                 >
-//                   Edit
-//                 </a>
-//                 <a
-//                   href={`/dashboard/admins/categories/${child.id}/delete`}
-//                   className="px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-lg md:text-xl"
-//                   onClick={() => setLoading(true)}
-//                 >
-//                   Delete
-//                 </a>
-//               </div>
-//             )}
-//           </div>
-
-//           {child.children && child.children.length > 0 && (
-//             <RenderChildren
-//               children={child.children}
-//               canManageCategories={canManageCategories}
-//               setLoading={setLoading}
-//             />
-//           )}
-//         </li>
-//       ))}
-//     </ul>
-//   );
-// }
-
+// /* ---------------- Main Component ---------------- */
 // export default function CategoriesTable({
 //   categories,
 //   canManageCategories,
@@ -107,208 +63,176 @@
 //     setLoading(true);
 //     const newParams = new URLSearchParams(params.toString());
 //     newParams.set("page", p.toString());
-//     newParams.set("pageSize", pageSize.toString());
-//     newParams.set("search", search);
-//     router.push(`/dashboard/admins/categories?${newParams.toString()}`);
-//   };
-
-//   const updateSort = (column: string) => {
-//     setLoading(true);
-//     const newParams = new URLSearchParams(params.toString());
-//     const currentSortBy = newParams.get("sortBy");
-//     const currentSortOrder = newParams.get("sortOrder") ?? "asc";
-
-//     if (currentSortBy === column) {
-//       newParams.set("sortOrder", currentSortOrder === "asc" ? "desc" : "asc");
-//     } else {
-//       newParams.set("sortBy", column);
-//       newParams.set("sortOrder", "asc");
-//     }
-
 //     router.push(`/dashboard/admins/categories?${newParams.toString()}`);
 //   };
 
 //   const start = (page - 1) * pageSize + 1;
 //   const end = Math.min(page * pageSize, total);
 
-//   /** 🔹 Pagination window logic */
-//   const getPageNumbers = () => {
-//     const pages: (number | string)[] = [];
-//     const delta = 2;
-
-//     const rangeStart = Math.max(2, page - delta);
-//     const rangeEnd = Math.min(totalPages - 1, page + delta);
-
-//     pages.push(1);
-
-//     if (rangeStart > 2) pages.push("...");
-
-//     for (let i = rangeStart; i <= rangeEnd; i++) {
-//       pages.push(i);
-//     }
-
-//     if (rangeEnd < totalPages - 1) pages.push("...");
-
-//     if (totalPages > 1) pages.push(totalPages);
-
-//     return pages;
-//   };
-
 //   return (
-//     <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-//       <div className="px-4 py-2 text-lg md:text-xl text-gray-600 border-b bg-gray-50">
-//         Showing {start}–{end} of {total} results
+//     <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+      
+//       {/* Header Info */}
+//       <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50 bg-gray-50/50">
+//         <div>
+//           <h2 className="text-lg font-bold text-gray-800">Category Management</h2>
+//           <p className="text-sm text-gray-500">
+//             Showing <span className="font-semibold text-blue-600">{start}–{end}</span> of {total} total categories
+//           </p>
+//         </div>
+//         {canManageCategories && (
+//             <button 
+//                onClick={() => { setLoading(true); router.push('/dashboard/admins/categories/new'); }}
+//                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-200 active:scale-95"
+//             >
+//                 <Plus size={18} /> Add Category
+//             </button>
+//         )}
 //       </div>
 
-//            <div className="overflow-x-auto">
-//             <table className="w-full border-collapse text-sm sm:text-base">
-//               <thead className="bg-gray-50 text-gray-700 uppercase text-xs sm:text-sm tracking-wider">
-//                 <tr>
-//                   <th
-//                     className="text-left p-3 text-lg md:text-xl cursor-pointer hover:text-blue-600"
-//                     onClick={() => updateSort("name")}
-//                   >
-//                     Name
-//                   </th>
-//                   <th
-//                     className="text-left p-3 text-lg md:text-xl hidden md:table-cell cursor-pointer hover:text-blue-600"
-//                     onClick={() => updateSort("slug")}
-//                   >
-//                     Slug
-//                   </th>
-//                   <th className="text-left p-3 text-lg md:text-xl hidden lg:table-cell">Parent</th>
-//                   <th className="text-left p-3 text-lg md:text-xl">Subcategories</th>
-//                   <th
-//                     className="text-center p-3 text-lg md:text-xl hidden md:table-cell cursor-pointer hover:text-blue-600"
-//                     onClick={() => updateSort("position")}
-//                   >
-//                     Position
-//                   </th>
-//                   <th
-//                     className="text-left p-3 text-lg md:text-xl hidden sm:table-cell cursor-pointer hover:text-blue-600"
-//                     onClick={() => updateSort("createdAt")}
-//                   >
-//                     Created
-//                   </th>
+//       {/* Table Wrapper */}
+//       <div className="overflow-x-auto">
+//         <table className="w-full text-left border-separate border-spacing-0">
+//           <thead>
+//             <tr className="bg-white">
+//               <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100">Category</th>
+//               <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 hidden lg:table-cell">Path (Slug)</th>
+//               <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 hidden md:table-cell">Sub-Count</th>
+//               <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 hidden sm:table-cell text-center">Date Created</th>
+//               {canManageCategories && (
+//                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 text-center">Actions</th>
+//               )}
+//             </tr>
+//           </thead>
+//           <tbody className="divide-y divide-gray-50">
+//             {categories.length > 0 ? (
+//               categories.map((cat) => (
+//                 <tr key={cat.id} className="group hover:bg-blue-50/30 transition-colors">
+//                   {/* Category Name & Parent */}
+//                   <td className="px-6 py-4">
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+//                         <Layers size={20} />
+//                       </div>
+//                       <div>
+//                         <div className="font-bold text-gray-900">{cat.name}</div>
+//                         {cat.parentName && (
+//                           <div className="text-[10px] text-gray-400 flex items-center gap-1">
+//                             <ChevronRight size={10} /> Parent: {cat.parentName}
+//                           </div>
+//                         )}
+//                       </div>
+//                     </div>
+//                   </td>
+
+//                   {/* Slug */}
+//                   <td className="px-6 py-4 hidden lg:table-cell">
+//                     <div className="flex items-center gap-1.5 text-gray-500 font-mono text-xs bg-gray-100 px-2 py-1 rounded-md w-fit">
+//                       <LinkIcon size={12} /> {cat.slug}
+//                     </div>
+//                   </td>
+
+//                   {/* Subcategories (Advanced Badge View) */}
+//                   <td className="px-6 py-4 hidden md:table-cell">
+//                     <div className="flex flex-wrap gap-1">
+//                       {cat.children.length > 0 ? (
+//                         <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+//                           {cat.children.length} Sub-categories
+//                         </span>
+//                       ) : (
+//                         <span className="text-gray-300 text-xs italic">No children</span>
+//                       )}
+//                     </div>
+//                   </td>
+
+//                   {/* Date */}
+//                   <td className="px-6 py-4 hidden sm:table-cell text-center">
+//                     <div className="text-xs text-gray-600 flex flex-col items-center">
+//                       <Calendar size={14} className="text-gray-400 mb-1" />
+//                       {new Date(cat.createdAt).toLocaleDateString()}
+//                     </div>
+//                   </td>
+
+//                   {/* Actions */}
 //                   {canManageCategories && (
-//                     <th className="p-3 text-lg md:text-xl text-center">Actions</th>
+//                     <td className="px-6 py-4">
+//                       <div className="flex items-center justify-center gap-2">
+//                         <button
+//                           onClick={() => { setLoading(true); router.push(`/dashboard/admins/categories/${cat.id}/edit`); }}
+//                           className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+//                           title="Edit"
+//                         >
+//                           <Edit3 size={18} />
+//                         </button>
+//                         <button
+//                           onClick={() => { setLoading(true); router.push(`/dashboard/admins/categories/${cat.id}/delete`); }}
+//                           className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+//                           title="Delete"
+//                         >
+//                           <Trash2 size={18} />
+//                         </button>
+//                       </div>
+//                     </td>
 //                   )}
 //                 </tr>
-//               </thead>
+//               ))
+//             ) : (
+//               <tr>
+//                 <td colSpan={5} className="py-20 text-center">
+//                   <div className="flex flex-col items-center text-gray-400">
+//                     <Layers size={48} className="mb-4 opacity-20" />
+//                     <p>No categories found in the database.</p>
+//                   </div>
+//                 </td>
+//               </tr>
+//             )}
+//           </tbody>
+//         </table>
+//       </div>
 
-//               <tbody>
-//                 {categories.length > 0 ? (
-//                   categories.map((cat, idx) => (
-//                     <tr
-//                       key={cat.id}
-//                       className={`border-t ${
-//                         idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-//                       } hover:bg-blue-50 transition-colors`}
-//                     >
-//                       <td className="p-3 text-lg md:text-xl font-medium text-gray-900">{cat.name}</td>
-//                       <td className="p-3 text-lg md:text-xl text-gray-600 hidden md:table-cell">
-//                         {cat.slug}
-//                       </td>
-//                       <td className="p-3 text-lg md:text-xl text-gray-600 hidden lg:table-cell">
-//                         {cat.parentName ?? "-"}
-//                       </td>
-//                       <td className="p-3 text-lg md:text-xl text-gray-600">
-//                         {cat.children.length > 0 ? (
-//                           <RenderChildren
-//                             children={cat.children}
-//                             canManageCategories={canManageCategories}
-//                             setLoading={setLoading}
-//                           />
-//                         ) : (
-//                           <span className="text-gray-400 italic">None</span>
-//                         )}
-//                       </td>
-//                       <td className="p-3 text-lg md:text-xl text-center hidden md:table-cell">
-//                         {cat.position}
-//                       </td>
-//                       <td className="p-3 text-lg md:text-xl text-gray-600 hidden sm:table-cell">
-//                         {new Date(cat.createdAt).toLocaleDateString()}
-//                       </td>
-//                       {canManageCategories && (
-//                         <td className="p-3 text-lg md:text-xl flex flex-col sm:flex-row gap-2 justify-center">
-//                           <a
-//                             href={`/dashboard/admins/categories/${cat.id}/edit`}
-//                             className="px-3 py-1.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-lg md:text-xl text-center"
-//                             onClick={() => setLoading(true)}
-//                           >
-//                             Edit
-//                           </a>
-//                           <a
-//                             href={`/dashboard/admins/categories/${cat.id}/delete`}
-//                             className="px-3 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-lg md:text-xl text-center"
-//                             onClick={() => setLoading(true)}
-//                           >
-//                             Delete
-//                           </a>
-//                         </td>
-//                       )}
-//                     </tr>
-//                   ))
-//                 ) : (
-//                   <tr>
-//                     <td colSpan={7} className="p-6 text-center text-gray-500 italic">
-//                       No categories found
-//                     </td>
-//                   </tr>
-//                 )}
-//               </tbody>
-//             </table>
+//       {/* Pagination Container */}
+//       <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+//         <p className="text-xs text-gray-500 font-medium italic">
+//           Tip: Hierarchical categories improve your SEO ranking.
+//         </p>
+
+//         <div className="flex items-center gap-1">
+//           <button
+//             disabled={page === 1}
+//             onClick={() => goToPage(page - 1)}
+//             className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all"
+//           >
+//             <ChevronLeft size={18} />
+//           </button>
+          
+//           <div className="flex gap-1 px-2">
+//             {[...Array(totalPages)].map((_, i) => (
+//               <button
+//                 key={i + 1}
+//                 onClick={() => goToPage(i + 1)}
+//                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+//                   page === i + 1 
+//                   ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
+//                   : "bg-white border border-gray-200 text-gray-600 hover:border-blue-400"
+//                 }`}
+//               >
+//                 {i + 1}
+//               </button>
+//             ))}
 //           </div>
 
-//       {/* Pagination */}
-//       {totalPages > 1 && (
-//         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t bg-gray-50">
-//           <div className="flex flex-wrap items-center gap-2">
-//             {page > 1 && (
-//               <button
-//                 onClick={() => goToPage(page - 1)}
-//                 className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-//               >
-//                 Prev
-//               </button>
-//             )}
-
-//             {getPageNumbers().map((p, idx) =>
-//               p === "..." ? (
-//                 <span key={`dots-${idx}`} className="px-2 text-gray-500">
-//                   ...
-//                 </span>
-//               ) : (
-//                 <button
-//                   key={p}
-//                   onClick={() => goToPage(p)}
-//                   className={`px-3 py-1.5 rounded-md transition-colors ${
-//                     p === page
-//                       ? "bg-blue-600 text-white font-bold"
-//                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-//                   }`}
-//                 >
-//                   {p}
-//                 </button>
-//               )
-//             )}
-
-//             {page < totalPages && (
-//               <button
-//                 onClick={() => goToPage(page + 1)}
-//                 className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-//               >
-//                 Next
-//               </button>
-//             )}
-//           </div>
+//           <button
+//             disabled={page === totalPages}
+//             onClick={() => goToPage(page + 1)}
+//             className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all"
+//           >
+//             <ChevronRight size={18} />
+//           </button>
 //         </div>
-//       )}
+//       </div>
 //     </div>
 //   );
 // }
-
-
 
 
 
@@ -317,7 +241,18 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 import { Prisma } from "@prisma/client";
+import { 
+  Edit3, 
+  Trash2, 
+  ChevronRight, 
+  ChevronLeft, 
+  Layers, 
+  Calendar, 
+  Link as LinkIcon, 
+  Plus
+} from "lucide-react";
 
+/* ---------------- Types ---------------- */
 export type CategoryChild = {
   id: string;
   name: string;
@@ -346,95 +281,45 @@ type CategoriesTableProps = {
   sortOrder: "asc" | "desc";
 };
 
-/* ---------------- Helpers ---------------- */
-function getPageNumbers(
-  page: number,
-  totalPages: number
-): (number | "...")[] {
-  const pages: (number | "...")[] = [];
-  const delta = 2;
+/* ---------------- Pagination Helper ---------------- */
+/**
+ * Generates an array of page numbers with ellipses for long lists.
+ * Example: [1, "...", 4, 5, 6, "...", 50]
+ */
+function getSummarizedPages(current: number, total: number) {
+  const delta = 1; // Number of pages to show around current page
+  const range = [];
+  const rangeWithDots: (number | string)[] = [];
+  let l: number | undefined;
 
-  const start = Math.max(2, page - delta);
-  const end = Math.min(totalPages - 1, page + delta);
-
-  pages.push(1);
-
-  if (start > 2) pages.push("...");
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
   }
 
-  if (end < totalPages - 1) pages.push("...");
+  for (const i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push("...");
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
 
-  if (totalPages > 1) pages.push(totalPages);
-
-  return pages;
+  return rangeWithDots;
 }
 
-/* ---------------- Recursive children ---------------- */
-function RenderChildren({
-  children,
-  canManageCategories,
-  setLoading,
-}: {
-  children: CategoryChild[];
-  canManageCategories: boolean;
-  setLoading: (loading: boolean) => void;
-}) {
-  return (
-    <ul className="list-disc list-inside space-y-1 ml-4">
-      {children.map((child) => (
-        <li key={child.id} className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <a
-              href={`/categories/${child.slug}`}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {child.name}
-            </a>
-
-            {canManageCategories && (
-              <div className="flex gap-1">
-                <a
-                  href={`/dashboard/admins/categories/${child.id}/edit`}
-                  onClick={() => setLoading(true)}
-                  className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 text-lg"
-                >
-                  Edit
-                </a>
-                <a
-                  href={`/dashboard/admins/categories/${child.id}/delete`}
-                  onClick={() => setLoading(true)}
-                  className="px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 text-lg"
-                >
-                  Delete
-                </a>
-              </div>
-            )}
-          </div>
-
-          {child.children && child.children.length > 0 && (
-            <RenderChildren
-              children={child.children}
-              canManageCategories={canManageCategories}
-              setLoading={setLoading}
-            />
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/* ---------------- Main Table ---------------- */
+/* ---------------- Main Component ---------------- */
 export default function CategoriesTable({
   categories,
   canManageCategories,
   total,
   page,
   pageSize,
-  search,
 }: CategoriesTableProps) {
   const totalPages = Math.ceil(total / pageSize);
   const { setLoading } = useLoadingOverlay();
@@ -445,93 +330,126 @@ export default function CategoriesTable({
     setLoading(true);
     const newParams = new URLSearchParams(params.toString());
     newParams.set("page", p.toString());
-    newParams.set("pageSize", pageSize.toString());
-    if (search) newParams.set("search", search);
     router.push(`/dashboard/admins/categories?${newParams.toString()}`);
   };
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
+  const pages = getSummarizedPages(page, totalPages);
+
   return (
-    <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-      {/* Results indicator */}
-      <div className="px-4 py-2 text-lg text-gray-600 border-b bg-gray-50">
-        Showing {start}–{end} of {total} results
+    <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+      
+      {/* Table Top Header */}
+      <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50 bg-gray-50/50">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800 tracking-tight text-lg italic uppercase">Category Management</h2>
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-semibold text-blue-600">{start}–{end}</span> of {total} total categories
+          </p>
+        </div>
+        {canManageCategories && (
+            <button 
+               onClick={() => { setLoading(true); router.push('/dashboard/admins/categories/new'); }}
+               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter transition-all shadow-lg shadow-blue-200 active:scale-95"
+            >
+                <Plus size={16} strokeWidth={3} /> Add Category
+            </button>
+        )}
       </div>
 
-      {/* ---------------- TABLE ---------------- */}
+      {/* Table Body */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-50 text-gray-700 uppercase text-sm">
-            <tr>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3 hidden md:table-cell">Slug</th>
-              <th className="text-left p-3 hidden lg:table-cell">Parent</th>
-              <th className="text-left p-3">Subcategories</th>
-              <th className="text-center p-3 hidden md:table-cell">Position</th>
-              <th className="text-left p-3 hidden sm:table-cell">Created</th>
+        <table className="w-full text-left border-separate border-spacing-0">
+          <thead>
+            <tr className="bg-white">
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">Category</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 hidden lg:table-cell">Slug (Path)</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 hidden md:table-cell">Sub-Items</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 hidden sm:table-cell text-center">Created At</th>
               {canManageCategories && (
-                <th className="p-3 text-center">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 text-center">Actions</th>
               )}
             </tr>
           </thead>
-
-          <tbody>
+          <tbody className="divide-y divide-gray-50">
             {categories.length > 0 ? (
-              categories.map((cat, idx) => (
-                <tr
-                  key={cat.id}
-                  className={`border-t ${
-                    idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-blue-50`}
-                >
-                  <td className="p-3 font-medium">{cat.name}</td>
-                  <td className="p-3 hidden md:table-cell">{cat.slug}</td>
-                  <td className="p-3 hidden lg:table-cell">
-                    {cat.parentName ?? "-"}
+              categories.map((cat) => (
+                <tr key={cat.id} className="group hover:bg-blue-50/30 transition-colors">
+                  {/* Category Name & Parent Info */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                        <Layers size={20} />
+                      </div>
+                      <div>
+                        <div className="font-black text-gray-900 text-sm uppercase tracking-tight">{cat.name}</div>
+                        {cat.parentName && (
+                          <div className="text-[10px] text-gray-400 flex items-center gap-1 font-bold">
+                            <ChevronRight size={10} /> {cat.parentName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </td>
-                  <td className="p-3">
+
+                  {/* Slug Column */}
+                  <td className="px-6 py-4 hidden lg:table-cell">
+                    <div className="flex items-center gap-1.5 text-gray-500 font-mono text-[11px] bg-gray-50 border border-gray-100 px-2 py-1 rounded-md w-fit">
+                      <LinkIcon size={12} /> {cat.slug}
+                    </div>
+                  </td>
+
+                  {/* Subcategories Badge */}
+                  <td className="px-6 py-4 hidden md:table-cell">
                     {cat.children.length > 0 ? (
-                      <RenderChildren
-                        children={cat.children}
-                        canManageCategories={canManageCategories}
-                        setLoading={setLoading}
-                      />
+                      <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter">
+                        {cat.children.length} Children
+                      </span>
                     ) : (
-                      <span className="text-gray-400 italic">None</span>
+                      <span className="text-gray-300 text-[10px] font-bold italic uppercase tracking-widest">Single</span>
                     )}
                   </td>
-                  <td className="p-3 text-center hidden md:table-cell">
-                    {cat.position}
+
+                  {/* Date Column */}
+                  <td className="px-6 py-4 hidden sm:table-cell text-center">
+                    <div className="text-[11px] text-gray-600 flex flex-col items-center font-bold">
+                      <Calendar size={14} className="text-gray-300 mb-1" />
+                      {new Date(cat.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                    </div>
                   </td>
-                  <td className="p-3 hidden sm:table-cell">
-                    {new Date(cat.createdAt).toLocaleDateString()}
-                  </td>
+
+                  {/* Action Buttons */}
                   {canManageCategories && (
-                    <td className="p-3 flex gap-2 justify-center">
-                      <a
-                        href={`/dashboard/admins/categories/${cat.id}/edit`}
-                        onClick={() => setLoading(true)}
-                        className="px-3 py-1.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
-                      >
-                        Edit
-                      </a>
-                      <a
-                        href={`/dashboard/admins/categories/${cat.id}/delete`}
-                        onClick={() => setLoading(true)}
-                        className="px-3 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200"
-                      >
-                        Delete
-                      </a>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => { setLoading(true); router.push(`/dashboard/admins/categories/${cat.id}/edit`); }}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-all active:scale-90"
+                          title="Edit Category"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+                        <button
+                          onClick={() => { setLoading(true); router.push(`/dashboard/admins/categories/${cat.id}/delete`); }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-90"
+                          title="Delete Category"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-500 italic">
-                  No categories found
+                <td colSpan={5} className="py-24 text-center">
+                  <div className="flex flex-col items-center text-gray-400">
+                    <Layers size={48} className="mb-4 opacity-10" />
+                    <p className="text-sm font-bold uppercase tracking-widest opacity-40">No records found</p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -539,71 +457,60 @@ export default function CategoriesTable({
         </table>
       </div>
 
-      {/* ---------------- PAGINATION ---------------- */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t bg-gray-50">
-          {/* Mobile: Prev / Next only */}
-          <div className="flex gap-2 sm:hidden">
-            {page > 1 && (
-              <button
-                onClick={() => goToPage(page - 1)}
-                className="px-4 py-2 bg-gray-200 rounded"
-              >
-                Prev
-              </button>
-            )}
-            {page < totalPages && (
-              <button
-                onClick={() => goToPage(page + 1)}
-                className="px-4 py-2 bg-gray-200 rounded"
-              >
-                Next
-              </button>
-            )}
-          </div>
+      {/* Summarized Pagination Footer */}
+      <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">
+          Admin Dashboard Management System
+        </p>
 
-          {/* Desktop: summarized numbers */}
-          <div className="hidden sm:flex flex-wrap items-center gap-2">
-            {page > 1 && (
-              <button
-                onClick={() => goToPage(page - 1)}
-                className="px-3 py-1.5 rounded bg-gray-200"
-              >
-                Prev
-              </button>
-            )}
+        <div className="flex items-center gap-1.5">
+          {/* Previous Page */}
+          <button
+            disabled={page === 1}
+            onClick={() => goToPage(page - 1)}
+            className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 hover:border-gray-300 disabled:opacity-20 transition-all shadow-sm"
+          >
+            <ChevronLeft size={16} strokeWidth={3} />
+          </button>
+          
+          <div className="flex items-center gap-1.5 px-1">
+            {pages.map((p, i) => {
+              if (p === "...") {
+                return (
+                  <span key={`dots-${i}`} className="px-2 text-gray-300 font-black tracking-widest">
+                    ...
+                  </span>
+                );
+              }
 
-            {getPageNumbers(page, totalPages).map((p, idx) =>
-              p === "..." ? (
-                <span key={`dots-${idx}`} className="px-2 text-gray-500">
-                  ...
-                </span>
-              ) : (
+              const isCurrent = page === p;
+
+              return (
                 <button
-                  key={p}
-                  onClick={() => goToPage(p)}
-                  className={`px-3 py-1.5 rounded ${
-                    p === page
-                      ? "bg-blue-600 text-white font-bold"
-                      : "bg-gray-200 hover:bg-gray-300"
+                  key={i}
+                  onClick={() => goToPage(Number(p))}
+                  className={`w-9 h-9 rounded-xl text-xs font-black transition-all duration-300 ${
+                    isCurrent 
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110" 
+                    : "bg-white border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600"
                   }`}
                 >
                   {p}
                 </button>
-              )
-            )}
-
-            {page < totalPages && (
-              <button
-                onClick={() => goToPage(page + 1)}
-                className="px-3 py-1.5 rounded bg-gray-200"
-              >
-                Next
-              </button>
-            )}
+              );
+            })}
           </div>
+
+          {/* Next Page */}
+          <button
+            disabled={page === totalPages}
+            onClick={() => goToPage(page + 1)}
+            className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 hover:border-gray-300 disabled:opacity-20 transition-all shadow-sm"
+          >
+            <ChevronRight size={16} strokeWidth={3} />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
