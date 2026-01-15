@@ -73,7 +73,7 @@ export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
                     variants={listVariants}
                     className="
                       absolute -left-40 top-full bg-white shadow-xl text-xl  rounded-md mt-3 z-50 
-                      w-[700px] max-w-[70vw] px-30 pt-2
+                      w-[400px] max-w-[70vw] px-30 pt-2
                       max-h-screen overflow-hidden
                     "
                   >

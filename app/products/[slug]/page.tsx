@@ -1,98 +1,78 @@
+// app/products/[slug]/page.tsx
+
 import { notFound } from "next/navigation";
 import prisma from "@/app/lib/prisma";
-import Image from "next/image";
+import ProductDetails from "./ProductDetails"; 
 import type { Product, Category, ProductImage, Variant } from "@prisma/client";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-interface ProductWithRelations extends Product {
+
+export type ProductWithRelations = Product & {
   category: Category | null;
   images: ProductImage[];
   variants: Variant[];
-}
+};
+
+
+
 
 export default async function ProductPage({ params }: Props) {
-  if (!params?.slug) return notFound();
+  const { slug } = await params;
+  if (!slug) return notFound();
 
   const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       category: true,
-      images: {
-        orderBy: { order: "asc" }, // ✅ fetch images already sorted
-      },
+      images: { orderBy: { order: "asc" } },
       variants: true,
     },
   });
 
   if (!product) return notFound();
 
-  const typedProduct = product as ProductWithRelations;
+  // 1. Fetch Similar Items
+  const similarProducts = await prisma.product.findMany({
+    where: {
+      categoryId: product.categoryId,
+      id: { not: product.id },
+      status: "ACTIVE",
+    },
+    take: 5,
+    include: { images: { take: 1 } },
+  });
 
-  // Local fallback image (matches ProductImage type exactly)
-  const fallbackImage: ProductImage = {
-    id: "placeholder",
-    productId: typedProduct.id,
-    url: "/no-image.png", // place a file in /public/no-image.png
-    alt: "No image available",
-    order: 0,
+  // 2. CRITICAL: Normalize the main product
+  const formattedProduct = {
+    ...product,
+    price: Number(product.price),
+    discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+    //  Decimals that need converting
+    variants: product.variants.map(v => ({
+      ...v,
+      price: Number(v.price)
+    })),
+    createdAt: product.createdAt.toISOString(), // Dates also sometimes cause issues
+    updatedAt: product.updatedAt.toISOString(),
   };
 
-  // Use product images if available, otherwise fallback
-  const imagesToShow: ProductImage[] =
-    typedProduct.images.length > 0 ? typedProduct.images : [fallbackImage];
-
-  // Ensure images are sorted by order (extra safety)
-  const sortedImages = [...imagesToShow].sort((a, b) => a.order - b.order);
+  // 3. Normalize similar items
+  const formattedSimilar = similarProducts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    price: Number(p.price),
+    discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+    imageUrl: p.images[0]?.url || "/placeholder.png",
+  }));
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-2">{typedProduct.title}</h1>
-      <p className="text-gray-700 mb-4">{typedProduct.description}</p>
-
-      {typedProduct.category && (
-        <p className="text-sm text-gray-500 mb-2">
-          Category: {typedProduct.category.name}
-        </p>
-      )}
-
-      <p className="text-xl font-bold text-green-600 mb-4">
-        ₦
-        {Number(typedProduct.price).toLocaleString("en-NG", {
-          minimumFractionDigits: 2,
-        })}
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {sortedImages.map((img) => (
-          <Image
-            key={img.id}
-            src={img.url}
-            alt={img.alt ?? typedProduct.title}
-            width={600}
-            height={400}
-            className="rounded object-cover w-full h-auto"
-          />
-        ))}
-      </div>
-
-      {typedProduct.variants.length > 0 && (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold mb-2">Variants</h2>
-          <ul className="list-disc pl-5">
-            {typedProduct.variants.map((variant) => (
-              <li key={variant.id}>
-                {variant.name} — ₦
-                {Number(variant.price).toLocaleString("en-NG", {
-                  minimumFractionDigits: 2,
-                })}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    <ProductDetails 
+      product={formattedProduct as any} 
+      similarItems={formattedSimilar} 
+    />
   );
 }

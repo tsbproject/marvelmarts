@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const data = parsed.data;
 
-    // ✅ Normalize into a new object instead of mutating
+    // Normalize into a new object instead of mutating
     const normalizedData = {
       ...data,
       parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
@@ -60,11 +60,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 🔹 List Categories
+// List Categories
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const all = searchParams.get("all") === "true"; // 🔹 flag for full list
+  const all = searchParams.get("all") === "true"; //flag for full list
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
   const search = searchParams.get("search") || "";
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, categories });
   }
 
-  // 🔹 Paginated mode (for table view)
+  //Paginated mode (for table view)
   const [categories, total] = await Promise.all([
     prisma.category.findMany({
       where,

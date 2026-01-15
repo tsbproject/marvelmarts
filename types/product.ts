@@ -1,12 +1,19 @@
 // types/product.ts
-
-export interface ProductUpdate {
-  id: string; // Product ID, assuming it exists for updates
+// 1. Define exactly what the Client Component expects
+export interface SerializedProduct {
+  id: string;
+  slug: string;
   title: string;
   description: string;
   price: number;
-  discountPrice?: number | null;
-  categoryId: string;  // Add categoryId here
-  images?: string[];  // Array of image URLs
-  variants?: string[];  // Array of variant identifiers
+  discountPrice: number | null;
+  categoryName: string;
+  images: { url: string }[];
+  imageUrl: string;
+  rating?: number;
+  reviewCount?: number;
+  stock: number;
+  brand?: string | null;
+
+
 }

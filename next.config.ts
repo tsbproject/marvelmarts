@@ -2,13 +2,17 @@ import type { Configuration } from "webpack";
 
 const nextConfig = {
   images: {
-    domains: ["via.placeholder.com"], 
+    qualities: [75, 80],
+    domains: ['res.cloudinary.com', 'utfs.io', 'your-db-storage-provider.com'],
+  
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "fakestoreapi.com",
-        pathname: "/img/**",
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
       },
+      { protocol: 'https', hostname: 'placehold.co' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' }, 
       {
         protocol: "https",
         hostname: "via.placeholder.com",

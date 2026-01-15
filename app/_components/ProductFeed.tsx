@@ -1,15 +1,11 @@
-// app/_components/NewArrival.tsx
+// app/_components/ProductFeed.tsx
 "use client";
 
-import React, { useState } from "react";
-import ProductCard from "./ProductCard"; 
+import { useState } from "react";
+import ProductCard from "./ProductCard";
 import ProductQuickView from "./ProductQuickView";
 
-interface NewArrivalsProps {
-  products: any[]; // Use your Product type here
-}
-
-export default function NewArrivals({ products }: NewArrivalsProps) {
+export default function ProductFeed({ products }: { products: any[] }) {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
@@ -19,12 +15,7 @@ export default function NewArrivals({ products }: NewArrivalsProps) {
   };
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
-        <span className="text-blue-600 font-semibold cursor-pointer text-sm">See All</span>
-      </div>
-
+    <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {products.map((product) => (
           <ProductCard 
@@ -40,6 +31,6 @@ export default function NewArrivals({ products }: NewArrivalsProps) {
         isOpen={isQuickViewOpen} 
         onClose={() => setIsQuickViewOpen(false)} 
       />
-    </section>
+    </>
   );
 }

@@ -1,149 +1,105 @@
+
+
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
-import { Star } from "lucide-react";
-import { getAllProducts } from "@/app/lib/api";
+import ProductCard from "./ProductCard";
+import ProductQuickView from "./ProductQuickView";
+import { SerializedProduct } from "@/types/product";
 
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-  category: string;
-  image: string;
-  rating?: {
-    rate: number;
-    count: number;
-  };
+interface FeaturedProductsProps {
+  products: SerializedProduct[];
 }
 
-export default function FeaturedProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filtered, setFiltered] = useState<Product[]>([]);
-  const [category, setCategory] = useState("all");
-  const [loading, setLoading] = useState(true);
+export default function FeaturedProducts({ products }: FeaturedProductsProps) {
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
-  const categories = [
-    { key: "all", label: "All Products" },
-    { key: "electronics", label: "Electronics" },
-    { key: "jewelery", label: "Jewelry" },
-    { key: "men's clothing", label: "Men’s Clothing" },
-    { key: "women's clothing", label: "Women’s Clothing" },
-  ];
+  // 1. Dynamic Category Extraction
+  const categories = useMemo(() => {
+    // Collect unique category names from real data
+    const uniqueCats = Array.from(new Set(products.map((p) => p.categoryName)));
+    return [
+      { key: "all", label: "All Products" }, 
+      ...uniqueCats.map(c => ({ key: c, label: c }))
+    ];
+  }, [products]);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const data: Product[] = await getAllProducts();
+  // 2. Filter Logic
+  const filteredProducts = useMemo(() => {
+    return selectedCategory === "all" 
+      ? products 
+      : products.filter((p) => p.categoryName === selectedCategory);
+  }, [selectedCategory, products]);
 
-        setProducts(data);
-        setFiltered(data);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    if (category === "all") {
-      setFiltered(products);
-    } else {
-      setFiltered(products.filter((p) => p.category === category));
-    }
-  }, [category, products]);
+  const handleQuickView = (product: SerializedProduct) => {
+    setSelectedProduct(product);
+    setIsQuickViewOpen(true);
+  };
 
   return (
-    <section className="w-full bg-linear-to-b from-gray-50 to-white py-20 px-4 md:px-10 mt-163">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-5xl font-extrabold text-gray-800">
-          🌟 Featured Products
+    <section className="py-12">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <h2 className="text-3xl md:text-4xl font-black text-gray-900 italic tracking-tighter uppercase">
+          🌟 Featured Selections
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">
-          Discover our most popular and trending products
-        </p>
+        <p className="text-gray-500 mt-2">Handpicked quality items from our collection</p>
       </div>
 
+      {/* 3. Category Tabs UI */}
       <div className="flex flex-wrap justify-center gap-3 mb-12">
         {categories.map((cat) => (
-          <motion.button
+          <button
             key={cat.key}
-            onClick={() => setCategory(cat.key)}
-            whileTap={{ scale: 0.95 }}
-            className={`px-5 py-2 rounded-full font-semibold text-md md:text-lg transition-all duration-200 
-              ${
-                category === cat.key
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+            onClick={() => setSelectedCategory(cat.key)}
+            className={`px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all duration-300
+              ${selectedCategory === cat.key
+                ? "bg-blue-600 text-white shadow-xl scale-105"
+                : "bg-white text-gray-400 hover:text-gray-900 hover:bg-gray-50 border border-gray-100 shadow-sm"
               }`}
           >
             {cat.label}
-          </motion.button>
+          </button>
         ))}
       </div>
 
-      {loading ? (
-        <div className="text-center text-lg text-gray-500">
-          Loading products...
+      {/* 4. Animated Product Grid */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selectedCategory}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, ease: "circOut" }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
+          {filteredProducts.map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product} 
+              onQuickView={handleQuickView} 
+            />
+          ))}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Empty State Check */}
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-20 text-gray-400 italic">
+          No featured products in this category.
         </div>
-      ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={category}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8"
-          >
-            {filtered.map((product) => (
-              <motion.div
-                key={product.id}
-                whileHover={{ scale: 1.03 }}
-                className="bg-white rounded-2xl shadow-md hover:shadow-2xl p-4 flex flex-col items-center transition-all duration-300"
-              >
-                <div className="relative w-full h-52 flex items-center justify-center mb-4 overflow-hidden rounded-xl bg-gray-50">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    fill
-                    className="object-contain p-6 transition-transform duration-300 hover:scale-110"
-                  />
-                </div>
-
-                <h3 className="font-semibold text-center text-gray-800 text-sm md:text-base line-clamp-2 h-10">
-                  {product.title}
-                </h3>
-
-                <p className="mt-2 text-lg font-bold text-blue-600">
-                  ${product.price.toFixed(2)}
-                </p>
-
-                <div className="flex items-center mt-2 space-x-1">
-                  {Array.from({
-                    length: Math.round(product.rating?.rate || 4),
-                  }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse"
-                    />
-                  ))}
-                  <span className="text-sm text-gray-500">
-                    ({product.rating?.count || 0})
-                  </span>
-                </div>
-
-                <button className="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-full font-semibold transition-all duration-300">
-                  Add to Cart
-                </button>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
       )}
+
+      {/* 5. Shared Modal */}
+      <ProductQuickView 
+        product={selectedProduct} 
+        isOpen={isQuickViewOpen} 
+        onClose={() => setIsQuickViewOpen(false)} 
+      />
     </section>
   );
 }

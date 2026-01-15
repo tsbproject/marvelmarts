@@ -1,164 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { Star, Zap } from "lucide-react";
-import { getFlashProducts } from "@/app/lib/api";
+import React, { useState, useEffect } from "react";
+import ProductCard from "./ProductCard";
+import ProductQuickView from "./ProductQuickView";
+import { Zap, ShoppingBag } from "lucide-react";
+import { SerializedProduct } from "@/types/product"; // Ensure this path is correct
 
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-  image: string;
-  rating?: {
-    rate: number;
-    count: number;
-  };
+interface FlashSalesProps {
+  products: SerializedProduct[];
+  endTime: string;
 }
 
-export default function FlashSales() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [timeLeft, setTimeLeft] = useState({ h: 3, m: 15, s: 42 });
+export default function FlashSales({ products, endTime }: FlashSalesProps) {
+  const [timeLeft, setTimeLeft] = useState({ hrs: 0, mins: 0, secs: 0 });
+  const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
-  // ⏱️ Countdown logic
+  // Timer Logic must be inside the component
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { h, m, s } = prev;
-        if (s > 0) s--;
-        else if (m > 0) {
-          s = 59;
-          m--;
-        } else if (h > 0) {
-          m = 59;
-          s = 59;
-          h--;
-        }
-        return { h, m, s };
-      });
+    if (!endTime) return;
+
+    const target = new Date(endTime).getTime();
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = target - now;
+
+      if (distance <= 0) {
+        clearInterval(timer);
+        setTimeLeft({ hrs: 0, mins: 0, secs: 0 });
+      } else {
+        setTimeLeft({
+          hrs: Math.floor(distance / (1000 * 60 * 60)),
+          mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          secs: Math.floor((distance % (1000 * 60)) / 1000),
+        });
+      }
     }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
-  // 🛒 Fetch products
-  useEffect(() => {
-    async function fetchFlash() {
-      const data: Product[] = await getFlashProducts();
-      setProducts(data);
-    }
-    fetchFlash();
-  }, []);
+    return () => clearInterval(timer);
+  }, [endTime]);
 
   return (
-    <section className="mt-24 relative overflow-hidden">
-      {/* 🔥 Flash Sale Banner */}
-      <div className="bg-linear-to-r from-red-600 via-orange-500 to-yellow-400 text-white px-6 md:px-12 py-10 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center md:justify-between mb-10">
-        <div className="flex items-center gap-3">
-          <Zap className="w-10 h-10 animate-pulse" />
-          <h2 className="text-3xl md:text-4xl font-extrabold drop-shadow-md">
-            FLASH SALES
+    <section className="bg-white p-6 rounded-3xl shadow-sm border border-red-50">
+      {/* Header & Timer UI */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="flex items-center gap-2 text-red-600">
+          <Zap size={24} fill="currentColor" />
+          <h2 className="text-2xl font-black uppercase tracking-tighter italic">
+            Flash Sales
           </h2>
         </div>
 
-        {/* Countdown */}
-        <div className="mt-4 md:mt-0 flex items-center gap-2 text-lg md:text-2xl font-bold">
-          <span className="opacity-90">Ends In:</span>
-          <motion.span
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="bg-white text-red-600 px-4 py-1 rounded-md font-extrabold shadow-lg tracking-wider"
-          >
-            {`${timeLeft.h.toString().padStart(2, "0")}:${timeLeft.m
-              .toString()
-              .padStart(2, "0")}:${timeLeft.s.toString().padStart(2, "0")}`}
-          </motion.span>
+        {/* Timer UI */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Ends In:
+          </span>
+          <div className="flex gap-2 font-mono font-bold text-lg">
+            {[
+              { label: "hrs", value: timeLeft.hrs },
+              { label: "mins", value: timeLeft.mins },
+              { label: "secs", value: timeLeft.secs },
+            ].map((unit, i) => (
+              <div key={unit.label} className="flex items-center">
+                <div className="bg-gray-900 text-white px-2 py-1 rounded-lg min-w-[38px] text-center shadow-lg">
+                  {unit.value.toString().padStart(2, "0")}
+                </div>
+                {i < 2 && <span className="mx-1 text-gray-900 animate-pulse">:</span>}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* 🛍️ Product Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 px-4 md:px-12"
-      >
-        {products.map((product) => {
-          const discount = Math.floor(Math.random() * 40) + 10;
-          const discountedPrice = (
-            product.price * (1 - discount / 100)
-          ).toFixed(2);
-          const stockLeft = Math.floor(Math.random() * 80) + 20;
-
-          return (
-            <motion.div
+      {/* Grid Fix */}
+      {products && products.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+          {products.map((product) => (
+            <ProductCard
               key={product.id}
-              whileHover={{ scale: 1.03 }}
-              className="bg-white shadow-lg rounded-2xl p-4 relative overflow-hidden hover:shadow-2xl transition-all duration-300"
-            >
-              {/* 🔖 Discount Badge */}
-              <motion.span
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md flex items-center gap-1"
-              >
-                <Zap className="w-3 h-3" /> -{discount}%
-              </motion.span>
+              product={product}
+              onQuickView={(p) => {
+                setSelectedProduct(p);
+                setIsQuickViewOpen(true);
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50/50">
+          <ShoppingBag className="mx-auto h-12 w-12 text-gray-200 mb-4" />
+          <p className="text-gray-400 font-medium italic">
+            No Flash Sale products available right now.
+          </p>
+        </div>
+      )}
 
-              {/* 🖼️ Product Image */}
-              <div className="relative w-full h-40 flex items-center justify-center mb-3 bg-gray-50 rounded-xl">
-                <Image
-                  src={product.image}
-                  alt={product.title}
-                  fill
-                  className="object-contain p-3 transition-transform duration-300 hover:scale-110"
-                />
-              </div>
-
-              {/* 🏷️ Info */}
-              <h3 className="text-sm font-semibold text-gray-800 line-clamp-2">
-                {product.title}
-              </h3>
-
-              {/* 💰 Price */}
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-blue-600 font-bold text-lg">
-                  ${discountedPrice}
-                </p>
-                <p className="text-gray-400 text-sm line-through">
-                  ${product.price}
-                </p>
-              </div>
-
-              {/* ⭐ Rating */}
-              <div className="flex items-center mt-1 space-x-1">
-                {Array.from({
-                  length: Math.round(product.rating?.rate || 4),
-                }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse"
-                  />
-                ))}
-              </div>
-
-              {/* 📊 Stock Progress */}
-              <div className="mt-3 w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-linear-to-r from-orange-500 to-red-600 h-full"
-                  style={{ width: `${stockLeft}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">{stockLeft}% sold</p>
-
-              {/* 🛒 Button */}
-              <button className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-full text-sm font-semibold transition-all duration-300">
-                Shop Now
-              </button>
-            </motion.div>
-          );
-        })}
-      </motion.div>
+      {/* Modal */}
+      <ProductQuickView
+        product={selectedProduct}
+        isOpen={isQuickViewOpen}
+        onClose={() => setIsQuickViewOpen(false)}
+      />
     </section>
   );
 }
