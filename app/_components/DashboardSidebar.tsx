@@ -15,21 +15,26 @@ import {
   LifeBuoy,
   Settings,
   ChevronDown,
-  UserCircle,
   Menu,
   X,
 } from "lucide-react";
-import { Sections } from "@/types/dashboard";
+import { Sections, SectionLink } from "@/types/dashboard";
 
 interface DashboardSidebarProps {
   children?: ReactNode;
   sections?: Sections;
 }
 
+// 🔹 This type ensures the compiler recognizes optional nested navigation
+type EnhancedLink = SectionLink & {
+  hasChildren?: boolean;
+  children?: { label: string; href: string }[];
+};
+
 export default function DashboardSidebar({ children, sections }: DashboardSidebarProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  
+
   const permissions = session?.user?.permissions ?? {};
   const role = session?.user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
@@ -39,7 +44,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
 
   const computedSections = useMemo(() => {
     if (role === "ADMIN" || role === "SUPER_ADMIN") {
-      const general = [
+      const general: EnhancedLink[] = [
         {
           label: "Overview",
           href: "/dashboard/overview",
@@ -48,59 +53,59 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
         },
       ];
 
-      const management = [
+      const management: EnhancedLink[] = [
         {
           label: "Admins",
           href: "/dashboard/admins",
           icon: <ShieldCheck size={20} />,
-          visible: isSuperAdmin || permissions.manageAdmins,
+          visible: isSuperAdmin || !!permissions.manageAdmins,
         },
         {
           label: "Users",
           href: "/dashboard/admins/users",
           icon: <Users size={20} />,
-          visible: isSuperAdmin || permissions.manageUsers,
+          visible: isSuperAdmin || !!permissions.manageUsers,
         },
         {
           label: "Blogs",
           href: "/dashboard/blogs",
           icon: <Newspaper size={20} />,
-          visible: isSuperAdmin || permissions.manageBlogs,
+          visible: isSuperAdmin || !!permissions.manageBlogs,
         },
         {
           label: "Products",
           href: "/dashboard/admins/products",
           icon: <Package size={20} />,
-          visible: isSuperAdmin || permissions.manageProducts,
+          visible: isSuperAdmin || !!permissions.manageProducts,
         },
         {
           label: "Orders",
           href: "/dashboard/admins/orders",
           icon: <ShoppingCart size={20} />,
-          visible: isSuperAdmin || permissions.manageOrders,
+          visible: isSuperAdmin || !!permissions.manageOrders,
         },
         {
           label: "Categories",
           href: "/dashboard/admins/categories",
           icon: <Layers size={20} />,
-          visible: isSuperAdmin || permissions.manageCategories,
+          visible: isSuperAdmin || !!permissions.manageCategories,
         },
         {
           label: "Support",
           href: "/dashboard/admins/support",
           icon: <LifeBuoy size={20} />,
-          visible: isSuperAdmin || permissions.manageSupport,
+          visible: isSuperAdmin || !!permissions.manageSupport,
           hasChildren: true,
           children: [
             { label: "Articles", href: "/dashboard/admins/support" },
             { label: "Tickets", href: "/dashboard/admins/support/tickets" },
-          ]
+          ],
         },
         {
           label: "Settings",
           href: "/dashboard/admins/settings",
           icon: <Settings size={20} />,
-          visible: isSuperAdmin || permissions.manageSettings,
+          visible: isSuperAdmin || !!permissions.manageSettings,
         },
       ];
 
@@ -110,8 +115,8 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
       };
     }
     return {
-      general: sections?.general ?? [],
-      management: sections?.management ?? [],
+      general: (sections?.general as EnhancedLink[]) ?? [],
+      management: (sections?.management as EnhancedLink[]) ?? [],
     };
   }, [role, isSuperAdmin, permissions, sections]);
 
@@ -210,31 +215,35 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
       {/* ================= MOBILE HEADER & CONTENT ================= */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
-           <h2 className="font-black text-xl uppercase tracking-tighter">MarvelMarts<span className="text-indigo-600">.</span></h2>
-           <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 bg-gray-50 rounded-xl">
-             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-           </button>
+          <h2 className="font-black text-xl uppercase tracking-tighter">
+            MarvelMarts<span className="text-indigo-600">.</span>
+          </h2>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 bg-gray-50 rounded-xl">
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </header>
 
         {/* Mobile Nav Overlay */}
         {mobileOpen && (
           <div className="lg:hidden fixed inset-0 z-50 bg-white p-8 animate-in fade-in slide-in-from-top-4">
-             <div className="flex justify-between items-center mb-12">
-               <h2 className="font-black text-2xl tracking-tighter">MENU</h2>
-               <button onClick={() => setMobileOpen(false)} className="p-4 bg-gray-100 rounded-full"><X /></button>
-             </div>
-             <div className="space-y-6">
-                {computedSections.general.concat(computedSections.management).map(link => (
-                  <Link 
-                    key={link.href} 
-                    href={link.href} 
-                    onClick={() => setMobileOpen(false)}
-                    className="block text-2xl font-black uppercase tracking-tight border-b border-gray-100 pb-4"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-             </div>
+            <div className="flex justify-between items-center mb-12">
+              <h2 className="font-black text-2xl tracking-tighter">MENU</h2>
+              <button onClick={() => setMobileOpen(false)} className="p-4 bg-gray-100 rounded-full">
+                <X />
+              </button>
+            </div>
+            <div className="space-y-6">
+              {computedSections.general.concat(computedSections.management).map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="block text-2xl font-black uppercase tracking-tight border-b border-gray-100 pb-4"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 

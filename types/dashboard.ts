@@ -1,15 +1,19 @@
-// /types/dashboard.ts
-import { ReactNode } from "react";
+// @/types/dashboard.ts
 
-export type SectionLink = {
-  href: string;
+export interface SectionLink {
   label: string;
-  icon?: ReactNode;       // <-- allow JSX icons
-  visible?: boolean;
-};
+  href: string;
+  icon?: React.ReactNode;
+  visible: boolean;
+  // Add these optional properties:
+  hasChildren?: boolean; 
+  children?: {
+    label: string;
+    href: string;
+  }[];
+}
 
-export type Sections = {
+export interface Sections {
   general: SectionLink[];
   management: SectionLink[];
-  permissionsMenu: SectionLink[];
-};
+}
