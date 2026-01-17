@@ -47,14 +47,14 @@ export default function MobileTopbar({
   return (
     <div className="lg:hidden flex flex-col w-full relative">
       {/* Sleek Header */}
-      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-[60] shadow-sm">
+      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-60 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-brand-primary/20">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-600/20">
             M
           </div>
           <div>
             <h2 className="text-base font-bold text-gray-900 leading-none">MarvelMarts</h2>
-            <p className="text-[10px] uppercase tracking-widest font-black text-brand-primary mt-1">{role}</p>
+            <p className="text-[10px] uppercase tracking-widest font-black text-indigo-600 mt-1">{role}</p>
           </div>
         </div>
         
@@ -75,7 +75,7 @@ export default function MobileTopbar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[70]"
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-70"
               onClick={() => setMobileOpen(false)}
             />
 
@@ -84,7 +84,7 @@ export default function MobileTopbar({
               initial="hidden"
               animate="show"
               exit="exit"
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[80] shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-80 shadow-2xl flex flex-col"
             >
               {/* Drawer Header */}
               <div className="p-6 border-b border-gray-50 flex items-center justify-between">
@@ -114,10 +114,10 @@ export default function MobileTopbar({
                         <Link
                           href={link.href}
                           onClick={() => setMobileOpen(false)}
-                          className="flex items-center justify-between group p-3 rounded-xl hover:bg-brand-primary/5 transition-all"
+                          className="flex items-center justify-between group p-3 rounded-xl hover:bg-indigo-50 transition-all"
                         >
-                          <span className="text-sm font-bold text-gray-700 group-hover:text-brand-primary">{link.label}</span>
-                          <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-brand-primary transition-transform group-hover:translate-x-1" />
+                          <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
+                          <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-transform group-hover:translate-x-1" />
                         </Link>
                       </motion.div>
                     ))}
@@ -154,8 +154,11 @@ export default function MobileTopbar({
                       <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Restricted Mode</p>
                     </div>
-                    {sections.permissionsMenu.map((p) => (
-                      <p key={p.label} className="text-[11px] text-gray-400 font-medium italic">{p.label}</p>
+                    {/* 🔹 Added optional chaining to prevent mapping error */}
+                    {sections?.permissionsMenu?.map((p) => (
+                      <p key={p.label} className="text-[11px] text-gray-400 font-medium italic">
+                        • {p.label}
+                      </p>
                     ))}
                   </section>
                 )}
@@ -176,6 +179,3 @@ export default function MobileTopbar({
     </div>
   );
 }
-
-
-

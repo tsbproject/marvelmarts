@@ -16,4 +16,5 @@ export interface SectionLink {
 export interface Sections {
   general: SectionLink[];
   management: SectionLink[];
+  permissionsMenu?: { label: string }[];
 }
