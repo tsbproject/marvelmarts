@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "HelpArticle" ADD COLUMN     "helpful" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "notHelpful" INTEGER NOT NULL DEFAULT 0;

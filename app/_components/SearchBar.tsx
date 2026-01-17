@@ -18,7 +18,7 @@ export default function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. Keyboard Shortcut (Ctrl+K)
+  // Keyboard Shortcut (Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -30,7 +30,7 @@ export default function SearchBar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // 2. Click Outside to Close
+  // Click Outside to Close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -41,7 +41,7 @@ export default function SearchBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 3. Search Fetching Logic
+  // Search Fetching Logic
   useEffect(() => {
     const fetchResults = async () => {
       if (query.trim().length < 2) {
@@ -76,11 +76,15 @@ export default function SearchBar() {
 
   return (
     <div className="flex items-center justify-center px-4 w-full relative z-50" ref={dropdownRef}>
-      <div className="relative w-full xl:w- 2xl:w-[1600px] max-w-4xl group">
+      <div className="relative 2xl:left-35 bottom-5 w-full xl:w-[800px] 2xl:w-[1600px] lg:max-w-3xl xl:max-w-3xl 2xl:max-w-4xl 2xl:-ml-10 group">
         
         {/* --- INPUT FIELD --- */}
         <form onSubmit={handleSearchSubmit} className="relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-blue-400 transition-colors" size={22} />
+          {/* Magnifier Icon: Visible on all versions, changes color on focus */}
+          <Search 
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-primary/60 lg:text-white/40 group-focus-within:text-blue-500 transition-colors z-10" 
+            size={22} 
+          />
           
           <input
             ref={inputRef}
@@ -89,20 +93,35 @@ export default function SearchBar() {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => query.length >= 2 && setShowDropdown(true)}
             placeholder="Search products..."
-            className="w-full pl-14 pr-24 py-4 bg-white/10 backdrop-blur-md border border-brand-primary rounded-full 
-                       text-xl xl:text-3xl 2xl:text-3xl text-white outline-none ring-offset-2 focus:ring-2 focus:ring-blue-500 
-                       transition-all duration-300 placeholder:text-white/30 shadow-2xl"
+            className="w-full pl-14 pr-24 py-4 rounded-full outline-none transition-all duration-300 shadow-2xl
+                       /* COLORS & BORDERS */
+                       bg-white/20 backdrop-blur-xl text-brand-primary lg:text-white
+                       
+                       /* MOBILE PLACEHOLDER: Darker for visibility on white bg */
+                       placeholder:text-brand-primary/40 
+                       
+                       /* DESKTOP PLACEHOLDER: Lighter for blue bg */
+                       lg:placeholder:text-white/30 
+                       
+                       text-xl xl:text-3xl 2xl:text-3xl 
+                       
+                       /* BORDERS */
+                       border border-brand-primary
+                       lg:border-accent-navy
+                       
+                       /* FOCUS STATE */
+                       focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 ring-offset-0"
           />
 
           <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
             {isSearching ? (
-              <Loader2 size={18} className="animate-spin text-blue-400" />
+              <Loader2 size={18} className="animate-spin text-blue-500" />
             ) : query ? (
-              <button type="button" onClick={() => { setQuery(""); setShowDropdown(false); }} className="text-white/40 hover:text-white transition-colors">
+              <button type="button" onClick={() => { setQuery(""); setShowDropdown(false); }} className="text-brand-primary/40 lg:text-white/40 hover:text-blue-600 lg:hover:text-white transition-colors">
                 <X size={20} />
               </button>
             ) : (
-              <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 border border-white/10 text-[10px] font-black text-white/40 uppercase tracking-tighter select-none">
+              <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-brand-primary/5 lg:bg-white/10 border border-brand-primary/10 lg:border-white/10 text-[10px] font-black text-brand-primary/40 lg:text-white/40 uppercase tracking-tighter select-none">
                 <Command size={10} /> K
               </div>
             )}
@@ -111,7 +130,7 @@ export default function SearchBar() {
 
         {/* --- DROPDOWN RESULTS --- */}
         {showDropdown && (results.products.length > 0 || results.categories.length > 0) && (
-          <div className="absolute top-full mt-4 w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="absolute top-full mt-4 w-full bg-white rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="max-h-[65vh] overflow-y-auto p-4 space-y-6">
               
               {/* Categories Section */}

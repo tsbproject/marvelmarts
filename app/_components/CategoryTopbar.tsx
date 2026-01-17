@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useState } from "react";
 import type { Category } from "@prisma/client";
+import { ChevronDown, LayoutGrid, ArrowRight, Sparkles } from "lucide-react";
 
-// Recursive type: Category plus children
 export type CategoryTree = Category & { children: CategoryTree[] };
 
 interface CategoryTopbarProps {
@@ -15,129 +15,126 @@ interface CategoryTopbarProps {
 export default function CategoryTopbar({ categories }: CategoryTopbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
 
-  // Framer Motion variants
-  const listVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { staggerChildren: 0.08 },
+  const megaMenuVariants: Variants = {
+    hidden: { opacity: 0, y: 0, scale: 0.98, filter: "blur(4px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1, 
+      filter: "blur(0px)",
+      transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } 
     },
-    exit: { opacity: 0, y: 10, transition: { duration: 0.2 } },
+    exit: { opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 8 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.25, ease: "easeOut" as const },
-    },
+  const getMenuTheme = (slug: string) => {
+    const themes: Record<string, string> = {
+      // increased widths and column counts to prevent squishing
+      electronics: "w-[900px] grid-cols-3 border-t-4 border-blue-500",
+      fashion: "w-[95vw] max-w-[1200px] grid-cols-4 border-t-4 border-pink-500",
+    };
+    return themes[slug] || "w-[700px] grid-cols-2 border-t-4 border-brand-primary";
   };
 
   return (
-    <nav className="bg-brand-primary shadow-md border-t border-gray-200">
-      <div className="flex items-center justify-center px-3 py-4">
-        {/* Title */}
-        <span className="mr-8 text-brand-light sm:text-md md:text-[8px] lg:text[10px] xl:text-[11px] font-bold uppercase tracking-wide">
-         All Categories
-        </span>
+    <nav className="relative bg-brand-primary border-b border-white/5 shadow-2xl h-14 overflow-x-auto no-scrollbar z-999">
+      <div className="max-w-[1400px] mx-auto w-full h-full flex items-center px-4">
+        
+        {/* Explore Button */}
+        <button className="inline-flex items-center gap-2 px-4 py-2 mr-4 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/10 shrink-0">
+          <LayoutGrid size={14} className="text-blue-400" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white">Explore Categories</span>
+        </button>
 
-        {/* Main categories horizontally */}
-        <div className="flex items-center space-x-6 flex-1">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className="relative"
-              onMouseEnter={() => setHovered(cat.name)}
-              onMouseLeave={() => setHovered(null)}
-            >
-              {/* Main category */}
-              <Link
-                href={`/categories/${cat.slug}`}
-                className="text-gray-100 py-2  font-medium hover:text-accent-navy transition-colors duration-200 text-[7px] 
-                sm:text-md md:text-[7px] lg:text-[7px] xl:text-[8px] 2xl:text-[11px] 
-                relative after:block after:h-0.5 after:bg-brand-primary after:scale-x-0 hover:after:scale-x-100
-                after:transition-transform after:duration-200 after:origin-left after:absolute after:bottom-1 after:left-0"
+        {/* Categories Container */}
+        <div className="flex items-center flex-1 justify-center">
+          <div className="flex flex-nowrap items-center gap-1">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="group"
+                onMouseEnter={() => setHovered(cat.name)}
+                onMouseLeave={() => setHovered(null)}
               >
-                {cat.name}
-              </Link>
+                <Link
+                  href={`/categories/${cat.slug}`}
+                  className={`
+                    inline-flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 
+                    text-[10px] xl:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap
+                    ${hovered === cat.name ? "text-white bg-white/10" : "text-white/50 hover:text-white"}
+                  `}
+                >
+                  {cat.name}
+                  {cat.children?.length > 0 && (
+                    <ChevronDown size={11} className={`transition-transform duration-300 ${hovered === cat.name ? "rotate-180 text-blue-400" : "opacity-30"}`} />
+                  )}
+                </Link>
 
-              {/* Mega menu dropdown with scroll */}
-              <AnimatePresence>
-                {cat.children?.length > 0 && hovered === cat.name && (
-                  <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    variants={listVariants}
-                    className="
-                      absolute -left-40 top-full bg-white shadow-xl text-xl  rounded-md mt-3 z-50 
-                      w-[400px] max-w-[70vw] px-30 pt-2
-                      max-h-screen overflow-hidden
-                    "
-                  >
-                    {/* Scrollable content area */}
-                    <div className="max-h-[70vh] overflow-y-auto pr-30 scrollbar-accent px-20 -ml-42">
-                      <motion.ul className="flex flex-wrap gap-8">
+                <AnimatePresence>
+                  {cat.children?.length > 0 && hovered === cat.name && (
+                    <motion.div
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      variants={megaMenuVariants}
+                      className={`
+                        fixed top-45 left-1/2 -translate-x-1/2 
+                        bg-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.5)] 
+                        rounded-b-[30px] z-9999 flex flex-col
+                        max-h-[85vh] 
+                        ${getMenuTheme(cat.slug)}
+                      `}
+                    >
+                      {/* Scrollable Content Wrapper */}
+                      <div className="overflow-y-auto p-10 grid gap-12 custom-scrollbar grid-cols-inherit">
                         {cat.children.map((sub) => (
-                          <motion.li
-                            key={sub.id}
-                            variants={itemVariants}
-                            className="w-1/4 min-w-[100px] flex flex-col items-start"
-                          >
-                            {/* Category image */}
-                            {sub.imageUrl && (
-                              <img
-                                src={sub.imageUrl}
-                                alt={sub.name}
-                                className="w-20 h-20 object-cover rounded-md mb-3 border border-gray-200"
-                              />
-                            )}
-
-                            {/* Breadcrumb trail */}
-                            <div className="text-brand-dark text-sm mb-1">
-                              {cat.name} &gt; {sub.name}
-                            </div>
-
-                            {/* Child category name */}
+                          <div key={sub.id} className="space-y-4">
                             <Link
                               href={`/categories/${sub.slug}`}
-                              className="block font-semibold text-accent-navy mb-2 hover:text-brand-primary"
+                              className="inline-flex items-center gap-2 text-[12px] font-black text-gray-900 uppercase tracking-tight hover:text-blue-600"
                             >
+                              <Sparkles size={14} className="text-blue-500" />
                               {sub.name}
                             </Link>
-
-                            {/* Grandchildren */}
-                            {sub.children?.length > 0 && (
-                              <ul className="space-y-1">
-                                {sub.children.map((child) => (
-                                  <li key={child.id}>
-                                    <Link
-                                      href={`/categories/${child.slug}`}
-                                      className="block text-lg text-gray-600 hover:text-brand-primary"
-                                    >
-                                      {child.name}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </motion.li>
+                            
+                            <ul className="space-y-2.5 border-l border-gray-100 pl-4">
+                              {sub.children?.map((child) => (
+                                <li key={child.id}>
+                                  <Link
+                                    href={`/categories/${child.slug}`}
+                                    className="text-[13px] text-gray-500 hover:text-blue-600 transition-colors block"
+                                  >
+                                    {child.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         ))}
-                      </motion.ul>
-                    </div>
+                      </div>
 
-                    {/* Optional subtle bottom fade to indicate scrollable area */}
-                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-white to-transparent" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      {/* Sticky Footer (stays visible at the bottom of the menu) */}
+                      <div className="mt-auto px-10 py-6 border-t border-gray-50 flex justify-between items-center bg-gray-50/50 rounded-b-[30px]">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Premium Collection</span>
+                        <Link href={`/categories/${cat.slug}`} className="inline-flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase hover:underline">
+                          Browse All {cat.name} <ArrowRight size={12} />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="shrink-0 ml-4 hidden md:block">
+           <div className="bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+              {new Date().getFullYear()} Trends
             </div>
-          ))}
         </div>
       </div>
     </nav>
   );
 }
-

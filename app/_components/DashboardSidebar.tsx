@@ -1,42 +1,49 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ReactNode, useMemo, useState } from "react";
 import {
-  HomeIcon,
-  UsersIcon,
-  NewspaperIcon,
-  ShieldCheckIcon,
-  KeyIcon,
-  Squares2X2Icon,
-  Cog6ToothIcon,
-  Bars3Icon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+  LayoutDashboard,
+  Users,
+  Newspaper,
+  ShieldCheck,
+  Package,
+  ShoppingCart,
+  Layers,
+  LifeBuoy,
+  Settings,
+  ChevronDown,
+  UserCircle,
+  Menu,
+  X,
+} from "lucide-react";
 import { Sections } from "@/types/dashboard";
 
 interface DashboardSidebarProps {
   children?: ReactNode;
-  sections?: Sections; 
+  sections?: Sections;
 }
 
 export default function DashboardSidebar({ children, sections }: DashboardSidebarProps) {
   const { data: session } = useSession();
+  const pathname = usePathname();
+  
   const permissions = session?.user?.permissions ?? {};
   const role = session?.user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
-  // Build menu depending on role
-  const computedSections: Sections = useMemo(() => {
+  const computedSections = useMemo(() => {
     if (role === "ADMIN" || role === "SUPER_ADMIN") {
       const general = [
         {
           label: "Overview",
-          href: "/dashboard",
-          icon: <HomeIcon className="w-5 h-5" />,
+          href: "/dashboard/overview",
+          icon: <LayoutDashboard size={20} />,
           visible: true,
         },
       ];
@@ -45,191 +52,196 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
         {
           label: "Admins",
           href: "/dashboard/admins",
-          icon: <ShieldCheckIcon className="w-5 h-5" />,
+          icon: <ShieldCheck size={20} />,
           visible: isSuperAdmin || permissions.manageAdmins,
         },
         {
           label: "Users",
           href: "/dashboard/admins/users",
-          icon: <UsersIcon className="w-5 h-5" />,
+          icon: <Users size={20} />,
           visible: isSuperAdmin || permissions.manageUsers,
         },
         {
           label: "Blogs",
           href: "/dashboard/blogs",
-          icon: <NewspaperIcon className="w-5 h-5" />,
+          icon: <Newspaper size={20} />,
           visible: isSuperAdmin || permissions.manageBlogs,
         },
         {
           label: "Products",
           href: "/dashboard/admins/products",
-          icon: <KeyIcon className="w-5 h-5" />,
+          icon: <Package size={20} />,
           visible: isSuperAdmin || permissions.manageProducts,
         },
         {
           label: "Orders",
           href: "/dashboard/admins/orders",
-          icon: <KeyIcon className="w-5 h-5" />,
+          icon: <ShoppingCart size={20} />,
           visible: isSuperAdmin || permissions.manageOrders,
         },
         {
           label: "Categories",
           href: "/dashboard/admins/categories",
-          icon: <Squares2X2Icon className="w-5 h-5" />,
+          icon: <Layers size={20} />,
           visible: isSuperAdmin || permissions.manageCategories,
+        },
+        {
+          label: "Support",
+          href: "/dashboard/admins/support",
+          icon: <LifeBuoy size={20} />,
+          visible: isSuperAdmin || permissions.manageSupport,
+          hasChildren: true,
+          children: [
+            { label: "Articles", href: "/dashboard/admins/support" },
+            { label: "Tickets", href: "/dashboard/admins/support/tickets" },
+          ]
         },
         {
           label: "Settings",
           href: "/dashboard/admins/settings",
-          icon: <Cog6ToothIcon className="w-5 h-5" />,
+          icon: <Settings size={20} />,
           visible: isSuperAdmin || permissions.manageSettings,
         },
       ];
 
-      const permissionsMenu = Object.entries(permissions)
-        .filter(([_, value]) => value)
-        .map(([key]) => ({
-          label: key.replace(/([A-Z])/g, " $1"),
-          href: "#",
-          icon: <ShieldCheckIcon className="w-5 h-5" />,
-        }));
-
       return {
-        general: general.filter((item) => item.visible),
-        management: management.filter((item) => item.visible),
-        permissionsMenu,
+        general: general.filter((i) => i.visible),
+        management: management.filter((i) => i.visible),
       };
     }
-
-    // For Customer/Vendor, just use the passed sections (or empty arrays if undefined)
     return {
       general: sections?.general ?? [],
       management: sections?.management ?? [],
-      permissionsMenu: sections?.permissionsMenu ?? [],
     };
   }, [role, isSuperAdmin, permissions, sections]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* ================= DESKTOP SIDEBAR ================= */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-brand-primary border-r shadow-sm">
-        <div className="px-6 py-4 border-b flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">MarvelMarts</h2>
-            <p className="text-xl text-gray-50">Dashboard</p>
-          </div>
+      <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5">
+        <div className="px-8 py-8 flex flex-col gap-1">
+          <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
+            MarvelMarts<span className="text-indigo-500">.</span>
+          </h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Control Panel</p>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-6">
-          {computedSections.general.length > 0 && (
-            <div>
-              <p className="text-xl font-semibold text-gray-50 uppercase mb-2">General</p>
-              <ul className="space-y-3">
-                {computedSections.general.map((link) => (
-                  <li key={link.href}>
+        <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
+          {/* Section: General */}
+          <div>
+            <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
+            <div className="space-y-1">
+              {computedSections.general.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+                    ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
+                >
+                  {link.icon}
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Section: Management */}
+          <div>
+            <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
+            <div className="space-y-1">
+              {computedSections.management.map((link) => (
+                <div key={link.label}>
+                  {link.hasChildren ? (
+                    <>
+                      <button
+                        onClick={() => setSupportOpen(!supportOpen)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight hover:bg-white/5 hover:text-white`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {link.icon}
+                          {link.label}
+                        </div>
+                        <ChevronDown size={14} className={`transition-transform ${supportOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {supportOpen && (
+                        <div className="mt-1 ml-9 space-y-1 border-l border-white/10 pl-4">
+                          {link.children?.map((sub) => (
+                            <Link
+                              key={sub.href}
+                              href={sub.href}
+                              className={`block py-2 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors ${pathname === sub.href ? "text-indigo-400" : "text-gray-500"}`}
+                            >
+                              {sub.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     <Link
                       href={link.href}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-950 hover:bg-gray-100 text-xl md:text-2xl"
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+                        ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
                     >
                       {link.icon}
                       {link.label}
                     </Link>
-                  </li>
-                ))}
-              </ul>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-
-          {computedSections.management.length > 0 && (
-            <div>
-              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">Management</p>
-              <ul className="space-y-2">
-                {computedSections.management.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-black hover:bg-gray-50 text-xl md:text-2xl"
-                    >
-                      {link.icon}
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {!isSuperAdmin && computedSections.permissionsMenu.length > 0 && (
-            <div>
-              <p className="text-2xl font-semibold text-gray-50 uppercase mb-2">My Permissions</p>
-              <ul className="space-y-2">
-                {computedSections.permissionsMenu.map((link) => (
-                  <li key={link.label}>
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 text-xl ">
-                      {link.icon}
-                      {link.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          </div>
         </nav>
 
-        <div className="px-4 py-4 border-t text-md text-gray-50">
-          <span>
-            Signed in as <span className="font-medium text-md">{session?.user?.email ?? "Unknown"}</span>
-          </span>
+        {/* User Footer */}
+        <div className="p-4 border-t border-white/5 bg-black/20">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5">
+            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-xs">
+              {session?.user?.email?.charAt(0).toUpperCase() || "A"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black text-white uppercase truncate">{session?.user?.name || "Admin"}</p>
+              <p className="text-[9px] text-gray-500 truncate">{session?.user?.email}</p>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* ================= MOBILE TOPBAR ================= */}
-      <header className="lg:hidden w-full bg-brand-primary text-white flex items-center justify-between px-4 py-3">
-        <div>
-          <h2 className="text-lg font-bold">MarvelMarts</h2>
-          <p className="text-sm">Dashboard</p>
-        </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2">
-          {mobileOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
-        </button>
-      </header>
+      {/* ================= MOBILE HEADER & CONTENT ================= */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
+           <h2 className="font-black text-xl uppercase tracking-tighter">MarvelMarts<span className="text-indigo-600">.</span></h2>
+           <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 bg-gray-50 rounded-xl">
+             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+           </button>
+        </header>
 
-      {/* ================= MOBILE DROPDOWN MENU ================= */}
-      {mobileOpen && (
-        <nav className="lg:hidden bg-gray-700 text-white px-4 py-2 space-y-2">
-          {computedSections.general.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="block hover:bg-gray-600 rounded px-3 py-2"
-            >
-              {link.label}
-            </Link>
-          ))}
-          {computedSections.management.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="block hover:bg-gray-600 rounded px-3 py-2"
-            >
-              {link.label}
-            </Link>
-          ))}
-          {!isSuperAdmin &&
-            computedSections.permissionsMenu.map((link) => (
-              <span key={link.label} className="block px-3 py-2 text-gray-300">
-                {link.label}
-              </span>
-            ))}
-        </nav>
-      )}
+        {/* Mobile Nav Overlay */}
+        {mobileOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-white p-8 animate-in fade-in slide-in-from-top-4">
+             <div className="flex justify-between items-center mb-12">
+               <h2 className="font-black text-2xl tracking-tighter">MENU</h2>
+               <button onClick={() => setMobileOpen(false)} className="p-4 bg-gray-100 rounded-full"><X /></button>
+             </div>
+             <div className="space-y-6">
+                {computedSections.general.concat(computedSections.management).map(link => (
+                  <Link 
+                    key={link.href} 
+                    href={link.href} 
+                    onClick={() => setMobileOpen(false)}
+                    className="block text-2xl font-black uppercase tracking-tight border-b border-gray-100 pb-4"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+             </div>
+          </div>
+        )}
 
-      {/* ================= MAIN CONTENT ================= */}
-      <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
-
-

@@ -5,6 +5,8 @@
   --foreground: #171717;
 }
 
+@plugin "@tailwindcss/typography";
+
 @theme {
   --color-brand-primary: #F7931E;
   --color-brand-dark: #CC6E00;

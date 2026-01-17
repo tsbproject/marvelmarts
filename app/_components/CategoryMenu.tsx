@@ -26,15 +26,19 @@ export default function CategoryMenu() {
         const res = await fetch("/api/categories");
         const json = await res.json();
 
-        // ✅ Validate with Zod
-        const data = CategoryTreeArraySchema.parse(json);
-        setCategories(data);
-        setError(null); // clear any previous error
+      
+        // Assuming your API returns { success: true, data: [...] } 
+        // Or if it returns { success: true, categories: [...] }, use json.categories
+        const rawData = json.data || json.categories || json;
+
+        //Validate only the array part with Zod
+        const validatedData = CategoryTreeArraySchema.parse(rawData);
+        
+        setCategories(validatedData);
+        setError(null);
       } catch (err) {
-        if (err instanceof Error) {
-          console.error("Category validation failed:", err);
-          setError("Failed to load categories. Please try again later.");
-        }
+        console.error("Category validation failed:", err);
+        setError("Failed to load categories. Please try again later.");
       }
     }
     loadCategories();
@@ -42,8 +46,10 @@ export default function CategoryMenu() {
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-700 p-4 rounded-md">
-        {error}
+      <div className="max-w-screen-2xl mx-auto px-4 mt-4">
+        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center">
+          {error}
+        </div>
       </div>
     );
   }

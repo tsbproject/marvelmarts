@@ -324,3 +324,32 @@ enum VerificationType {
   CUSTOMER_REGISTRATION
   VENDOR_REGISTRATION
 }
+
+
+model HelpArticle {
+  id        String   @id @default(cuid())
+  helpful     Int    @default(0)
+  notHelpful  Int    @default(0)
+  slug      String   @unique
+  title     String
+  excerpt   String   
+  content   String   @db.Text
+  keywords  String[] 
+  category  String   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([title, slug]) // Makes searching faster
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  subject     String
+  message     String
+  status      String   @default("OPEN") // OPEN, PENDING, CLOSED
+  userEmail   String
+  articleId   String?  // Optional: know which article triggered the ticket
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  notes       String?  @db.Text 
+}
