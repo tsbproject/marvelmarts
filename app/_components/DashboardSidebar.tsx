@@ -25,7 +25,7 @@ interface DashboardSidebarProps {
   sections?: Sections;
 }
 
-// 🔹 This type ensures the compiler recognizes optional nested navigation
+// This type ensures the compiler recognizes optional nested navigation
 type EnhancedLink = SectionLink & {
   hasChildren?: boolean;
   children?: { label: string; href: string }[];
@@ -68,10 +68,12 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
         },
         {
           label: "Blogs",
-          href: "/dashboard/blogs",
+          href: "/dashboard/blogs", 
           icon: <Newspaper size={20} />,
-          visible: isSuperAdmin || !!permissions.manageBlogs,
+          //Updated logic: visible if Super Admin OR if Admin has the specific permission
+          visible: isSuperAdmin || (role === "ADMIN" && !!permissions.manageBlogs),
         },
+        
         {
           label: "Products",
           href: "/dashboard/admins/products",

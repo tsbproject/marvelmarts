@@ -10,10 +10,11 @@ import {
   TicketIcon, 
   UserCircleIcon,
   ChevronRightIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  NewspaperIcon // Added for Blogs
 } from "@heroicons/react/24/outline";
 import SignOutButton from "./SignOutButton";
-import { Sections } from "@/types/dashboard";
+import { Sections, SectionLink } from "@/types/dashboard";
 
 export default function MobileTopbar({
   role,
@@ -44,10 +45,15 @@ export default function MobileTopbar({
     show: { opacity: 1, x: 0 },
   };
 
+  // Combine and filter links based on visibility
+  const visibleLinks = [...sections.general, ...sections.management].filter(
+    (link: SectionLink) => link.visible
+  );
+
   return (
     <div className="lg:hidden flex flex-col w-full relative">
       {/* Sleek Header */}
-      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-60 shadow-sm">
+      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-[60] shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-600/20">
             M
@@ -66,7 +72,6 @@ export default function MobileTopbar({
         </button>
       </header>
 
-      {/* Advanced Full-Screen Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -75,7 +80,7 @@ export default function MobileTopbar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-70"
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[70]"
               onClick={() => setMobileOpen(false)}
             />
 
@@ -84,7 +89,7 @@ export default function MobileTopbar({
               initial="hidden"
               animate="show"
               exit="exit"
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-80 shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[80] shadow-2xl flex flex-col"
             >
               {/* Drawer Header */}
               <div className="p-6 border-b border-gray-50 flex items-center justify-between">
@@ -105,18 +110,20 @@ export default function MobileTopbar({
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 
-                {/* 1. Main Management */}
+                {/* 1. Main Management & Blogs */}
                 <section>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Operations</p>
                   <div className="space-y-1">
-                    {[...sections.general, ...sections.management].map((link) => (
+                    {visibleLinks.map((link) => (
                       <motion.div key={link.href} variants={itemVariants}>
                         <Link
                           href={link.href}
                           onClick={() => setMobileOpen(false)}
                           className="flex items-center justify-between group p-3 rounded-xl hover:bg-indigo-50 transition-all"
                         >
-                          <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
+                          <div className="flex items-center gap-3">
+                             <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
+                          </div>
                           <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-transform group-hover:translate-x-1" />
                         </Link>
                       </motion.div>
@@ -124,7 +131,7 @@ export default function MobileTopbar({
                   </div>
                 </section>
 
-                {/* 2. Advanced Support Section */}
+                {/* 2. Support Engine */}
                 <section>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Support Engine</p>
                   <div className="grid grid-cols-2 gap-3">
@@ -154,7 +161,6 @@ export default function MobileTopbar({
                       <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Restricted Mode</p>
                     </div>
-                    {/* 🔹 Added optional chaining to prevent mapping error */}
                     {sections?.permissionsMenu?.map((p) => (
                       <p key={p.label} className="text-[11px] text-gray-400 font-medium italic">
                         • {p.label}

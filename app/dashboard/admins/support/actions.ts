@@ -1,17 +1,13 @@
 "use server";
 
-// Check if your lib/prisma uses a default export or named export. 
-// If it's default, use: import prisma from "@/app/lib/prisma";
 import { prisma } from "@/app/lib/prisma"; 
 import { revalidatePath } from "next/cache";
 
 export async function deleteArticleAction(id: string) {
   try {
-    //  Ensure 'helpArticle' matches your schema.prisma exactly
     await prisma.helpArticle.delete({
       where: { id },
     });
-
     revalidatePath("/dashboard/admins/support");
     return { success: true };
   } catch (error) {
@@ -22,7 +18,7 @@ export async function deleteArticleAction(id: string) {
 
 export async function getOpenTicketCount() {
   try {
-    // 🔹 Ensure 'ticket' matches your schema.prisma exactly
+    // Matches 'model Ticket' in schema
     const count = await prisma.ticket.count({
       where: { status: "OPEN" },
     });
@@ -34,11 +30,11 @@ export async function getOpenTicketCount() {
 
 export async function updateTicketNotes(ticketId: string, notes: string) {
   try {
+    // Matches 'model Ticket' in schema
     await prisma.ticket.update({
       where: { id: ticketId },
       data: { notes },
     });
-
     revalidatePath(`/dashboard/admins/support/tickets/${ticketId}`);
     return { success: true };
   } catch (error) {
