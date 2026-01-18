@@ -5,7 +5,6 @@ export interface SectionLink {
   href: string;
   icon?: React.ReactNode;
   visible: boolean;
-  // Add these optional properties:
   hasChildren?: boolean; 
   children?: {
     label: string;

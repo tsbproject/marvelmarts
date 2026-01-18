@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
+@plugin "@tailwindcss/typography";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
-@plugin "@tailwindcss/typography";
+
 
 @theme {
   --color-brand-primary: #F7931E;
