@@ -3,11 +3,12 @@
 import { prisma } from "@/app/lib/prisma"; 
 import { revalidatePath } from "next/cache";
 
-export async function deleteArticleAction(id: string) {
+export async function deleteArticleAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) throw new Error("Missing article ID");
+
   try {
-    await prisma.helpArticle.delete({
-      where: { id },
-    });
+    await prisma.helpArticle.delete({ where: { id } });
     revalidatePath("/dashboard/admins/support");
     return { success: true };
   } catch (error) {
@@ -15,6 +16,7 @@ export async function deleteArticleAction(id: string) {
     return { success: false, error: "Failed to delete article" };
   }
 }
+
 
 export async function getOpenTicketCount() {
   try {
