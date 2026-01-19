@@ -17,8 +17,8 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       </div>
 
       {/* DESKTOP SIDEBAR - Fixed */}
-      <aside className="hidden lg:block border-r border-gray-200 bg-neutral-white w-64 fixed h-full z-40">
-        <DashboardSidebar show sections={vendorSections} />
+      <aside className="lg:visible border-r border-gray-200 bg-neutral-white w-64 fixed h-full z-40">
+        <DashboardSidebar sections={vendorSections} />
       </aside>
 
       {/* MAIN CONTENT AREA */}
