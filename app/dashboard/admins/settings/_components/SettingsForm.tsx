@@ -22,22 +22,21 @@ function SubmitButton() {
 export default function SettingsForm({ settings }: { settings: any }) {
   // Add an empty object fallback or check if context exists
   const notificationContext = useNotification();
+  const { notifySuccess, notifyError } = useNotification();
   
   async function clientAction(formData: FormData) {
     const result = await updateSiteSettings(formData);
-    
-    // Only call showNotification if the context is available
-    if (notificationContext?.showNotification) {
-      if (result.success) {
-        notificationContext.showNotification(result.message, "success");
-      } else {
-        notificationContext.showNotification(result.message, "error");
-      }
-    } else {
-      // Fallback: use window alert if context is missing
-      alert(result.message);
-    }
+
+    if (result.success) {
+    notifySuccess(result.message);
+  } else {
+    notifyError(result.message);
   }
+}
+    
+    
+
+    
 
   return (
     <form action={clientAction} className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-gray-100 space-y-8">

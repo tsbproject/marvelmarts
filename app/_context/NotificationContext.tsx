@@ -1,12 +1,104 @@
+// "use client";
+
+// import {
+//   createContext,
+//   useContext,
+//   useState,
+//   ReactNode,
+//   useCallback,
+// } from "react";
+
+// type NotificationType = "success" | "error" | "info";
+
+// interface NotificationState {
+//   message: string;
+//   type: NotificationType;
+//   visible: boolean;
+// }
+
+// interface NotificationContextValue {
+//   notifySuccess: (message: string) => void;
+//   notifyError: (message: string) => void;
+//   notifyInfo: (message: string) => void;
+//   clearNotification: () => void;
+// }
+
+// const NotificationContext = createContext<NotificationContextValue | undefined>(
+//   undefined
+// );
+
+// export function useNotification(): NotificationContextValue {
+//   const ctx = useContext(NotificationContext);
+//   if (!ctx) {
+//     throw new Error(
+//       "useNotification must be used within a NotificationProvider"
+//     );
+//   }
+//   return ctx;
+// }
+
+// export function NotificationProvider({ children }: { children: ReactNode }) {
+//   const [notification, setNotification] = useState<NotificationState>({
+//     message: "",
+//     type: "info",
+//     visible: false,
+//   });
+
+//   const show = useCallback((type: NotificationType, message: string) => {
+//     setNotification({ message, type, visible: true });
+
+//     // Auto hide after 4s
+//     setTimeout(() => {
+//       setNotification((prev) => ({ ...prev, visible: false }));
+//     }, 4000);
+//   }, []);
+
+//   const notifySuccess = (message: string) => show("success", message);
+//   const notifyError = (message: string) => show("error", message);
+//   const notifyInfo = (message: string) => show("info", message);
+
+//   const clearNotification = () =>
+//     setNotification((prev) => ({ ...prev, visible: false }));
+
+//   return (
+//     <NotificationContext.Provider
+//       value={{ notifySuccess, notifyError, notifyInfo, clearNotification }}
+//     >
+//       {children}
+
+//       {notification.visible && (
+//         <div className="fixed bottom-6 right-6 z-50">
+//           <div
+//             className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium
+//               ${
+//                 notification.type === "success"
+//                   ? "bg-green-600 text-white text-xl"
+//                   : ""
+//               }
+//               ${
+//                 notification.type === "error" ? "bg-red-600 text-white text-xl" : ""
+//               }
+//               ${
+//                 notification.type === "info" ? "bg-slate-800 text-white text-xl" : ""
+//               }
+//             `}
+//           >
+//             {notification.message}
+//           </div>
+//         </div>
+//       )}
+//     </NotificationContext.Provider>
+//   );
+// }
+
+
+
+
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useCallback,
-} from "react";
+import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
 type NotificationType = "success" | "error" | "info";
 
@@ -23,17 +115,11 @@ interface NotificationContextValue {
   clearNotification: () => void;
 }
 
-const NotificationContext = createContext<NotificationContextValue | undefined>(
-  undefined
-);
+const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-export function useNotification(): NotificationContextValue {
+export function useNotification() {
   const ctx = useContext(NotificationContext);
-  if (!ctx) {
-    throw new Error(
-      "useNotification must be used within a NotificationProvider"
-    );
-  }
+  if (!ctx) throw new Error("useNotification must be used within a NotificationProvider");
   return ctx;
 }
 
@@ -46,48 +132,66 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback((type: NotificationType, message: string) => {
     setNotification({ message, type, visible: true });
-
-    // Auto hide after 4s
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, visible: false }));
-    }, 4000);
+    }, 4500);
   }, []);
 
   const notifySuccess = (message: string) => show("success", message);
   const notifyError = (message: string) => show("error", message);
   const notifyInfo = (message: string) => show("info", message);
+  const clearNotification = () => setNotification((prev) => ({ ...prev, visible: false }));
 
-  const clearNotification = () =>
-    setNotification((prev) => ({ ...prev, visible: false }));
+  // Icon mapping
+  const icons = {
+    success: <CheckCircle2 className="text-white" size={24} />,
+    error: <AlertCircle className="text-white" size={24} />,
+    info: <Info className="text-white" size={24} />,
+  };
+
+  // Color mapping
+  const styles = {
+    success: "bg-green-600 border-green-400",
+    error: "bg-red-600 border-red-400",
+    info: "bg-[#002B5B] border-blue-400",
+  };
 
   return (
-    <NotificationContext.Provider
-      value={{ notifySuccess, notifyError, notifyInfo, clearNotification }}
-    >
+    <NotificationContext.Provider value={{ notifySuccess, notifyError, notifyInfo, clearNotification }}>
       {children}
 
-      {notification.visible && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <div
-            className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium
-              ${
-                notification.type === "success"
-                  ? "bg-green-600 text-white text-xl"
-                  : ""
-              }
-              ${
-                notification.type === "error" ? "bg-red-600 text-white text-xl" : ""
-              }
-              ${
-                notification.type === "info" ? "bg-slate-800 text-white text-xl" : ""
-              }
-            `}
+      <AnimatePresence>
+        {notification.visible && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9, x: 20 }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: 20 }}
+            className="fixed bottom-8 right-8 z-9999"
           >
-            {notification.message}
-          </div>
-        </div>
-      )}
+            <div className={`${styles[notification.type]} border-2 shadow-2xl rounded-2xl p-5 flex items-center gap-4 min-w-[320px] max-w-[450px]`}>
+              <div className="bg-white/20 p-2 rounded-xl">
+                {icons[notification.type]}
+              </div>
+              
+              <div className="flex-1">
+                <p className="text-white font-black uppercase italic tracking-wider text-sm leading-tight">
+                  {notification.type === 'success' ? 'Marvel Success' : notification.type.toUpperCase()}
+                </p>
+                <p className="text-white/90 font-bold text-base mt-0.5">
+                  {notification.message}
+                </p>
+              </div>
+
+              <button 
+                onClick={clearNotification}
+                className="text-white/50 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </NotificationContext.Provider>
   );
 }
-
