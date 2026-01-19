@@ -9,7 +9,7 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
       price: 0,
       discountPrice: 0,
       status: "ACTIVE",
-      isFeatured: false, // Ensure this is false, not undefined
+      isFeatured: false,
       categories: [],
       sku: "",
       stock: 0,
@@ -19,6 +19,9 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
       extraImages: [],
       metaTitle: "",
       metaDescription: "",
+      // --- ADDED TO FIX BUILD ---
+      shippingMethod: "Standard",
+      weight: 0,
     };
   }
 
@@ -46,11 +49,18 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
     brand: initialData.brand ?? "",
     tags: Array.isArray(initialData.tags) ? initialData.tags : [],
     
-    // Images are handled via URLs in the component previews
+    // Images: use mainImage directly or fallback
     mainImage: initialData.mainImage || null,
-    extraImages: Array.isArray(initialData.images) ? initialData.images : [],
+    // Note: React-Select logic in ProductForm uses the 'url' property for previewing strings
+    extraImages: Array.isArray(initialData.images) 
+      ? initialData.images.map((img: any) => typeof img === 'string' ? img : img.url) 
+      : [],
     
     metaTitle: initialData.metaTitle ?? "",
     metaDescription: initialData.metaDescription ?? "",
+
+    // --- ADDED TO FIX BUILD ---
+    shippingMethod: initialData.shippingMethod ?? "Standard",
+    weight: initialData.weight ? Number(initialData.weight) : 0,
   };
 }

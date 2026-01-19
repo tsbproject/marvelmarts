@@ -550,6 +550,7 @@ export default function ProductForm({
     fd.append("discountPrice", String(form.discountPrice));
     fd.append("status", form.status);
     fd.append("isFeatured", String(form.isFeatured));
+    fd.append("isPublished", String(form.status === "ACTIVE"));
     fd.append("categoryId", form.categories[form.categories.length - 1]);
     fd.append("stock", String(form.stock));
     fd.append("brand", form.brand);
