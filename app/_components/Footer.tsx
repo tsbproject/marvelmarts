@@ -1,7 +1,451 @@
-export default function Footer() {
+// "use client";
+
+// import React, { useState, useEffect } from "react";
+// import Link from "next/link";
+// import Image from "next/image";
+// import { 
+//   Facebook, 
+//   Instagram, 
+//   Twitter, 
+//   Mail, 
+//   Phone, 
+//   Send, 
+//   ShieldCheck, 
+//   Lock,
+//   ArrowRight
+// } from "lucide-react";
+
+
+// interface FooterProps {
+//   settings?: { // Notice the '?' makes it optional to prevent crashes
+//     footerDesc: string;
+//     supportPhone: string;
+//     supportEmail: string;
+//   };
+// }
+
+
+
+// export default function Footer({ settings }: FooterProps) {
+//   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+//   const [email, setEmail] = useState("");
+//   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+//   const [message, setMessage] = useState("");
+
+// const handleSubscribe = async (e: React.FormEvent) => {
+//   e.preventDefault();
+//   setStatus("loading");
+
+//   try {
+//     const res = await fetch("/api/newsletter", {
+//       method: "POST",
+//       body: JSON.stringify({ email }),
+//       headers: { "Content-Type": "application/json" },
+//     });
+
+//     const data = await res.json();
+
+//     if (res.ok) {
+//       setStatus("success");
+//       setMessage(data.message);
+//       setEmail("");
+//     } else {
+//       throw new Error(data.message);
+//     }
+//   } catch (err: any) {
+//     setStatus("error");
+//     setMessage(err.message);
+//   }
+// };
+
+//   useEffect(() => {
+//     setCurrentYear(new Date().getFullYear());
+//   }, []);
+
+//   return (
+//     <footer className="bg-[#002B5B] text-white pt-20 pb-10"> {/* --brand-navy */}
+//     <p className="text-blue-100/70 text-xl lg:text-2xl leading-relaxed font-medium">
+//         {settings.footerDesc}
+//       </p>
+     
+//       {/* 1. Ultra-Wide Container */}
+//       <div className="max-w-[1300px] mx-auto px-6 md:px-12 lg:px-16">
+        
+//         {/* Newsletter Section - Increased scale and font sizes */}
+//         <div className="bg-[#F7931E] rounded-[3rem] p-10 md:p-16 mb-24 shadow-2xl shadow-orange-950/30 border-b-8 border-[#1E1E1E]/10">
+//           <div className="flex flex-col xl:flex-row items-center justify-between gap-12">
+//             <div className="max-w-2xl text-center xl:text-left">
+//               <h3 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter italic text-[#1E1E1E] leading-[0.9]">
+//                 Get the <span className="text-white">Marvel</span> <br className="hidden md:block" /> Advantage
+//               </h3>
+//               <p className="text-[#002B5B] font-extrabold mt-6 text-lg md:text-xl lg:text-2xl max-w-xl">
+//                 Join 10,000+ shoppers receiving weekly flash sale alerts and exclusive vendor deals.
+//               </p>
+//             </div>
+            
+//             <form onSubmit={handleSubscribe} className="w-full xl:w-auto flex flex-col md:flex-row gap-4">
+//   <input 
+//     value={email}
+//     onChange={(e) => setEmail(e.target.value)}
+//      type="email" 
+//         placeholder="Your best email address" 
+//         className="w-full md:w-[400px] bg-white rounded-2xl py-6 px-8 text-[#1E1E1E] text-lg outline-none shadow-xl font-bold                             placeholder:text-gray-400 focus:ring-4 focus:ring-[#002B5B]/20 transition-all"
+//         required
+//           />
+//           <button disabled={status === "loading"} className="...">
+//             {status === "loading" ? "Processing..." : "Join Now"}
+//           </button>
+//           {message && (
+//             <p className={`mt-4 font-bold ${status === "success" ? "text-white" : "text-red-900"}`}>
+//               {message}
+//             </p>
+//           )}
+//         </form>
+//           </div>
+//         </div>
+
+//         {/* Main Grid - Increased gap and text size */}
+//         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24 mb-24">
+          
+//           {/* Brand & Mission */}
+          
+//              <div className="space-y-12">
+//             <Link href="/" className="block">
+//               <Image 
+//                 src="/logo.png" 
+//                 alt="MarvelMarts Logo" 
+//                 width={320} 
+//                 height={100} 
+//                 className="h-auto w-auto max-w-[280px] md:max-w-[120px] object-contain " 
+//               />
+//             </Link>
+//             <p className="text-blue-100/70 text-lg md:text-xl leading-relaxed font-medium">
+//               Africa&apos;s most trusted marketplace. We bridge the gap between premium global quality and local convenience. Every vendor is verified; every product is guaranteed.
+//             </p>
+//             <div className="flex gap-6">
+//               {[Facebook, Instagram, Twitter].map((Icon, i) => (
+//                 <Link key={i} href="#" className="bg-white/10 p-4 rounded-2xl hover:bg-[#F7931E] hover:text-[#1E1E1E] transition-all scale-110">
+//                   <Icon size={24} />
+//                 </Link>
+//               ))}
+//             </div>
+//           </div>
+
+//           {/* Nav 1 */}
+//           <div className="lg:pl-8">
+//             <h4 className="font-black uppercase text-sm tracking-[0.4em] mb-10 text-[#F7931E]">Explore</h4>
+//             <ul className="space-y-6 text-lg md:text-xl font-bold text-blue-100/90">
+//               <li><Link href="/shop" className="hover:text-[#F7931E] transition-all flex items-center gap-2 group"><span className="w-0 group-hover:w-4 h-[2px] bg-[#F7931E] transition-all"></span>All Products</Link></li>
+//               <li><Link href="/vendors" className="hover:text-[#F7931E] transition-all flex items-center gap-2 group"><span className="w-0 group-hover:w-4 h-[2px] bg-[#F7931E] transition-all"></span>Top Vendors</Link></li>
+//               <li><Link href="/sell" className="hover:text-[#F7931E] transition-all flex items-center gap-2 group"><span className="w-0 group-hover:w-4 h-[2px] bg-[#F7931E] transition-all"></span>Sell on Marvel</Link></li>
+//               <li><Link href="/track-order" className="hover:text-[#F7931E] transition-all flex items-center gap-2 group"><span className="w-0 group-hover:w-4 h-[2px] bg-[#F7931E] transition-all"></span>Tracking</Link></li>
+//             </ul>
+//           </div>
+
+//           {/* Nav 2 */}
+//           <div>
+//             <h4 className="font-black uppercase text-sm tracking-[0.4em] mb-10 text-[#F7931E]">Assistance</h4>
+//             <ul className="space-y-6 text-lg md:text-xl font-bold text-blue-100/90">
+//               <li><Link href="/faq" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
+//               <li><Link href="/returns" className="hover:text-[#F7931E] transition-all">Refunds</Link></li>
+//               <li><Link href="/privacy" className="hover:text-[#F7931E] transition-all">Security</Link></li>
+//               <li><Link href="/contact" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
+//             </ul>
+//           </div>
+
+//           {/* Trust & Direct Contact Card */}
+//           <div className="bg-white/5 border-2 border-white/10 p-10 rounded-[3rem] space-y-8 h-fit">
+//             <div className="flex items-center gap-4">
+//               <div className="bg-[#F7931E] p-3 rounded-xl text-[#002B5B]">
+//                 <ShieldCheck size={28} />
+//               </div>
+//               <span className="text-sm font-black uppercase tracking-[0.2em] text-[#F7931E]">Buyer Protected</span>
+//             </div>
+//             <div className="space-y-6">
+//               <div className="flex flex-col gap-1">
+//                  <span className="text-[10px] uppercase tracking-[0.3em] text-blue-300">Hotline</span>
+//                  <span className="text-xl md:text-2xl font-black">+234 800-MARVEL</span>
+//               </div>
+//               <div className="flex flex-col gap-1">
+//                  <span className="text-[10px] uppercase tracking-[0.3em] text-blue-300">Email</span>
+//                  <span className="text-xl md:text-2xl font-black break-words">help@marvelmarts.com</span>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Dynamic Footer Bottom */}
+//         <div className="pt-12 border-t-2 border-white/10 flex flex-col xl:flex-row justify-between items-center gap-12">
+          
+//           <div className="flex flex-col gap-4 items-center xl:items-start text-center xl:text-left">
+//              <p className="text-xs md:text-sm text-blue-200/50 font-black uppercase tracking-[0.4em]">
+//                © {currentYear} MARVELMARTS MARKETPLACE NIGERIA. ALL RIGHTS RESERVED.
+//              </p>
+//              <div className="flex items-center gap-3 text-xs text-blue-400 font-bold italic">
+//                <Lock size={14} /> 256-bit SSL SECURE ENCRYPTED ENVIRONMENT
+//              </div>
+//           </div>
+
+//          {/* Payment Partner Logos - High Fidelity SVGs */}
+// <div className="flex flex-wrap justify-center gap-6 lg:gap-10 items-center grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+  
+//   {/* Paystack */}
+//   <img 
+//     src="https://js.paystack.co/v2/packages/paystack-logo/dist/paystack-logo-white.svg" 
+//     alt="Paystack" 
+//     className="h-6 md:h-8 w-auto"
+//   />
+
+//   {/* Flutterwave - Custom SVG Path for Flutterwave (Stylized) */}
+//   <div className="flex items-center gap-2">
+//     <svg viewBox="0 0 100 20" className="h-5 md:h-6 fill-white">
+//       <path d="M5 0h4v20H5V0zm8 0h4v20h-4V0zm8 0h4v20h-4V0zm12 4h-4V0h4v4zm0 16h-4V6h4v14z" />
+//     </svg>
+//     <span className="font-black italic text-sm tracking-tighter">FLUTTERWAVE</span>
+//   </div>
+
+//   {/* Mastercard */}
+//   <svg viewBox="0 0 24 18" className="h-8 md:h-10">
+//     <circle cx="7" cy="9" r="7" fill="#EB001B" />
+//     <circle cx="17" cy="9" r="7" fill="#F79E1B" fillOpacity="0.8" />
+//   </svg>
+
+//   {/* Visa */}
+//   <svg viewBox="0 0 24 8" className="h-6 md:h-7 fill-white">
+//     <path d="M12.5 0L10.2 8h2.3l2.3-8h-2.3zM18.8 0l-2.2 5.5L15.3 0h-2.4l3.1 8h2.3l4-8h-2.5zM4.7 0H0l.1.5C2.6 1.2 4.1 2.5 4.7 4.1L5.9 8h2.4L11.8 0H9.4L7.1 5.4 6.2 1C6.1.4 5.5 0 4.7 0z" />
+//   </svg>
+
+//   {/* Interswitch - Clean Text Representation */}
+//   <div className="flex items-center gap-1 border border-white/30 px-3 py-1 rounded">
+//     <div className="w-3 h-3 bg-[#F7931E] rounded-full animate-pulse"></div>
+//     <span className="font-black text-[10px] tracking-widest">INTERSWITCH</span>
+//   </div>
+
+//   {/* Verve */}
+//   <div className="italic font-black text-xl tracking-tighter flex items-center">
+//     <span className="text-white">Ver</span><span className="text-[#F7931E]">ve</span>
+//   </div>
+// </div>
+
+//         </div>
+//       </div>
+//       <span className="text-2xl lg:text-3xl font-black text-[#1E1E1E]">
+//         {settings.supportPhone}
+//       </span>
+//     </footer>
+//   );
+// }
+
+// function PaymentBadge({ label }: { label: string }) {
+//   return (
+//     <div className="px-5 py-2 border-2 border-white/20 rounded-lg font-black italic text-xs tracking-tighter flex items-center justify-center min-w-[110px] hover:border-[#F7931E] transition-colors cursor-default">
+//       {label}
+//     </div>
+//   );
+// }
+
+
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { 
+  Facebook, 
+  Instagram, 
+  Twitter, 
+  ShieldCheck, 
+  Lock,
+  ArrowRight
+} from "lucide-react";
+
+interface FooterProps {
+  settings?: {
+    footerDesc: string;
+    supportPhone: string;
+    supportEmail: string;
+  };
+}
+
+export default function Footer({ 
+  // Fallback defaults to prevent "undefined" errors if DB call fails
+  settings = {
+    footerDesc: "Africa's most trusted marketplace. We bridge the gap between premium global quality and local convenience.",
+    supportPhone: "+234 800-MARVEL",
+    supportEmail: "support@marvelmarts.com"
+  } 
+}: FooterProps) {
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus("success");
+        setMessage(data.message || "Welcome to the Inner Circle!");
+        setEmail("");
+      } else {
+        throw new Error(data.message || "Subscription failed");
+      }
+    } catch (err: any) {
+      setStatus("error");
+      setMessage(err.message);
+    }
+  };
+
   return (
-    <footer className="bg-gray-800 text-white h-100 md:h-150 p-4 text-center">
-      © 2025 MarvelMarts. All rights reserved.
+    <footer className="bg-[#002B5B] text-white pt-24 pb-12 border-t-8 border-[#F7931E]"> 
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 lg:px-16">
+        
+        {/* Newsletter Section */}
+        <div className="bg-[#F7931E] rounded-[3rem] p-10 md:p-16 mb-24 shadow-2xl shadow-orange-950/30 border-b-8 border-[#1E1E1E]/10">
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-12">
+            <div className="max-w-2xl text-center xl:text-left">
+              <h3 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter italic text-[#1E1E1E] leading-[0.9]">
+                Get the <span className="text-white">Marvel</span> Advantage
+              </h3>
+              <p className="text-[#002B5B] font-extrabold mt-6 text-lg md:text-xl lg:text-2xl max-w-xl">
+                Join 10,000+ shoppers receiving weekly flash sale alerts and exclusive vendor deals.
+              </p>
+            </div>
+            
+            <div className="w-full xl:w-auto">
+              <form onSubmit={handleSubscribe} className="flex flex-col md:flex-row gap-4">
+                <input 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email" 
+                  placeholder="Your best email address" 
+                  className="w-full md:w-[400px] bg-white rounded-2xl py-6 px-8 text-[#1E1E1E] text-lg outline-none shadow-xl font-bold placeholder:text-gray-400 focus:ring-4 focus:ring-[#002B5B]/20 transition-all"
+                  required
+                />
+                <button 
+                  disabled={status === "loading"} 
+                  type="submit"
+                  className="bg-[#002B5B] text-white px-12 py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-base hover:bg-[#1E1E1E] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl disabled:opacity-70"
+                >
+                  {status === "loading" ? "Processing..." : "Join Now"} <ArrowRight size={24} />
+                </button>
+              </form>
+              {message && (
+                <p className={`mt-4 font-black text-center xl:text-left uppercase tracking-widest text-sm ${status === "success" ? "text-white" : "text-[#1E1E1E]"}`}>
+                  {message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24 mb-24">
+          
+          {/* Brand & Mission */}
+          <div className="space-y-10 text-center sm:text-left">
+            <Link href="/" className="inline-block">
+              <Image 
+                src="/logo.png" 
+                alt="MarvelMarts Logo" 
+                width={320} 
+                height={100} 
+                style={{ height: "auto" }}
+                className="max-w-[200px] brightness-0 invert" 
+              />
+            </Link>
+            <p className="text-blue-100/70 text-lg leading-relaxed font-medium">
+              {settings.footerDesc}
+            </p>
+            <div className="flex justify-center sm:justify-start gap-6">
+              {[Facebook, Instagram, Twitter].map((Icon, i) => (
+                <Link key={i} href="#" className="bg-white/10 p-4 rounded-2xl hover:bg-[#F7931E] hover:text-[#1E1E1E] transition-all scale-110">
+                  <Icon size={24} />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Nav Links */}
+          <div className="lg:pl-8 text-center sm:text-left">
+            <h4 className="font-black uppercase text-sm tracking-[0.4em] mb-10 text-[#F7931E]">Explore</h4>
+            <ul className="space-y-6 text-lg font-bold text-blue-100/90">
+              <li><Link href="/shop" className="hover:text-[#F7931E] transition-all">All Products</Link></li>
+              <li><Link href="/vendors" className="hover:text-[#F7931E] transition-all">Top Vendors</Link></li>
+              <li><Link href="/sell" className="hover:text-[#F7931E] transition-all">Sell on Marvel</Link></li>
+              <li><Link href="/track-order" className="hover:text-[#F7931E] transition-all">Tracking</Link></li>
+            </ul>
+          </div>
+
+          <div className="text-center sm:text-left">
+            <h4 className="font-black uppercase text-sm tracking-[0.4em] mb-10 text-[#F7931E]">Assistance</h4>
+            <ul className="space-y-6 text-lg font-bold text-blue-100/90">
+              <li><Link href="/faq" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
+              <li><Link href="/returns" className="hover:text-[#F7931E] transition-all">Refunds</Link></li>
+              <li><Link href="/privacy" className="hover:text-[#F7931E] transition-all">Security</Link></li>
+              <li><Link href="/contact" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
+            </ul>
+          </div>
+
+          {/* Contact & Trust Card */}
+          <div className="bg-white/5 border-2 border-white/10 p-10 rounded-[3rem] space-y-8 h-fit">
+            <div className="flex items-center gap-4">
+              <div className="bg-[#F7931E] p-3 rounded-xl text-[#002B5B]">
+                <ShieldCheck size={28} />
+              </div>
+              <span className="text-sm font-black uppercase tracking-[0.2em] text-[#F7931E]">Buyer Protected</span>
+            </div>
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1">
+                 <span className="text-[10px] uppercase tracking-[0.3em] text-blue-300">Hotline</span>
+                 <span className="text-xl md:text-2xl font-black">{settings.supportPhone}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                 <span className="text-[10px] uppercase tracking-[0.3em] text-blue-300">Email Support</span>
+                 <span className="text-lg md:text-xl font-black break-words">{settings.supportEmail}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment & Legal */}
+        <div className="pt-12 border-t-2 border-white/10 flex flex-col xl:flex-row justify-between items-center gap-12">
+          <div className="flex flex-col gap-4 items-center xl:items-start text-center xl:text-left">
+             <p className="text-xs md:text-sm text-blue-200/50 font-black uppercase tracking-[0.4em]">
+               © {currentYear} MARVELMARTS MARKETPLACE NIGERIA. ALL RIGHTS RESERVED.
+             </p>
+             <div className="flex items-center gap-3 text-xs text-blue-400 font-bold italic">
+               <Lock size={14} /> 256-bit SSL SECURE ENCRYPTED ENVIRONMENT
+             </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-6 lg:gap-10 items-center grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+            <img src="https://js.paystack.co/v2/packages/paystack-logo/dist/paystack-logo-white.svg" alt="Paystack" className="h-6 md:h-8 w-auto" />
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 100 20" className="h-5 md:h-6 fill-white"><path d="M5 0h4v20H5V0zm8 0h4v20h-4V0zm8 0h4v20h-4V0zm12 4h-4V0h4v4zm0 16h-4V6h4v14z" /></svg>
+              <span className="font-black italic text-sm tracking-tighter">FLUTTERWAVE</span>
+            </div>
+            <svg viewBox="0 0 24 18" className="h-8 md:h-10"><circle cx="7" cy="9" r="7" fill="#EB001B" /><circle cx="17" cy="9" r="7" fill="#F79E1B" fillOpacity="0.8" /></svg>
+            <svg viewBox="0 0 24 8" className="h-6 md:h-7 fill-white"><path d="M12.5 0L10.2 8h2.3l2.3-8h-2.3zM18.8 0l-2.2 5.5L15.3 0h-2.4l3.1 8h2.3l4-8h-2.5zM4.7 0H0l.1.5C2.6 1.2 4.1 2.5 4.7 4.1L5.9 8h2.4L11.8 0H9.4L7.1 5.4 6.2 1C6.1.4 5.5 0 4.7 0z" /></svg>
+            <div className="italic font-black text-xl tracking-tighter flex items-center"><span className="text-white">Ver</span><span className="text-[#F7931E]">ve</span></div>
+          </div>
+        </div>
+      </div>
     </footer>
-  )
+  );
 }

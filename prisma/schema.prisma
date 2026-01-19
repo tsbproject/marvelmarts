@@ -382,3 +382,22 @@ model Blog {
 
   @@index([slug])
 }
+
+
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+}
+
+
+model SiteSettings {
+  id              Int      @id @default(1)
+  footerDesc      String   @default("Africa's most trusted marketplace.")
+  supportPhone    String   @default("+234 800-MARVEL")
+  supportEmail    String   @default("help@marvelmarts.com")
+  flashSaleActive Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}

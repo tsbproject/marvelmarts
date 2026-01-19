@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  Mail,
 } from "lucide-react";
 import { Sections, SectionLink } from "@/types/dashboard";
 
@@ -107,6 +108,13 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
           label: "Settings",
           href: "/dashboard/admins/settings",
           icon: <Settings size={20} />,
+          visible: isSuperAdmin || !!permissions.manageSettings,
+        },
+
+        {
+          label: "Subscribers",
+          href: "/dashboard/admins/subscribers",
+          icon: <Mail size={20} />,
           visible: isSuperAdmin || !!permissions.manageSettings,
         },
       ];
