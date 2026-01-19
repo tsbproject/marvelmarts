@@ -11,6 +11,9 @@ export default function Logo() {
           alt="Marvelmarts logo"
           width={100}
           height={60}
+        //    style={{ width: 'auto', height: 'auto' }}
+           priority
+           className="object-contain"
           />
 
           </Link>

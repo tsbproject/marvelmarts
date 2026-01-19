@@ -10,21 +10,29 @@
 
 
 @theme {
-  --color-brand-primary: #F7931E;
-  --color-brand-dark: #CC6E00;
-  --color-brand-light: #FFE8CC;
+  /* Mapping the variables to Tailwind utility classes */
+  --color-accent-navy: var(--brand-navy);
+  --color-brand-primary: var(--brand-orange);
+  --color-brand-light: var(--brand-orange-light);
+  --color-neutral-white: var(--brand-white);
+  --color-neutral-light: var(--brand-ghost);
+  --color-neutral-gray: var(--brand-gray);
+  --color-neutral-dark: var(--brand-black);
+}
 
-  --color-neutral-white: #FFFFFF;
-  --color-neutral-light: #F8F8F8;
-  --color-neutral-gray: #4B4B4B;
-  --color-neutral-dark: #1E1E1E;
-
-  --color-accent-teal: #009FB7;
-  --color-accent-navy: #002B5B;
-
+:root {
+  /* Defining the actual hex values */
+  --brand-navy: #002B5B;
+  --brand-orange: #F7931E;
+  --brand-orange-light: #FFE8CC;
+  --brand-white: #FFFFFF;
+  --brand-ghost: #F8F8F8;
+  --brand-gray: #4B4B4B;
+  --brand-black: #1E1E1E;
+}
 
   
-}
+
 
 @theme{
   --breakpoint-xs: 400px; 

@@ -1,84 +1,84 @@
-// // app/account/customer/layout.tsx
+
+
 // "use client";
 
 // import MobileTopbar from "@/app/_components/MobileTopbar";
 // import DashboardSidebar from "@/app/_components/DashboardSidebar";
+// import DashboardHeader from "@/app/_components/DashboardHeader";
 // import SignOutButton from "@/app/_components/SignOutButton";
 // import { customerSections } from "@/types/dashboardSections";
 
 // export default function CustomerLayout({ children }: { children: React.ReactNode }) {
 //   return (
-//     <div className="min-h-screen flex flex-col lg:flex-row">
-//       {/* Mobile Topbar */}
+//     <div className="min-h-screen flex flex-col lg:flex-row bg-neutral-light">
+      
+//       {/* Sidebar - Mobile */}
 //       <div className="lg:hidden">
 //         <MobileTopbar role="Customer" sections={customerSections} />
 //       </div>
 
-//       {/* Desktop Sidebar */}
-//       <div className="hidden lg:block">
-//         <DashboardSidebar sections={customerSections}>
-//           <header className="px-6 py-4 border-b bg-white shadow flex justify-between items-center">
-//             <h2 className="text-xl font-bold">Customer Dashboard</h2>
-//             <SignOutButton label="Sign Out" />
-//           </header>
-//           <main className="flex-1 p-8">{children}</main>
-//         </DashboardSidebar>
+//       {/* Sidebar - Desktop */}
+//       <div className="hidden lg:block border-r border-gray-200 bg-neutral-white w-64 fixed h-full z-40">
+//         <DashboardSidebar sections={customerSections} />
 //       </div>
 
-//       {/* Main Content for mobile */}
-//       <div className="flex-1 flex flex-col lg:hidden">
-//         <header className="flex justify-end p-4 border-b bg-white shadow">
-//           <SignOutButton label="Sign Out" />
+//       {/* Main Content Area */}
+//       <div className="flex-1 flex flex-col lg:ml-64 relative">
+        
+//         {/* Unified Header */}
+//         <header className="w-full px-6 py-4 bg-neutral-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+//           <div>
+//             <h2 className="text-accent-navy font-black uppercase tracking-tight text-sm md:text-lg">
+//               Customer <span className="text-brand-primary">Portal</span>
+//             </h2>
+//           </div>
+
+//           {/* Wrapper to ensure the button is visible */}
+//           <div className="flex items-center">
+//             <SignOutButton
+//               label="Logout"
+//               className="flex items-center gap-2 px-5 py-2.5 bg-accent-navy text-neutral-white rounded-xl font-bold hover:bg-neutral-dark transition-all text-xs md:text-sm shadow-lg border-none cursor-pointer"
+//             />
+//           </div>
 //         </header>
-//         <main className="flex-1 p-8">{children}</main>
+
+//         {/* Page Content */}
+//         <main className="flex-1 p-4 md:p-8 z-10">
+//           {children}
+//         </main>
 //       </div>
 //     </div>
 //   );
 // }
 
 
-// app/account/customer/layout.tsx
+
 "use client";
 
 import MobileTopbar from "@/app/_components/MobileTopbar";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
-import SignOutButton from "@/app/_components/SignOutButton";
 import { customerSections } from "@/types/dashboardSections";
 
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* ================= MOBILE TOPBAR ================= */}
-      <div className="lg:hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-neutral-light">
+      
+      {/* MOBILE NAVIGATION: Only visible on small screens */}
+      <div className="lg:hidden sticky top-0 z-50">
         <MobileTopbar role="Customer" sections={customerSections} />
       </div>
 
-      {/* ================= DESKTOP SIDEBAR ================= */}
-      <div className="hidden lg:block">
+      {/* DESKTOP SIDEBAR: Fixed position, hidden on mobile */}
+      <aside className="hidden lg:block border-r border-gray-200 bg-neutral-white w-64 fixed h-full z-40">
         <DashboardSidebar sections={customerSections} />
-      </div>
+      </aside>
 
-      {/* ================= MAIN CONTENT (DESKTOP) ================= */}
-      <div className="flex-1 flex flex-col hidden lg:flex">
-        {/* Header with logout top-right */}
-        <header className="px-6 py-4 border-b bg-white shadow flex justify-between items-center">
-          <h2 className="text-xl font-bold">Customer Dashboard</h2>
-          <SignOutButton
-            label="Sign Out"
-            className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-          />
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 p-8">{children}</main>
-      </div>
-
-      {/* ================= MAIN CONTENT (MOBILE) ================= */}
-      <div className="flex-1 flex flex-col lg:hidden">
-        <header className="flex justify-end p-4 border-b bg-white shadow">
-          <SignOutButton label="Sign Out" />
-        </header>
-        <main className="flex-1 p-8">{children}</main>
+      {/* MAIN CONTENT AREA */}
+      {/* We push the content left by 64 units on desktop to account for the fixed sidebar */}
+      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative">
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
     </div>
   );

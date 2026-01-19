@@ -24,12 +24,14 @@ model User {
   adminProfile       AdminProfile?       @relation("AdminProfileUser")
   cart               Cart?
   customerProfile    CustomerProfile?    @relation("CustomerProfileUser")
+  products           Product[]
   orders             Order[]
   passwordResetToken PasswordResetToken?
   reviews            Review[]
   sessions           Session[]
   vendorProfile      VendorProfile?      @relation("VendorProfileUser")
   verificationCodes  VerificationCode[]
+
 }
 
 model VerificationCode {
@@ -67,6 +69,12 @@ model VendorProfile {
   storeAddress String
   country      String
   state        String
+  
+  // Branding & Customization
+  logoUrl      String?  // Store Business Logo
+  coverUrl     String?  // Store Banner/Cover Photo
+  bio          String?  @db.Text // Store Description for customers
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   isVerified   Boolean  @default(false)
@@ -142,35 +150,40 @@ enum ProductStatus {
 }
 
 model Product {
-  id              String         @id @default(cuid())
-  title           String
-  slug            String         @unique
-  sku            String?
-  description     String   @db.Text
-  brand           String?
-  tags            String[]
-  price           Decimal        @db.Decimal(10, 2)
-  discountPrice   Decimal?       @db.Decimal(10, 2)
-  stock           Int            @default(0)
-  lowStockThreshold Int?         @default(5)
-  status          ProductStatus  @default(ACTIVE)
-  rating          Float          @default(0)
-  ratingCount     Int            @default(0)
-  isFeatured      Boolean        @default(false)
-  isPublished     Boolean        @default(true)
-  metaTitle       String?
-  metaDescription String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  title             String
+  slug              String         @unique
+  sku               String?
+  description       String         @db.Text
+  brand             String?
+  tags              String[]
+  price             Decimal        @db.Decimal(10, 2)
+  discountPrice     Decimal?       @db.Decimal(10, 2)
+  stock             Int            @default(0)
+  lowStockThreshold Int?           @default(5)
+  status            ProductStatus  @default(ACTIVE)
+  rating            Float          @default(0)
+  ratingCount       Int            @default(0)
+  isFeatured        Boolean        @default(false)
+  isPublished       Boolean        @default(true)
+  metaTitle         String?
+  metaDescription   String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  // Relations
-  categoryId      String?
-  category        Category?      @relation(fields: [categoryId], references: [id])
-  cartItems       CartItem[]
-  orderItems      OrderItem[]
-  images          ProductImage[]
-  reviews         Review[]
-  variants        Variant[]
+  //RELATIONS
+  categoryId        String?
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  
+  //Multi-Vendor Link
+  vendorId          String?        // ID of the User who owns this product
+  vendor            User?          @relation(fields: [vendorId], references: [id])
+
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  images            ProductImage[]
+  reviews           Review[]
+  variants          Variant[]
 }
 
 model ProductImage {

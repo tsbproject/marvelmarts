@@ -6,7 +6,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadToCloudinary = async (file: File, folder: string) => {
+/**
+ * Uploads a file to Cloudinary using a buffer stream
+ */
+export const uploadToCloudinary = async (file: File, folder: string): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
@@ -18,8 +21,35 @@ export const uploadToCloudinary = async (file: File, folder: string) => {
       },
       (error, result) => {
         if (error) reject(error);
-        else resolve(result?.secure_url);
+        else resolve(result?.secure_url as string);
       }
     ).end(buffer);
   });
+};
+
+/**
+ * Deletes an image from Cloudinary given its secure_url
+ */
+export const deleteFromCloudinary = async (url: string) => {
+  try {
+    // 1. Check if URL is valid
+    if (!url || !url.includes("cloudinary")) return;
+
+    // 2. Extract Public ID 
+    // Example URL: https://res.cloudinary.com/demo/image/upload/v1/marvelmarts/products/abc.jpg
+    // We need: marvelmarts/products/abc
+    const parts = url.split("/");
+    const marvelIndex = parts.indexOf("marvelmarts");
+    if (marvelIndex === -1) return;
+
+    const publicId = parts
+      .slice(marvelIndex)
+      .join("/")
+      .split(".")[0]; // Removes the extension (.jpg, .png)
+
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;
+  } catch (error) {
+    console.error("Cloudinary Delete Error:", error);
+  }
 };

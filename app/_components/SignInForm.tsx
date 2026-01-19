@@ -132,7 +132,7 @@ export default function SignInPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-xs font-black text-accent-navy uppercase tracking-[0.15em]">Password</label>
-                <Link href="/auth/forgot-password"  className="text-xs font-black text-brand-primary hover:underline">
+                <Link href="/auth/forgot-password"  className="text-sm font-black text-brand-primary hover:underline">
                   Reset?
                 </Link>
               </div>

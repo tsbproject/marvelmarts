@@ -1,8 +1,3 @@
-
-
-
-
-
 "use client";
 
 import Link from "next/link";
@@ -38,7 +33,7 @@ export default function AdminsTable({
   return (
     <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header Section */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
         <div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tight">
             Team Management
@@ -64,7 +59,7 @@ export default function AdminsTable({
           return (
             <div
               key={admin.id}
-              className="group rounded-[32px] border border-gray-100 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300"
+              className="group rounded-4xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
