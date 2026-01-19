@@ -116,15 +116,16 @@ function ReduxSessionSync() {
   return null;
 }
 
-
+interface SiteSettings {
+  footerDesc: string;
+  supportPhone: string;
+  supportEmail: string;
+}
 
 interface ClientLayoutProps {
   children: React.ReactNode;
-  settings: {
-    footerDesc: string;
-    supportPhone: string;
-    supportEmail: string;
-  }; 
+  settings:SiteSettings
+    
 }
 
 export default function ClientLayout({ children, settings }: ClientLayoutProps) {
