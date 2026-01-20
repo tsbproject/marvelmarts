@@ -129,7 +129,7 @@ export default function Footer({ settings }: FooterProps) {
                 width={320} 
                 height={100} 
                 style={{ height: "auto" }}
-                className="max-w-[200px] brightness-0 invert" 
+                className="max-w-[100px]" 
               />
             </Link>
             <p className="text-blue-100/70 text-lg leading-relaxed font-medium">
