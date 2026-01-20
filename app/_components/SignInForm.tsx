@@ -104,7 +104,7 @@ export default function SignInPage() {
 
           <div className="mb-10 text-center lg:text-left">
             <h1 className="text-4xl font-black text-neutral-dark tracking-tight mb-3">Sign In</h1>
-            <p className="text-neutral-dark font-medium text-lg text-balance">Access your account and manage your orders</p>
+            <p className="text-neutral-dark font-medium text-lg md:text-xl text-balance">Access your account and manage your orders</p>
           </div>
 
           {error && (
@@ -115,14 +115,14 @@ export default function SignInPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-black text-accent-navy uppercase tracking-[0.15em] ml-1">Email or Username</label>
+              <label className="text-xl font-black text-accent-navy uppercase tracking-[0.15em] ml-1">Email</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-primary transition-colors" size={20} />
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-neutral-light font-bold placeholder:text-gray-400 shadow-inner"
+                  className="w-full pl-12 pr-4 py-4 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-xl text-accent-navy font-bold placeholder:text-gray-400 shadow-inner"
                   placeholder="Enter your email or username"
                   required
                 />
@@ -131,8 +131,8 @@ export default function SignInPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-xs font-black text-accent-navy uppercase tracking-[0.15em]">Password</label>
-                <Link href="/auth/forgot-password"  className="text-sm font-black text-brand-primary hover:underline">
+                <label className="text-xl font-black  text-accent-navy uppercase tracking-[0.15em]">Password</label>
+                <Link href="/auth/forgot-password"  className="text-md font-black text-brand-primary hover:underline">
                   Reset?
                 </Link>
               </div>
