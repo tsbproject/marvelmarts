@@ -65,12 +65,12 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
                         {
                           label: "Add Admin",
                           link: "/dashboard/admins/create",
-                          style: "bg-blue-600 hover:bg-blue-700 w-32 text-center",
+                          style: "bg-blue-600 hover:bg-blue-700 w-40 text-center text-white",
                         },
                         {
                           label: "Add Category",
                           link: "/dashboard/admins/categories/create",
-                          style: "bg-green-600 hover:bg-green-700 w-36 text-center",
+                          style: "bg-green-600 hover:bg-green-700 w-50 text-center text-white",
                         },
                       ]
                     : []
@@ -99,12 +99,12 @@ export default function AdminLayoutClient({ user, children }: AdminLayoutClientP
                       {
                         label: "Add Admin",
                         link: "/dashboard/admins/create",
-                        style: "bg-blue-600 hover:bg-blue-700 w-full py-5 sm:w-32 text-center",
+                        style: "bg-blue-950 hover:bg-blue-700 w-full py-5 sm:w-32 text-center text-white",
                       },
                       {
                         label: "Add Category",
                         link: "/dashboard/admins/categories/create",
-                        style: "bg-green-600 hover:bg-green-700 w-full py-5 sm:w-36 text-center",
+                        style: "bg-green-600 hover:bg-green-700 w-full py-5 sm:w-36 text-center text-white",
                       },
                     ]
                   : []

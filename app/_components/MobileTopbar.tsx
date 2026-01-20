@@ -53,7 +53,7 @@ export default function MobileTopbar({
   return (
     <div className="lg:hidden flex flex-col w-full relative">
       {/* Sleek Header */}
-      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-[60] shadow-sm">
+      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-60 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-600/20">
             M
@@ -80,7 +80,7 @@ export default function MobileTopbar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[70]"
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-70"
               onClick={() => setMobileOpen(false)}
             />
 
@@ -89,7 +89,7 @@ export default function MobileTopbar({
               initial="hidden"
               animate="show"
               exit="exit"
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[80] shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-80 shadow-2xl flex flex-col"
             >
               {/* Drawer Header */}
               <div className="p-6 border-b border-gray-50 flex items-center justify-between">
@@ -98,8 +98,8 @@ export default function MobileTopbar({
                     <UserCircleIcon className="w-8 h-8" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900">Admin Account</p>
-                    <p className="text-xs text-gray-400">Settings & Profile</p>
+                    <p className="text-md font-bold text-gray-900">Admin Account</p>
+                    <p className="text-xs text-gray-400">Admin Dashboard</p>
                   </div>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400">
@@ -122,7 +122,7 @@ export default function MobileTopbar({
                           className="flex items-center justify-between group p-3 rounded-xl hover:bg-indigo-50 transition-all"
                         >
                           <div className="flex items-center gap-3">
-                             <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
+                             <span className="text-lg font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
                           </div>
                           <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-transform group-hover:translate-x-1" />
                         </Link>
@@ -141,7 +141,7 @@ export default function MobileTopbar({
                       className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col gap-2 group active:scale-95 transition-all"
                     >
                       <BookOpenIcon className="w-6 h-6 text-blue-600" />
-                      <span className="text-xs font-black text-blue-900 uppercase tracking-tight">Articles</span>
+                      <span className="text-lg font-black text-blue-900 uppercase tracking-tight">Articles</span>
                     </Link>
                     <Link
                       href="/dashboard/admins/support/tickets"
@@ -149,7 +149,7 @@ export default function MobileTopbar({
                       className="p-4 rounded-2xl bg-orange-50 border border-orange-100 flex flex-col gap-2 group active:scale-95 transition-all"
                     >
                       <TicketIcon className="w-6 h-6 text-orange-600" />
-                      <span className="text-xs font-black text-orange-900 uppercase tracking-tight">Tickets</span>
+                      <span className="text-lg font-black text-orange-900 uppercase tracking-tight">Tickets</span>
                     </Link>
                   </div>
                 </section>
@@ -175,7 +175,7 @@ export default function MobileTopbar({
                 <SignOutButton
                   redirectPath="/auth/sign-in"
                   label="Secure Logout"
-                  className="w-full py-4 bg-white border border-red-100 text-red-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-50 transition-colors shadow-sm"
+                  className="w-full py-4 bg-white border border-red-100 text-red-600 rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-red-50 transition-colors shadow-sm"
                 />
               </div>
             </motion.nav>
