@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import ProductQuickView from "./ProductQuickView";
 import { Zap, ShoppingBag } from "lucide-react";
-import { SerializedProduct } from "@/types/product"; // Ensure this path is correct
+import { SerializedProduct } from "@/types/product"; 
 
 interface FlashSalesProps {
   products: SerializedProduct[];

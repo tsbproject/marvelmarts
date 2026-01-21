@@ -1,55 +1,8 @@
-// // // app/_components/NewArrival.tsx
-// // "use client";
-
-// // import React, { useState } from "react";
-// // import ProductCard from "./ProductCard"; 
-// // import ProductQuickView from "./ProductQuickView";
-
-// // interface NewArrivalsProps {
-// //   products: any[]; // Use your Product type here
-// // }
-
-// // export default function NewArrivals({ products }: NewArrivalsProps) {
-// //   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-// //   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-
-// //   const handleQuickView = (product: any) => {
-// //     setSelectedProduct(product);
-// //     setIsQuickViewOpen(true);
-// //   };
-
-// //   return (
-// //     <section>
-// //       <div className="flex items-center justify-between mb-6">
-// //         <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
-// //         <span className="text-blue-600 font-semibold cursor-pointer text-sm">See All</span>
-// //       </div>
-
-// //       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-// //         {products.map((product) => (
-// //           <ProductCard 
-// //             key={product.id} 
-// //             product={product} 
-// //             onQuickView={handleQuickView} 
-// //           />
-// //         ))}
-// //       </div>
-
-// //       <ProductQuickView 
-// //         product={selectedProduct} 
-// //         isOpen={isQuickViewOpen} 
-// //         onClose={() => setIsQuickViewOpen(false)} 
-// //       />
-// //     </section>
-// //   );
-// // }
-
-
-
 // "use client";
 
 // import React from "react";
 // import ProductCard from "./ProductCard";
+// import ProductSkeleton from "./ProductSkeleton";
 // import { SerializedProduct } from "@/types/product";
 // import { ArrowRight } from "lucide-react";
 // import Link from "next/link";
@@ -79,19 +32,18 @@
 //         </Link>
 //       </div>
 
-//       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-//         {products.map((product) => (
-//           <ProductCard 
-//             key={product.id} 
-//             product={product} 
-//             onQuickView={handleQuickView} 
-//           />
-//         ))}
-//       </div>
+//       {/* Changed grid-cols-1 to grid-cols-2 */}
+//       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+//          {loading 
+//     ? [...Array(4)].map((_, i) => <ProductSkeleton key={i} />)
+//     : products.map((product) => (
+//         <ProductCard key={product.id} product={product} onQuickView={handleQuickView} />
+//       ))
+//   }
+// </div>
 //     </section>
 //   );
 // }
-
 
 
 
@@ -99,11 +51,15 @@
 
 import React from "react";
 import ProductCard from "./ProductCard";
+import ProductSkeleton from "./ProductSkeleton";
 import { SerializedProduct } from "@/types/product";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; // Adjust path as needed
 
 export default function NewArrival({ products }: { products: SerializedProduct[] }) {
+  const { loading } = useLoadingOverlay();
+
   const handleQuickView = (product: SerializedProduct) => {
     console.log("Quick view for:", product.title);
   };
@@ -128,15 +84,18 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
         </Link>
       </div>
 
-      {/* Changed grid-cols-1 to grid-cols-2 */}
+      {/* Grid configured for 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-        {products.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product} 
-            onQuickView={handleQuickView} 
-          />
-        ))}
+        {loading 
+          ? [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
+          : products.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onQuickView={handleQuickView} 
+              />
+            ))
+        }
       </div>
     </section>
   );
