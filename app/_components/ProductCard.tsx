@@ -55,7 +55,7 @@ export default function ProductCard({
       </div>
 
       {/* 3. Product Info */}
-      <div className="flex-1 flex flex-col items-center text-center w-full px-2 mt-4">
+      <div className="flex-1 flex  items-center text-center w-full px-2 mt-4">
         <Link href={`/products/${product.slug}`}>
           <h3 className="text-sm font-medium text-gray-800 line-clamp-2 h-10 mb-1 hover:text-blue-600 transition-colors">
             {product.title}

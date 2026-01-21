@@ -1,4 +1,7 @@
-// // app/components/ClientLayout.tsx
+
+
+
+
 // "use client";
 
 // import { Provider } from "react-redux";
@@ -15,7 +18,7 @@
 // import { useDispatch } from "react-redux";
 // import { setUser } from "@/store/authSlice";
 
-// //Separate component to sync NextAuth session into Redux
+// // Separate component to sync NextAuth session into Redux
 // function ReduxSessionSync() {
 //   const { data: session } = useSession();
 //   const dispatch = useDispatch();
@@ -25,7 +28,7 @@
 //       dispatch(
 //         setUser({
 //           ...session.user,
-//           name: session.user.name ?? "", // fallback to empty string
+//           name: session.user.name ?? "", 
 //         })
 //       );
 //     } else {
@@ -33,21 +36,32 @@
 //     }
 //   }, [session, dispatch]);
 
-//   return null; // no UI, just syncing
+//   return null;
 // }
 
-// export default function ClientLayout({ children }: { children: React.ReactNode }) {
+// interface SiteSettings {
+//   footerDesc: string;
+//   supportPhone: string;
+//   supportEmail: string;
+// }
+
+// interface ClientLayoutProps {
+//   children: React.ReactNode;
+//   settings:SiteSettings
+    
+// }
+
+// export default function ClientLayout({ children, settings }: ClientLayoutProps) {
 //   return (
 //     <Provider store={store}>
 //       <NextAuthSessionProvider>
 //         <CustomSessionProvider>
 //           <NotificationProvider>
 //             <LoadingOverlayProvider>
-//               {/* ✅ Sync session into Redux */}
 //               <ReduxSessionSync />
 
 //               <NextTopLoader
-//                 color="#2563eb"
+//                 color="#002B5B" // Updated to Official Brand Navy
 //                 height={3}
 //                 showSpinner={false}
 //                 crawlSpeed={200}
@@ -55,19 +69,16 @@
 //                 speed={200}
 //               />
 
-//               {/* Global header */}
 //               <Header />
 
-//               {/* Category navigation directly under header */}
 //               <div className="hidden lg:block">
 //                 <CategoryMenu />
 //               </div>
 
-//               {/* Page content */}
-//               <main className="min-h-screen p-4">{children}</main>
+//               <main className="min-h-screen">{children}</main>
 
-//               {/* Global footer */}
-//               <Footer />
+//               {/*Passing dynamic settings to the Footer */}
+//               <Footer settings={settings} />
 //             </LoadingOverlayProvider>
 //           </NotificationProvider>
 //         </CustomSessionProvider>
@@ -95,17 +106,20 @@ import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/store/authSlice";
 
-// Separate component to sync NextAuth session into Redux
-function ReduxSessionSync() {
+/**
+ * Syncs the NextAuth session and initializes the cart from LocalStorage
+ */
+function ReduxStateSync() {
   const { data: session } = useSession();
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Sync Auth Session
     if (session?.user) {
       dispatch(
         setUser({
           ...session.user,
-          name: session.user.name ?? "", 
+          name: session.user.name ?? "",
         })
       );
     } else {
@@ -124,8 +138,7 @@ interface SiteSettings {
 
 interface ClientLayoutProps {
   children: React.ReactNode;
-  settings:SiteSettings
-    
+  settings: SiteSettings;
 }
 
 export default function ClientLayout({ children, settings }: ClientLayoutProps) {
@@ -135,10 +148,11 @@ export default function ClientLayout({ children, settings }: ClientLayoutProps) 
         <CustomSessionProvider>
           <NotificationProvider>
             <LoadingOverlayProvider>
-              <ReduxSessionSync />
+              {/* Syncs Session & Global State */}
+              <ReduxStateSync />
 
               <NextTopLoader
-                color="#002B5B" // Updated to Official Brand Navy
+                color="#002B5B" 
                 height={3}
                 showSpinner={false}
                 crawlSpeed={200}
@@ -152,9 +166,10 @@ export default function ClientLayout({ children, settings }: ClientLayoutProps) 
                 <CategoryMenu />
               </div>
 
-              <main className="min-h-screen">{children}</main>
+              <main className="min-h-screen">
+                {children}
+              </main>
 
-              {/*Passing dynamic settings to the Footer */}
               <Footer settings={settings} />
             </LoadingOverlayProvider>
           </NotificationProvider>

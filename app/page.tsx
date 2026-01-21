@@ -1,6 +1,3 @@
-
-
-
 import prisma from "@/app/lib/prisma";
 import { SerializedProduct } from "@/types/product";
 import EcommerceCarousel from './_components/EcommerceCarousel';

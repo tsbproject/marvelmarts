@@ -85,7 +85,7 @@ export default function Header() {
         <CartDrawer />
       </div>
 
-      {/* 👇 RIGHT CORNER AREA FOR ALL ICONS */}
+      {/*  RIGHT CORNER AREA FOR ALL ICONS */}
       <div className="absolute right-90 -top-3 flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>

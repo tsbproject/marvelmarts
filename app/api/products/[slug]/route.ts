@@ -1,9 +1,5 @@
-
-
-
-
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
+import { prisma } from "@/app/lib/prisma"; // Ensure correct path
 import { productSchema } from "@/app/lib/validations/product";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
@@ -11,11 +7,9 @@ import { authOptions } from "@/app/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-
-
-
 /* ===========================
-   Helper: Format Decimal to Number
+    Helper: Format Decimal to Number
+    Ensures frontend doesn't crash on Prisma Decimal types
 =========================== */
 const formatSafeProduct = (product: any) => ({
   ...product,
@@ -28,7 +22,8 @@ const formatSafeProduct = (product: any) => ({
 });
 
 /* ===========================
-   GET /api/products/[slug]
+    GET /api/products/[slug]
+    Used for the Public Product Details Page
 =========================== */
 export async function GET(
   request: NextRequest,
@@ -40,11 +35,11 @@ export async function GET(
     const product = await prisma.product.findUnique({
       where: { slug },
       include: {
-        images: true,
-        category: true,
+        images: { orderBy: { order: "asc" } },
+        category: { select: { id: true, name: true } },
         variants: true,
-        reviews: true,
-        vendor: { // 🔹 Include vendor info for the marketplace
+        reviews: { include: { user: { select: { name: true, image: true } } } },
+        vendor: {
           select: {
             name: true,
             vendorProfile: true,
@@ -54,21 +49,22 @@ export async function GET(
     });
 
     if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
+      return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(formatSafeProduct(product));
+    return NextResponse.json({ 
+      success: true, 
+      product: formatSafeProduct(product) 
+    });
   } catch (err) {
     console.error("GET error:", err);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
   }
 }
 
 /* ===========================
-   PUT /api/products/[slug]
-=========================== */
-/* ===========================
     PUT /api/products/[slug]
+    Used for updating via Slug (Admin/Vendor)
 =========================== */
 export async function PUT(
   request: NextRequest,
@@ -80,25 +76,22 @@ export async function PUT(
 
     const { slug } = await params;
     
-    // 1. Find the product first to check ownership
+    // 1. Ownership & Security Check
     const existingProduct = await prisma.product.findUnique({
       where: { slug },
-      select: { vendorId: true }
+      select: { id: true, vendorId: true }
     });
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
-    // 2. SECURITY CHECK
-    const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
     const isOwner = existingProduct.vendorId === session.user.id;
 
     if (!isAdmin && !isOwner) {
-      return NextResponse.json({ message: "Forbidden: You do not own this product" }, { status: 403 });
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
-    
-    // This is where the error stems from - productSchema doesn't have isPublished
     const parsed = productSchema.parse(body);
 
     const updatedProduct = await prisma.product.update({
@@ -112,16 +105,17 @@ export async function PUT(
         categoryId: parsed.categoryId,
         status: parsed.status,
         isFeatured: parsed.isFeatured,
-        // FIX: Derive isPublished from status if your DB requires it.
-        // If your DB doesn't have an isPublished column, delete this line entirely.
-        isPublished: parsed.status === "ACTIVE", 
-        metaTitle: parsed.metaTitle,
-        metaDescription: parsed.metaDescription,
+        // Aligns with Phase 2: SEO and Metadata
+        metaTitle: parsed.metaTitle || parsed.title,
+        metaDescription: parsed.metaDescription || parsed.description?.substring(0, 160),
       },
       include: { images: true, category: true, variants: true },
     });
 
-    return NextResponse.json(formatSafeProduct(updatedProduct));
+    return NextResponse.json({ 
+      success: true, 
+      product: formatSafeProduct(updatedProduct) 
+    });
   } catch (err: any) {
     if (err?.name === "ZodError") return NextResponse.json({ errors: err.errors }, { status: 400 });
     console.error("Update error:", err);
@@ -130,7 +124,7 @@ export async function PUT(
 }
 
 /* ===========================
-   DELETE /api/products/[slug]
+    DELETE /api/products/[slug]
 =========================== */
 export async function DELETE(
   request: NextRequest,
@@ -138,6 +132,8 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
     const { slug } = await params;
 
     const existingProduct = await prisma.product.findUnique({
@@ -147,9 +143,8 @@ export async function DELETE(
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
-    //  SECURITY CHECK
-    const isAdmin = session?.user.role === "ADMIN" || session?.user.role === "SUPER_ADMIN";
-    const isOwner = existingProduct.vendorId === session?.user.id;
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const isOwner = existingProduct.vendorId === session.user.id;
 
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -157,8 +152,8 @@ export async function DELETE(
 
     await prisma.product.delete({ where: { slug } });
 
-    return NextResponse.json({ message: "Product deleted successfully" });
+    return NextResponse.json({ success: true, message: "Product deleted successfully" });
   } catch (err) {
-    return NextResponse.json({ message: "Delete failed" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Delete failed" }, { status: 500 });
   }
 }

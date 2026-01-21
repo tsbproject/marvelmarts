@@ -75,7 +75,7 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 w-full relative z-50" ref={dropdownRef}>
+    <div className="flex items-center justify-center px-4 w-full relative z-20" ref={dropdownRef}>
       <div className="relative 2xl:left-35 bottom-5 w-full xl:w-[800px] 2xl:w-[1600px] lg:max-w-3xl xl:max-w-3xl 2xl:max-w-4xl 2xl:-ml-10 group">
         
         {/* --- INPUT FIELD --- */}
