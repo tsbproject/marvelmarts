@@ -191,7 +191,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-import ProductQuickView from "./ProductQuickView"; 
+import ProductQuickViewDrawer from "./ProductQuickViewDrawer"; // Updated to Drawer
 
 export default function NewArrival({ products }: { products: SerializedProduct[] }) {
   const router = useRouter();
@@ -246,7 +246,7 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
 
       {/* Quick View Bottom Sheet (Better UX for Mobile) */}
       {selectedProduct && (
-        <ProductQuickView 
+        <ProductQuickViewDrawer 
           isOpen={isDrawerOpen} 
           onClose={() => setIsDrawerOpen(false)} 
           product={selectedProduct} 
