@@ -37,7 +37,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-100 backdrop-blur-sm"
           />
 
           {/* Bottom Sheet */}
@@ -113,7 +113,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                   <Link
                     href={`/products/${product.slug}`}
                     onClick={onClose}
-                    className="w-full bg-gray-50 text-gray-900 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 border border-gray-100 active:scale-[0.98] transition-transform"
+                    className="w-full bg-accent-navy text-gray-50 py-4 rounded-2xl font-black uppercase tracking-widest text-xl flex items-center justify-center gap-2 border border-gray-100 active:scale-[0.98] transition-transform"
                   >
                     View Full Details
                     <ArrowRight size={16} />
