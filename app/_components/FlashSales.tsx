@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
+import ProductSkeleton from "./ProductSkeleton";
 import ProductQuickView from "./ProductQuickView";
 import { Zap, ShoppingBag } from "lucide-react";
 import { SerializedProduct } from "@/types/product"; 
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
 interface FlashSalesProps {
   products: SerializedProduct[];
@@ -12,11 +14,11 @@ interface FlashSalesProps {
 }
 
 export default function FlashSales({ products, endTime }: FlashSalesProps) {
+  const { loading } = useLoadingOverlay();
   const [timeLeft, setTimeLeft] = useState({ hrs: 0, mins: 0, secs: 0 });
   const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
-  // Timer Logic must be inside the component
   useEffect(() => {
     if (!endTime) return;
 
@@ -74,8 +76,14 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
         </div>
       </div>
 
-      {/* Grid Fix */}
-      {products && products.length > 0 ? (
+      {/* Grid with Loading/Empty State logic */}
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <ProductSkeleton key={i} />
+          ))}
+        </div>
+      ) : products && products.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
           {products.map((product) => (
             <ProductCard
