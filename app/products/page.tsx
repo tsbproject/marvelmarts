@@ -2,17 +2,17 @@
 
 // import React, { useEffect, useState } from "react";
 // import Link from "next/link";
-// import { ShoppingBag, ArrowRight, Eye, Star } from "lucide-react";
+// import { ShoppingBag, ArrowRight, Eye, Star, ShoppingCart } from "lucide-react";
 // import ProductQuickView from "@/app/_components/ProductQuickView";
+// import ProductSkeleton from "@/app/_components/ProductSkeleton";
 // import { formatNaira } from "@/app/lib/FormatNaira";
+// import { useDispatch } from "react-redux";
+// import { addToCart } from "@/store/cartSlice";
+// import { useNotification } from "@/app/_context/NotificationContext";
+// import { SerializedProduct } from "@/types/product";
 
-// interface ProductImage {
-//   id: string;
-//   url: string;
-//   order: number;
-// }
-
-// interface Product {
+// // Internal interface for the API response
+// interface RawProduct {
 //   id: string;
 //   slug: string;
 //   title: string;
@@ -21,17 +21,22 @@
 //   discountPrice?: number | null;
 //   imageUrl: string;
 //   brand?: string | null;
-//   images: ProductImage[];
+//   images: { id: string; url: string; order: number }[];
 //   stock: number;
 //   rating?: number;
 //   reviewCount?: number;
+//   category?: { name: string };
+//   createdAt?: string | Date;
+//   updatedAt?: string | Date;
 // }
 
 // export default function ProductsPage() {
-//   const [products, setProducts] = useState<Product[]>([]);
+//   const dispatch = useDispatch();
+//   const { notifySuccess } = useNotification();
+//   const [products, setProducts] = useState<RawProduct[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-//   const [selectedProductForQuickView, setSelectedProductForQuickView] = useState<Product | null>(null);
+//   const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
 
 //   useEffect(() => {
 //     async function fetchProducts() {
@@ -48,32 +53,53 @@
 //     fetchProducts();
 //   }, []);
 
-//   const openQuickView = (product: Product) => {
-//     setSelectedProductForQuickView(product);
+//   const transformToSerialized = (product: RawProduct): SerializedProduct => {
+//     return {
+//       ...product,
+//       categoryName: product.category?.name || "General",
+//       createdAt: typeof product.createdAt === 'string' ? product.createdAt : new Date().toISOString(),
+//       updatedAt: typeof product.updatedAt === 'string' ? product.updatedAt : new Date().toISOString(),
+//       discountPrice: product.discountPrice ?? null,
+//     } as SerializedProduct;
+//   };
+
+//   const openQuickView = (product: RawProduct) => {
+//     setSelectedProduct(transformToSerialized(product));
 //     setIsQuickViewOpen(true);
 //   };
 
-//   const closeQuickView = () => {
-//     setIsQuickViewOpen(false);
-//     setSelectedProductForQuickView(null);
+//   const handleAddToCart = (product: RawProduct) => {
+//     const serialized = transformToSerialized(product);
+//     dispatch(addToCart({ product: serialized, quantity: 1 }));
+//     notifySuccess(`${product.title} added to stash!`);
 //   };
 
-  
-
-//   if (loading) return <LoadingSkeleton />;
+//   if (loading) {
+//     return (
+//       <div className="max-w-7xl mx-auto px-4 py-12">
+//         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+//           {[...Array(8)].map((_, i) => <ProductSkeleton key={i} />)}
+//         </div>
+//       </div>
+//     );
+//   }
 
 //   return (
 //     <div className="bg-[#F9FAFB] min-h-screen">
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-25 py-25">
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 //         {/* Header Section */}
 //         <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-4">
 //           <div>
-//             <h1 className="text-3xl font-bold text-gray-900">Featured Products</h1>
-//             <p className="mt-1 text-gray-500 text-sm">Quality items curated just for you.</p>
+//             <h1 className="text-4xl md:text-5xl font-black italic text-gray-900 uppercase tracking-tighter">
+//               The <span className="text-blue-600">Armory</span>
+//             </h1>
+//             <p className="mt-1 text-gray-500 text-xs font-bold uppercase tracking-widest">
+//               Full Deployment of Available Gear
+//             </p>
 //           </div>
 //           <Link 
 //             href="/categories" 
-//             className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+//             className="text-xs font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
 //           >
 //             All Categories <ArrowRight size={16} />
 //           </Link>
@@ -86,61 +112,57 @@
 //             <p className="mt-1 text-gray-500">Upload products to see them appear here.</p>
 //           </div>
 //         ) : (
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+//           /* 2-Column Grid for Mobile, 4-Column for Desktop */
+//           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
 //             {products.map((product) => (
 //               <div 
 //                 key={product.id} 
-//                 className="group bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center transition-all duration-300 hover:shadow-xl hover:border-blue-100"
+//                 className="group bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center transition-all duration-300 hover:shadow-xl relative"
 //               >
-//                 {/* Image Container: Light grey background, contain object */}
-//                 <div className="relative w-full aspect-square bg-[#F3F4F6] rounded-xl overflow-hidden mb-5 flex items-center justify-center p-6">
-//                   <img
-//                     src={product.imageUrl || product.images?.[0]?.url || "/placeholder.png"}
-//                     alt={product.title}
-//                     className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
-//                   />
+//                 {/* Image Container */}
+//                 <div className="relative w-full aspect-square bg-[#F3F4F6] rounded-xl overflow-hidden mb-4 flex items-center justify-center p-4">
+//                   <Link href={`/products/${product.slug}`} className="w-full h-full">
+//                     <img
+//                       src={product.imageUrl || "/placeholder.png"}
+//                       alt={product.title}
+//                       className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+//                     />
+//                   </Link>
                   
-//                   {/* Quick View Button: Minimalist hover overlay */}
-//                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-//                     <button 
-//                       onClick={() => openQuickView(product)}
-//                       className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-900 shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-white"
-//                       title="Quick View"
-//                     >
-//                       <Eye size={20} />
-//                     </button>
-//                   </div>
+//                   <button 
+//                     onClick={() => openQuickView(product)}
+//                     className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-900 shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white"
+//                   >
+//                     <Eye size={18} />
+//                   </button>
 //                 </div>
 
-//                 {/* Content: Centered Text */}
-//                 <div className="flex-1 flex flex-col items-center text-center w-full px-2">
+//                 {/* Content */}
+//                 <div className="flex-1 flex flex-col items-center text-center w-full px-1">
 //                   <Link href={`/products/${product.slug}`} className="block w-full">
-//                     <h2 className="text-[14px] font-medium text-gray-800 line-clamp-2 h-10 mb-2 leading-snug group-hover:text-blue-600 transition-colors">
+//                     <h2 className="text-[13px] md:text-sm font-bold text-gray-800 line-clamp-2 h-10 mb-1 hover:text-blue-600 transition-colors">
 //                       {product.title}
 //                     </h2>
 //                   </Link>
 
-//                   {/* Price */}
-//                   <p className="text-lg font-extrabold text-[#2563EB] mb-2">
+//                   <p className="text-base md:text-lg font-black text-blue-600 mb-2">
 //                     {formatNaira(product.discountPrice || product.price)}
 //                   </p>
 
-//                   {/* Ratings: Static mock for the UI style */}
-//                   <div className="flex items-center gap-1.5 mb-5">
+//                   <div className="flex items-center gap-1 mb-4">
 //                     <div className="flex text-yellow-400">
 //                       {[...Array(5)].map((_, i) => (
-//                         <Star key={i} size={14} fill={i < 4 ? "currentColor" : "none"} />
+//                         <Star key={i} size={10} fill={i < 4 ? "currentColor" : "none"} />
 //                       ))}
 //                     </div>
-//                     <span className="text-[11px] text-gray-400 font-medium">(120)</span>
 //                   </div>
 //                 </div>
 
-//                 {/* Centered Add to Cart Button */}
 //                 <button 
-//                   onClick={() => alert(`Added ${product.title} to cart`)}
-//                   className="w-full bg-[#2563EB] hover:bg-blue-700 text-white py-3 rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.97] flex items-center justify-center gap-2"
+//                   onClick={() => handleAddToCart(product)}
+//                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-full font-bold text-xs md:text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
 //                 >
+//                   <ShoppingCart size={16} />
 //                   Add to Cart
 //                 </button>
 //               </div>
@@ -150,30 +172,17 @@
 //       </div>
 
 //       <ProductQuickView
-//         product={selectedProductForQuickView}
+//         product={selectedProduct}
 //         isOpen={isQuickViewOpen}
-//         onClose={closeQuickView}
+//         onClose={() => {
+//           setIsQuickViewOpen(false);
+//           setSelectedProduct(null);
+//         }}
 //       />
 //     </div>
 //   );
 // }
 
-// function LoadingSkeleton() {
-//   return (
-//     <div className="max-w-7xl mx-auto px-4 py-12">
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-//         {[1, 2, 3, 4].map((i) => (
-//           <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse">
-//             <div className="aspect-square bg-gray-200 rounded-xl mb-5" />
-//             <div className="h-4 w-3/4 bg-gray-200 rounded mx-auto mb-3" />
-//             <div className="h-4 w-1/4 bg-gray-200 rounded mx-auto mb-6" />
-//             <div className="h-10 w-full bg-gray-200 rounded-full" />
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
 
 
 
@@ -181,19 +190,16 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, ArrowRight, Eye, Star } from "lucide-react";
+import { ShoppingBag, ArrowRight, Eye, Star, ShoppingCart } from "lucide-react";
 import ProductQuickView from "@/app/_components/ProductQuickView";
+import ProductSkeleton from "@/app/_components/ProductSkeleton";
 import { formatNaira } from "@/app/lib/FormatNaira";
+import { useDispatch } from "react-redux";
+import { addToCart } from "@/store/cartSlice";
+import { useNotification } from "@/app/_context/NotificationContext";
+import { SerializedProduct } from "@/types/product";
 
-// Import your shared types to ensure alignment
-import { SerializedProduct } from "@/types/product"; 
-interface ProductImage {
-  id: string;
-  url: string;
-  order: number;
-}
-
-interface Product {
+interface RawProduct {
   id: string;
   slug: string;
   title: string;
@@ -202,22 +208,22 @@ interface Product {
   discountPrice?: number | null;
   imageUrl: string;
   brand?: string | null;
-  images: ProductImage[];
+  images: { id: string; url: string; order: number }[];
   stock: number;
   rating?: number;
   reviewCount?: number;
-  category?: { name: string }; // Added to support transformation
+  category?: { name: string };
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const dispatch = useDispatch();
+  const { notifySuccess } = useNotification();
+  const [products, setProducts] = useState<RawProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  
-  // Use SerializedProduct type here to match the component prop
-  const [selectedProductForQuickView, setSelectedProductForQuickView] = useState<SerializedProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -227,6 +233,8 @@ export default function ProductsPage() {
           const data = await res.json();
           setProducts(data.items ?? []);
         }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
       } finally {
         setLoading(false);
       }
@@ -234,49 +242,55 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  /**
-   * TRANSFORMATION LOGIC
-   * This converts the raw Product into a SerializedProduct
-   */
-  const openQuickView = (product: Product) => {
-    const serialized: SerializedProduct = {
+  const transformToSerialized = (product: RawProduct): SerializedProduct => {
+    return {
       ...product,
-      // Map category name or provide a fallback to satisfy the type
+      // Ensure we find the image even if imageUrl is empty
+      imageUrl: product.imageUrl || product.images?.[0]?.url || "/placeholder.png",
       categoryName: product.category?.name || "General",
-      // Ensure dates are strings for the client component
-      createdAt: product.createdAt instanceof Date 
-        ? product.createdAt.toISOString() 
-        : (product.createdAt || new Date().toISOString()),
-      updatedAt: product.updatedAt instanceof Date 
-        ? product.updatedAt.toISOString() 
-        : (product.updatedAt || new Date().toISOString()),
-      // Ensure discountPrice is explicitly handled
+      createdAt: typeof product.createdAt === 'string' ? product.createdAt : new Date().toISOString(),
+      updatedAt: typeof product.updatedAt === 'string' ? product.updatedAt : new Date().toISOString(),
       discountPrice: product.discountPrice ?? null,
     } as SerializedProduct;
+  };
 
-    setSelectedProductForQuickView(serialized);
+  const openQuickView = (product: RawProduct) => {
+    setSelectedProduct(transformToSerialized(product));
     setIsQuickViewOpen(true);
   };
 
-  const closeQuickView = () => {
-    setIsQuickViewOpen(false);
-    setSelectedProductForQuickView(null);
+  const handleAddToCart = (product: RawProduct) => {
+    const serialized = transformToSerialized(product);
+    dispatch(addToCart({ product: serialized, quantity: 1 }));
+    notifySuccess(`${product.title} added to stash!`); 
   };
 
-  if (loading) return <LoadingSkeleton />;
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+          {[...Array(8)].map((_, i) => <ProductSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#F9FAFB] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-25 py-25">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Featured Products</h1>
-            <p className="mt-1 text-gray-500 text-sm">Quality items curated just for you.</p>
+            <h1 className="text-4xl md:text-5xl font-black italic text-accent-navy uppercase tracking-tighter">
+              The <span className="text-brand-primary">Armory</span>
+            </h1>
+            <p className="mt-1 text-gray-500 text-xs font-bold uppercase tracking-widest">
+              Full Deployment of Available Gear
+            </p>
           </div>
           <Link 
             href="/categories" 
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+            className="text-xs font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
           >
             All Categories <ArrowRight size={16} />
           </Link>
@@ -289,55 +303,56 @@ export default function ProductsPage() {
             <p className="mt-1 text-gray-500">Upload products to see them appear here.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {products.map((product) => (
               <div 
                 key={product.id} 
-                className="group bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center transition-all duration-300 hover:shadow-xl hover:border-blue-100"
+                className="group bg-white border border-gray-100 rounded-3xl p-3 md:p-4 flex flex-col items-center transition-all duration-300 hover:shadow-xl relative"
               >
-                <div className="relative w-full aspect-square bg-[#F3F4F6] rounded-xl overflow-hidden mb-5 flex items-center justify-center p-6">
-                  <img
-                    src={product.imageUrl || product.images?.[0]?.url || "/placeholder.png"}
-                    alt={product.title}
-                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
-                  />
+                {/* Image Container */}
+                <div className="relative w-full aspect-square bg-[#F3F4F6] rounded-2xl overflow-hidden mb-4 flex items-center justify-center p-4">
+                  <Link href={`/products/${product.slug}`} className="w-full h-full relative z-10">
+                    <img
+                      src={product.imageUrl || product.images?.[0]?.url || "/placeholder.png"}
+                      alt={product.title}
+                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </Link>
                   
-                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
-                      onClick={() => openQuickView(product)}
-                      className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-900 shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-white"
-                      title="Quick View"
-                    >
-                      <Eye size={20} />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => openQuickView(product)}
+                    className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-900 shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white z-20"
+                  >
+                    <Eye size={18} />
+                  </button>
                 </div>
 
-                <div className="flex-1 flex flex-col items-center text-center w-full px-2">
+                {/* Content */}
+                <div className="flex-1 flex flex-col items-center text-center w-full px-1">
                   <Link href={`/products/${product.slug}`} className="block w-full">
-                    <h2 className="text-[14px] font-medium text-gray-800 line-clamp-2 h-10 mb-2 leading-snug group-hover:text-blue-600 transition-colors">
+                    <h2 className="text-[13px] md:text-sm font-bold text-gray-800 line-clamp-2 h-10 mb-1 hover:text-blue-600 transition-colors">
                       {product.title}
                     </h2>
                   </Link>
 
-                  <p className="text-lg font-extrabold text-[#2563EB] mb-2">
+                  <p className="text-base md:text-lg font-black text-blue-600 mb-2">
                     {formatNaira(product.discountPrice || product.price)}
                   </p>
 
-                  <div className="flex items-center gap-1.5 mb-5">
+                  <div className="flex items-center gap-1 mb-4">
                     <div className="flex text-yellow-400">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} fill={i < 4 ? "currentColor" : "none"} />
+                        <Star key={i} size={10} fill={i < 4 ? "currentColor" : "none"} />
                       ))}
                     </div>
-                    <span className="text-[11px] text-gray-400 font-medium">(120)</span>
                   </div>
                 </div>
 
                 <button 
-                  onClick={() => alert(`Added ${product.title} to cart`)}
-                  className="w-full bg-[#2563EB] hover:bg-blue-700 text-white py-3 rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.97] flex items-center justify-center gap-2"
+                  onClick={() => handleAddToCart(product)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-full font-bold text-xs md:text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
+                  <ShoppingCart size={16} />
                   Add to Cart
                 </button>
               </div>
@@ -347,27 +362,13 @@ export default function ProductsPage() {
       </div>
 
       <ProductQuickView
-        product={selectedProductForQuickView}
+        product={selectedProduct}
         isOpen={isQuickViewOpen}
-        onClose={closeQuickView}
+        onClose={() => {
+          setIsQuickViewOpen(false);
+          setSelectedProduct(null);
+        }}
       />
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse">
-            <div className="aspect-square bg-gray-200 rounded-xl mb-5" />
-            <div className="h-4 w-3/4 bg-gray-200 rounded mx-auto mb-3" />
-            <div className="h-4 w-1/4 bg-gray-200 rounded mx-auto mb-6" />
-            <div className="h-10 w-full bg-gray-200 rounded-full" />
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

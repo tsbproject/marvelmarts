@@ -1,6 +1,11 @@
+
+
+
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingCart, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
 import { SerializedProduct } from "@/types/product";
@@ -16,7 +21,7 @@ interface QuickViewProps {
 }
 
 export default function ProductQuickView({ product, isOpen, onClose }: QuickViewProps) {
-  const dispatch = useDispatch();
+ const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -25,7 +30,6 @@ export default function ProductQuickView({ product, isOpen, onClose }: QuickView
     if (product) {
       setActiveImage(product.imageUrl);
       setIsImageLoading(true);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -35,62 +39,54 @@ export default function ProductQuickView({ product, isOpen, onClose }: QuickView
 
   if (!product) return null;
 
-  // Handle Add to Cart
   const handleAddToCart = () => {
     dispatch(addToCart({ product, quantity: 1 }));
     notifySuccess(`${product.title} added to stash!`);
     onClose();
   };
-
-  const discountPercentage = product.discountPrice 
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-    : null;
-
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - Increased Z-Index */}
+          {/* Backdrop with Accent Navy tint */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-999 cursor-zoom-out"
+            className="fixed inset-0 bg-neutral-dark/80 backdrop-blur-sm z-[999] cursor-zoom-out"
           />
 
-          {/* Modal Content - Fixed mobile sizing and high Z-index */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            className="fixed inset-x-2 top-[5%] bottom-[5%] md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-4xl md:h-[600px] bg-white z-[1000] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col md:flex-row"
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed inset-x-2 top-[15%] bottom-[15%] md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-4xl md:h-auto md:max-h-[70vh] bg-neutral-white z-[1000] rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row border border-accent-navy/10"
           >
-            {/* Close Button */}
+            {/* Close Button - Using Brand Primary on hover */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-md rounded-full shadow-lg hover:bg-red-50 hover:text-red-600 transition-all z-50"
+              className="absolute top-4 right-4 p-2 bg-neutral-white rounded-full shadow-lg hover:bg-brand-primary hover:text-neutral-white transition-all z-50 text-accent-navy"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
 
-            {/* Left: Image Section (Scrollable on mobile if needed) */}
-            <div className="w-full md:w-1/2 bg-gray-50 p-4 md:p-8 flex flex-col gap-4 overflow-y-auto">
-              <div className="relative aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 flex items-center justify-center shadow-inner">
+            {/* Left: Image Section */}
+            <div className="w-full md:w-5/12 bg-neutral-light p-4 md:p-6 flex flex-col gap-4 overflow-y-auto border-r border-accent-navy/5">
+              <div className="relative aspect-square bg-neutral-white rounded-2xl overflow-hidden flex items-center justify-center shadow-sm">
                 {isImageLoading && (
-                  <div className="absolute inset-0 z-10 bg-gray-100 animate-pulse" />
+                  <div className="absolute inset-0 z-10 bg-neutral-light animate-pulse" />
                 )}
-                <img 
-                  src={activeImage || ""} 
+                <Image 
+                  src={activeImage || product.imageUrl || "/placeholder.png"} 
                   alt={product.title} 
                   onLoad={() => setIsImageLoading(false)}
-                  className={`w-full h-full object-contain p-6 transition-opacity duration-500 ${
-                    isImageLoading ? "opacity-0" : "opacity-100"
-                  }`}
+                  fill 
+                  className="object-contain p-6"
                 />
               </div>
               
-              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 {product.images?.map((img, idx) => (
                   <button
                     key={idx}
@@ -98,8 +94,8 @@ export default function ProductQuickView({ product, isOpen, onClose }: QuickView
                       setIsImageLoading(true);
                       setActiveImage(img.url);
                     }}
-                    className={`relative w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0 transition-all ${
-                      activeImage === img.url ? "border-blue-600 scale-95" : "border-transparent opacity-50"
+                    className={`relative w-14 h-14 rounded-xl border-2 overflow-hidden shrink-0 transition-all ${
+                      activeImage === img.url ? "border-brand-primary scale-95" : "border-transparent opacity-60"
                     }`}
                   >
                     <img src={img.url} className="w-full h-full object-cover" alt="" />
@@ -108,61 +104,50 @@ export default function ProductQuickView({ product, isOpen, onClose }: QuickView
               </div>
             </div>
 
-            {/* Right: Details Section */}
-            <div className="w-full md:w-1/2 p-6 md:p-12 overflow-y-auto bg-white">
+            {/* Right: Details Section - Blended with Brand Light gradient */}
+            <div className="w-full md:w-7/12 p-6 md:p-10 overflow-y-auto bg-gradient-to-br from-neutral-white via-neutral-white to-brand-light/40">
               <div className="flex flex-col h-full">
-                <div className="mb-6">
-                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] px-3 py-1 bg-blue-50 rounded-full">
+                <div className="mb-4">
+                  <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] px-3 py-1 bg-brand-light rounded-md">
                     {product.categoryName}
                   </span>
-                  <h2 className="text-2xl md:text-4xl font-black text-gray-900 mt-4 leading-none italic uppercase">
+                  <h2 className="text-xl md:text-2xl font-black text-accent-navy mt-3 leading-tight uppercase tracking-tighter italic">
                     {product.title}
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-3xl font-black text-gray-900">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-2xl font-black text-accent-navy">
                     {formatNaira(product.discountPrice ?? product.price)}
                   </span>
                   {product.discountPrice && (
-                    <span className="text-lg text-gray-400 line-through font-bold">
+                    <span className="text-sm text-neutral-gray line-through font-bold opacity-60">
                       {formatNaira(product.price)}
                     </span>
                   )}
                 </div>
 
-                <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                  {product.description || "Premium quality item from our latest collection."}
+                <p className="text-neutral-gray text-sm leading-relaxed mb-8">
+                  {product.description || "Elite performance gear designed for the modern operative."}
                 </p>
 
-                <div className="mt-auto space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    {product.stock > 0 ? (
-                      <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-1">
-                        <CheckCircle size={14} /> In Stock ({product.stock})
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold text-red-600 uppercase flex items-center gap-1">
-                        <AlertCircle size={14} /> Out of Stock
-                      </span>
-                    )}
-                  </div>
-
+                <div className="mt-auto pt-6 border-t border-accent-navy/5 space-y-4">
                   <button 
                     onClick={handleAddToCart}
                     disabled={product.stock <= 0}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white py-5 rounded-[2rem] font-black text-xl shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase italic tracking-tighter"
+                    className="group w-full bg-accent-navy hover:bg-neutral-dark text-neutral-white py-4 rounded-xl font-bold text-base shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
                   >
-                    <ShoppingCart size={24} />
-                    Add to Cart
+                    <ShoppingCart size={18} className="group-hover:text-brand-primary transition-colors" />
+                    Add to Stash
                   </button>
                   
-                  <a 
-                    href={`/shop/${shop.slug}`}
-                    className="w-full text-center py-2 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                  <Link 
+                    href={`/products/${product.slug}`}
+                    onClick={onClose}
+                    className="w-full text-center py-1 text-[10px] font-black uppercase tracking-[0.3em] text-accent-navy/40 hover:text-brand-primary transition-colors flex items-center justify-center gap-2"
                   >
-                    View Full Specs <ChevronRight size={14} />
-                  </a>
+                    View Full Detail <ChevronRight size={12} />
+                  </Link>
                 </div>
               </div>
             </div>
