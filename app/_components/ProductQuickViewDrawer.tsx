@@ -271,6 +271,14 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                   </button>
 
                   {/* FIXED BUTTON FOR MOBILE */}
+
+                  <a
+                    href={`/products/${product.slug}`}
+                    className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-black transition-all z-[110]"
+                  >
+                    View Full Details
+                    <ArrowRight size={14} />
+                  </a>
                   {/* <button
                     type="button"
                     onPointerDown={(e) => e.stopPropagation()} 
@@ -280,14 +288,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                     View Full Details
                     <ArrowRight size={14} />
                   </button> */}
-                  <button
-                    type="button"
-                    onClick={handleViewDetails}
-                    className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all touch-manipulation cursor-pointer"
-                    >
-                    View Full Details
-                    <ArrowRight size={14} />
-                  </button>
+                 
                 </div>
               </div>
             </div>
