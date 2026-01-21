@@ -4,6 +4,7 @@ import EcommerceCarousel from './_components/EcommerceCarousel';
 import FlashSales from './_components/FlashSales';
 import NewArrival from './_components/NewArrival';
 import FeaturedProducts from './_components/FeaturedProducts';
+import StoreHydrator from './_components/StoreHydrator';
 
 export default async function HomePage() {
   let flashProducts: any[] = [];
@@ -12,20 +13,26 @@ export default async function HomePage() {
 
   try {
     const data = await Promise.all([
-      // FLASH SALES
+      // 1. FLASH SALES
       prisma.product.findMany({
-        where: { status: "ACTIVE", isFeatured: true, discountPrice: { gt: 0 } },
+        where: { 
+          status: "ACTIVE", 
+          discountPrice: { gt: 0 } 
+        },
         include: { images: true, category: true },
         take: 4,
+        orderBy: { updatedAt: 'desc' }
       }),
-      // NEW ARRIVALS
+      
+      // 2. NEW ARRIVALS
       prisma.product.findMany({
         where: { status: "ACTIVE" },
         include: { images: true, category: true },
         orderBy: { createdAt: 'desc' },
         take: 8,
       }),
-      // FEATURED
+      
+      // 3. FEATURED
       prisma.product.findMany({
         where: { status: "ACTIVE", isFeatured: true },
         include: { images: true, category: true },
@@ -33,14 +40,12 @@ export default async function HomePage() {
       })
     ]);
 
-    // THE FIX: Assign the data from the Promise array back to your variables
     [flashProducts, newArrivalProducts, featuredProducts] = data;
 
   } catch (error) {
     console.error("Database Fetch Error:", error);
   }
 
-  // Strictly typed serialization logic
   const serialize = (items: any[]): SerializedProduct[] => {
     return (items || []).map(item => {
       const primaryImage = item.images?.[0]?.url || 
@@ -61,33 +66,50 @@ export default async function HomePage() {
     });
   };
 
+  // Prepare master list for Redux Hydration
+  const allHomeProducts = [...flashProducts, ...newArrivalProducts, ...featuredProducts];
+  const serializedAll = serialize(allHomeProducts);
+
   const flashSaleEndTime = new Date();
   flashSaleEndTime.setHours(flashSaleEndTime.getHours() + 24);
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen">
+      {/* Sync Server Data with Redux Client State */}
+      <StoreHydrator products={serializedAll} />
+
+      {/* Hero Section */}
       <div className="relative top-0 md:-top-4">
         <EcommerceCarousel />
       </div>
       
-      <div className="max-w-[1400px] mx-auto space-y-20 px-4 md:px-10 pb-20 mt-200">
-        {/* 1. Flash Sales: Only shows if products exist with isFeatured AND discountPrice */}
+      {/* Main Content with preserved mt-170 and space-y-24 */}
+      <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20 mt-170">
+        
+        {/* 1. Flash Sales */}
         {flashProducts.length > 0 && (
-          <FlashSales 
-            products={serialize(flashProducts)} 
-            endTime={flashSaleEndTime.toISOString()} 
-          />
+          <section>
+            <FlashSales 
+              products={serialize(flashProducts)} 
+              endTime={flashSaleEndTime.toISOString()} 
+            />
+          </section>
         )}
 
-        {/* 2. Featured: Only shows if products have isFeatured checked */}
+        {/* 2. Featured Loot */}
         {featuredProducts.length > 0 && (
-          <FeaturedProducts products={serialize(featuredProducts)} />
+          <section>
+            <FeaturedProducts products={serialize(featuredProducts)} />
+          </section>
         )}
 
         {/* 3. New Arrivals */}
         {newArrivalProducts.length > 0 && (
-          <NewArrival products={serialize(newArrivalProducts)} />
+          <section>
+            <NewArrival products={serialize(newArrivalProducts)} />
+          </section>
         )}
+
       </div>
     </div>
   );
