@@ -1,16 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import ProductCard from "./ProductCard";
 import ProductSkeleton from "./ProductSkeleton"; 
 import { SerializedProduct } from "@/types/product";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
+import ProductQuickView from "./ProductQuickView"; 
 
 export default function FeaturedProducts({ products }: { products: SerializedProduct[] }) {
+  const router = useRouter();
   const { loading } = useLoadingOverlay(); 
+  
+  // State for the Quick View Modal
+  const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleQuickView = (product: SerializedProduct) => {
-    console.log("Quick view for:", product.title);
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleViewDetails = (slug: string) => {
+    router.push(`/shop/${slug}`);
   };
 
   return (
@@ -31,11 +43,21 @@ export default function FeaturedProducts({ products }: { products: SerializedPro
               <ProductCard 
                 key={product.id} 
                 product={product} 
-                onQuickView={handleQuickView} 
+                onQuickView={() => handleQuickView(product)} 
+                onViewDetails={() => handleViewDetails(product.slug)}
               />
             ))
         }
       </div>
+
+      {/* Quick View Modal Component */}
+      {selectedProduct && (
+        <ProductQuickView 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          product={selectedProduct} 
+        />
+      )}
     </section>
   );
 }

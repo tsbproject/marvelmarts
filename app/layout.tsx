@@ -2,13 +2,13 @@ import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout"; 
-import prisma from "@/app/lib/prisma"; // Import Prisma
+import prisma from "@/app/lib/prisma";
 
 // Force dynamic rendering ensures we always get the latest settings from the DB
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "MarvelMarts",
+  title: "MarvelMarts | The Armory",
   description: "E-commerce for gadgets, phones & computers",
 };
 
@@ -19,18 +19,25 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-// We make the Layout function 'async' so we can await the database call
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   
   // Fetch settings from Prisma (Server-side)
-  // findFirst() gets the single settings record we created
-  const settings = await prisma.siteSettings.findFirst();
+  // Wrapped in a try-catch to prevent the whole app from failing if DB is asleep
+  let settings = null;
+  try {
+    settings = await prisma.siteSettings.findFirst();
+  } catch (error) {
+    console.error("Failed to load site settings:", error);
+  }
 
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-50 text-gray-900`}>
-        {/* Pass the settings into ClientLayout to satisfy the TypeScript requirement */}
-          <ClientLayout settings={settings as any}>
+    <html lang="en" className={inter.variable}>
+      <body 
+        className={`${inter.className} bg-brand-ghost text-brand-black antialiased`}
+        suppressHydrationWarning
+      >
+        
+        <ClientLayout settings={settings as any}>
           {children}
         </ClientLayout>
       </body>

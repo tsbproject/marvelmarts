@@ -138,7 +138,7 @@ export default function ProductQuickView({ product, isOpen, onClose }: QuickView
                     className="group w-full bg-accent-navy hover:bg-neutral-dark text-neutral-white py-4 rounded-xl font-bold text-base shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
                   >
                     <ShoppingCart size={18} className="group-hover:text-brand-primary transition-colors" />
-                    Add to Stash
+                    Add to Cart
                   </button>
                   
                   <Link 
