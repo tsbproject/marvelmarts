@@ -1,3 +1,52 @@
+// // // "use client";
+
+// // // import React from "react";
+// // // import ProductCard from "./ProductCard";
+// // // import ProductSkeleton from "./ProductSkeleton";
+// // // import { SerializedProduct } from "@/types/product";
+// // // import { ArrowRight } from "lucide-react";
+// // // import Link from "next/link";
+
+// // // export default function NewArrival({ products }: { products: SerializedProduct[] }) {
+// // //   const handleQuickView = (product: SerializedProduct) => {
+// // //     console.log("Quick view for:", product.title);
+// // //   };
+
+// // //   return (
+// // //     <section className="py-12">
+// // //       <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-neutral-light pb-8 gap-4">
+// // //         <div>
+// // //           <h2 className="text-4xl md:text-5xl font-black italic text-accent-navy uppercase tracking-tighter">
+// // //             New <span className="text-brand-primary">Arrivals</span>
+// // //           </h2>
+// // //           <p className="text-xs font-bold text-neutral-gray uppercase tracking-[0.3em] mt-2">
+// // //             The Latest Deployments to the Stash
+// // //           </p>
+// // //         </div>
+        
+// // //         <Link 
+// // //           href="/shop?sort=newest" 
+// // //           className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-accent-navy hover:text-brand-primary transition-colors"
+// // //         >
+// // //           View Full Armory <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+// // //         </Link>
+// // //       </div>
+
+// // //       {/* Changed grid-cols-1 to grid-cols-2 */}
+// // //       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+// // //          {loading 
+// // //     ? [...Array(4)].map((_, i) => <ProductSkeleton key={i} />)
+// // //     : products.map((product) => (
+// // //         <ProductCard key={product.id} product={product} onQuickView={handleQuickView} />
+// // //       ))
+// // //   }
+// // // </div>
+// // //     </section>
+// // //   );
+// // // }
+
+
+
 // // "use client";
 
 // // import React from "react";
@@ -6,8 +55,11 @@
 // // import { SerializedProduct } from "@/types/product";
 // // import { ArrowRight } from "lucide-react";
 // // import Link from "next/link";
+// // import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; // Adjust path as needed
 
 // // export default function NewArrival({ products }: { products: SerializedProduct[] }) {
+// //   const { loading } = useLoadingOverlay();
+
 // //   const handleQuickView = (product: SerializedProduct) => {
 // //     console.log("Quick view for:", product.title);
 // //   };
@@ -32,36 +84,53 @@
 // //         </Link>
 // //       </div>
 
-// //       {/* Changed grid-cols-1 to grid-cols-2 */}
+// //       {/* Grid configured for 2 columns on mobile, 4 on desktop */}
 // //       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-// //          {loading 
-// //     ? [...Array(4)].map((_, i) => <ProductSkeleton key={i} />)
-// //     : products.map((product) => (
-// //         <ProductCard key={product.id} product={product} onQuickView={handleQuickView} />
-// //       ))
-// //   }
-// // </div>
+// //         {loading 
+// //           ? [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
+// //           : products.map((product) => (
+// //               <ProductCard 
+// //                 key={product.id} 
+// //                 product={product} 
+// //                 onQuickView={handleQuickView} 
+// //               />
+// //             ))
+// //         }
+// //       </div>
 // //     </section>
 // //   );
 // // }
 
 
 
+
 // "use client";
 
-// import React from "react";
+// import React, { useState } from "react";
 // import ProductCard from "./ProductCard";
 // import ProductSkeleton from "./ProductSkeleton";
 // import { SerializedProduct } from "@/types/product";
 // import { ArrowRight } from "lucide-react";
 // import Link from "next/link";
-// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; // Adjust path as needed
+// import { useRouter } from "next/navigation";
+// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+// import ProductQuickView from "./ProductQuickView";
 
 // export default function NewArrival({ products }: { products: SerializedProduct[] }) {
+//   const router = useRouter();
 //   const { loading } = useLoadingOverlay();
 
+//   // State for Quick View
+//   const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
+//   const [isModalOpen, setIsModalOpen] = useState(false);
+
 //   const handleQuickView = (product: SerializedProduct) => {
-//     console.log("Quick view for:", product.title);
+//     setSelectedProduct(product);
+//     setIsModalOpen(true);
+//   };
+
+//   const handleViewDetails = (slug: string) => {
+//     router.push(`/products/${slug}`);
 //   };
 
 //   return (
@@ -84,7 +153,6 @@
 //         </Link>
 //       </div>
 
-//       {/* Grid configured for 2 columns on mobile, 4 on desktop */}
 //       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
 //         {loading 
 //           ? [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
@@ -92,15 +160,24 @@
 //               <ProductCard 
 //                 key={product.id} 
 //                 product={product} 
-//                 onQuickView={handleQuickView} 
+//                 onQuickView={handleQuickView}
+//                 onViewDetails={() => handleViewDetails(product.slug)} 
 //               />
 //             ))
 //         }
 //       </div>
+
+//       {/* Quick View Modal */}
+//       {selectedProduct && (
+//         <ProductQuickView 
+//           isOpen={isModalOpen} 
+//           onClose={() => setIsModalOpen(false)} 
+//           product={selectedProduct} 
+//         />
+//       )}
 //     </section>
 //   );
 // }
-
 
 
 
@@ -114,19 +191,19 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-import ProductQuickView from "./ProductQuickView";
+import ProductQuickViewDrawer from "./ProductQuickViewDrawer"; // Updated to Drawer
 
 export default function NewArrival({ products }: { products: SerializedProduct[] }) {
   const router = useRouter();
   const { loading } = useLoadingOverlay();
 
-  // State for Quick View
+  // State for Quick View Drawer
   const [selectedProduct, setSelectedProduct] = useState<SerializedProduct | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleQuickView = (product: SerializedProduct) => {
     setSelectedProduct(product);
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   const handleViewDetails = (slug: string) => {
@@ -160,18 +237,18 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
               <ProductCard 
                 key={product.id} 
                 product={product} 
-                onQuickView={handleQuickView}
+                onQuickView={() => handleQuickView(product)}
                 onViewDetails={() => handleViewDetails(product.slug)} 
               />
             ))
         }
       </div>
 
-      {/* Quick View Modal */}
+      {/* Quick View Bottom Sheet (Better UX for Mobile) */}
       {selectedProduct && (
-        <ProductQuickView 
-          isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+        <ProductQuickViewDrawer 
+          isOpen={isDrawerOpen} 
+          onClose={() => setIsDrawerOpen(false)} 
           product={selectedProduct} 
         />
       )}
