@@ -152,6 +152,7 @@ import { useNotification } from "@/app/_context/NotificationContext";
 interface ProductCardProps {
   product: SerializedProduct;
   onQuickView: (p: SerializedProduct) => void;
+  // onViewDetails?: (slug: string) => void; 
 }
 
 export default function ProductCard({ product, onQuickView }: ProductCardProps) {
