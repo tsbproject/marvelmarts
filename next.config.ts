@@ -36,12 +36,9 @@
 
 
 import type { NextConfig } from "next";
-import type { Configuration } from "webpack";
 
-/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  trailingSlash: false, 
-
+  trailingSlash: true,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
@@ -50,17 +47,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
     ],
   },
-
   productionBrowserSourceMaps: false,
-
-  // Use the standard function signature that Next.js expects
-  webpack: (config: Configuration, { dev, isServer }) => {
-    // If you need to manipulate the config specifically for dev
+  // Using the internal Next.js type-safe way
+  webpack: (config, { dev, isServer }) => {
     if (dev) {
       config.devtool = "eval-source-map";
     }
-
-    // Important: Always return the config
     return config;
   },
 };
