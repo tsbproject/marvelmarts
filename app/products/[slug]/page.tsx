@@ -1,3 +1,4 @@
+// export const dynamic = "force-dynamic";
 
 
 // import { notFound } from "next/navigation";
@@ -6,12 +7,9 @@
 // import type { Product, Category, ProductImage, Variant } from "@prisma/client";
 
 // interface Props {
-//   params: Promise<{ slug: string }>;
+//   params: Promise<{ slug: string }>; //Next.js 16 requires Promise
 // }
 
-// /** * We define the interface to expect strings for Dates 
-//  * because that's what's passed from Server to Client 
-//  */
 // export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'createdAt' | 'updatedAt'> & {
 //   price: number;
 //   discountPrice: number | null;
@@ -23,7 +21,7 @@
 // };
 
 // export default async function ProductPage({ params }: Props) {
-//   const { slug } = await params;
+//   const { slug } = await params; //must await
 //   if (!slug) return notFound();
 
 //   const product = await prisma.product.findUnique({
@@ -37,7 +35,6 @@
 
 //   if (!product) return notFound();
 
-//   // 1. Fetch Similar Items from the same category
 //   const similarProducts = await prisma.product.findMany({
 //     where: {
 //       categoryId: product.categoryId,
@@ -48,7 +45,6 @@
 //     include: { images: { take: 1 } },
 //   });
 
-//   // 2. Normalize main product (Explicitly cast to our custom type)
 //   const formattedProduct: ProductWithRelations = {
 //     ...product,
 //     price: Number(product.price),
@@ -61,7 +57,6 @@
 //     updatedAt: product.updatedAt.toISOString(),
 //   };
 
-//   // 3. Normalize similar items for the grid
 //   const formattedSimilar = similarProducts.map((p) => ({
 //     id: p.id,
 //     title: p.title,
@@ -80,7 +75,6 @@
 // }
 
 
-export const dynamic = "force-dynamic";
 
 
 import { notFound } from "next/navigation";
@@ -89,9 +83,10 @@ import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage, Variant } from "@prisma/client";
 
 interface Props {
-  params: Promise<{ slug: string }>; //Next.js 16 requires Promise
+  params: Promise<{ slug: string }>;
 }
 
+// Keep your existing types exactly as they are
 export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'createdAt' | 'updatedAt'> & {
   price: number;
   discountPrice: number | null;
@@ -102,8 +97,23 @@ export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'cr
   variants: (Omit<Variant, 'price'> & { price: number })[];
 };
 
+/**
+ * PRODUCTION FIX: Pre-generate the paths for Vercel.
+ * This prevents the "URL changed but page refused to change" issue.
+ */
+export async function generateStaticParams() {
+  const products = await prisma.product.findMany({
+    where: { status: "ACTIVE" },
+    select: { slug: true },
+  });
+
+  return products.map((product) => ({
+    slug: product.slug,
+  }));
+}
+
 export default async function ProductPage({ params }: Props) {
-  const { slug } = await params; //must await
+  const { slug } = await params;
   if (!slug) return notFound();
 
   const product = await prisma.product.findUnique({
@@ -117,6 +127,7 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) return notFound();
 
+  // 1. Fetch Similar Items 
   const similarProducts = await prisma.product.findMany({
     where: {
       categoryId: product.categoryId,
@@ -127,6 +138,7 @@ export default async function ProductPage({ params }: Props) {
     include: { images: { take: 1 } },
   });
 
+  // 2. Normalize main product
   const formattedProduct: ProductWithRelations = {
     ...product,
     price: Number(product.price),
@@ -139,6 +151,7 @@ export default async function ProductPage({ params }: Props) {
     updatedAt: product.updatedAt.toISOString(),
   };
 
+  // 3. Normalize similar items 
   const formattedSimilar = similarProducts.map((p) => ({
     id: p.id,
     title: p.title,
@@ -155,4 +168,3 @@ export default async function ProductPage({ params }: Props) {
     />
   );
 }
-
