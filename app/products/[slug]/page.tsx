@@ -80,6 +80,7 @@
 // }
 
 
+export const dynamic = "force-dynamic";
 
 
 import { notFound } from "next/navigation";
@@ -156,7 +157,7 @@ export default async function ProductPage({ params }: Props) {
 }
 
 //Generate static params so Vercel builds detail pages
-export async function generateStaticParams() {
-  const products = await prisma.product.findMany({ select: { slug: true } });
-  return products.map(p => ({ slug: p.slug }));
-}
+// export async function generateStaticParams() {
+//   const products = await prisma.product.findMany({ select: { slug: true } });
+//   return products.map(p => ({ slug: p.slug }));
+// }
