@@ -155,6 +155,10 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
 
+  // Ensuring the slug exists, otherwise falling back to ID to prevent homepage redirect
+  const productSlug = product.slug || (product as any)._id || product.id;
+  const productLink = `/products/${productSlug}`;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -169,10 +173,9 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
   };
 
   return (
-    /* Use a standard 'a' tag. It is the most reliable way to navigate on mobile. */
     <a 
-      href={`/products/${product.slug}`}
-      className="bg-brand-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group h-full relative flex flex-col cursor-pointer touch-manipulation active:bg-[#FFE8CC] select-none no-underline"
+      href={productLink}
+      className="bg-brand-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group h-full relative flex flex-col cursor-pointer touch-manipulation active:bg-brand-orange-light select-none no-underline"
     >
       {/* Sales Label */}
       {product.discountPrice && (
@@ -182,7 +185,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
       )}
 
       {/* Image Container */}
-      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-[#F8F8F8] p-4">
+      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-brand-ghost p-4">
         <Image 
           src={product.imageUrl || "/placeholder.png"} 
           alt={product.title}
@@ -195,7 +198,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         <button 
           type="button"
           onClick={handleQuickView}
-          className="absolute bottom-2 right-2 p-2 bg-brand-white/90 backdrop-blur-sm rounded-full text-[#4B4B4B] shadow-sm z-30 active:bg-[#002B5B] active:text-brand-white"
+          className="absolute bottom-2 right-2 p-2 bg-brand-white/90 backdrop-blur-sm rounded-full text-brand-gray shadow-sm z-30 active:bg-brand-navy active:text-brand-white"
         >
           <Eye size={18} />
         </button>
@@ -203,34 +206,32 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
 
       {/* Info Section */}
       <div className="flex-1 flex flex-col items-center text-center w-full px-4 mt-4">
-        <h3 className="text-sm font-medium text-[#1E1E1E] line-clamp-2 h-10 mb-1 group-hover:text-[#002B5B] transition-colors">
+        <h3 className="text-sm font-medium text-brand-black line-clamp-2 h-10 mb-1 group-hover:text-brand-navy transition-colors">
           {product.title}
         </h3>
 
         <div className="flex items-center gap-2 mb-2">
-          {/* Brand Navy for Price */}
-          <p className="text-lg font-bold text-[#002B5B]">
+          <p className="text-lg font-bold text-brand-navy">
             {formatNaira(product.discountPrice ?? product.price)}
           </p>
         </div>
 
         <div className="flex items-center gap-1 mb-4">
-          {/* Brand Orange for Stars */}
-          <div className="flex text-[#F7931E]">
+          <div className="flex text-brand-orange">
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={12} fill={i < 4 ? "currentColor" : "none"} />
             ))}
           </div>
-          <span className="text-[10px] text-[#4B4B4B]">(120)</span>
+          <span className="text-[10px] text-brand-gray">(120)</span>
         </div>
       </div>
 
-      {/* Add to Cart - Isolated from the link */}
+      {/* Add to Cart */}
       <div className="px-4 pb-4 w-full">
         <button 
           type="button"
           onClick={handleAddToCart}
-          className="w-full bg-[#002B5B] hover:bg-[#1E1E1E] text-brand-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 relative z-20"
+          className="w-full bg-brand-navy text-brand-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 relative z-20"
         >
           <ShoppingCart size={16} />
           Add to Cart
