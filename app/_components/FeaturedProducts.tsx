@@ -11,7 +11,8 @@ import ProductCard from "./ProductCard";
 import ProductSkeleton from "./ProductSkeleton"; 
 import { SerializedProduct } from "@/types/product";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
-import ProductQuickView from "./ProductQuickView"; 
+// import ProductQuickView from "./ProductQuickView"; 
+import ProductQuickViewDrawer from "./ProductQuickViewDrawer";
 
 export default function FeaturedProducts({ products }: { products: SerializedProduct[] }) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function FeaturedProducts({ products }: { products: SerializedPro
 
       {/* Quick View Bottom Sheet (Better for Phone) */}
       {selectedProduct && (
-        <ProductQuickView 
+        <ProductQuickViewDrawer 
           isOpen={isDrawerOpen} 
           onClose={() => setIsDrawerOpen(false)} 
           product={selectedProduct} 
