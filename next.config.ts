@@ -33,6 +33,9 @@
 
 
 
+
+
+
 import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
@@ -43,6 +46,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
       { protocol: "https", hostname: "utfs.io", pathname: "/**" },
+      { protocol: "https", hostname: "your-db-storage-provider.com", pathname: "/**" },
       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
     ],
@@ -50,12 +54,10 @@ const nextConfig = {
 
   productionBrowserSourceMaps: false,
 
-  // Fixed the argument destructuring and type alignment
-  webpack: (config: Configuration, { dev }: { dev: boolean }) => {
-    if (dev) {
-      config.devtool = "eval-source-map";
-    }
-   
+   webpack: (config: Configuration, { dev }: { dev: boolean }) => {
+    // Remove manual devtool overrides to stop the performance regression warning.
+    // Next.js handles this automatically based on 'productionBrowserSourceMaps'.
+    
     return config;
   },
 };
