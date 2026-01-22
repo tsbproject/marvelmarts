@@ -276,8 +276,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                     href={`/products/${product.slug}`}
                     prefetch
                     onClick={(e) => {
-                        e.stopPropagation(); // prevent drawer overlay click
-                        onClose(); // safely close drawer AFTER navigation starts
+                        e.stopPropagation(); 
                     }}
                     className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all touch-manipulation cursor-pointer"
                     >
