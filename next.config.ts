@@ -55,7 +55,7 @@ const nextConfig = {
 
   // Fix the mismatch by typing the second argument (options)
   webpack: (config: Configuration, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
-    // We remove manual devtool overrides for production.
+    
     // This stops the "Deferred Load" intervention on Vercel by reducing bundle weight.
     if (dev) {
       config.devtool = "eval-source-map";
