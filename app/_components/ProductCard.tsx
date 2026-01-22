@@ -459,16 +459,19 @@ export default function ProductCard({
       e.preventDefault();
       onViewDetails();
     } else {
-      // VERCEL FIX: Explicitly extract string slug to prevent homepage redirect
-      const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
+      // PRODUCTION FIX: Ensure the slug is a clean string.
+      // If product.slug is an object {current: "..."} from Sanity, we grab the string.
+      const slugValue = typeof product.slug === 'object' ? (product.slug as any).current : product.slug;
       
-      if (!slug) {
-        // If slug is missing, we don't navigate. This stops the homepage redirect loop.
-        console.warn("Vercel Navigation: Missing slug for", product.title);
+      // If the slug is missing, we DO NOT navigate. 
+      // This is what stops Vercel from redirecting you to the homepage.
+      if (!slugValue || slugValue === "undefined") {
+        console.warn("Navigation prevented: Slug is missing on mobile production.");
         return;
       }
 
-      router.push(`/products/${slug}`);
+      // Explicitly pushing the clean string
+      router.push(`/products/${slugValue}`);
     }
   };
 
@@ -508,6 +511,7 @@ export default function ProductCard({
         />
         
         <button 
+          type="button"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -549,6 +553,7 @@ export default function ProductCard({
 
       {/* 4. Functional Add to Cart Button */}
       <button 
+        type="button"
         onClick={handleAddToCart}
         className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 z-10"
       >
