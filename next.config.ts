@@ -36,28 +36,30 @@
 
 
 
+
 import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Fixes Vercel's handling of dynamic paths
   trailingSlash: true, 
 
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
       { protocol: "https", hostname: "utfs.io", pathname: "/**" },
-      { protocol: "https", hostname: "your-db-storage-provider.com", pathname: "/**" },
       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
     ],
   },
 
+  // STOP the source map generation that is choking the mobile CPU
   productionBrowserSourceMaps: false,
 
-   webpack: (config: Configuration, { dev }: { dev: boolean }) => {
-    // Remove manual devtool overrides to stop the performance regression warning.
-    // Next.js handles this automatically based on 'productionBrowserSourceMaps'.
-    
+  webpack(config: Configuration) {
+    // Remove all manual devtool logic. 
+    // This allows Next.js to use the 'hidden-source-map' or 'none' 
+    // which is required for mobile performance.
     return config;
   },
 };
