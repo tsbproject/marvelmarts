@@ -36,7 +36,11 @@
 
 import type { Configuration } from "webpack";
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Fix for Vercel mobile navigation where URL changes but page doesn't
+  trailingSlash: true, 
+
   images: {
     remotePatterns: [
       {
