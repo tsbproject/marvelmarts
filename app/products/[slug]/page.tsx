@@ -88,7 +88,7 @@ import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage, Variant } from "@prisma/client";
 
 interface Props {
-  params: Promise<{ slug: string }>; //params is a Promise in Next.js 16
+  params: Promise<{ slug: string }>; //Next.js 16 requires Promise
 }
 
 export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'createdAt' | 'updatedAt'> & {
@@ -155,7 +155,7 @@ export default async function ProductPage({ params }: Props) {
   );
 }
 
-//Generate static params for SSG
+//Generate static params so Vercel builds detail pages
 export async function generateStaticParams() {
   const products = await prisma.product.findMany({ select: { slug: true } });
   return products.map(p => ({ slug: p.slug }));
