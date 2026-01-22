@@ -152,14 +152,9 @@ import { useNotification } from "@/app/_context/NotificationContext";
 interface ProductCardProps {
   product: SerializedProduct;
   onQuickView: (p: SerializedProduct) => void;
-  onViewDetails?: () => void;
 }
 
-export default function ProductCard({ 
-  product, 
-  onQuickView,
-  onViewDetails
-}: ProductCardProps) {
+export default function ProductCard({ product, onQuickView }: ProductCardProps) {
   const router = useRouter();
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
@@ -170,24 +165,11 @@ export default function ProductCard({
 
   const displayPrice = product.discountPrice ?? product.price;
 
-  // Optimized Navigation for Mobile
-  const handleMainClick = (e: React.MouseEvent) => {
-    // If we're clicking the background or the text, navigate
-    if (onViewDetails) {
-      e.preventDefault();
-      onViewDetails();
-    }
-  };
-
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
     e.stopPropagation(); // Prevents the main Link from firing
 
-    dispatch(addToCart({ 
-      product: product, 
-      quantity: 1 
-    }));
-
+    dispatch(addToCart({ product, quantity: 1 }));
     notifySuccess(`${product.title} added to your stash!`);
   };
 
@@ -200,13 +182,10 @@ export default function ProductCard({
   return (
     <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group h-full relative flex flex-col">
       
-      {/* 1. Entire Card Link Wrapper */}
-      {/* We wrap the content in a Link so the whole card is clickable, 
-          but leave the buttons out of the text-flow using absolute/z-index */}
+      {/* Entire Card Link Wrapper */}
       <Link 
         href={`/products/${product.slug}`} 
-        onClick={handleMainClick}
-        className="flex-1 flex flex-col items-center p-4 touch-manipulation cursor-pointer"
+        className="flex-1 flex flex-col items-center p-4 cursor-pointer"
       >
         {/* Sales Label */}
         {discountPercentage && (
@@ -225,10 +204,10 @@ export default function ProductCard({
             priority
           />
           
-          {/* Quick View Button - Isolated with z-index */}
+          {/* Quick View Button */}
           <button 
             onClick={handleQuickViewClick}
-            className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white touch-manipulation z-30"
+            className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white z-30"
             title="Quick View"
           >
             <Eye size={18} />
@@ -263,7 +242,7 @@ export default function ProductCard({
         </div>
       </Link>
 
-      {/* 4. Add to Cart Button - Outside the main Link wrapper to avoid nesting */}
+      {/* Add to Cart Button */}
       <div className="px-4 pb-4">
         <button 
           onClick={handleAddToCart}
