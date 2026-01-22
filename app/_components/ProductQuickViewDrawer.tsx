@@ -142,14 +142,171 @@
 
 
 
+// "use client";
+
+// import React, { useEffect } from "react"; 
+// import Link from "next/link";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { X, ShoppingCart, Star, ArrowRight } from "lucide-react";
+// import Image from "next/image";
+// import { useRouter } from "next/navigation"; 
+// import { formatNaira } from "@/app/lib/FormatNaira";
+// import { SerializedProduct } from "@/types/product";
+// import { useDispatch } from "react-redux";
+// import { addToCart } from "@/store/cartSlice";
+// import { useNotification } from "@/app/_context/NotificationContext";
+
+// interface DrawerProps {
+//   isOpen: boolean;
+//   onClose: () => void;
+//   product: SerializedProduct;
+// }
+
+// export default function ProductQuickViewDrawer({ isOpen, onClose, product }: DrawerProps) {
+//   const dispatch = useDispatch();
+//   const router = useRouter();
+//   const { notifySuccess } = useNotification();
+
+//   // Prefetch the product page as soon as the drawer opens
+//   // This makes the mobile transition instant
+//   useEffect(() => {
+//     if (isOpen && product?.slug) {
+//       router.prefetch(`/products/${product.slug}`);
+//     }
+//   }, [isOpen, product?.slug, router]);
+
+//   const handleAddToCart = () => {
+//     dispatch(addToCart({ product, quantity: 1 }));
+//     notifySuccess(`${product.title} added to stash!`);
+//     onClose();
+//   };
+
+//   const handleViewDetails = (e: React.MouseEvent) => {
+//     // 1. Prevent all default behaviors
+//     e.preventDefault();
+//     e.stopPropagation();
+    
+//     // 2. Immediate navigation
+//     router.push(`/products/${product.slug}`);
+    
+//     // 3. DO NOT call onClose() immediately. 
+//     // Let the browser handle the page change. 
+//     // The drawer will unmount naturally when the page changes.
+//   };
+
+//   return (
+//     <AnimatePresence>
+//       {isOpen && (
+//         <>
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             onClick={onClose}
+//             className="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+//           />
+
+//           <motion.div
+//             initial={{ y: "100%" }}
+//             animate={{ y: 0 }}
+//             exit={{ y: "100%" }}
+//             transition={{ type: "spring", damping: 30, stiffness: 300 }}
+//             className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-white rounded-t-[2rem] z-[101] p-5 pb-8 shadow-2xl max-h-[80vh] overflow-y-auto border-x border-t border-gray-100"
+//           >
+//             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+
+//             <button 
+//               onClick={onClose}
+//               className="absolute top-4 right-4 p-1.5 bg-gray-100 rounded-full text-gray-500 z-[102]"
+//             >
+//               <X size={18} />
+//             </button>
+
+//             <div className="flex flex-col gap-4">
+//               <div className="relative w-full h-48 bg-gray-50 rounded-2xl overflow-hidden">
+//                 <Image
+//                   src={product.imageUrl || "/placeholder.png"}
+//                   alt={product.title}
+//                   fill
+//                   className="object-contain p-4"
+//                 />
+//               </div>
+
+//               <div className="space-y-3">
+//                 <div>
+//                   <h2 className="text-lg font-black text-gray-900 uppercase leading-tight">
+//                     {product.title}
+//                   </h2>
+//                   <div className="flex items-center gap-2 mt-1">
+//                     <div className="flex text-yellow-400">
+//                       <Star size={12} fill="currentColor" />
+//                     </div>
+//                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+//                       4.9 (120 Reviews)
+//                     </span>
+//                   </div>
+//                 </div>
+
+//                 <div className="flex items-baseline gap-3">
+//                   <span className="text-2xl font-black text-[#3B82F6] italic">
+//                     {formatNaira(product.discountPrice ?? product.price)}
+//                   </span>
+//                   {product.discountPrice && (
+//                     <span className="text-sm text-gray-300 line-through font-bold italic">
+//                       {formatNaira(product.price)}
+//                     </span>
+//                   )}
+//                 </div>
+
+//                 <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+//                   High-performance tactical gear designed for elite operators. 
+//                 </p>
+
+//                 <div className="flex flex-col gap-2 pt-2">
+//                   <button
+//                     onClick={handleAddToCart}
+//                     className="w-full bg-[#3B82F6] text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-[0.98] transition-transform"
+//                   >
+//                     <ShoppingCart size={16} />
+//                     Add to stash
+//                   </button>
+
+//                   {/* FIXED BUTTON FOR MOBILE */}
+//                   <Link
+//                     href={`/products/${product.slug}`}
+//                     prefetch
+//                     onClick={(e) => {
+//                         e.stopPropagation(); 
+//                     }}
+//                     className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all touch-manipulation cursor-pointer"
+//                     >
+//                     View Full Details
+//                     <ArrowRight size={14} />
+//                     </Link>
+
+
+                 
+//                 </div>
+//               </div>
+//             </div>
+//           </motion.div>
+//         </>
+//       )}
+//     </AnimatePresence>
+//   );
+// }
+
+
+
+
+
 "use client";
 
-import React, { useEffect } from "react"; 
-import Link from "next/link";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingCart, Star, ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
 import { useDispatch } from "react-redux";
@@ -167,31 +324,31 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
   const router = useRouter();
   const { notifySuccess } = useNotification();
 
-  // Prefetch the product page as soon as the drawer opens
-  // This makes the mobile transition instant
-  useEffect(() => {
-    if (isOpen && product?.slug) {
-      router.prefetch(`/products/${product.slug}`);
-    }
-  }, [isOpen, product?.slug, router]);
+  // DIAGNOSTIC LOG: Check if product is even arriving
+  console.log("Drawer Product Data:", product);
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({ product, quantity: 1 }));
-    notifySuccess(`${product.title} added to stash!`);
-    onClose();
-  };
-
-  const handleViewDetails = (e: React.MouseEvent) => {
-    // 1. Prevent all default behaviors
+  const handleViewDetails = (e: React.MouseEvent | React.TouchEvent) => {
+    // 1. Check if event is even firing
+    console.log("Button Tapped!");
+    
     e.preventDefault();
     e.stopPropagation();
+
+    if (!product?.slug) {
+      console.error("Navigation failed: Product slug is missing!", product);
+      return;
+    }
+
+    const targetUrl = `/products/${product.slug}`;
+    console.log("Navigating to:", targetUrl);
+
+    // Navigate immediately
+    router.push(targetUrl);
     
-    // 2. Immediate navigation
-    router.push(`/products/${product.slug}`);
-    
-    // 3. DO NOT call onClose() immediately. 
-    // Let the browser handle the page change. 
-    // The drawer will unmount naturally when the page changes.
+    // Delay closing to ensure the push isn't cancelled by unmounting
+    setTimeout(() => {
+      onClose();
+    }, 100);
   };
 
   return (
@@ -211,81 +368,56 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-white rounded-t-[2rem] z-[101] p-5 pb-8 shadow-2xl max-h-[80vh] overflow-y-auto border-x border-t border-gray-100"
+            // We use 'touch-none' on the handle but allow pointer events on the content
+            className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-white rounded-t-[2rem] z-[101] p-5 pb-8 shadow-2xl max-h-[80vh] overflow-y-auto"
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            {/* DRAG HANDLE: Often steals clicks if not scoped properly */}
+            <div className="pointer-events-none w-full mb-4">
+               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
+            </div>
 
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 bg-gray-100 rounded-full text-gray-500 z-[102]"
+              className="absolute top-4 right-4 p-1.5 bg-brand-ghost rounded-full text-brand-gray z-[102]"
             >
               <X size={18} />
             </button>
 
             <div className="flex flex-col gap-4">
-              <div className="relative w-full h-48 bg-gray-50 rounded-2xl overflow-hidden">
+              <div className="relative w-full h-48 bg-brand-ghost rounded-2xl overflow-hidden">
                 <Image
-                  src={product.imageUrl || "/placeholder.png"}
-                  alt={product.title}
+                  src={product?.imageUrl || "/placeholder.png"}
+                  alt={product?.title || "Product"}
                   fill
                   className="object-contain p-4"
                 />
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-lg font-black text-gray-900 uppercase leading-tight">
-                    {product.title}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex text-yellow-400">
-                      <Star size={12} fill="currentColor" />
-                    </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      4.9 (120 Reviews)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-black text-[#3B82F6] italic">
-                    {formatNaira(product.discountPrice ?? product.price)}
-                  </span>
-                  {product.discountPrice && (
-                    <span className="text-sm text-gray-300 line-through font-bold italic">
-                      {formatNaira(product.price)}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
-                  High-performance tactical gear designed for elite operators. 
-                </p>
-
-                <div className="flex flex-col gap-2 pt-2">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 pt-2">
                   <button
-                    onClick={handleAddToCart}
-                    className="w-full bg-[#3B82F6] text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-[0.98] transition-transform"
+                    onClick={() => {
+                      dispatch(addToCart({ product, quantity: 1 }));
+                      notifySuccess(`${product.title} added to stash!`);
+                      onClose();
+                    }}
+                    className="w-full bg-brand-navy text-brand-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
                     <ShoppingCart size={16} />
                     Add to stash
                   </button>
 
-                  {/* FIXED BUTTON FOR MOBILE */}
-                  <Link
-                    href={`/products/${product.slug}`}
-                    prefetch
-                    onClick={(e) => {
-                        e.stopPropagation(); 
-                    }}
-                    className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all touch-manipulation cursor-pointer"
-                    >
+                  {/* FORCED INTERACTION BUTTON */}
+                  <button
+                    type="button"
+                    // use onTouchEnd as a backup for mobile
+                    onTouchEnd={handleViewDetails}
+                    onClick={handleViewDetails}
+                    className="w-full bg-brand-orange text-brand-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 relative z-[999] pointer-events-auto touch-manipulation cursor-pointer"
+                  >
                     View Full Details
                     <ArrowRight size={14} />
-                    </Link>
-
-
-                 
+                  </button>
                 </div>
               </div>
             </div>
