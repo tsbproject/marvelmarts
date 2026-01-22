@@ -40,7 +40,7 @@ import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  trailingSlash: true, 
+  trailingSlash: false, 
 
   images: {
     remotePatterns: [
