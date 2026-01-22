@@ -55,7 +55,7 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
                 key={product.id} 
                 product={product} 
                 onQuickView={() => handleQuickView(product)}
-                onViewDetails={() => handleViewDetails(product.slug)} 
+                // onViewDetails={() => handleViewDetails(product.slug)} 
               />
             ))
         }

@@ -219,7 +219,7 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
                 setSelectedProduct(p);
                 setIsQuickViewOpen(true);
               }}
-              onViewDetails={() => handleViewDetails(product.slug)}
+              // onViewDetails={() => handleViewDetails(product.slug)}
             />
           ))}
         </div>
