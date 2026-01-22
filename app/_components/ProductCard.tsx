@@ -420,7 +420,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Star, Eye, ShoppingCart } from "lucide-react";
@@ -443,6 +443,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [isPending, startTransition] = useTransition();
   const { notifySuccess } = useNotification();
 
   const discountPercentage = product.discountPrice 
@@ -455,44 +456,38 @@ export default function ProductCard({
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
 
+    const slugValue = typeof product.slug === 'object' ? (product.slug as any).current : product.slug;
+    
+    if (!slugValue || slugValue === "undefined") return;
+
+    const targetUrl = `/products/${slugValue}`;
+
     if (onViewDetails) {
       e.preventDefault();
       onViewDetails();
     } else {
-      // PRODUCTION FIX: Ensure the slug is a clean string.
-      // If product.slug is an object {current: "..."} from Sanity, we grab the string.
-      const slugValue = typeof product.slug === 'object' ? (product.slug as any).current : product.slug;
+      // Prefetching ensures Vercel has the data ready before we jump
+      router.prefetch(targetUrl);
       
-      // If the slug is missing, we DO NOT navigate. 
-      // This is what stops Vercel from redirecting you to the homepage.
-      if (!slugValue || slugValue === "undefined") {
-        console.warn("Navigation prevented: Slug is missing on mobile production.");
-        return;
-      }
-
-      // Explicitly pushing the clean string
-      router.push(`/products/${slugValue}`);
+      // startTransition tells React to handle the "Frozen UI" problem
+      startTransition(() => {
+        router.push(targetUrl);
+      });
     }
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation(); 
-
-    dispatch(addToCart({ 
-      product: product, 
-      quantity: 1 
-    }));
-
+    dispatch(addToCart({ product, quantity: 1 }));
     notifySuccess(`${product.title} added to your stash!`);
   };
 
   return (
     <div 
       onClick={handleCardClick}
-      className="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col items-center p-4 shadow-sm hover:shadow-md transition-shadow group h-full relative cursor-pointer touch-manipulation active:bg-gray-50"
+      className={`bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col items-center p-4 shadow-sm hover:shadow-md transition-shadow group h-full relative cursor-pointer touch-manipulation active:bg-gray-50 ${isPending ? "opacity-70" : "opacity-100"}`}
     >
-      
       {/* 1. Sales Label */}
       {discountPercentage && (
         <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase tracking-tighter">
