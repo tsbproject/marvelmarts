@@ -112,7 +112,7 @@ export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'cr
     id: string;
     name: string;
     price: number;
-    sku: string;
+    sku: string | null;
     stock: number;
     productId: string;
   }[];
