@@ -135,6 +135,9 @@
 // }
 
 
+
+
+
 "use client";
 
 import React from "react";
@@ -168,41 +171,47 @@ export default function ProductCard({
 
   const displayPrice = product.discountPrice ?? product.price;
 
+  // FIXED NAVIGATION: Using a single handler for the whole card
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if clicking buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+
+    if (onViewDetails) {
+      e.preventDefault();
+      onViewDetails();
+    } else {
+      router.push(`/products/${product.slug}`);
+    }
+  };
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation(); 
-    dispatch(addToCart({ product, quantity: 1 }));
+
+    dispatch(addToCart({ 
+      product: product, 
+      quantity: 1 
+    }));
+
     notifySuccess(`${product.title} added to your stash!`);
   };
 
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onQuickView(product);
-  };
-
   return (
-    <a 
-      href={`/products/${product.slug}`}
-      onClick={(e) => {
-        if (onViewDetails) {
-          e.preventDefault();
-          onViewDetails();
-        }
-      }}
-      /* Keeping original styles but adding active:bg-brand-orange-light for tap feedback */
-      className="bg-brand-white border border-gray-100 rounded-xl overflow-hidden flex flex-col items-center p-4 shadow-sm hover:shadow-md transition-all group h-full relative touch-manipulation active:bg-brand-orange-light no-underline"
+    <div 
+      onClick={handleCardClick}
+      className="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col items-center p-4 shadow-sm hover:shadow-md transition-shadow group h-full relative cursor-pointer touch-manipulation active:bg-gray-50"
     >
       
       {/* 1. Sales Label */}
       {discountPercentage && (
-        <div className="absolute top-3 left-3 z-10 bg-red-600 text-brand-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase tracking-tighter">
+        <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase tracking-tighter">
           -{discountPercentage}%
         </div>
       )}
 
       {/* 2. Image Container */}
-      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-brand-ghost group">
+      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-gray-50 group">
         <Image 
           src={product.imageUrl || "/placeholder.png"} 
           alt={product.title}
@@ -212,9 +221,12 @@ export default function ProductCard({
         />
         
         <button 
-          type="button"
-          onClick={handleQuickView}
-          className="absolute bottom-2 right-2 p-2 bg-brand-white/90 backdrop-blur-sm rounded-full text-brand-gray shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-brand-navy hover:text-brand-white touch-manipulation z-20"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onQuickView(product);
+          }}
+          className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white touch-manipulation z-20"
           title="Quick View"
         >
           <Eye size={18} />
@@ -223,40 +235,39 @@ export default function ProductCard({
 
       {/* 3. Product Info */}
       <div className="flex-1 flex flex-col items-center text-center w-full px-2 mt-4">
-        <h3 className="text-sm font-medium text-brand-black line-clamp-2 h-10 mb-1 hover:text-brand-navy transition-colors">
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 h-10 mb-1 hover:text-blue-600 transition-colors">
           {product.title}
         </h3>
 
         <div className="flex items-center gap-2 mb-2">
-          <p className="text-lg font-bold text-brand-navy">
+          <p className="text-lg font-bold text-blue-600">
             {formatNaira(displayPrice)}
           </p>
           {product.discountPrice && (
-            <p className="text-xs text-brand-gray line-through font-medium opacity-60">
+            <p className="text-xs text-gray-400 line-through font-medium">
               {formatNaira(product.price)}
             </p>
           )}
         </div>
 
         <div className="flex items-center gap-1 mb-4">
-          <div className="flex text-brand-orange">
+          <div className="flex text-yellow-400">
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={12} fill={i < 4 ? "currentColor" : "none"} />
             ))}
           </div>
-          <span className="text-[10px] text-brand-gray">(120)</span>
+          <span className="text-[10px] text-gray-400">(120)</span>
         </div>
       </div>
 
       {/* 4. Functional Add to Cart Button */}
       <button 
-        type="button"
         onClick={handleAddToCart}
-        className="w-full bg-brand-navy hover:bg-brand-black text-brand-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 z-10"
+        className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 z-10"
       >
         <ShoppingCart size={16} />
         Add to Cart
       </button>
-    </a>
+    </div>
   );
 }
