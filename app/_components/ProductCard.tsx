@@ -163,59 +163,46 @@ export default function ProductCard({
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
 
-  const discountPercentage = product.discountPrice 
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-    : null;
-
   const displayPrice = product.discountPrice ?? product.price;
 
-  // The primary navigation function
-  const handleNavigate = (e: React.MouseEvent | React.TouchEvent) => {
+  // The "Aggressive" Navigation Handler
+  const handleForceNavigate = (e: React.PointerEvent) => {
+    // We only care about primary pointer (finger tap/left click)
+    if (e.button !== 0) return;
+
+    // Check if the user clicked a button inside the card first
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      return; // Let the button handle its own click
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
-    // Log for debugging on your phone if connected to a PC
-    console.log("Navigating to product:", product.slug);
-
+    const path = `/products/${product.slug}`;
+    
     if (onViewDetails) {
       onViewDetails();
     } else {
-      router.push(`/products/${product.slug}`);
+      router.push(path);
     }
-  };
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); 
-    e.stopPropagation(); 
-
-    dispatch(addToCart({ 
-      product: product, 
-      quantity: 1 
-    }));
-
-    notifySuccess(`${product.title} added to your stash!`);
-  };
-
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onQuickView(product);
   };
 
   return (
     <div 
-      className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group h-full relative flex flex-col cursor-pointer touch-manipulation active:bg-gray-50"
-      onClick={handleNavigate}
+      // onPointerDown is triggered before 'onClick' and 'onDrag'
+      onPointerDown={handleForceNavigate}
+      className="bg-brand-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group h-full relative flex flex-col cursor-pointer touch-manipulation active:bg-brand-ghost select-none"
     >
       {/* 1. Sales Label */}
-      {discountPercentage && (
-        <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase tracking-tighter">
-          -{discountPercentage}%
+      {product.discountPrice && (
+        <div className="absolute top-3 left-3 z-20 bg-red-600 text-brand-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase">
+          -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
         </div>
       )}
 
       {/* 2. Image Container */}
-      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-gray-50 p-4">
+      <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-brand-ghost p-4">
         <Image 
           src={product.imageUrl || "/placeholder.png"} 
           alt={product.title}
@@ -225,8 +212,12 @@ export default function ProductCard({
         />
         
         <button 
-          onClick={handleQuickView}
-          className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white z-30"
+          onPointerDown={(e) => e.stopPropagation()} // Stop card from navigating
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuickView(product);
+          }}
+          className="absolute bottom-2 right-2 p-2 bg-brand-white/90 backdrop-blur-sm rounded-full text-brand-gray shadow-sm z-30 active:bg-brand-navy active:text-brand-white"
         >
           <Eye size={18} />
         </button>
@@ -234,36 +225,36 @@ export default function ProductCard({
 
       {/* 3. Product Info */}
       <div className="flex-1 flex flex-col items-center text-center w-full px-4 mt-4">
-        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 h-10 mb-1 group-hover:text-blue-600 transition-colors">
+        <h3 className="text-sm font-medium text-brand-black line-clamp-2 h-10 mb-1 group-hover:text-brand-navy transition-colors">
           {product.title}
         </h3>
 
         <div className="flex items-center gap-2 mb-2">
-          <p className="text-lg font-bold text-blue-600">
+          <p className="text-lg font-bold text-brand-navy">
             {formatNaira(displayPrice)}
           </p>
-          {product.discountPrice && (
-            <p className="text-xs text-gray-400 line-through font-medium">
-              {formatNaira(product.price)}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-1 mb-4">
-          <div className="flex text-yellow-400">
+          <div className="flex text-brand-orange">
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={12} fill={i < 4 ? "currentColor" : "none"} />
             ))}
           </div>
-          <span className="text-[10px] text-gray-400">(120)</span>
+          <span className="text-[10px] text-brand-gray">(120)</span>
         </div>
       </div>
 
       {/* 4. Add to Cart Button */}
       <div className="px-4 pb-4 w-full">
         <button 
-          onClick={handleAddToCart}
-          className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 relative z-20"
+          onPointerDown={(e) => e.stopPropagation()} // Stop card from navigating
+          onClick={(e) => {
+            e.stopPropagation();
+            dispatch(addToCart({ product, quantity: 1 }));
+            notifySuccess(`${product.title} added!`);
+          }}
+          className="w-full bg-brand-navy text-brand-white py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 relative z-20"
         >
           <ShoppingCart size={16} />
           Add to Cart
