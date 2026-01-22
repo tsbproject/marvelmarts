@@ -271,25 +271,19 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                   </button>
 
                   {/* FIXED BUTTON FOR MOBILE */}
-                  {/* FIXED BUTTON FOR MOBILE */}
-                    <button
+                   <button
                     type="button"
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         handleViewDetails(e);
                     }}
-                    onTouchEnd={(e) => {
-                        // extra safety for iOS Safari
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleViewDetails(e as any);
-                    }}
-                    className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all cursor-pointer"
+                    className="w-full bg-accent-navy text-gray-50 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-100 active:bg-opacity-90 transition-all touch-manipulation cursor-pointer"
                     >
                     View Full Details
                     <ArrowRight size={14} />
                     </button>
+
 
                  
                 </div>
