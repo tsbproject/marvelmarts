@@ -319,8 +319,12 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
                 alt={product.title} 
                 fill 
                 className="object-contain p-12 transition-transform duration-700 hover:scale-105" 
-                priority
+                priority={true}        
+                fetchPriority="high"   
+                loading="eager"        
               />
+                
+              
             </div>
             {images.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">

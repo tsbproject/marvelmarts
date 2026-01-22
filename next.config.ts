@@ -33,51 +33,29 @@
 
 
 
-
 import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Fix for Vercel mobile navigation where URL changes but page doesn't
   trailingSlash: true, 
 
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "utfs.io",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "your-db-storage-provider.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "placehold.co",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "via.placeholder.com",
-        pathname: "/**",
-      },
+      { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
+      { protocol: "https", hostname: "utfs.io", pathname: "/**" },
+      { protocol: "https", hostname: "placehold.co", pathname: "/**" },
+      { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
     ],
   },
 
   productionBrowserSourceMaps: false,
 
-  webpack(config: Configuration) {
-    // Only override devtool in production if you need source maps
-    if (process.env.NODE_ENV === "production") {
-      config.devtool = "source-map";
+  // Fixed the argument destructuring and type alignment
+  webpack: (config: Configuration, { dev }: { dev: boolean }) => {
+    if (dev) {
+      config.devtool = "eval-source-map";
     }
+   
     return config;
   },
 };
