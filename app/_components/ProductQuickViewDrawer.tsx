@@ -299,7 +299,6 @@
 
 
 
-
 "use client";
 
 import React from "react";
@@ -322,33 +321,35 @@ interface DrawerProps {
 export default function ProductQuickViewDrawer({ isOpen, onClose, product }: DrawerProps) {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { notifySuccess } = useNotification();
+  const { notifySuccess, notifyError } = useNotification();
 
-  // DIAGNOSTIC LOG: Check if product is even arriving
-  console.log("Drawer Product Data:", product);
-
-  const handleViewDetails = (e: React.MouseEvent | React.TouchEvent) => {
-    // 1. Check if event is even firing
-    console.log("Button Tapped!");
-    
+  const handleViewDetails = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!product?.slug) {
-      console.error("Navigation failed: Product slug is missing!", product);
+    // 1. Identify the identifier (checking all possibilities)
+    // Some APIs use .slug, some use .id, some use ._id
+    const identifier = product?.slug || product?.id || (product as any)?._id;
+
+    // 2. If no identifier exists, show an error on your phone screen
+    if (!identifier) {
+      notifyError("Product data is missing a valid link/ID");
+      console.error("Missing ID/Slug in product:", product);
       return;
     }
 
-    const targetUrl = `/products/${product.slug}`;
-    console.log("Navigating to:", targetUrl);
-
-    // Navigate immediately
-    router.push(targetUrl);
+    // 3. Construct URL
+    const targetUrl = `/products/${identifier}`;
     
-    // Delay closing to ensure the push isn't cancelled by unmounting
-    setTimeout(() => {
-      onClose();
-    }, 100);
+    // 4. Navigate
+    // We don't call onClose() here to prevent the component from dying before navigation
+    router.push(targetUrl);
+  };
+
+  const handleAddToCart = () => {
+    dispatch(addToCart({ product, quantity: 1 }));
+    notifySuccess(`${product.title} added to stash!`);
+    onClose();
   };
 
   return (
@@ -360,7 +361,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+            className="fixed inset-0 bg-brand-black/60 z-[100] backdrop-blur-sm"
           />
 
           <motion.div
@@ -368,13 +369,9 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            // We use 'touch-none' on the handle but allow pointer events on the content
-            className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-white rounded-t-[2rem] z-[101] p-5 pb-8 shadow-2xl max-h-[80vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-brand-white rounded-t-[2.5rem] z-[101] p-5 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto"
           >
-            {/* DRAG HANDLE: Often steals clicks if not scoped properly */}
-            <div className="pointer-events-none w-full mb-4">
-               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
-            </div>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
 
             <button 
               onClick={onClose}
@@ -390,33 +387,46 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
                   alt={product?.title || "Product"}
                   fill
                   className="object-contain p-4"
+                  priority
                 />
               </div>
 
               <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-black text-brand-black uppercase leading-tight">
+                    {product?.title}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex text-brand-orange">
+                      <Star size={12} fill="currentColor" />
+                    </div>
+                    <span className="text-[10px] font-bold text-brand-gray uppercase tracking-wider">
+                      4.9 (120 Reviews)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline gap-3">
+                  <span className="text-2xl font-black text-brand-navy italic">
+                    {formatNaira(product?.discountPrice ?? product?.price)}
+                  </span>
+                </div>
+
                 <div className="flex flex-col gap-3 pt-2">
                   <button
-                    onClick={() => {
-                      dispatch(addToCart({ product, quantity: 1 }));
-                      notifySuccess(`${product.title} added to stash!`);
-                      onClose();
-                    }}
-                    className="w-full bg-brand-navy text-brand-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    onClick={handleAddToCart}
+                    className="w-full bg-brand-navy text-brand-white py-4 rounded-xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
-                    <ShoppingCart size={16} />
+                    <ShoppingCart size={18} />
                     Add to stash
                   </button>
 
-                  {/* FORCED INTERACTION BUTTON */}
                   <button
-                    type="button"
-                    // use onTouchEnd as a backup for mobile
-                    onTouchEnd={handleViewDetails}
                     onClick={handleViewDetails}
-                    className="w-full bg-brand-orange text-brand-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 relative z-[999] pointer-events-auto touch-manipulation cursor-pointer"
+                    className="w-full bg-brand-orange text-brand-white py-4 rounded-xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 active:scale-95 transition-all touch-manipulation"
                   >
                     View Full Details
-                    <ArrowRight size={14} />
+                    <ArrowRight size={18} />
                   </button>
                 </div>
               </div>
