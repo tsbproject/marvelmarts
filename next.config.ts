@@ -35,11 +35,11 @@
 
 
 
-
+import type { NextConfig } from "next";
 import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   trailingSlash: true, 
 
   images: {
@@ -53,14 +53,14 @@ const nextConfig = {
 
   productionBrowserSourceMaps: false,
 
-  // Fix the mismatch by typing the second argument (options)
-  webpack: (config: Configuration, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
-    
-    // This stops the "Deferred Load" intervention on Vercel by reducing bundle weight.
+  // Use the standard function signature that Next.js expects
+  webpack: (config: Configuration, { dev, isServer }) => {
+    // If you need to manipulate the config specifically for dev
     if (dev) {
       config.devtool = "eval-source-map";
     }
 
+    // Important: Always return the config
     return config;
   },
 };
