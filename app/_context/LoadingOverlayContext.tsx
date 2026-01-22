@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import {
@@ -28,14 +26,31 @@ export function LoadingOverlayProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
 
   /**
-   * ✅ Stop spinner when:
-   * - initial page mounts
-   * - route changes
-   * - query params change (pagination, search, filters)
+   *Normal Stop logic:
+   * Stop spinner when route changes or query params change
    */
   useEffect(() => {
     setLoading(false);
   }, [pathname, searchParams]);
+
+  /**
+   * Safety Fail-Safe (Emergency Brake):
+   * On Vercel, if the browser thread is blocked or an intervention occurs, 
+   * the normal useEffect might not fire immediately. 
+   * This forces the overlay to hide after 5 seconds to prevent a "permanent freeze".
+   */
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoading(false);
+        console.warn("LoadingOverlay forced hide after 5s timeout.");
+      }, 5000); // 5 seconds is plenty for a standard Vercel response
+    }
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   return (
     <LoadingOverlayContext.Provider value={{ loading, setLoading }}>
