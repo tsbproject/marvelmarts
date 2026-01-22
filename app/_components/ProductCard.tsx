@@ -141,7 +141,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Star, Eye, ShoppingCart } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
@@ -152,11 +151,9 @@ import { useNotification } from "@/app/_context/NotificationContext";
 interface ProductCardProps {
   product: SerializedProduct;
   onQuickView: (p: SerializedProduct) => void;
-  // onViewDetails?: (slug: string) => void; 
 }
 
 export default function ProductCard({ product, onQuickView }: ProductCardProps) {
-  const router = useRouter();
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
 
@@ -168,15 +165,14 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevents the main Link from firing
-
+    e.stopPropagation();
     dispatch(addToCart({ product, quantity: 1 }));
     notifySuccess(`${product.title} added to your stash!`);
   };
 
   const handleQuickViewClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevents the main Link from firing
+    e.stopPropagation();
     onQuickView(product);
   };
 
@@ -188,14 +184,12 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         href={`/products/${product.slug}`} 
         className="flex-1 flex flex-col items-center p-4 cursor-pointer"
       >
-        {/* Sales Label */}
         {discountPercentage && (
           <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-sm uppercase tracking-tighter">
             -{discountPercentage}%
           </div>
         )}
 
-        {/* Image Container */}
         <div className="relative w-full h-64 overflow-hidden rounded-t-lg bg-gray-50 group-hover:bg-gray-100 transition-colors">
           <Image 
             src={product.imageUrl || "/placeholder.png"} 
@@ -204,8 +198,6 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
             className="object-contain transition-transform duration-500 group-hover:scale-110 p-4" 
             priority
           />
-          
-          {/* Quick View Button */}
           <button 
             onClick={handleQuickViewClick}
             className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 shadow-sm opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-blue-600 hover:text-white z-30"
@@ -215,12 +207,10 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
           </button>
         </div>
 
-        {/* Product Info */}
         <div className="flex-1 flex flex-col items-center text-center w-full px-2 mt-4">
           <h3 className="text-sm font-medium text-gray-800 line-clamp-2 h-10 mb-1 group-hover:text-blue-600 transition-colors">
             {product.title}
           </h3>
-
           <div className="flex items-center gap-2 mb-2">
             <p className="text-lg font-bold text-blue-600">
               {formatNaira(displayPrice)}
@@ -231,7 +221,6 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
               </p>
             )}
           </div>
-
           <div className="flex items-center gap-1 mb-4">
             <div className="flex text-yellow-400">
               {[...Array(5)].map((_, i) => (
@@ -243,7 +232,6 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         </div>
       </Link>
 
-      {/* Add to Cart Button */}
       <div className="px-4 pb-4">
         <button 
           onClick={handleAddToCart}
