@@ -36,12 +36,10 @@
 
 
 
-
 import type { Configuration } from "webpack";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Fixes Vercel's handling of dynamic paths
   trailingSlash: true, 
 
   images: {
@@ -53,13 +51,16 @@ const nextConfig = {
     ],
   },
 
-  // STOP the source map generation that is choking the mobile CPU
   productionBrowserSourceMaps: false,
 
-  webpack(config: Configuration) {
-    // Remove all manual devtool logic. 
-    // This allows Next.js to use the 'hidden-source-map' or 'none' 
-    // which is required for mobile performance.
+  // Fix the mismatch by typing the second argument (options)
+  webpack: (config: Configuration, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
+    // We remove manual devtool overrides for production.
+    // This stops the "Deferred Load" intervention on Vercel by reducing bundle weight.
+    if (dev) {
+      config.devtool = "eval-source-map";
+    }
+
     return config;
   },
 };
