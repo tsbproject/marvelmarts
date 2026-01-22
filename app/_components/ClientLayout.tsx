@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { Provider } from "react-redux";
@@ -13,6 +9,7 @@ import { LoadingOverlayProvider } from "@/app/_context/LoadingOverlayContext";
 import Header from "@/app/_components/Header";
 import Footer from "@/app/_components/Footer";
 import CategoryMenu from "@/app/_components/CategoryMenu";
+import { CategoryWithChildren } from "../layout";
 import NextTopLoader from "nextjs-toploader";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
@@ -51,9 +48,15 @@ interface SiteSettings {
 interface ClientLayoutProps {
   children: React.ReactNode;
   settings: SiteSettings;
+  initialCategories: CategoryWithChildren[]; 
 }
 
-export default function ClientLayout({ children, settings }: ClientLayoutProps) {
+// Destructure initialCategories from props here
+export default function ClientLayout({ 
+  children, 
+  settings, 
+  initialCategories 
+}: ClientLayoutProps) {
   return (
     <Provider store={store}>
       <NextAuthSessionProvider>
@@ -75,7 +78,8 @@ export default function ClientLayout({ children, settings }: ClientLayoutProps) 
               <Header />
 
               <div className="hidden lg:block">
-                <CategoryMenu />
+                {/*Pass the initialCategories prop to the CategoryMenu */}
+                <CategoryMenu initialCategories={initialCategories} />
               </div>
 
               <main className="min-h-screen">

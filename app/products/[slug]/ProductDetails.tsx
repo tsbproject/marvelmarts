@@ -315,13 +315,14 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
           <div className="space-y-6">
             <div className="relative aspect-square bg-neutral-light rounded-[3.5rem] overflow-hidden border border-neutral-light shadow-inner">
               <Image 
-                src={images[activeImage]?.url} 
-                alt={product.title} 
-                fill 
-                className="object-contain p-12 transition-transform duration-700 hover:scale-105" 
-                priority={true}        
-                fetchPriority="high"   
-                loading="eager"        
+                src={product.images[0]?.url || "/placeholder.png"} 
+                alt={product.title}
+                fill
+                priority={true}          
+                fetchPriority="high"     
+                loading="eager"           
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-contain"
               />
                 
               

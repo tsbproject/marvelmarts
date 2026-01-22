@@ -1,10 +1,65 @@
+// import "@/app/_styles/globals.css";
+// import { Inter } from "next/font/google";
+// import { Metadata } from "next";
+// import ClientLayout from "./_components/ClientLayout"; 
+// import prisma from "@/app/lib/prisma";
+
+// // Force dynamic rendering ensures we always get the latest settings from the DB
+// export const dynamic = "force-dynamic";
+
+// export const metadata: Metadata = {
+//   title: "MarvelMarts | The Armory",
+//   description: "E-commerce for gadgets, phones & computers",
+// };
+
+// const inter = Inter({
+//   subsets: ["latin"],
+//   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+//   display: "swap",
+//   variable: "--font-inter",
+// });
+
+// export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  
+//   // Fetch settings from Prisma (Server-side)
+//   // Wrapped in a try-catch to prevent the whole app from failing if DB is asleep
+//   let settings = null;
+//   try {
+//     settings = await prisma.siteSettings.findFirst();
+//   } catch (error) {
+//     console.error("Failed to load site settings:", error);
+//   }
+
+//   return (
+//     <html lang="en" className={inter.variable}>
+//       <body 
+//         className={`${inter.className} bg-brand-ghost text-brand-black antialiased`}
+//         suppressHydrationWarning
+//       >
+        
+//         <ClientLayout settings={settings as any}>
+//           {children}
+//         </ClientLayout>
+//       </body>
+//     </html>
+//   );
+// }
+
+
 import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout"; 
 import prisma from "@/app/lib/prisma";
+import type { Category } from "@prisma/client";
 
-// Force dynamic rendering ensures we always get the latest settings from the DB
+// Define the recursive type to match your nested children include
+export type CategoryWithChildren = Category & {
+  children: (Category & {
+    children: Category[];
+  })[];
+};
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -14,30 +69,78 @@ export const metadata: Metadata = {
 
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  display: "swap",
   variable: "--font-inter",
+  display: "swap",
 });
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  
-  // Fetch settings from Prisma (Server-side)
-  // Wrapped in a try-catch to prevent the whole app from failing if DB is asleep
   let settings = null;
+  let categories: CategoryWithChildren[] = [];
+
   try {
-    settings = await prisma.siteSettings.findFirst();
+    // Parallel fetch: DB data is ready before the page hits the browser
+    const [dbSettings, dbCategories] = await Promise.all([
+      prisma.siteSettings.findFirst(),
+      prisma.category.findMany({
+        where: { 
+          OR: [
+            { parentId: null },
+            { parentId: "" } 
+          ]
+        },
+        include: {
+          children: {
+            include: { children: true }
+          }
+        },
+        orderBy: { position: 'asc' }
+      })
+    ]);
+
+    settings = dbSettings;
+    categories = dbCategories as CategoryWithChildren[];
+
+    // If database returned nothing but didn't throw an error
+    if (categories.length === 0) {
+       console.warn("Database connected but returned 0 categories.");
+    }
+
   } catch (error) {
-    console.error("Failed to load site settings:", error);
+    console.error("Database fetch failed in RootLayout:", error);
+    
+    // 🛡️ FALLBACK: Prevent UI disappearance when Neon DB is ENOTFOUND
+    settings = {
+      footerDesc: "The Ultimate Armory for Gadgets & Tech.",
+      supportPhone: "Contact Support",
+      supportEmail: "support@marvelmarts.com"
+    };
+    
+    categories = [
+      { 
+        id: "emergency-all", 
+        name: "Browse Armory", 
+        slug: "all", 
+        parentId: null, 
+        children: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        image: null,
+        description: null,
+        position: 0
+      }
+    ] as any;
   }
 
   return (
     <html lang="en" className={inter.variable}>
       <body 
-        className={`${inter.className} bg-brand-ghost text-brand-black antialiased`}
+        className={`${inter.className} bg-brand-ghost text-brand-black antialiased`} 
         suppressHydrationWarning
       >
-        
-        <ClientLayout settings={settings as any}>
+        <ClientLayout 
+          settings={settings as any} 
+          initialCategories={categories}
+        >
           {children}
         </ClientLayout>
       </body>
