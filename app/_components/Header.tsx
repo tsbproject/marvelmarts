@@ -174,7 +174,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           [@media(min-width:900px)]:top-15
         "
       >
-        {/* ✅ Passing categories to the Hamburger drawer */}
+        {/*Passing categories to the Hamburger drawer */}
         <HamburgerMenu categories={initialCategories} />
       </div>
 
@@ -188,6 +188,8 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
           [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
           [@media(min-width:900px)]:left-280 [@media(min-width:900px)]:top-21
+          [@media(min-width:1100px)]:left-280 [@media(min-width:1100px)]:top-21
+          [@media(min-width:1200px)]:left-280 [@media(min-width:1200px)]:top-0
         "
       >
         <HelpMenu />
@@ -209,18 +211,18 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       </div>
 
       {/* RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-90 -top-3 flex items-center gap-6 z-20 invisible lg:visible">
+      <div className="absolute right-90 -top-7 flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>
 
-      <div className="absolute right-45 top-22 flex items-center invisible lg:visible">
+      <div className="absolute right-45 top-20 flex items-center invisible lg:visible">
         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
         <button
           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
           onClick={() => setUserMenuOpen(true)}
         >
-          <User className="w-12 h-12 border-2 rounded-[50%] p-2 text-brand-primary" />
-          <span className="text-white text-2xl">Account</span>
+          <User className="w-10 h-10 border-2 rounded-3xl p-2 text-brand-primary" />
+          <span className="text-white text-sm">Account</span>
         </button>
       </div>
     </header>

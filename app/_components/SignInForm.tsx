@@ -133,7 +133,7 @@ export default function SignInPage() {
               <div className="flex justify-between items-center ml-1">
                 <label className="text-xl font-black  text-accent-navy uppercase tracking-[0.15em]">Password</label>
                 <Link href="/auth/forgot-password"  className="text-md font-black text-brand-primary hover:underline">
-                  Reset?
+                  Reset Password?
                 </Link>
               </div>
               <div className="relative group">
@@ -190,7 +190,7 @@ export default function SignInPage() {
 
           <p className="mt-12 text-center text-neutral-gray font-medium">
             New here?{" "}
-            <Link href="/auth/register" className="text-brand-primary font-black hover:underline uppercase tracking-tight">
+            <Link href="/auth/register/customer-registration" className="text-brand-primary font-black hover:underline uppercase tracking-tight">
               Create Account
             </Link>
           </p>

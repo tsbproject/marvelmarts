@@ -7,8 +7,8 @@
 
 @theme {
   /* Mapping the variables to Tailwind utility classes */
-  --color-accent-navy: var(--brand-navy);
-  --color-brand-primary: var(--brand-orange);
+  --color-accent-navy: var(--accent-navy);
+  --color-brand-primary: var(--brand-primary);
   --color-brand-light: var(--brand-orange-light);
   --color-neutral-white: var(--brand-white);
   --color-neutral-light: var(--brand-ghost);
@@ -18,8 +18,8 @@
 
 :root {
   /* Defining the actual hex values */
-  --brand-navy: #002B5B;
-  --brand-orange: #F7931E;
+  --accent-navy: #002B5B;
+ --brand-primary: #F7931E;
   --brand-orange-light: #FFE8CC;
   --brand-white: #FFFFFF;
   --brand-ghost: #F8F8F8;

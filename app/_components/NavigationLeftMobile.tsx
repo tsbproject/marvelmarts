@@ -16,7 +16,7 @@ export default function NavigationLeftMobile() {
      
       
 
-        {/* ✅ User Section */}
+        {/* User Section */}
         <div className="border-b border-gray-200">
           <button
             onClick={() => setUserOpen(!userOpen)}

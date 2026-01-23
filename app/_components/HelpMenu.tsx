@@ -143,7 +143,7 @@ export default function HelpMenu() {
                           href={itemHref}
                           className="group/item flex items-center gap-4 p-3 rounded-[18px] hover:bg-blue-50/50 transition-all duration-200"
                         >
-                          <div className={`p-2.5 rounded-xl bg-white shadow-sm border border-gray-50 ${item.color || 'text-blue-500'} group-hover/item:scale-110 transition-transform`}>
+                          <div className={`p-2.5 rounded-xl bg-white shadow-sm border border-gray-50 ${item.color || 'text-blue-500'} group-hover/item:scale-110 transition-transform `}>
                             <Icon size={18} />
                           </div>
                           
