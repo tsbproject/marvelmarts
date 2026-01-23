@@ -151,10 +151,12 @@ import type { Category } from "@prisma/client";
 import { ChevronDown, LayoutGrid, ArrowRight, Sparkles } from "lucide-react";
 
 // Recursive type to match your server-side data structure
-export type CategoryTree = Category & { children: CategoryTree[] };
+export type CategoryTree = Category & { 
+  children?: CategoryTree[] 
+};
 
 interface CategoryTopbarProps {
-  categories?: CategoryTree[]; // Made optional for extra safety
+  categories: CategoryTree[]; 
 }
 
 export default function CategoryTopbar({ categories = [] }: CategoryTopbarProps) {

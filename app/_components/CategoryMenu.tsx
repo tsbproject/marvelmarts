@@ -1,70 +1,45 @@
-
-
-
-
-// "use client";
+// // "use client";
 
 // import { useEffect, useState } from "react";
 // import CategoryTopbar from "./CategoryTopbar";
 // import CategoryMobileMenu from "./CategoryMobileMenu";
 // import type { Category } from "@prisma/client";
-// import { CategoryTreeArraySchema } from "./CategorySchema";
-// import { useNotification } from "@/app/_context/NotificationContext";
 
-// export type CategoryTree = Category & { children: CategoryTree[] };
+// /** * 🛡️ RECURSIVE TYPE DEFINITION
+//  * Making 'children' optional (?) is the key to passing the build.
+//  * This allows the nesting to stop at any level without throwing an error.
+//  */
+// export type CategoryTree = Category & { 
+//   children?: CategoryTree[] 
+// };
 
-// export default function CategoryMenu() {
+// interface CategoryMenuProps {
+//   initialCategories: CategoryTree[];
+// }
+
+// export default function CategoryMenu({ 
+//   initialCategories = [] 
+// }: CategoryMenuProps) {
 //   const [isMobile, setIsMobile] = useState(false);
-//   const [categories, setCategories] = useState<CategoryTree[]>([]);
-//   const [error, setError] = useState<string | null>(null);
-//   const { notifyError } = useNotification();
+  
+//   // Initialize state with a fallback to an empty array
+//   const [categories] = useState<CategoryTree[]>(initialCategories || []);
 
 //   useEffect(() => {
-//     const checkScreen = () => setIsMobile(window.innerWidth < 1024); // Changed to 1024 for better tablet/desktop transition
+//     // 1024px matches your Tailwind 'lg' breakpoint
+//     const checkScreen = () => setIsMobile(window.innerWidth < 1024);
 //     checkScreen();
 //     window.addEventListener("resize", checkScreen);
 //     return () => window.removeEventListener("resize", checkScreen);
 //   }, []);
 
-//   useEffect(() => {
-//     async function loadCategories() {
-//       try {
-//         const res = await fetch("/api/categories");
-//         const json = await res.json();
-
-//         // 1. Debug: Log this to your browser console to see the exact structure
-//         // console.log("Category API Response:", json);
-
-//         // 2. Extract the array. We check common keys used in Next.js APIs
-//         // If your API returns { success: true, categories: [] }, json.categories will work.
-//         const dataToValidate = json.categories || json.data || (Array.isArray(json) ? json : null);
-
-//         if (!dataToValidate) {
-//           throw new Error("Expected an array but received: " + typeof json);
-//         }
-
-//         // 3. Validate with Zod
-//         const validatedData = CategoryTreeArraySchema.parse(dataToValidate);
-        
-//         setCategories(validatedData);
-//         setError(null);
-//       } catch (err: any) {
-//         console.error("Category validation failed:", err);
-//         setError("Armory synchronization failed.");
-//         notifyError("Failed to load category database.");
-//       }
+//   // If categories are empty (due to the DB connection error we saw earlier), 
+//   // we return null to avoid rendering an empty bar.
+//   if (categories.length === 0) {
+//     if (process.env.NODE_ENV === 'development') {
+//       console.warn("CategoryMenu: No categories received from server.");
 //     }
-//     loadCategories();
-//   }, [notifyError]);
-
-//   if (error) {
-//     return (
-//       <div className="max-w-screen-2xl mx-auto px-4 mt-4">
-//         <div className="bg-brand-orange-light border border-brand-orange/20 text-brand-black p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center">
-//           <span className="text-brand-orange mr-2">!</span> {error}
-//         </div>
-//       </div>
-//     );
+//     return null; 
 //   }
 
 //   return isMobile ? (
@@ -76,35 +51,38 @@
 
 
 
+
 "use client";
 
 import { useEffect, useState } from "react";
 import CategoryTopbar from "./CategoryTopbar";
 import CategoryMobileMenu from "./CategoryMobileMenu";
-import { CategoryWithChildren } from "../layout";
+import { CategoryWithChildren as CategoryTree } from "../layout";
 
-export default function CategoryMenu({ 
-  initialCategories = [] 
-}: { 
-  initialCategories: CategoryWithChildren[] 
-}) {
+export default function CategoryMenu({ initialCategories = [] }: { initialCategories: CategoryTree[] }) {
+  // 1. Initialize with a guess, but handle hydration carefully
   const [isMobile, setIsMobile] = useState(false);
-  
-  //Ensure categories is never undefined
-  const [categories] = useState<CategoryWithChildren[]>(initialCategories || []);
+  const [categories] = useState<CategoryTree[]>(initialCategories);
 
   useEffect(() => {
-    const checkScreen = () => setIsMobile(window.innerWidth < 1024);
+    const checkScreen = () => {
+      // Logic matching Tailwind's 'lg' (1024px)
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
     checkScreen();
     window.addEventListener("resize", checkScreen);
     return () => window.removeEventListener("resize", checkScreen);
   }, []);
 
-  // DEBUG: If categories are empty, show a tiny hint in development 
-  // (You can remove this once confirmed)
-  if (categories.length === 0) {
-    console.warn("CategoryMenu: No categories received from server.");
-    return null; 
+  // 2.If categories are empty, don't just 'return null'. 
+  // Show a "Menu" button or a placeholder so the user isn't stuck.
+  if (!categories || categories.length === 0) {
+    return (
+      <div className="p-4 bg-white text-brand-gray text-[10px] font-bold uppercase tracking-widest">
+        Loading Categories...
+      </div>
+    );
   }
 
   return isMobile ? (

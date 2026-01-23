@@ -77,7 +77,7 @@ export default function ClientLayout({
 
               <Header />
 
-              <div className="hidden lg:block">
+              <div className="">
                 {/*Pass the initialCategories prop to the CategoryMenu */}
                 <CategoryMenu initialCategories={initialCategories} />
               </div>

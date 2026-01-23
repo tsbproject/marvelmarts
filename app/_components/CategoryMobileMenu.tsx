@@ -4,14 +4,17 @@
 // import { useState, useRef, useEffect } from "react";
 // import type { Category } from "@prisma/client";
 
-// //Recursive type: a Category plus its children
-// export type CategoryTree = Category & { children: CategoryTree[] };
+
+// // Recursive type: a Category plus its children
+// export type CategoryTree = Category & { 
+//   children?: CategoryTree[] 
+// };
 
 // interface CategoryMobileMenuProps {
 //   categories: CategoryTree[];
 // }
 
-// export default function CategoryMobileMenu({ categories }: CategoryMobileMenuProps) {
+// export default function CategoryMobileMenu({ categories = [] }: CategoryMobileMenuProps) {
 //   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
 //   const toggleCategory = (id: string) => {
@@ -28,13 +31,14 @@
 
 //   return (
 //     <nav className="p-4 bg-white shadow-md">
-//       <ul className="space-y-10 ">
+//       <ul className="space-y-7">
 //         {categories.map((cat) => (
 //           <CategoryItem
 //             key={cat.id}
 //             category={cat}
 //             openIds={openIds}
 //             toggleCategory={toggleCategory}
+//             level={0} //top-level (main category)
 //           />
 //         ))}
 //       </ul>
@@ -42,15 +46,17 @@
 //   );
 // }
 
-// //  Recursive item renderer
+// // Recursive item renderer
 // function CategoryItem({
 //   category,
 //   openIds,
 //   toggleCategory,
+//   level,
 // }: {
 //   category: CategoryTree;
 //   openIds: Set<string>;
 //   toggleCategory: (id: string) => void;
+//   level: number;
 // }) {
 //   const isOpen = openIds.has(category.id);
 //   const contentRef = useRef<HTMLDivElement>(null);
@@ -62,13 +68,18 @@
 //     }
 //   }, [category.children]);
 
+//   // Different classNames per level
+//   const buttonClass =
+//     level === 0
+//       ? "main-category w-full flex justify-between items-center text-xl font-bold text-accent-navy hover:text-brand-primary transition-colors"
+//       : level === 1
+//       ? "sub-category w-full flex justify-between items-center text-md font-semibold text-accent-teal hover:text-brand-primary transition-colors"
+//       : "child-category w-full flex justify-between items-center text-md font-medium text-brand-teal hover:text-brand-primary transition-colors";
+
 //   return (
 //     <li>
 //       {/* Category button */}
-//       <button
-//         onClick={() => toggleCategory(category.id)}
-//         className="w-full flex justify-between items-center text-xl font-semibold text-accent-navy hover:text-brand-primary transition-colors"
-//       >
+//       <button onClick={() => toggleCategory(category.id)} className={buttonClass}>
 //         {category.name}
 //         {category.children?.length > 0 && (
 //           <span className="ml-2 text-gray-500">{isOpen ? "−" : "+"}</span>
@@ -82,7 +93,7 @@
 //           style={{
 //             maxHeight: isOpen ? `${height}px` : "0px",
 //           }}
-//           className={`overflow-hidden  transition-all duration-500 ease-in-out`}
+//           className="overflow-hidden transition-all duration-500 ease-in-out"
 //         >
 //           <ul className="ml-4 mt-2 space-y-4">
 //             {category.children.map((sub) => (
@@ -91,6 +102,7 @@
 //                 category={sub}
 //                 openIds={openIds}
 //                 toggleCategory={toggleCategory}
+//                 level={level + 1} //increment level for sub/child
 //               />
 //             ))}
 //           </ul>
@@ -107,16 +119,14 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import type { Category } from "@prisma/client";
-
-// Recursive type: a Category plus its children
-export type CategoryTree = Category & { children: CategoryTree[] };
+//Import the master type to ensure total synchronization with the server data
+import { CategoryWithChildren as CategoryTree } from "../layout";
 
 interface CategoryMobileMenuProps {
   categories: CategoryTree[];
 }
 
-export default function CategoryMobileMenu({ categories }: CategoryMobileMenuProps) {
+export default function CategoryMobileMenu({ categories = [] }: CategoryMobileMenuProps) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   const toggleCategory = (id: string) => {
@@ -134,13 +144,14 @@ export default function CategoryMobileMenu({ categories }: CategoryMobileMenuPro
   return (
     <nav className="p-4 bg-white shadow-md">
       <ul className="space-y-7">
-        {categories.map((cat) => (
+        {/*Using optional chaining to prevent mapping over undefined */}
+        {(categories ?? []).map((cat) => (
           <CategoryItem
             key={cat.id}
             category={cat}
             openIds={openIds}
             toggleCategory={toggleCategory}
-            level={0} //top-level (main category)
+            level={0} // top-level (main category)
           />
         ))}
       </ul>
@@ -168,9 +179,9 @@ function CategoryItem({
     if (contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     }
-  }, [category.children]);
+  }, [category.children, isOpen]); // Added isOpen to re-calculate if needed
 
-  // Different classNames per level
+  // Different classNames per level (Preserved exactly as requested)
   const buttonClass =
     level === 0
       ? "main-category w-full flex justify-between items-center text-xl font-bold text-accent-navy hover:text-brand-primary transition-colors"
@@ -178,18 +189,21 @@ function CategoryItem({
       ? "sub-category w-full flex justify-between items-center text-md font-semibold text-accent-teal hover:text-brand-primary transition-colors"
       : "child-category w-full flex justify-between items-center text-md font-medium text-brand-teal hover:text-brand-primary transition-colors";
 
+  // Safely check children length
+  const hasChildren = (category.children?.length ?? 0) > 0;
+
   return (
     <li>
       {/* Category button */}
       <button onClick={() => toggleCategory(category.id)} className={buttonClass}>
         {category.name}
-        {category.children?.length > 0 && (
+        {hasChildren && (
           <span className="ml-2 text-gray-500">{isOpen ? "−" : "+"}</span>
         )}
       </button>
 
       {/* Subcategories accordion */}
-      {category.children?.length > 0 && (
+      {hasChildren && (
         <div
           ref={contentRef}
           style={{
@@ -198,14 +212,16 @@ function CategoryItem({
           className="overflow-hidden transition-all duration-500 ease-in-out"
         >
           <ul className="ml-4 mt-2 space-y-4">
-            {category.children.map((sub) => (
-              <CategoryItem
-                key={sub.id}
-                category={sub}
-                openIds={openIds}
-                toggleCategory={toggleCategory}
-                level={level + 1} //increment level for sub/child
-              />
+            {/* Safe recursion using optional chaining */}
+           {category.children?.map((sub) => (
+            <CategoryItem
+              key={sub.id}
+              category={sub as CategoryTree} // 👈 Add 'as CategoryTree' here
+              openIds={openIds}
+              toggleCategory={toggleCategory}
+              level={level + 1}
+            />
+
             ))}
           </ul>
         </div>

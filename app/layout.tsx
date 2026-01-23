@@ -54,10 +54,12 @@ import prisma from "@/app/lib/prisma";
 import type { Category } from "@prisma/client";
 
 // Define the recursive type to match your nested children include
+
+export type CategoryTree = Category & { 
+  children?: CategoryTree[] 
+};
 export type CategoryWithChildren = Category & {
-  children: (Category & {
-    children: Category[];
-  })[];
+  children?: CategoryWithChildren[]; 
 };
 
 export const dynamic = "force-dynamic";
@@ -108,12 +110,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch (error) {
     console.error("Database fetch failed in RootLayout:", error);
     
-    // 🛡️ FALLBACK: Prevent UI disappearance when Neon DB is ENOTFOUND
+    //FALLBACK: Prevent UI disappearance when Neon DB is ENOTFOUND
     settings = {
       footerDesc: "The Ultimate Armory for Gadgets & Tech.",
       supportPhone: "Contact Support",
       supportEmail: "support@marvelmarts.com"
     };
+  
+  try{
+    } catch (error) {
+  console.error("Database fetch failed:", error);
+  // This fallback ensures the array is NOT empty
+  categories = [
+    { 
+      id: "fallback-mobile", 
+      name: "Browse All Categories", 
+      slug: "all", 
+      children: [] 
+    }
+  ] as any;
+}
     
     categories = [
       { 
