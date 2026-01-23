@@ -1,21 +1,136 @@
+// "use client";
+
+// import { useState } from "react";
+// import { User } from "lucide-react";
+// import Logo from "./Logo";
+// import NavigationRight from "./NavigationRight";
+// import NavigationLeftMobile from "./NavigationLeftMobile";
+// import UserMenu from "@/app/_components/UserMenu";
+// import SearchBar from "@/app/_components/SearchBar";
+// import HamburgerMenu from "@/app/_components/HamburgerMenu";
+// import CartDrawer from "./CartDrawer";
+// import HelpMenu from "./HelpMenu"; 
+
+// export default function Header() {
+//   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+//   return (
+//     <header className="bg-accent-navy h-35 md:h-40 shadow p-4 md:p-4 relative z-1001">
+//       {/* Logo */}
+//       <div
+//         className="
+//           absolute
+//           [@media(min-width:300px)]:left-30 [@media(min-width:300px)]:top-13
+//           [@media(min-width:400px)]:left-30 [@media(min-width:400px)]:top-15
+//           [@media(min-width:500px)]:left-[90px] [@media(min-width:500px)]:top-12
+//           [@media(min-width:600px)]:left-[110px] [@media(min-width:600px)]:top-13
+//           [@media(min-width:900px)]:left-[85px]  [@media(min-width:900px)]:top-8
+//           [@media(min-width:1100px)]:left-[85px] [@media(min-width:1100px)]:top-16
+//           [@media(min-width:1200px)]:left-[100px] [@media(min-width:1200px)]:top-20
+//         "
+//       >
+//         <Logo />
+//       </div>
+
+//       {/* Search Bar - Desktop */}
+//       <div className="absolute top-20 left-100 hidden lg:block">
+//         <SearchBar />
+//       </div>
+
+//       {/* Mobile Hamburger */}
+//       <div
+//         className="
+//           absolute -top-6 visible lg:invisible
+//           [@media(min-width:300px)]:right-[250px]
+//           [@media(min-width:300px)]:top-12
+//           [@media(min-width:350px)]:right-[300px]
+//           [@media(min-width:400px)]:right-[350px] [@media(min-width:400px)]:top-12
+//           [@media(min-width:500px)]:left-10
+//           [@media(max-width:600px)]:-right-[230px]
+//           [@media(min-width:900px)]:right-[85px]
+//           [@media(min-width:900px)]:top-15
+//         "
+//       >
+//         <HamburgerMenu />
+//       </div>
+
+//       {/* HelpMenu - Mobile */}
+//       <div
+//         className="
+//           absolute visible lg:invisible
+//           [@media(min-width:300px)]:left-90 [@media(min-width:300px)]:top-17
+//           [@media(min-width:350px)]:left-112 [@media(min-width:350px)]:top-21
+//           [@media(min-width:400px)]:left-123 [@media(min-width:400px)]:top-21
+//           [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
+//           [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
+//           [@media(min-width:900px)]:left-280 [@media(min-width:900px)]:top-21
+          
+//         "
+//       >
+//         <HelpMenu />
+//       </div>
+
+//       {/* CartDrawer - Mobile */}
+//       <div
+//         className="
+//           absolute visible lg:invisible
+//           [@media(min-width:300px)]:left-103 [@media(min-width:300px)]:top-17
+//           [@media(min-width:350px)]:left-128 [@media(min-width:350px)]:top-21
+//           [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
+//           [@media(min-width:500px)]:left-170 [@media(min-width:500px)]:top-20
+//           [@media(min-width:600px)]:left-210 [@media(min-width:600px)]:top-20
+//           [@media(min-width:900px)]:left-320 [@media(min-width:900px)]:top-21
+//         "
+//       >
+//         <CartDrawer />
+//       </div>
+
+//       {/*  RIGHT CORNER AREA FOR ALL ICONS */}
+//       <div className="absolute right-90 -top-3 flex items-center gap-6 z-20 invisible lg:visible">
+//         <NavigationRight />
+//       </div>
+
+//       <div className="absolute right-45 top-22 flex items-center invisible lg:visible">
+//         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
+//         <button
+//           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
+//           onClick={() => setUserMenuOpen(true)}
+//         >
+//           <User className="w-12 h-12 border-2 rounded-[50%] p-2 text-brand-primary" />
+//           <span className="text-white text-2xl">Account</span>
+//         </button>
+//       </div>
+//     </header>
+//   );
+// }
+
+
+
+
+
 "use client";
 
 import { useState } from "react";
 import { User } from "lucide-react";
 import Logo from "./Logo";
 import NavigationRight from "./NavigationRight";
-import NavigationLeftMobile from "./NavigationLeftMobile";
 import UserMenu from "@/app/_components/UserMenu";
 import SearchBar from "@/app/_components/SearchBar";
 import HamburgerMenu from "@/app/_components/HamburgerMenu";
 import CartDrawer from "./CartDrawer";
 import HelpMenu from "./HelpMenu"; 
+import CategoryMenu from "./CategoryMenu"; 
+import { CategoryWithChildren as CategoryTree } from "../layout"; 
 
-export default function Header() {
+interface HeaderProps {
+  initialCategories: CategoryTree[]; 
+}
+
+export default function Header({ initialCategories = [] }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <header className="bg-accent-navy h-35 md:h-40 shadow p-4 md:p-4 relative z-1001">
+    <header className="bg-accent-navy h-35 md:h-48 shadow p-4 md:p-4 relative z-1001">
       {/* Logo */}
       <div
         className="
@@ -37,7 +152,15 @@ export default function Header() {
         <SearchBar />
       </div>
 
-      {/* Mobile Hamburger */}
+      {/* Category Menu - Desktop Topbar 
+          This will now only show on Desktop (lg and up) 
+          and handles its own visibility.
+      */}
+      <div className="absolute bottom-0 left-0 w-full hidden lg:block">
+        <CategoryMenu initialCategories={initialCategories} />
+      </div>
+
+      {/* Mobile Hamburger - Now passing categories */}
       <div
         className="
           absolute -top-6 visible lg:invisible
@@ -51,7 +174,8 @@ export default function Header() {
           [@media(min-width:900px)]:top-15
         "
       >
-        <HamburgerMenu />
+        {/* ✅ Passing categories to the Hamburger drawer */}
+        <HamburgerMenu categories={initialCategories} />
       </div>
 
       {/* HelpMenu - Mobile */}
@@ -64,7 +188,6 @@ export default function Header() {
           [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
           [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
           [@media(min-width:900px)]:left-280 [@media(min-width:900px)]:top-21
-          
         "
       >
         <HelpMenu />
@@ -85,7 +208,7 @@ export default function Header() {
         <CartDrawer />
       </div>
 
-      {/*  RIGHT CORNER AREA FOR ALL ICONS */}
+      {/* RIGHT CORNER AREA FOR ALL ICONS */}
       <div className="absolute right-90 -top-3 flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>

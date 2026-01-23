@@ -75,11 +75,11 @@ export default function ClientLayout({
                 speed={200}
               />
 
-              <Header />
+             <Header initialCategories={initialCategories} />
 
               <div className="">
                 {/*Pass the initialCategories prop to the CategoryMenu */}
-                <CategoryMenu initialCategories={initialCategories} />
+                {/* <CategoryMenu initialCategories={initialCategories} /> */}
               </div>
 
               <main className="min-h-screen">
