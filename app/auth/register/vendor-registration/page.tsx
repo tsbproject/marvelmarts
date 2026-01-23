@@ -4,9 +4,21 @@ import { useState, useMemo } from "react";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Mail, 
+  Store, 
+  User, 
+  ShieldCheck, 
+  Lock, 
+  Smartphone,
+  MapPin,
+  CheckCircle2
+} from "lucide-react";
 
 // ---------------------------------
-// Nigeria States + FCT Abuja
+// Constants
 // ---------------------------------
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
@@ -14,57 +26,32 @@ const NIGERIAN_STATES = [
   "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
   "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
   "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT Abuja",
-];
+] as const;
 
 // ------------------------
 // Zod schema
 // ------------------------
-const vendorSchema = z
-  .object({
-    email: z.string().email("Invalid email"),
-    verificationCode: z.string().min(4, "Enter verification code"),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    storeName: z.string().min(1, "Store name is required"),
-    storePhone: z.string().min(10, "Enter valid phone number"),
-    storeAddress: z.string().min(5, "Store address required"),
-    country: z.string().min(1, "Country required"),
-    state: z.string().min(1, "State required"),
-    password: z.string().min(6, "Password must be at least 6 chars"),
-    confirmPassword: z.string().min(6, "Confirm your password"),
-    agree: z.boolean().refine(val => val === true, {
-      message: "You must agree to terms",
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+const vendorSchema = z.object({
+  email: z.string().email("Invalid email"),
+  verificationCode: z.string().min(4, "Enter verification code"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  storeName: z.string().min(1, "Store name is required"),
+  storePhone: z.string().min(10, "Enter valid phone number"),
+  storeAddress: z.string().min(5, "Store address required"),
+  country: z.string().min(1, "Country required"),
+  state: z.string().min(1, "State required"),
+  password: z.string().min(6, "Password must be at least 6 chars"),
+  confirmPassword: z.string().min(6, "Confirm your password"),
+  agree: z.boolean().refine(val => val === true, {
+    message: "You must agree to terms",
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
 type VendorFormData = z.infer<typeof vendorSchema>;
-
-
-// -----------------------------
-// Password utilities
-// -----------------------------
-const PASSWORD_POLICY = {
-  minLength: 6,
-  requireUpper: true,
-  requireNumber: true,
-};
-
-function calcPasswordScore(pw: string): number {
-  let score = 0;
-  if (pw.length >= PASSWORD_POLICY.minLength) score += 30;
-  if (/[A-Z]/.test(pw)) score += 30;
-  if (/\d/.test(pw)) score += 30;
-  if (/[^A-Za-z0-9]/.test(pw)) score += 10;
-  return Math.min(100, score);
-}
-
-function sanitize(value: string): string {
-  return value.replace(/[<>]/g, "").trim();
-}
 
 // -----------------------------
 // Component
@@ -72,402 +59,383 @@ function sanitize(value: string): string {
 export default function VendorRegistration() {
   const router = useRouter();
   const { notifyError, notifySuccess } = useNotification();
+  
+  // Local State
+  const [step, setStep] = useState(1);
   const [verificationId, setVerificationId] = useState<string | null>(null);
-
   const [formData, setFormData] = useState<VendorFormData>({
-    email: "",
-    verificationCode: "",
-    firstName: "",
-    lastName: "",
-    storeName: "",
-    storePhone: "",
-    storeAddress: "",
-    country: "Nigeria",
-    state: "",
-    password: "",
-    confirmPassword: "",
-    agree: false,
+    email: "", verificationCode: "", firstName: "", lastName: "",
+    storeName: "", storePhone: "", storeAddress: "", country: "Nigeria",
+    state: "", password: "", confirmPassword: "", agree: false,
   });
 
-  const [honeypot, setHoneypot] = useState("");
-  const [sentCode, setSentCode] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [loading, setLoading] = useState({ code: false, verify: false, submit: false });
   const [isVerified, setIsVerified] = useState(false);
-  const [registering, setRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordScore, setPasswordScore] = useState(0);
 
-  // -----------------------------
   // Field handler
-  // -----------------------------
   function setField<K extends keyof VendorFormData>(key: K, value: VendorFormData[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
-    if (key === "password") setPasswordScore(calcPasswordScore(String(value)));
   }
 
-  // -----------------------------
-  // Helpers
-  // -----------------------------
-  const isEmailValid = useMemo(
-    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()),
-    [formData.email]
-  );
-
-  const isPasswordStrong = useMemo(() => {
+  // Password Strength Logic
+  const passwordScore = useMemo(() => {
+    let score = 0;
     const pw = formData.password;
-    return pw.length >= PASSWORD_POLICY.minLength && /[A-Z]/.test(pw) && /\d/.test(pw);
+    if (pw.length >= 6) score += 30;
+    if (/[A-Z]/.test(pw)) score += 30;
+    if (/\d/.test(pw)) score += 40;
+    return score;
   }, [formData.password]);
 
-  // -----------------------------
-  // Send verification code
-  // -----------------------------
+  // API Handlers
   async function handleSendCode() {
-    if (!isEmailValid) return notifyError("Enter a valid email first");
-
+    if (!formData.email.includes("@")) return notifyError("Enter a valid email");
+    setLoading(prev => ({ ...prev, code: true }));
     try {
       const res = await fetch("/api/auth/register/vendor/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: sanitize(formData.email),
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          storeName: formData.storeName,
-          storePhone: formData.storePhone,
-          storeAddress: formData.storeAddress,
-          country: formData.country,
-          state: formData.state,
-        }),
+        body: JSON.stringify(formData),
       });
-
       const data = await res.json();
-
       if (data.success && data.verificationId) {
-        setSentCode(true);
         setVerificationId(data.verificationId);
-        notifySuccess("Verification code sent in your email");
+        notifySuccess("Verification code sent to your email");
       } else notifyError(data.error ?? "Failed to send code");
-    } catch {
-      notifyError("Unexpected error sending code");
+    } finally {
+      setLoading(prev => ({ ...prev, code: false }));
     }
   }
 
-  // -----------------------------
-  // Verify code
-  // -----------------------------
   async function handleVerifyCode() {
-    if (!formData.verificationCode) return notifyError("Verification code required");
-    if (!verificationId) return notifyError("Send code first");
-
-    setVerifying(true);
+    if (!formData.verificationCode || !verificationId) return notifyError("Missing details");
+    setLoading(prev => ({ ...prev, verify: true }));
     try {
       const res = await fetch("/api/auth/register/vendor/verify-vendor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: verificationId,
-          code: sanitize(formData.verificationCode),
-        }),
+        body: JSON.stringify({ uid: verificationId, code: formData.verificationCode }),
       });
-
       const data = await res.json();
-
       if (res.ok && data.success) {
         setIsVerified(true);
-        notifySuccess("Code verified, you can continue ");
-      } else {
-        setIsVerified(false);
-        notifyError(data.error ?? "Invalid or expired code");
-      }
-    } catch {
-      notifyError("Unexpected error verifying code");
+        notifySuccess("Email verified successfully");
+      } else notifyError(data.error ?? "Invalid code");
     } finally {
-      setVerifying(false);
+      setLoading(prev => ({ ...prev, verify: false }));
     }
   }
 
-  // -----------------------------
-  // Submit
-  // -----------------------------
- async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  if (honeypot) return;
-  if (!isVerified) return notifyError("Verify email first");
-
-  setRegistering(true);
-  try {
-    const payload = {
-      email: sanitize(formData.email),
-      password: formData.password,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      storeName: formData.storeName,
-      storePhone: formData.storePhone,
-      storeAddress: formData.storeAddress,
-      country: formData.country,
-      state: formData.state,
-      verificationCode: formData.verificationCode,
-      agree: formData.agree,
-    };
-
-    const res = await fetch("/api/auth/register/vendor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      notifySuccess("Registration complete");
-      setTimeout(() => router.push("/auth/sign-in"), 1500);
-    } else {
-      notifyError(data.error ?? "Registration failed");
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isVerified) return notifyError("Please verify your email first");
+    
+    setLoading(prev => ({ ...prev, submit: true }));
+    try {
+      const res = await fetch("/api/auth/register/vendor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (data.success) {
+        notifySuccess("Registration successful!");
+        setTimeout(() => router.push("/auth/sign-in"), 1500);
+      } else notifyError(data.error ?? "Registration failed");
+    } finally {
+      setLoading(prev => ({ ...prev, submit: false }));
     }
-  } catch {
-    notifyError("Unexpected error during registration");
-  } finally {
-    setRegistering(false);
   }
-}
 
-
-  // -----------------------------
-  // UI
-  // -----------------------------
- return (
-  <div className="flex justify-center items-start min-h-screen bg-gray-100 px-4 py-10">
-    <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8">
+  return (
+    <div className="min-h-screen bg-brand-ghost flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full bg-brand-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
         
-          {/* Back arrow at top-left */}
+        {/* Progress Header */}
+        <div className="bg-brand-navy p-8 text-brand-white">
+          <div className="flex items-center justify-between mb-8">
+            <button onClick={() => router.back()} className="hover:text-brand-orange transition-colors">
+              <ChevronLeft size={28} />
+            </button>
+            <h2 className="text-3xl font-bold text-accent-navy">Vendor Onboarding</h2>
+            <div className="w-8" /> {/* Spacer */}
+          </div>
+          
+          <div className="flex justify-between max-w-md mx-auto relative">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="z-10 flex flex-col items-center gap-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
+                  step >= i ? "bg-brand-orange border-brand-orange" : "bg-brand-navy border-gray-500"
+                }`}>
+                  {step > i ? <CheckCircle2 size={20} /> : i}
+                </div>
+                <span className={`text-xs uppercase tracking-wider ${step >= i ? "text-brand-orange" : "text-gray-400"}`}>
+                  {i === 1 ? "Account" : i === 2 ? "Store" : "Finalize"}
+                </span>
+              </div>
+            ))}
+            <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-700 -z-0" />
+            <div 
+              className="absolute top-5 left-0 h-0.5 bg-brand-orange transition-all duration-500 -z-0" 
+              style={{ width: `${(step - 1) * 50}%` }}
+            />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-8 sm:p-12">
+          {/* STEP 1: ACCOUNT DETAILS */}
+          {step === 1 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                    <User size={16} /> First Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter first name"
+                    value={formData.firstName}
+                    onChange={(e) => setField("firstName", e.target.value)}
+                    className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-orange outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                    <User size={16} /> Last Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter last name"
+                    value={formData.lastName}
+                    onChange={(e) => setField("lastName", e.target.value)}
+                    className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-orange outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                  <Mail size={16} /> Business Email
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="name@company.com"
+                    value={formData.email}
+                    onChange={(e) => setField("email", e.target.value)}
+                    disabled={isVerified}
+                    className="flex-1 p-3 bg-brand-ghost border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-orange outline-none disabled:opacity-50"
+                  />
+                  {!isVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      disabled={loading.code}
+                      className="px-6 bg-brand-navy text-brand-white rounded-xl font-bold hover:bg-brand-black transition-colors disabled:opacity-50"
+                    >
+                      {loading.code ? "..." : "Send Code"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {verificationId && !isVerified && (
+                <div className="space-y-2 p-4 bg-brand-orange-light rounded-2xl border border-brand-orange/20 animate-in zoom-in-95">
+                  <label className="text-sm font-bold text-brand-navy flex items-center gap-2">
+                    <ShieldCheck size={16} /> Verification Code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter 4-digit code"
+                      value={formData.verificationCode}
+                      onChange={(e) => setField("verificationCode", e.target.value)}
+                      className="flex-1 p-3 border border-brand-orange/30 rounded-xl outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      disabled={loading.verify}
+                      className="px-6 bg-green-600 text-brand-white rounded-xl font-bold hover:bg-green-700 transition-colors"
+                    >
+                      {loading.verify ? "Checking..." : "Verify"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isVerified && (
+                <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 p-3 rounded-xl border border-green-200">
+                  <CheckCircle2 size={20} /> Email Verified Successfully
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                disabled={!isVerified}
+                className="w-full py-4 bg-brand-orange text-brand-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:shadow-lg transition-all disabled:opacity-50 disabled:grayscale"
+              >
+                Continue to Store Details <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
+
+          {/* STEP 2: STORE INFO */}
+          {step === 2 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                  <Store size={16} /> Store Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Marvel Mart Lagos"
+                  value={formData.storeName}
+                  onChange={(e) => setField("storeName", e.target.value)}
+                  className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-orange"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                    <Smartphone size={16} /> Business Phone
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="080..."
+                    value={formData.storePhone}
+                    onChange={(e) => setField("storePhone", e.target.value)}
+                    className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                    <MapPin size={16} /> State
+                  </label>
+                  <select
+                    value={formData.state}
+                    onChange={(e) => setField("state", e.target.value)}
+                    className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none"
+                  >
+                    <option value="">Select State</option>
+                    {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                   Store Address
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Full physical address"
+                  value={formData.storeAddress}
+                  onChange={(e) => setField("storeAddress", e.target.value)}
+                  className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-orange"
+                />
+              </div>
+
+              <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => router.back()}
-                  className="absolute top-4 left-4  flex items-center text-gray-700 hover:text-gray-900"
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-4 bg-brand-gray text-brand-white rounded-xl font-bold"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z"/>
-                    <path d="M5 12l14 0" />
-                    <path d="M5 12l6 6" />
-                    <path d="M5 12l6 -6" />
-                  </svg>
-
-
-                  <span className="sr-only">Go back</span>
+                  Back
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  disabled={!formData.storeName || !formData.state}
+                  className="flex-[2] py-4 bg-brand-orange text-brand-white rounded-xl font-bold flex items-center justify-center gap-2"
+                >
+                  Final Step <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          )}
 
-      {/* Header */}
-      <h2 className="text-2xl sm:text-2xl font-bold ml-10 mb-2">
-        Vendor Registration
-      </h2>
+          {/* STEP 3: SECURITY & FINALIZE */}
+          {step === 3 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-brand-gray flex items-center gap-2">
+                  <Lock size={16} /> Create Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setField("password", e.target.value)}
+                    className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-orange"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-brand-gray text-xs font-bold"
+                  >
+                    {showPassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
+                {/* Strength Meter */}
+                <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-500 ${
+                      passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-yellow-500" : "bg-green-500"
+                    }`}
+                    style={{ width: `${passwordScore}%` }}
+                  />
+                </div>
+              </div>
 
-      <h3 className="text-red-700 text-xl sm:text-2xl font-semibold ml-10 mb-1">
-        Important Instructions:
-      </h3>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-brand-gray">Confirm Password</label>
+                <input
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setField("confirmPassword", e.target.value)}
+                  className="w-full p-3 bg-brand-ghost border border-gray-200 rounded-xl outline-none"
+                />
+              </div>
 
-      <ol className="list-decimal pl-5 text-lg sm:text-lg text-red-600 ml-10 mb-6 space-y-1">
-        <li>Fill in your email and all required details.</li>
-        <li>Click <strong>Send Code</strong>.</li>
-        <li>Check your inbox and spam folder.</li>
-        <li>Enter the code and click <strong>Verify</strong>.</li>
-        <li>Finally, click <strong>Register</strong>.</li>
-      </ol>
+              <label className="flex items-start gap-3 p-4 bg-brand-ghost rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={formData.agree}
+                  onChange={() => setField("agree", !formData.agree)}
+                  className="mt-1 w-5 h-5 accent-brand-orange"
+                />
+                <span className="text-sm text-brand-gray">
+                  I certify that I am an authorized representative of this business and agree to Marvelmarts' 
+                  <span className="text-brand-orange font-bold"> Terms of Service</span> and 
+                  <span className="text-brand-orange font-bold"> Privacy Policy</span>.
+                </span>
+              </label>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Honeypot */}
-        <div className="hidden">
-          <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-lg text-black font-semibold mb-1">
-            Email *
-          </label>
-          <input
-           placeholder="Enter your email address"
-            value={formData.email}
-            onChange={(e) => setField("email", e.target.value)}
-            className={`w-full p-2.5 text-base border rounded-md focus:outline-none focus:ring ${
-              formData.email && !isEmailValid
-                ? "border-red-400 focus:ring-red-200"
-                : "border-gray-300 focus:ring-gray-200"
-            }`}
-          />
-        </div>
-
-        {/* Verification */}
-        <div className="flex flex-col text-black sm:flex-row gap-3 sm:items-center">
-          <input
-            placeholder="Verification code"
-            value={formData.verificationCode}
-            onChange={(e) => setField("verificationCode", e.target.value)}
-            className="w-full sm:flex-1 p-2.5 text-base text-black border rounded-md"
-          />
-
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleSendCode}
-              className="flex-1 sm:flex-none px-4 py-2 text-lg sm:text-lg font-semibold bg-accent-navy text-white rounded-md"
-            >
-              Send Code
-            </button>
-
-            <button
-              type="button"
-              onClick={handleVerifyCode}
-              className="flex-1 sm:flex-none px-4 py-2 text-lg sm:text-lg font-semibold bg-green-600 text-white rounded-md"
-            >
-              {verifying ? "Verifying..." : "Verify"}
-            </button>
-          </div>
-
-          <span
-            className={`text-sm font-semibold ${
-              isVerified ? "text-green-600" : "text-red-500"
-            }`}
-          >
-            {isVerified ? "Verified" : "Not Verified"}
-          </span>
-        </div>
-
-        {/* Personal & Store Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input
-            placeholder="First name"
-            value={formData.firstName}
-            onChange={(e) => setField("firstName", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          />
-
-          <input
-            placeholder="Last name"
-            value={formData.lastName}
-            onChange={(e) => setField("lastName", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          />
-
-          <input
-            placeholder="Store name"
-            value={formData.storeName}
-            onChange={(e) => setField("storeName", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          />
-
-          <input
-            placeholder="Store phone"
-            value={formData.storePhone}
-            onChange={(e) => setField("storePhone", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          />
-
-          <input
-            placeholder="Store address"
-            value={formData.storeAddress}
-            onChange={(e) => setField("storeAddress", e.target.value)}
-            className="p-2.5 text-base border rounded-md sm:col-span-2"
-          />
-
-          <select
-            value={formData.country}
-            onChange={(e) => setField("country", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          >
-            <option value="Nigeria">Nigeria</option>
-          </select>
-
-          <select
-            value={formData.state}
-            onChange={(e) => setField("state", e.target.value)}
-            className="p-2.5 text-base border rounded-md"
-          >
-            <option value="">Select State</option>
-            {NIGERIAN_STATES.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Password */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Password *
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={formData.password}
-              onChange={(e) => setField("password", e.target.value)}
-              className="w-full p-2.5 text-base border rounded-md"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500"
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          <div className="mt-2 h-2 w-full bg-gray-100 rounded">
-            <div
-              className={`h-2 rounded ${
-                passwordScore < 40
-                  ? "bg-red-500"
-                  : passwordScore < 70
-                  ? "bg-yellow-400"
-                  : "bg-green-500"
-              }`}
-              style={{ width: `${passwordScore}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Confirm Password */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Confirm Password *
-          </label>
-          <input
-            type="password"
-            value={formData.confirmPassword}
-            onChange={(e) => setField("confirmPassword", e.target.value)}
-            className="w-full p-2.5 text-base border rounded-md"
-          />
-        </div>
-
-        {/* Agree */}
-        <div className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={formData.agree}
-            onChange={() => setField("agree", !formData.agree)}
-            className="mt-1"
-          />
-          <label>I agree to the terms</label>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={registering || !isVerified}
-          className={`w-full py-3 text-base sm:text-lg font-semibold rounded-md text-white transition ${
-            registering || !isVerified
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-black hover:bg-gray-900"
-          }`}
-        >
-          {registering ? "Registering..." : "Register"}
-        </button>
-      </form>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="flex-1 py-4 bg-brand-gray text-brand-white rounded-xl font-bold"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading.submit || !formData.agree}
+                  className="flex-[2] py-4 bg-brand-navy text-brand-white rounded-xl font-black text-xl hover:bg-brand-black shadow-lg hover:shadow-brand-navy/30 transition-all disabled:opacity-50"
+                >
+                  {loading.submit ? "Processing..." : "REGISTER AS VENDOR"}
+                </button>
+              </div>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
-  </div>
-);
-
+  );
 }
-
-

@@ -103,7 +103,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="fixed top-0 left-0 w-full max-w-[230px] h-screen bg-neutral-light shadow-2xl z-1002 overflow-hidden flex flex-col"
+              className="fixed top-0 left-0 w-full max-w-[250px] h-screen bg-neutral-light shadow-2xl z-1002 overflow-hidden flex flex-col"
             >
               {/* Refined Header */}
               <div className="flex items-center justify-between px-6 py-5 bg-neutral-white border-b border-gray-100">
