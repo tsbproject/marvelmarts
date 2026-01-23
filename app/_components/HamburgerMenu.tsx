@@ -103,7 +103,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="fixed top-0 left-0 w-full max-w-[340px] h-screen bg-neutral-light shadow-2xl z-[1002] overflow-hidden flex flex-col"
+              className="fixed top-0 left-0 w-full max-w-[230px] h-screen bg-neutral-light shadow-2xl z-1002 overflow-hidden flex flex-col"
             >
               {/* Refined Header */}
               <div className="flex items-center justify-between px-6 py-5 bg-neutral-white border-b border-gray-100">
@@ -131,7 +131,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+                      className={`flex-1 py-2.5 text-xl font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
                         activeTab === tab 
                         ? "bg-neutral-white text-accent-navy shadow-sm" 
                         : "text-neutral-gray hover:text-accent-navy"
@@ -173,7 +173,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="p-2 bg-accent-navy/5 rounded-lg text-accent-navy">{item.icon}</div>
-                                  <span className="text-sm">{item.label}</span>
+                                  <span className="text-xl">{item.label}</span>
                                 </div>
                                 <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${languagesOpen ? "rotate-90" : ""}`} />
                               </button>
@@ -214,7 +214,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                                 <div className={`p-2 rounded-lg ${item.highlight ? "bg-neutral-white/20 text-neutral-white" : "bg-accent-navy/5 text-accent-navy"}`}>
                                   {item.icon}
                                 </div>
-                                <span className="text-sm font-bold">{item.label}</span>
+                                <span className="text-xl font-bold">{item.label}</span>
                               </div>
                             </Link>
                           )}
@@ -236,11 +236,11 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                 >
                   <div className="relative">
                     <User className="w-6 h-6" />
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-primary border-2 border-accent-navy rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-10 bg-brand-primary border-2 border-accent-navy rounded-full"></div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-neutral-white/60 uppercase tracking-tighter">Welcome back</p>
-                    <p className="text-sm font-black text-neutral-white">My Account</p>
+                  <div className="text-left mt-4">
+                    <p className="text-lg font-bold text-neutral-white/60 uppercase tracking-tighter">Welcome back</p>
+                    <p className="text-lg font-black text-neutral-white">My Account</p>
                   </div>
                 </button>
               </div>
