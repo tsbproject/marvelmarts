@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: Props) {
     }
   });
 
-  //THE FIX: Destructure to REMOVE the Prisma types that conflict with your interface
+  // Destructure to REMOVE the Prisma types that conflict with your interface
   const { 
     price, 
     discountPrice, 

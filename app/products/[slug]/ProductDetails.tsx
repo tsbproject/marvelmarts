@@ -1,4 +1,3 @@
-
 // "use client";
 
 // import { useState } from "react";
@@ -15,11 +14,11 @@
 // import { useDispatch } from "react-redux";
 // import { addToCart } from "@/store/cartSlice";
 // import { useNotification } from "@/app/_context/NotificationContext";
+// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
 // import ProductTabs from "@/app/_components/ProductTabs";
 // import { formatNaira } from "@/app/lib/FormatNaira";
 // import { ProductWithRelations } from "./page";
 
-// // Define the interface to match what the server page passes
 // interface ProductDetailsProps {
 //   product: ProductWithRelations;
 //   similarItems: {
@@ -36,6 +35,7 @@
 //   const router = useRouter();
 //   const dispatch = useDispatch();
 //   const { notifySuccess } = useNotification(); 
+//   const { setLoading } = useLoadingOverlay(); // Access the global loading state
   
 //   const [quantity, setQuantity] = useState(1);
 //   const [activeImage, setActiveImage] = useState(0);
@@ -55,6 +55,12 @@
 //     notifySuccess(`${product.title} added to your stash!`);
 //   };
 
+//   // Helper for mobile production navigation
+//   const navigateWithLoading = (path: string) => {
+//     setLoading(true);
+//     router.push(path);
+//   };
+
 //   const images = product.images?.length > 0 
 //     ? product.images 
 //     : [{ url: "/placeholder.png" }];
@@ -62,24 +68,31 @@
 //   return (
 //     <div className="bg-neutral-white min-h-screen pb-20">
 //       <div className="container mx-auto px-4 py-8">
-//         {/* Navigation */}
-//         <Link href="/shop" className="inline-flex items-center gap-2 text-neutral-gray hover:text-brand-primary font-black uppercase text-[10px] tracking-[0.3em] mb-10 transition-colors group">
+//         {/* Navigation - Button used for loading state control */}
+//         <button 
+//           onClick={() => navigateWithLoading("/shop")}
+//           className="inline-flex items-center gap-2 text-neutral-gray hover:text-brand-primary font-black uppercase text-[10px] tracking-[0.3em] mb-10 transition-colors group"
+//         >
 //           <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
 //           Back to the Armory
-//         </Link>
+//         </button>
 
 //         {/* Main Product Section */}
 //         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-24 mb-20">
-//           {/* Gallery - Maintaining rounded-3rem style */}
 //           <div className="space-y-6">
 //             <div className="relative aspect-square bg-neutral-light rounded-[3.5rem] overflow-hidden border border-neutral-light shadow-inner">
 //               <Image 
-//                 src={images[activeImage]?.url} 
-//                 alt={product.title} 
-//                 fill 
-//                 className="object-contain p-12 transition-transform duration-700 hover:scale-105" 
-//                 priority
+//                 src={product.images[0]?.url || "/placeholder.png"} 
+//                 alt={product.title}
+//                 fill
+//                 priority={true}          
+//                 fetchPriority="high"     
+//                 loading="eager"           
+//                 sizes="(max-width: 768px) 100vw, 50vw"
+//                 className="object-contain"
 //               />
+                
+              
 //             </div>
 //             {images.length > 1 && (
 //               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
@@ -96,7 +109,6 @@
 //             )}
 //           </div>
 
-//           {/* Product Details Info */}
 //           <div className="flex flex-col">
 //             <div className="mb-8">
 //               <div className="flex items-center justify-between mb-4">
@@ -124,7 +136,6 @@
 //               </div>
 //             </div>
 
-//             {/* Price Card with Brand-Light Blend */}
 //             <div className="mb-10 p-8 bg-neutral-light rounded-[2.5rem] border border-neutral-light/50 relative overflow-hidden bg-gradient-to-br from-neutral-light to-brand-light/20">
 //               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
 //               <div className="flex items-baseline gap-4 mb-2">
@@ -140,7 +151,6 @@
 //               <p className="text-neutral-gray text-[10px] font-black uppercase tracking-widest">Free Shipping for Academy members</p>
 //             </div>
 
-//             {/* Quantity and CTA */}
 //             <div className="space-y-4 mb-12">
 //                <h3 className="text-[10px] font-black uppercase tracking-widest text-accent-navy ml-1">Deploy Quantity</h3>
 //                <div className="flex flex-col sm:flex-row gap-4">
@@ -162,7 +172,6 @@
 //               </div>
 //             </div>
 
-//             {/* Trust Badges Section */}
 //             <div className="grid grid-cols-3 gap-4 py-10 border-t border-neutral-light">
 //                <Badge icon={<ShieldCheck size={28}/>} title="Authentic" subtitle="Gear" />
 //                <Badge icon={<Truck size={28}/>} title="Quantum" subtitle="Delivery" />
@@ -171,7 +180,6 @@
 //           </div>
 //         </div>
 
-//         {/* Tabs Content */}
 //         <ProductTabs product={product} />
 
 //         {/* Related Products Grid */}
@@ -181,15 +189,22 @@
 //               <p className="text-brand-primary font-black uppercase tracking-[0.4em] text-[10px] mb-2">You might also like</p>
 //               <h2 className="text-4xl font-black italic uppercase text-accent-navy tracking-tighter">Related <span className="text-brand-primary">Loot</span></h2>
 //             </div>
-//             <Link href="/shop" className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border-b-2 border-brand-primary pb-1 hover:text-brand-primary transition-all">
+//             <button 
+//               onClick={() => navigateWithLoading("/shop")}
+//               className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border-b-2 border-brand-primary pb-1 hover:text-brand-primary transition-all"
+//             >
 //               View All Armory <ChevronRight size={14} />
-//             </Link>
+//             </button>
 //           </div>
 
 //           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
 //             {similarItems.length > 0 ? (
 //               similarItems.map((item) => (
-//                 <Link key={item.id} href={`/shop/${item.slug}`} className="group">
+//                 <div 
+//                   key={item.id} 
+//                   onClick={() => navigateWithLoading(`/products/${item.slug}`)} 
+//                   className="group cursor-pointer"
+//                 >
 //                   <div className="relative aspect-[4/5] bg-neutral-light rounded-[2.5rem] overflow-hidden mb-4 border border-neutral-light transition-all group-hover:shadow-2xl group-hover:shadow-brand-primary/10 group-hover:-translate-y-2">
 //                     <Image 
 //                       src={item.imageUrl || "/placeholder.png"} 
@@ -203,7 +218,7 @@
 //                   </div>
 //                   <h3 className="text-xs font-black uppercase tracking-widest text-accent-navy mb-1 group-hover:text-brand-primary transition-colors truncate">{item.title}</h3>
 //                   <p className="text-sm font-black italic text-brand-primary">{formatNaira(item.price)}</p>
-//                 </Link>
+//                 </div>
 //               ))
 //             ) : (
 //               [1, 2, 3, 4].map((i) => (
@@ -230,10 +245,9 @@
 
 
 
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect for Hydration
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -247,7 +261,7 @@ import {
 import { useDispatch } from "react-redux";
 import { addToCart } from "@/store/cartSlice";
 import { useNotification } from "@/app/_context/NotificationContext";
-import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; // Added for production fix
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
 import ProductTabs from "@/app/_components/ProductTabs";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { ProductWithRelations } from "./page";
@@ -268,10 +282,17 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
   const router = useRouter();
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification(); 
-  const { setLoading } = useLoadingOverlay(); // Access the global loading state
+  const { setLoading } = useLoadingOverlay();
   
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+
+  // FIX 1: Hydration Guard
+  // Prevents the "Text content does not match" error on Vercel
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -288,20 +309,24 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
     notifySuccess(`${product.title} added to your stash!`);
   };
 
-  // Helper for mobile production navigation
   const navigateWithLoading = (path: string) => {
     setLoading(true);
     router.push(path);
   };
 
-  const images = product.images?.length > 0 
+  if (!mounted) {
+    return <div className="bg-neutral-white min-h-screen animate-pulse" />;
+  }
+
+  // FIX 2: Bulletproof Image handling
+  const displayImages = product?.images && product.images.length > 0 
     ? product.images 
     : [{ url: "/placeholder.png" }];
 
   return (
     <div className="bg-neutral-white min-h-screen pb-20">
       <div className="container mx-auto px-4 py-8">
-        {/* Navigation - Button used for loading state control */}
+        {/* Navigation */}
         <button 
           onClick={() => navigateWithLoading("/shop")}
           className="inline-flex items-center gap-2 text-neutral-gray hover:text-brand-primary font-black uppercase text-[10px] tracking-[0.3em] mb-10 transition-colors group"
@@ -315,21 +340,17 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
           <div className="space-y-6">
             <div className="relative aspect-square bg-neutral-light rounded-[3.5rem] overflow-hidden border border-neutral-light shadow-inner">
               <Image 
-                src={product.images[0]?.url || "/placeholder.png"} 
+                src={displayImages[activeImage]?.url || "/placeholder.png"} 
                 alt={product.title}
                 fill
                 priority={true}          
-                fetchPriority="high"     
-                loading="eager"           
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-contain"
+                className="object-contain p-8"
               />
-                
-              
             </div>
-            {images.length > 1 && (
+            {displayImages.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                {images.map((img: any, idx: number) => (
+                {displayImages.map((img: any, idx: number) => (
                   <button 
                     key={idx} 
                     onClick={() => setActiveImage(idx)} 
@@ -426,12 +447,12 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
               onClick={() => navigateWithLoading("/shop")}
               className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border-b-2 border-brand-primary pb-1 hover:text-brand-primary transition-all"
             >
-              View All Armory <ChevronRight size={14} />
+              View All Products <ChevronRight size={14} />
             </button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {similarItems.length > 0 ? (
+            {similarItems && similarItems.length > 0 ? (
               similarItems.map((item) => (
                 <div 
                   key={item.id} 
@@ -449,8 +470,8 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
                       <div className="bg-neutral-white p-4 rounded-2xl text-accent-navy shadow-xl"><Eye size={20} /></div>
                     </div>
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-accent-navy mb-1 group-hover:text-brand-primary transition-colors truncate">{item.title}</h3>
-                  <p className="text-sm font-black italic text-brand-primary">{formatNaira(item.price)}</p>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-accent-navy mb-1 group-hover:text-brand-primary transition-colors truncate px-2">{item.title}</h3>
+                  <p className="text-sm font-black italic text-brand-primary px-2">{formatNaira(item.price)}</p>
                 </div>
               ))
             ) : (
