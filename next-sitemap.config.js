@@ -1,12 +1,10 @@
-import { IConfig } from 'next-sitemap';
-
 /** @type {import('next-sitemap').IConfig} */
-const config: IConfig = {
+const config = {
   siteUrl: process.env.SITE_URL || 'https://www.marvelmarts.com',
   generateRobotsTxt: true,
   sitemapSize: 7000,
-  // High-value: Exclude your admin and private dashboard from SEO
-  exclude: [ '/auth', '/dashboard/admins*'], 
+  // Exclude admin and auth routes from SEO
+  exclude: ['/auth', '/dashboard/admins*'], 
   robotsTxtOptions: {
     policies: [
       {
@@ -25,4 +23,4 @@ const config: IConfig = {
   },
 };
 
-export default config;
+module.exports = config;
