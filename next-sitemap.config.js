@@ -3,7 +3,7 @@ const config = {
   siteUrl: process.env.SITE_URL || 'https://marvelmarts.vercel.app',
   generateRobotsTxt: true,
   sitemapSize: 7000,
-  exclude: ['/auth', '/dashboard/admins*'], 
+  exclude: ['/auth', '/api', '/dashboard/admins*'], 
   robotsTxtOptions: {
     policies: [
       {
@@ -12,7 +12,7 @@ const config = {
       },
       {
         userAgent: '*',
-        disallow: ['/auth', '/dashboard/admins'],
+        disallow: ['/auth', '/api', '/dashboard/admins'],
       },
     ],
     additionalSitemaps: [
