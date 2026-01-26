@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 const config = {
-  siteUrl: process.env.SITE_URL || 'https://www.marvelmarts.vercel.app',
+  siteUrl: process.env.SITE_URL || 'https://marvelmarts.vercel.app',
   generateRobotsTxt: true,
   sitemapSize: 7000,
   exclude: ['/auth', '/dashboard/admins*'], 
@@ -16,7 +16,7 @@ const config = {
       },
     ],
     additionalSitemaps: [
-      `${process.env.SITE_URL || 'https://www.marvelmarts.vercel.app'}/sitemap.xml`,
+      `${process.env.SITE_URL || 'https://marvelmarts.vercel.app'}/sitemap.xml`,
     ],
   },
 };
