@@ -1,63 +1,56 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/app/lib/mailer"; 
 
 export async function POST(req: Request) {
   try {
     const { reference, orderId } = await req.json();
 
     if (!reference || !orderId) {
-      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+      return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    // 1. Verify Transaction with Paystack API
-    const paystackResponse = await fetch(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // 1. Verify with Paystack
+    const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    });
 
-    const data = await paystackResponse.json();
+    const data = await paystackRes.json();
 
-    // 2. Check if Paystack confirms success
-    if (data.status === true && data.data.status === "success") {
-      const amountPaid = data.data.amount / 100; // Convert Kobo back to Naira
-
-      // 3. Update Order in Database
-      // We use a transaction or a specific update to ensure data integrity
+    if (data.status && data.data.status === "success") {
+      // 2. Update Order in Neon
+      // We use 'include: { items: true }' so the email helper has the product list
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: {
           paymentStatus: true,
-          status: "processing", // Move from 'pending' to 'processing'
-          // Store the reference for accounting/refund purposes
-          paymentIntentId: reference, 
+          status: "processing",
+          paymentIntentId: reference,
         },
+        include: {
+          items: true,
+        }
       });
 
-      // 4. (Optional) Reduce stock levels here if you track inventory
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: "Payment verified and order updated",
-        orderNumber: updatedOrder.orderNumber 
-      });
+      // 3. Trigger Email (Awaited so it doesn't time out on Vercel)
+      try {
+        console.log(" Attempting to send confirmation email...");
+        await sendOrderConfirmationEmail(updatedOrder);
+        console.log(" Email dispatched successfully");
+      } catch (mailErr: any) {
+        // We log the error but DON'T stop the user from seeing their success page
+        console.error(" Email failed but order was saved:", mailErr.message);
+      }
+
+      return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json(
-      { error: "Payment verification failed" }, 
-      { status: 400 }
-    );
-
+    return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
   } catch (error: any) {
-    console.error("VERIFY_PAYMENT_ERROR:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error during verification" }, 
-      { status: 500 }
-    );
+    console.error(" VERIFY_ERROR:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

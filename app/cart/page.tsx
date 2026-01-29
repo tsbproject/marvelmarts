@@ -224,7 +224,7 @@ export default function CartPage() {
             <div className="flex items-center gap-4">
               <ShoppingBag className="w-10 h-10 text-brand-primary" />
               <h1 className="text-5xl font-black italic uppercase tracking-tighter text-accent-navy">
-                Your <span className="text-brand-primary">Loot</span>
+                Your <span className="text-brand-primary">Order</span>
               </h1>
             </div>
           </div>
@@ -322,7 +322,7 @@ export default function CartPage() {
                   <span className="text-3xl font-black text-brand-primary italic">₦{subtotal.toLocaleString()}</span>
                 </div>
 
-                <Link href="/checkout" className="flex items-center justify-center gap-3 w-full bg-brand-primary text-neutral-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-brand-light transition-all shadow-lg shadow-brand-primary/20 group">
+                <Link href="/checkout" className="flex items-center justify-center gap-3 w-full bg-brand-primary text-neutral-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-brand-orange-light transition-all shadow-lg shadow-brand-primary/20 group">
                   Proceed to Checkout <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
                 </Link>
               </div>

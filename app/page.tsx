@@ -84,7 +84,7 @@ export default async function HomePage() {
       </div>
       
       {/* Main Content with preserved mt-170 and space-y-24 */}
-      <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20 mt-170">
+      <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20 ">
         
         {/* 1. Flash Sales */}
         {flashProducts.length > 0 && (
