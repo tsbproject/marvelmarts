@@ -1,4 +1,5 @@
-FROM node:18
+FROM node:20-slim
+
 
 # Install netcat for health checks
 RUN apt-get update && apt-get install -y netcat-openbsd

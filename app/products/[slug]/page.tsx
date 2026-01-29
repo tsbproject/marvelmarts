@@ -1,16 +1,21 @@
-
+// // app/products/[slug]/page.tsx
 // export const dynamic = "force-dynamic"
 
 // import { notFound } from "next/navigation";
 // import prisma from "@/app/lib/prisma";
-// import ProductDetails from "./ProductDetails"; 
+// import ProductDetails from "./ProductDetails";
 // import type { Product, Category, ProductImage } from "@prisma/client";
 
+
+
 // interface Props {
-//   params: Promise<{ slug: string }>;
+//   params: { slug: string };
 // }
 
-// export type ProductWithRelations = Omit<Product, 'price' | 'discountPrice' | 'createdAt' | 'updatedAt' | 'variants'> & {
+// export type ProductWithRelations = Omit<
+//   Product,
+//   "price" | "discountPrice" | "createdAt" | "updatedAt"
+// > & {
 //   price: number;
 //   discountPrice: number | null;
 //   createdAt: string;
@@ -27,29 +32,17 @@
 //   }[];
 // };
 
-// // export async function generateStaticParams() {
-// //   const products = await prisma.product.findMany({
-// //     where: { status: "ACTIVE" },
-// //     select: { slug: true },
-// //   });
-// //   return products.map((product) => ({ slug: product.slug }));
-// // }
-
 // export default async function ProductPage({ params }: Props) {
-//   const { slug } = await params;
+//   const { slug } = params;
+
 //   if (!slug) return notFound();
 
 //   const product = await prisma.product.findUnique({
 //     where: { slug },
 //     include: {
 //       category: true,
-//       images: { 
-//         orderBy: { order: "asc" },
-//         select: { id: true, url: true, alt: true, order: true, productId: true }
-//       },
-//       variants: {
-//         select: { id: true, name: true, price: true, sku: true, stock: true, productId: true }
-//       },
+//       images: { orderBy: { order: "asc" } },
+//       variants: true,
 //     },
 //   });
 
@@ -69,26 +62,20 @@
 //       price: true,
 //       discountPrice: true,
 //       images: { take: 1, select: { url: true } },
-//     }
+//     },
 //   });
 
-//   // Destructure to REMOVE the Prisma types that conflict with your interface
-//   const { 
-//     price, 
-//     discountPrice, 
-//     createdAt, 
-//     updatedAt, 
-//     variants, 
-//     ...restOfProduct 
-//   } = product;
-
 //   const formattedProduct: ProductWithRelations = {
-//     ...restOfProduct, // Now 'restOfProduct' does not contain the conflicting keys
-//     price: Number(price),
-//     discountPrice: discountPrice ? Number(discountPrice) : null,
-//     createdAt: createdAt.toISOString(),
-//     updatedAt: updatedAt.toISOString(),
-//     variants: variants.map((v) => ({
+//     ...product,
+//     price: Number(product.price),
+//     discountPrice: product.discountPrice
+//       ? Number(product.discountPrice)
+//       : null,
+//     createdAt: product.createdAt.toISOString(),
+//     updatedAt: product.updatedAt.toISOString(),
+//     category: product.category,
+//     images: product.images,
+//     variants: product.variants.map(v => ({
 //       id: v.id,
 //       name: v.name,
 //       price: Number(v.price),
@@ -96,37 +83,41 @@
 //       stock: v.stock,
 //       productId: v.productId,
 //     })),
-//     images: product.images,
-//     category: product.category,
 //   };
 
-//   const formattedSimilar = similarProducts.map((p) => ({
+//   const formattedSimilar = similarProducts.map(p => ({
 //     id: p.id,
 //     title: p.title,
 //     slug: p.slug,
 //     price: Number(p.price),
-//     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+//     discountPrice: p.discountPrice
+//       ? Number(p.discountPrice)
+//       : null,
 //     imageUrl: p.images[0]?.url || "/placeholder.png",
 //   }));
 
 //   return (
-//     <ProductDetails 
-//       product={formattedProduct} 
-//       similarItems={formattedSimilar} 
+//     <ProductDetails
+//       product={formattedProduct}
+//       similarItems={formattedSimilar}
 //     />
 //   );
 // }
 
+
+
+
+// app/products/[slug]/page.tsx
+export const dynamic = "force-dynamic"
 
 import { notFound } from "next/navigation";
 import prisma from "@/app/lib/prisma";
 import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
-
+// NEXT.JS 15 FIX: params must be a Promise
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export type ProductWithRelations = Omit<
@@ -139,6 +130,7 @@ export type ProductWithRelations = Omit<
   updatedAt: string;
   category: Category | null;
   images: ProductImage[];
+  imageUrl: string;
   variants: {
     id: string;
     name: string;
@@ -150,7 +142,8 @@ export type ProductWithRelations = Omit<
 };
 
 export default async function ProductPage({ params }: Props) {
-  const { slug } = params;
+  // NEXT.JS 15 FIX: Unwrapping the params promise
+  const { slug } = await params;
 
   if (!slug) return notFound();
 
@@ -182,16 +175,47 @@ export default async function ProductPage({ params }: Props) {
     },
   });
 
+  // 1. Sanitize Main Product Images
+  // This removes the broken placeholder from the gallery before it hits ProductDetails
+  const sanitizedImages = product.images.filter(
+    (img) => img.url && img.url !== "/images/placeholder.png"
+  );
+
+  // const formattedProduct: ProductWithRelations = {
+  //   ...product,
+  //   price: Number(product.price),
+  //   discountPrice: product.discountPrice
+  //     ? Number(product.discountPrice)
+  //     : null,
+  //   createdAt: product.createdAt.toISOString(),
+  //   updatedAt: product.updatedAt.toISOString(),
+  //   category: product.category,
+  //   images: sanitizedImages.length > 0 ? sanitizedImages : [],
+  //   variants: product.variants.map(v => ({
+  //     id: v.id,
+  //     name: v.name,
+  //     price: Number(v.price),
+  //     sku: v.sku,
+  //     stock: v.stock,
+  //     productId: v.productId,
+  //   })),
+  // };
+
+     // ... inside ProductPage function
+
   const formattedProduct: ProductWithRelations = {
     ...product,
     price: Number(product.price),
-    discountPrice: product.discountPrice
-      ? Number(product.discountPrice)
-      : null,
+    discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
     category: product.category,
-    images: product.images,
+    // If the gallery is empty, use the logo.
+    images: product.images.length > 0 ? product.images : [],
+    
+    // We override the top-level imageUrl with the first real gallery image
+    imageUrl: product.images.length > 0 ? product.images[0].url : "/logo.png",
+
     variants: product.variants.map(v => ({
       id: v.id,
       name: v.name,
@@ -202,16 +226,23 @@ export default async function ProductPage({ params }: Props) {
     })),
   };
 
-  const formattedSimilar = similarProducts.map(p => ({
-    id: p.id,
-    title: p.title,
-    slug: p.slug,
-    price: Number(p.price),
-    discountPrice: p.discountPrice
-      ? Number(p.discountPrice)
-      : null,
-    imageUrl: p.images[0]?.url || "/placeholder.png",
-  }));
+  // 2. Sanitize Similar Products
+  const formattedSimilar = similarProducts.map(p => {
+    const firstImg = p.images[0]?.url;
+    // Strictly check against the broken path
+    const safeUrl = (firstImg && firstImg !== "/images/placeholder.png") 
+      ? firstImg 
+      : "/logo.png";
+
+    return {
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      price: Number(p.price),
+      discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+      imageUrl: safeUrl,
+    };
+  });
 
   return (
     <ProductDetails

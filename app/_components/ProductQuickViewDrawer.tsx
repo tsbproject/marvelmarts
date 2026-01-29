@@ -225,7 +225,7 @@ export default function ProductQuickViewDrawer({ isOpen, onClose, product }: Dra
             <div className="flex flex-col gap-4">
               <div className="relative w-full h-48 bg-gray-50 rounded-2xl overflow-hidden">
                 <Image
-                  src={product.imageUrl || "/placeholder.png"}
+                 src={product.imageUrl || product.images?.[0]?.url || "/logo.png"}
                   alt={product.title}
                   fill
                   className="object-contain p-4"

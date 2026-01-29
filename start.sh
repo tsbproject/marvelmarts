@@ -1,16 +1,14 @@
 #!/bin/sh
+set -e
 
-# Wait for the database to be ready
 echo "⏳ Waiting for database..."
 until nc -z db 5432; do
-  sleep 1
+  sleep 2
 done
 
-echo "✅ Database is up!"
+echo " Database is ready!"
 
-# Run migrations and seed
 npx prisma migrate deploy
-npm run seed
+npx prisma generate
 
-# Start the app
-npm run dev
+npm run start

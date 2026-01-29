@@ -1,110 +1,66 @@
 import { NextResponse } from "next/server";
-import  prisma  from "@/app/lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-
-interface SessionUser {
-  id: string; // id is a string according to the Prisma schema
-  name?: string | null;
-  email?: string | null;
-}
-
 interface AddToCartBody {
-  productId: string; // id is a string in Prisma schema
-  variantId?: string | null; // id is a string in Prisma schema
+  productId: string;
+  variantId?: string | null;
   qty?: number;
 }
 
-interface CartItem {
-  id: string; // id is a string in Prisma schema
-  product: {
-    id: string; // id is a string in Prisma schema
-    title: string;
-    discountPrice?: number | null; // converted to number
-    price: number; // converted to number
-  } | null;
-  variant: { id: string; name?: string } | null;
-  qty: number;
-  unitPrice: number; // unitPrice should be a number
+// Helper: Standardize decimal-to-number conversion
+function formatCart(cart: any) {
+  return {
+    id: cart.id,
+    userId: cart.userId,
+    items: cart.items.map((item: any) => ({
+      id: item.id,
+      productId: item.productId,
+      variantId: item.variantId,
+      qty: item.qty,
+      unitPrice: Number(item.unitPrice),
+      product: item.product ? {
+        ...item.product,
+        price: Number(item.product.price),
+        discountPrice: item.product.discountPrice ? Number(item.product.discountPrice) : null,
+      } : null,
+      variant: item.variant ? { 
+        id: item.variant.id, 
+        name: item.variant.name,
+        stock: item.variant.stock // Important for frontend validation
+      } : null,
+    })),
+  };
 }
 
-interface Cart {
-  id: string | null; // id is a string in Prisma schema
-  userId: string | null; // userId is a string in Prisma schema
-  items: CartItem[]; // List of CartItems
-}
+async function getOrCreateCart(userId: string) {
+  let cart = await prisma.cart.findUnique({
+    where: { userId },
+    include: { items: { include: { product: true, variant: true } } },
+  });
 
-// Helper function to get or create a cart
-async function getOrCreateCart(userId: string | null): Promise<Cart> {
-  if (userId) {
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: { items: { include: { product: true, variant: true } } },
-    });
-
-    if (cart) {
-      // Convert Decimal to number for `price`, `discountPrice`, and `unitPrice` when returning the cart
-      const result: Cart = {
-        id: cart.id,
-        userId: cart.userId,
-        items: cart.items.map(item => ({
-          id: item.id,
-          product: item.product ? {
-            ...item.product,
-            price: parseFloat(item.product.price.toString()), // Convert Decimal to number
-            discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null, // Convert Decimal to number
-          } : null,
-          variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
-          qty: item.qty,
-          unitPrice: parseFloat(item.unitPrice.toString()),
-        })),
-      };
-
-      return result;
-    }
-
-    // If no cart found, create a new one
-    const created = await prisma.cart.create({
+  if (!cart) {
+    cart = await prisma.cart.create({
       data: { userId },
       include: { items: { include: { product: true, variant: true } } },
     });
-
-    return {
-      id: created.id,
-      userId: created.userId,
-      items: created.items.map(item => ({
-        id: item.id,
-        product: item.product ? {
-          ...item.product,
-          price: parseFloat(item.product.price.toString()),
-          discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null,
-        } : null,
-        variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
-        qty: item.qty,
-        unitPrice: parseFloat(item.unitPrice.toString()),
-      })),
-    };
   }
-
-  // Return a default cart if no userId
-  return { id: null, userId: null, items: [] };
+  return formatCart(cart);
 }
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as SessionUser | undefined;
-    const userId = user?.id ?? null;
-
-    const cart = await getOrCreateCart(userId);
-
+    if (!session?.user?.id) return NextResponse.json({ items: [] });
+    
+    const cart = await getOrCreateCart(session.user.id);
     return NextResponse.json(cart);
   } catch (error) {
-    console.error("GET /api/cart error:", error);
     return NextResponse.json({ error: "Failed to load cart" }, { status: 500 });
   }
 }
@@ -112,74 +68,84 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as SessionUser | undefined;
-    const userId = user?.id ?? null;
+    const userId = session?.user?.id;
+    const { productId, variantId, qty = 1 }: AddToCartBody = await req.json();
 
-    const body: AddToCartBody = await req.json();
-    const { productId, variantId, qty } = body;
+    if (!productId) return NextResponse.json({ error: "Product ID required" }, { status: 400 });
 
-    if (!productId) {
-      return NextResponse.json({ error: "Product ID required" }, { status: 400 });
+    // 1. Fetch Product and optional Variant to determine price & check stock
+    const product = await prisma.product.findUnique({ 
+      where: { id: productId },
+      include: { variants: variantId ? { where: { id: variantId } } : false }
+    });
+
+    if (!product) return NextResponse.json({ error: "Invalid product" }, { status: 404 });
+
+    // 2. Determine Price and Stock
+    let finalUnitPrice: Prisma.Decimal;
+    let availableStock: number;
+
+    if (variantId) {
+      const variant = (product as any).variants?.[0];
+      if (!variant) return NextResponse.json({ error: "Variant not found" }, { status: 404 });
+      finalUnitPrice = variant.price ?? (product.discountPrice ?? product.price);
+      availableStock = variant.stock;
+    } else {
+      finalUnitPrice = product.discountPrice ?? product.price;
+      availableStock = product.stock;
     }
 
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) return NextResponse.json({ error: "Invalid product" }, { status: 400 });
-
-    const unitPrice = product.discountPrice ?? product.price;
+    // 3. Stock Validation
+    if (availableStock < qty) {
+      return NextResponse.json({ error: "Insufficient stock" }, { status: 400 });
+    }
 
     if (!userId) {
-      // Guest cart logic
+      // Guest Logic (Returns mock item for local storage use)
       return NextResponse.json({
-        id: null,
-        userId: null,
-        items: [
-          {
-            id: Date.now().toString(), // Convert to string for guest cart ID
-            product,
-            variant: variantId ? { id: variantId } : null,
-            qty: qty ?? 1,
-            unitPrice,
-          },
-        ],
+        id: "guest",
+        items: [{ 
+          id: Date.now().toString(), 
+          productId, 
+          variantId, 
+          qty, 
+          unitPrice: Number(finalUnitPrice),
+          product: { title: product.title } 
+        }]
       });
     }
 
+    // 4. DB Sync for Logged-in Users
     const cart = await getOrCreateCart(userId);
 
-    if (!cart.id) {
-      return NextResponse.json({ error: "Cart ID is missing" }, { status: 500 });
-    }
-    await prisma.cartItem.create({
-      data: { cartId: cart.id, productId, variantId: variantId ?? null, qty: qty ?? 1, unitPrice },
+    // Check if THIS specific product/variant combo already exists in the cart
+    const existingItem = await prisma.cartItem.findFirst({
+      where: { 
+        cartId: cart.id!, 
+        productId, 
+        variantId: variantId ?? null 
+      },
     });
 
-    const updatedCart = await prisma.cart.findUnique({
-      where: { id: cart.id },
-      include: { items: { include: { product: true, variant: true } } },
-    });
-
-    if (!updatedCart) {
-      return NextResponse.json({ error: "Cart not found after update" }, { status: 404 });
+    if (existingItem) {
+      await prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: { qty: existingItem.qty + qty },
+      });
+    } else {
+      await prisma.cartItem.create({
+        data: { 
+          cartId: cart.id!, 
+          productId, 
+          variantId: variantId ?? null, 
+          qty, 
+          unitPrice: finalUnitPrice 
+        },
+      });
     }
 
-    // Convert Decimal to number for the cart items before returning
-    const result: Cart = {
-      id: updatedCart.id,
-      userId: updatedCart.userId,
-      items: updatedCart.items.map(item => ({
-        id: item.id,
-        product: item.product ? {
-          ...item.product,
-          price: parseFloat(item.product.price.toString()), // Convert Decimal to number
-          discountPrice: item.product.discountPrice ? parseFloat(item.product.discountPrice.toString()) : null, // Convert Decimal to number
-        } : null,
-        variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null,
-        qty: item.qty,
-        unitPrice: parseFloat(item.unitPrice.toString()),
-      })),
-    };
-
-    return NextResponse.json(result);
+    const updatedCart = await getOrCreateCart(userId);
+    return NextResponse.json(updatedCart);
   } catch (error) {
     console.error("POST /api/cart error:", error);
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });

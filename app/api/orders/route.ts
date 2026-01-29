@@ -1,96 +1,149 @@
-import  prisma  from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/app/lib/prisma";
+// import { getServerSession } from "next-auth"; 
+// import { authOptions } from "@/app/lib/auth";
+
+// export async function POST(req: Request) {
+//   try {
+//     const session = await getServerSession(authOptions);
+//     const body = await req.json();
+//     const { formData, items, subtotal, shipping, total } = body;
+
+//     if (!session?.user?.id) {
+//       return NextResponse.json({ error: "Please login to checkout" }, { status: 401 });
+//     }
+
+//     // Generate Order Number
+//     const orderCount = await prisma.order.count();
+//     const orderNumber = `MARVEL-${1000 + orderCount + 1}`;
+
+//     const order = await prisma.order.create({
+//       data: {
+//         orderNumber,
+//         userId: session.user.id,
+//         email: formData.email,
+//         firstName: formData.firstName,
+//         lastName: formData.lastName,
+//         streetAddress: formData.streetAddress,
+//         apartment: formData.apartment,
+//         city: formData.city,
+//         state: formData.state,
+//         orderNotes: formData.orderNotes,
+//         useDifferentShipping: formData.useDifferentShipping,
+//         shippingAddress: formData.useDifferentShipping ? formData.shippingDetails.streetAddress : null,
+//         shippingCity: formData.useDifferentShipping ? formData.shippingDetails.city : null,
+//         shippingState: formData.useDifferentShipping ? formData.shippingDetails.state : null,
+//         subtotal: subtotal,
+//         shipping: shipping,
+//         total: total,
+//         items: {
+//           create: items.map((item: any) => ({
+//             productId: item.id,
+//             variantId: item.variantId || null,
+//             qty: item.quantity,
+//             unitPrice: item.price,
+//             title: item.title,
+//             imageUrl: item.imageUrl
+//           })),
+//         },
+//       },
+//     });
+
+//     return NextResponse.json({ 
+//       orderId: order.id, 
+//       orderNumber: order.orderNumber,
+//       total: order.total 
+//     }, { status: 201 });
+
+//   } catch (error) {
+//     console.error("DB_ORDER_ERROR:", error);
+//     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+//   }
+// }
+
+
+
+
 import { NextResponse } from "next/server";
-import type { User } from "next-auth";
+import { prisma } from "@/app/lib/prisma";
+import { getServerSession } from "next-auth"; 
+import { authOptions } from "@/app/lib/auth";
 
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-// GET all orders for the authenticated user
-export async function GET() {
+export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as User | undefined;
-    const userId = user?.id as string | undefined;
+    
+    // 1. Auth Guard
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Please login to checkout" }, { status: 401 });
+    }
 
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+    const body = await req.json();
+    const { formData, items, subtotal, shipping, total } = body;
 
-    const orders = await prisma.order.findMany({
-      where: { userId },
-      include: { items: { include: { product: true, variant: true } } },
-      orderBy: { createdAt: "desc" },
-    });
+    // 2. Validation Guard
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "No items in cart" }, { status: 400 });
+    }
 
-    return NextResponse.json(orders);
-  } catch (err) {
-    console.error("GET /api/orders error:", err);
-    return NextResponse.json(
-      { message: "Failed to fetch orders" },
-      { status: 500 }
-    );
-  }
-}
+    // 3. Generate Secure Order Number
+    // Using a timestamp + count to ensure uniqueness even in high traffic
+    const orderCount = await prisma.order.count();
+    const orderNumber = `MARVEL-${1000 + orderCount + 1}`;
 
-// POST: create order from cart
-export async function POST() {
-  try {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as User | undefined;
-    const userId = user?.id as string | undefined;
-
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: { items: true },
-    });
-
-    if (!cart || cart.items.length === 0)
-      return NextResponse.json(
-        { message: "Cart is empty" },
-        { status: 400 }
-      );
-
-    const subtotal = cart.items.reduce(
-      (acc, i) => acc + Number(i.unitPrice) * i.qty,
-      0
-    );
-    const tax = 0;
-    const shipping = 0;
-    const total = subtotal + tax + shipping;
-
+    // 4. Database Transaction
     const order = await prisma.order.create({
       data: {
-        userId,
-        subtotal,
-        tax,
-        shipping,
-        total,
+        orderNumber,
+        userId: session.user.id,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        streetAddress: formData.streetAddress,
+        apartment: formData.apartment,
+        city: formData.city,
+        state: formData.state,
+        orderNotes: formData.orderNotes,
+        useDifferentShipping: formData.useDifferentShipping,
+        
+        // Handling shipping details conditionally
+        shippingAddress: formData.useDifferentShipping ? formData.shippingDetails.streetAddress : formData.streetAddress,
+        shippingCity: formData.useDifferentShipping ? formData.shippingDetails.city : formData.city,
+        shippingState: formData.useDifferentShipping ? formData.shippingDetails.state : formData.state,
+        
+        subtotal: parseFloat(subtotal),
+        shipping: parseFloat(shipping),
+        total: parseFloat(total),
+        
+        // Important: "items" here must match your Prisma schema relation name
         items: {
-          create: cart.items.map((i) => ({
-            productId: i.productId,
-            variantId: i.variantId,
-            qty: i.qty,
-            unitPrice: i.unitPrice,
+          create: items.map((item: any) => ({
+            productId: item.id,
+            variantId: item.variantId || null,
+            qty: parseInt(item.quantity),
+            unitPrice: parseFloat(item.price),
+            title: item.title,
+            imageUrl: item.imageUrl
           })),
         },
       },
-      include: { items: true },
+      include: {
+        items: true // Returns the created items in the response
+      }
     });
 
-    // Clear the user's cart
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    // 5. Success Response
+    return NextResponse.json({ 
+      orderId: order.id, 
+      orderNumber: order.orderNumber,
+      total: order.total 
+    }, { status: 201 });
 
-    return NextResponse.json(order);
-  } catch (err) {
-    console.error("POST /api/orders error:", err);
+  } catch (error: any) {
+    console.error("DB_ORDER_ERROR:", error);
     return NextResponse.json(
-      { message: "Failed to create order" },
+      { error: error.message || "Failed to save order" }, 
       { status: 500 }
     );
   }
 }
-
-

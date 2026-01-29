@@ -9,8 +9,10 @@ docker exec -it marvelmarts-db psql -U postgres -d marvelmarts_db    | vERIFY TA
 
 
 
-docker-compose down -v
-docker-compose up --build
+docker-compose down
+docker-compose build --no-cache
+docker-compose up
+
 
 
 

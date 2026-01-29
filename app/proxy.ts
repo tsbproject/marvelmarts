@@ -97,11 +97,16 @@ export async function middleware(request: NextRequest) {
   // Skip NextAuth API and Next.js internals
   if (
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/_next/data") ||
-    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/images") || 
+    pathname.startsWith("/logo.png") || 
     pathname === "/favicon.ico"
   ) {
     console.log("[Middleware] Skipping internal route:", pathname);
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/auth/")) {
     return NextResponse.next();
   }
 

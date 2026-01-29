@@ -1,29 +1,32 @@
-// import type { Configuration } from "webpack";
+// import type { NextConfig } from "next";
 
-// const nextConfig = {
+// const nextConfig: NextConfig = {
+//   trailingSlash: true,
 //   images: {
-//     qualities: [75, 80],
-//     domains: ['res.cloudinary.com', 'utfs.io', 'your-db-storage-provider.com'],
-  
 //     remotePatterns: [
-//       {
-//         protocol: 'https',
-//         hostname: 'res.cloudinary.com',
-//         pathname: '/**',
-//       },
-//       { protocol: 'https', hostname: 'placehold.co' },
-//       { protocol: 'https', hostname: 'res.cloudinary.com' }, 
-//       {
-//         protocol: "https",
-//         hostname: "via.placeholder.com",
-//       },
+//       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
+//       { protocol: "https", hostname: "utfs.io", pathname: "/**" },
+//       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
+//       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
 //     ],
+//   },
+  
+//   // 1. Redirects for SEO and UX consistency
+//   async redirects() {
+//     return [
+//       {
+//         source: '/shop/:slug', 
+//         destination: '/products/:slug',
+//         permanent: true, // This tells Google the move is permanent (301 redirect)
+//       },
+//     ];
 //   },
 
 //   productionBrowserSourceMaps: false,
-
-//   webpack(config: Configuration) {
-//     config.devtool = "eval-source-map";
+//   webpack: (config, { dev, isServer }) => {
+//     if (dev) {
+//       config.devtool = "eval-source-map";
+//     }
 //     return config;
 //   },
 // };
@@ -34,11 +37,12 @@
 
 
 
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  trailingSlash: true,
+  // ❌ CHANGE THIS: trailingSlash: true causes NextAuth redirect loops
+  trailingSlash: false, 
+  
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
@@ -47,9 +51,27 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
     ],
   },
+  
+  async redirects() {
+    return [
+      {
+        source: '/shop/:slug', 
+        destination: '/products/:slug',
+        permanent: true, 
+      },
+
+     
+      // Optional: Redirect base /shop to /products if you moved that too
+      // {
+      //   source: '/shop',
+      //   destination: '/products',
+      //   permanent: true,
+      // }
+    ];
+  },
+
   productionBrowserSourceMaps: false,
-  // Using the internal Next.js type-safe way
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev }) => {
     if (dev) {
       config.devtool = "eval-source-map";
     }

@@ -5,17 +5,17 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Rxes76$#@L
+      POSTGRES_PASSWORD: 'Rxes76$#@L'
       POSTGRES_DB: marvelmarts_db
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql   # <- fix here
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   web:
     build: .
@@ -27,9 +27,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://postgres:Rxes76%24%23%40L@db:5432/marvelmarts_db
-     
-      volumes:
-       .:/app
+    volumes:
+      - .:/app
     working_dir: /app
     command: ["sh", "./start.sh"]
 
