@@ -19,8 +19,8 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
       extraImages: [],
       metaTitle: "",
       metaDescription: "",
-      // --- ADDED TO FIX BUILD ---
       shippingMethod: "Standard",
+      variants: [],
       weight: 0,
     };
   }
@@ -29,6 +29,7 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
   return {
     title: initialData.title ?? "",
     description: initialData.description ?? "",
+    variants: initialData.variants || [], // Ensure it exists here too
     
     // Ensure numbers are actual numbers and not Prisma Decimal objects
     price: initialData.price ? Number(initialData.price) : 0,
