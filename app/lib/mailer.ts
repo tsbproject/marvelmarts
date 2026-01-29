@@ -158,19 +158,99 @@ const createTransporter = () => {
  * Switches between Resend and Nodemailer based on .env
  */
 async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  const provider = process.env.EMAIL_PROVIDER || "nodemailer"; // "resend" or "nodemailer"
+  const provider = process.env.EMAIL_PROVIDER || "nodemailer"; 
   const from = process.env.EMAIL_FROM || `"MarvelMarts" <${process.env.SMTP_USER}>`;
 
-  if (provider === "resend" && resend) {
-    return await resend.emails.send({ from, to, subject, html });
-  }
+  try {
+    if (provider === "resend" && resend) {
+      return await resend.emails.send({ from, to, subject, html });
+    }
 
-  // Fallback to Nodemailer
-  const transporter = createTransporter();
-  return await transporter.sendMail({ from, to, subject, html });
+    const transporter = createTransporter();
+    return await transporter.sendMail({ from, to, subject, html });
+  } catch (error) {
+    console.error(`📧 Email dispatch failed (${provider}):`, error);
+    if (process.env.NODE_ENV === "production") throw error;
+  }
 }
 
-// --- NEW: ORDER CONFIRMATION EMAIL ---
+// --- 1. SUPPORT SYSTEM EMAILS (Restored & Refactored) ---
+
+export async function sendAdminTicketNotification({
+  id,
+  subject,
+  email,
+  message,
+  articleTitle,
+}: {
+  id: string;
+  subject: string;
+  email: string;
+  message: string;
+  articleTitle?: string;
+}) {
+  const ticketUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/admins/support/tickets/${id}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px; border-radius: 16px;">
+      <h2 style="color: #2563eb; margin-top: 0;">New Support Ticket</h2>
+      <p><strong>Customer:</strong> ${email}</p>
+      <p><strong>Subject:</strong> ${subject}</p>
+      <div style="background: #f9fafb; padding: 15px; border-radius: 12px; border-left: 4px solid #2563eb; margin: 20px 0;">
+        <p style="margin: 0; color: #374151; white-space: pre-wrap;">${message}</p>
+      </div>
+      ${articleTitle ? `<p style="font-size: 12px; color: #dc2626;">🚩 Context: Triggered from article <b>"${articleTitle}"</b></p>` : ""}
+      <a href="${ticketUrl}" style="display: block; text-align: center; background: #2563eb; color: white; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: bold;">
+        View Ticket in Dashboard
+      </a>
+    </div>
+  `;
+
+  return sendEmail({ to: process.env.ADMIN_EMAIL!, subject: `[New Ticket] ${subject}`, html });
+}
+
+export async function sendCustomerTicketConfirmation(to: string, subject: string) {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+      <h2 style="color: #111;">Request Received</h2>
+      <p>Hi there,</p>
+      <p>Thanks for reaching out! We've received your message regarding <b>"${subject}"</b>.</p>
+      <p>Our team will get back to you as soon as possible (usually within 24 hours).</p>
+      <br />
+      <p>Best regards,<br />MarvelMarts Support Team</p>
+    </div>
+  `;
+  return sendEmail({ to, subject: `We've received your request: ${subject}`, html });
+}
+
+// --- 2. AUTH EMAILS (Restored & Enhanced) ---
+
+export async function sendVerificationEmailWithNodemailer(to: string, code: string, uid: string, name: string) {
+  const verifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`;
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px;">
+      <p>Hi ${name},</p>
+      <p>Your verification code is: <b style="font-size: 20px;">${code}</b></p>
+      <p>Or click this link: <a href="${verifyUrl}">${verifyUrl}</a></p>
+    </div>
+  `;
+  return sendEmail({ to, subject: "Verify your account", html });
+}
+
+export async function sendPasswordResetEmail(to: string, resetCode: string) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/reset-password?code=${resetCode}&email=${encodeURIComponent(to)}`;
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px;">
+      <h2>Password Reset Request</h2>
+      <p>Use the code below or click the link to reset your password:</p>
+      <h1 style="color:#111; letter-spacing: 4px;">${resetCode}</h1>
+      <p><a href="${resetUrl}" style="color:#1a73e8; font-weight: bold;">Click here to reset password</a></p>
+    </div>
+  `;
+  return sendEmail({ to, subject: "Password Reset Request", html });
+}
+
+// --- 3. COMMERCE EMAILS (New) ---
+
 export async function sendOrderConfirmationEmail(order: any) {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px; overflow: hidden;">
@@ -180,10 +260,8 @@ export async function sendOrderConfirmationEmail(order: any) {
       </div>
       <div style="padding: 30px; color: #1e293b;">
         <p>Hi ${order.firstName},</p>
-        <p>Your order has been received and is being processed.</p>
-        
+        <p>Your gear is being prepped for dispatch!</p>
         <div style="margin: 20px 0; padding: 20px; background: #f8fafc; border-radius: 12px;">
-          <h3 style="margin-top: 0; text-transform: uppercase; font-size: 12px; color: #64748b;">Items</h3>
           ${order.items.map((item: any) => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
               <span>${item.title} x ${item.qty}</span>
@@ -192,24 +270,27 @@ export async function sendOrderConfirmationEmail(order: any) {
           `).join('')}
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;" />
           <div style="display: flex; justify-content: space-between; font-weight: bold;">
-            <span>Total</span>
+            <span>Total Paid</span>
             <span>₦${Number(order.total).toLocaleString()}</span>
           </div>
         </div>
-        
-        <p style="font-size: 12px; color: #64748b;">Shipping to: ${order.streetAddress}, ${order.city}</p>
       </div>
     </div>
   `;
-
   return sendEmail({ to: order.email, subject: `MarvelMarts Order Secured: ${order.orderNumber}`, html });
 }
 
-// --- UPDATED AUTH EMAILS (using the dispatcher) ---
+export async function sendAdminOrderNotification(order: any) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) return;
 
-export async function sendVerificationEmailWithNodemailer(to: string, code: string, uid: string, name: string) {
-  const verifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify/verify-customer?uid=${uid}`;
-  const html = `<p>Hi ${name},</p><p>Verification code: <b>${code}</b></p><a href="${verifyUrl}">Verify Here</a>`;
-  
-  return sendEmail({ to, subject: "Verify your account", html });
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px; border: 2px solid #001f3f; border-radius: 12px;">
+      <h2 style="color: #001f3f;">💰 New Sale!</h2>
+      <p><strong>Order:</strong> ${order.orderNumber}</p>
+      <p><strong>Customer:</strong> ${order.firstName} ${order.lastName} (${order.email})</p>
+      <p><strong>Amount:</strong> ₦${Number(order.total).toLocaleString()}</p>
+    </div>
+  `;
+  return sendEmail({ to: adminEmail, subject: `🔥 New Sale: ${order.orderNumber}`, html });
 }
