@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 export default function OrdersTable({ initialOrders }: { initialOrders: any[] }) {
- // --- UI STATES ---
+  
+  const router = useRouter(); 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
