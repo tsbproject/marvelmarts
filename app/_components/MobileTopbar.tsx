@@ -1,87 +1,81 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+import { Menu, X, LogOut, ChevronRight, Activity } from "lucide-react";
 import Link from "next/link";
-import { 
-  Bars3Icon, 
-  XMarkIcon, 
-  BookOpenIcon, 
-  TicketIcon, 
-  UserCircleIcon,
-  ChevronRightIcon,
-  ShieldCheckIcon,
-  NewspaperIcon // Added for Blogs
-} from "@heroicons/react/24/outline";
-import SignOutButton from "./SignOutButton";
-import { Sections, SectionLink } from "@/types/dashboard";
+import { signOut } from "next-auth/react";
+
+// --- Animation Variants ---
+const menuVariants: Variants = {
+  hidden: { x: "100%" },
+  show: { 
+    x: 0, 
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 30,
+      staggerChildren: 0.07, 
+      delayChildren: 0.2     
+    } 
+  },
+  exit: { x: "100%", transition: { type: "spring", stiffness: 300, damping: 30 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, x: 20 },
+  show: { opacity: 1, x: 0 },
+};
+
+const overlayVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+interface MobileTopbarProps {
+  role: string;
+  sections: any;
+  isSuperAdmin?: boolean;
+  todayRevenue?: number;
+}
 
 export default function MobileTopbar({
   role,
   sections,
   isSuperAdmin,
-}: {
-  role: string;
-  sections: Sections;
-  isSuperAdmin?: boolean;
-}) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  todayRevenue = 0,
+}: MobileTopbarProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Advanced Animations
-  const menuVariants: Variants = {
-    hidden: { x: "100%" },
-    show: { 
-      x: 0, 
-      transition: { type: "spring", damping: 25, stiffness: 200 } 
-    },
-    exit: { 
-      x: "100%", 
-      transition: { type: "spring", damping: 25, stiffness: 200, delay: 0.1 } 
-    }
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, x: 20 },
-    show: { opacity: 1, x: 0 },
-  };
-
-  // Combine and filter links based on visibility
-  const visibleLinks = [...sections.general, ...sections.management].filter(
-    (link: SectionLink) => link.visible
-  );
+  const handleLogout = () => signOut({ callbackUrl: "/auth/sign-in" });
 
   return (
-    <div className="lg:hidden flex flex-col w-full relative">
-      {/* Sleek Header */}
-      <header className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-60 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-600/20">
-            M
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-gray-900 leading-none">MarvelMarts</h2>
-            <p className="text-[10px] uppercase tracking-widest font-black text-indigo-600 mt-1">{role}</p>
-          </div>
-        </div>
-        
+    <>
+      {/* Top Bar */}
+      <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-40">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <img src="/logo.png" alt="MarvelMarts" className="h-8 w-auto" />
+          <span className="font-black italic tracking-tighter text-xl uppercase">Marvel<span className="text-blue-600">Marts</span></span>
+        </Link>
         <button 
-          onClick={() => setMobileOpen(true)}
-          className="p-2 bg-gray-50 rounded-lg text-gray-600 active:scale-90 transition-transform"
+          onClick={() => setIsOpen(true)}
+          className="p-2 bg-gray-50 rounded-xl text-gray-900 shadow-sm border border-gray-100 active:scale-95 transition-transform"
         >
-          <Bars3Icon className="h-6 w-6" />
+          <Menu size={24} />
         </button>
       </header>
 
       <AnimatePresence>
-        {mobileOpen && (
+        {isOpen && (
           <>
-            {/* Backdrop Blur */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-70"
-              onClick={() => setMobileOpen(false)}
+              variants={overlayVariants}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-gray-950/40 backdrop-blur-sm z-50"
             />
 
             <motion.nav
@@ -89,99 +83,85 @@ export default function MobileTopbar({
               initial="hidden"
               animate="show"
               exit="exit"
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-80 shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[60] shadow-2xl flex flex-col"
             >
               {/* Drawer Header */}
-              <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                    <UserCircleIcon className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <p className="text-md font-bold text-gray-900">Admin Account</p>
-                    <p className="text-xs text-gray-400">Admin Dashboard</p>
-                  </div>
+              <div className="p-6 flex items-center justify-between border-b border-gray-50">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-1">Command Center</span>
+                  <span className="text-sm font-black uppercase tracking-tighter italic text-gray-900">{role} Access</span>
                 </div>
-                <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400">
-                  <XMarkIcon className="h-6 w-6" />
+                <button onClick={() => setIsOpen(false)} className="p-3 bg-gray-100 rounded-2xl text-gray-400 active:rotate-90 transition-transform">
+                  <X size={20} />
                 </button>
               </div>
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 
-                {/* 1. Main Management & Blogs */}
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Operations</p>
-                  <div className="space-y-1">
-                    {visibleLinks.map((link) => (
-                      <motion.div key={link.href} variants={itemVariants}>
-                        <Link
-                          href={link.href}
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center justify-between group p-3 rounded-xl hover:bg-indigo-50 transition-all"
-                        >
-                          <div className="flex items-center gap-3">
-                             <span className="text-lg font-bold text-gray-700 group-hover:text-indigo-600">{link.label}</span>
-                          </div>
-                          <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-transform group-hover:translate-x-1" />
-                        </Link>
-                      </motion.div>
+            {/* REVENUE WIDGET */}
+            <motion.section variants={itemVariants} className="relative overflow-hidden p-6 rounded-[2rem] bg-indigo-600 text-white shadow-xl shadow-indigo-100">
+              <div className="relative z-10">
+                {/* CHANGED <p> TO <div> TO AVOID HYDRATION ERROR */}
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  Live Revenue Today
+                </div>
+                
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black italic tracking-tighter">
+                    ₦{todayRevenue.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
+                </div>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
+            </motion.section>
+
+               {/* Navigation Sections */}
+              {Object.entries(sections).map(([key, items]: [string, any]) => (
+                <motion.section key={key} variants={itemVariants}>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-4 px-2">
+                    {key}
+                  </h3>
+                  <div className="space-y-2">
+                    {/* 1. Add 'index' to the map function */}
+                    {items.map((item: any, index: number) => (
+                      <Link
+                        /* 2. Create a truly unique key by combining label and index */
+                        key={`${item.label}-${index}`}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 transition-all group"
+                      >
+                        <span className="text-xs font-black uppercase tracking-widest">
+                          {item.label}
+                        </span>
+                        <ChevronRight 
+                          size={14} 
+                          className="text-gray-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1" 
+                        />
+                      </Link>
                     ))}
                   </div>
-                </section>
+                </motion.section>
+              ))}
+                            </div>
 
-                {/* 2. Support Engine */}
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Support Engine</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      href="/dashboard/admins/support"
-                      onClick={() => setMobileOpen(false)}
-                      className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col gap-2 group active:scale-95 transition-all"
-                    >
-                      <BookOpenIcon className="w-6 h-6 text-blue-600" />
-                      <span className="text-lg font-black text-blue-900 uppercase tracking-tight">Articles</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/admins/support/tickets"
-                      onClick={() => setMobileOpen(false)}
-                      className="p-4 rounded-2xl bg-orange-50 border border-orange-100 flex flex-col gap-2 group active:scale-95 transition-all"
-                    >
-                      <TicketIcon className="w-6 h-6 text-orange-600" />
-                      <span className="text-lg font-black text-orange-900 uppercase tracking-tight">Tickets</span>
-                    </Link>
-                  </div>
-                </section>
-
-                {/* 3. Security/Permissions */}
-                {!isSuperAdmin && (
-                  <section className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Restricted Mode</p>
-                    </div>
-                    {sections?.permissionsMenu?.map((p) => (
-                      <p key={p.label} className="text-[11px] text-gray-400 font-medium italic">
-                        • {p.label}
-                      </p>
-                    ))}
-                  </section>
-                )}
-              </div>
-
-              {/* Drawer Footer */}
-              <div className="p-6 bg-gray-50/50 border-t border-gray-100">
-                <SignOutButton
-                  redirectPath="/auth/sign-in"
-                  label="Secure Logout"
-                  className="w-full py-4 bg-white border border-red-100 text-red-600 rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-red-50 transition-colors shadow-sm"
-                />
-              </div>
+              {/* Drawer Footer / Logout */}
+              <motion.div variants={itemVariants} className="p-6 border-t border-gray-50">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-3 p-5 rounded-3xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                >
+                  <LogOut size={18} />
+                  Secure Logout
+                </button>
+              </motion.div>
             </motion.nav>
           </>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

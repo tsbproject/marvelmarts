@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  engineType      = "library"  
 }
 
 datasource db {
@@ -19,6 +20,7 @@ model User {
   permissions        Json?
   role               UserRole            @default(CUSTOMER)
   IsVerified         Boolean             @default(false)
+  isSuspended        Boolean             @default(false) 
   accounts           Account[]
   addresses          Address[]
   adminProfile       AdminProfile?       @relation("AdminProfileUser")
@@ -31,6 +33,7 @@ model User {
   sessions           Session[]
   vendorProfile      VendorProfile?      @relation("VendorProfileUser")
   verificationCodes  VerificationCode[]
+  
 
 }
 

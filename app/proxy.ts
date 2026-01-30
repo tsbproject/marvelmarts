@@ -77,7 +77,6 @@
 
 
 
-// middleware.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -85,32 +84,55 @@ import { UserRole } from "@prisma/client";
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+  const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
 
   console.log("[Middleware] Incoming request:", pathname);
 
-  // Allow RSC requests (fixes mobile issue)
+  // 1. Allow RSC requests (fixes mobile issue) - EXISTING LOGIC
   if (searchParams.has("_rsc")) {
     console.log("[Middleware] Skipping RSC request");
     return NextResponse.next();
   }
 
-  // Skip NextAuth API and Next.js internals
+  // 2. Skip NextAuth API and Next.js internals - EXISTING LOGIC
+  // Added "/maintenance" to the whitelist to prevent redirect loops
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") || 
     pathname.startsWith("/logo.png") || 
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/maintenance"
   ) {
     console.log("[Middleware] Skipping internal route:", pathname);
     return NextResponse.next();
   }
 
+  // 3. Allow all Authentication routes - EXISTING LOGIC
   if (pathname.startsWith("/auth/")) {
     return NextResponse.next();
   }
 
-  // Define protected routes with allowed roles
+  // --- START MAINTENANCE LOGIC ---
+  // If maintenance is ON, we only allow access if the user is an ADMIN or SUPER_ADMIN
+  if (isMaintenanceMode) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    const role = token?.role as UserRole | undefined;
+    const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+
+    // Redirect to maintenance if NOT an admin and NOT already on an API/Auth path
+    if (!isAdmin && !pathname.startsWith("/api")) {
+      console.warn("[Middleware] Maintenance Mode Active - Redirecting non-admin");
+      return NextResponse.redirect(new URL("/maintenance", request.url));
+    }
+  }
+  // --- END MAINTENANCE LOGIC ---
+
+  // 4. Define protected routes with allowed roles - EXISTING LOGIC
   const PROTECTED_ROUTES: Record<string, UserRole[]> = {
     "/dashboard/admins": [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     "/account/vendor": [UserRole.VENDOR],
@@ -158,8 +180,14 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Apply middleware only to protected routes
+// 5. Apply middleware - UPDATED MATCHER
+// We must expand the matcher to include the root and shop so maintenance can catch them
 export const config = {
-  matcher: ["/dashboard/:path*", "/account/:path*"],
+  matcher: [
+    "/", 
+    "/shop/:path*", 
+    "/dashboard/:path*", 
+    "/account/:path*",
+    "/((?!api|_next/static|_next/image|favicon.ico).*)", // Catch-all for maintenance
+  ],
 };
-

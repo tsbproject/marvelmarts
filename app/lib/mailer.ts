@@ -249,6 +249,7 @@ export async function sendPasswordResetEmail(to: string, resetCode: string) {
   return sendEmail({ to, subject: "Password Reset Request", html });
 }
 
+
 // --- 3. COMMERCE EMAILS (New) ---
 
 export async function sendOrderConfirmationEmail(order: any) {
@@ -293,4 +294,47 @@ export async function sendAdminOrderNotification(order: any) {
     </div>
   `;
   return sendEmail({ to: adminEmail, subject: `🔥 New Sale: ${order.orderNumber}`, html });
+}
+
+
+
+//.. 4. EMAIL TEMPLATE TO INFORM USER OF END OF MAINTAINANCE PERIOD
+/**
+ * Sends a mass email or individual announcement when the store goes live
+ */
+export async function sendStoreLiveEmail(to: string, name: string) {
+  const shopUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/shop`;
+  
+  const html = `
+    <div style="font-family: 'Arial Black', Gadget, sans-serif; max-width: 600px; margin: auto; background-color: #001f3f; color: white; border-radius: 24px; overflow: hidden; border: 4px solid #3b82f6;">
+      <div style="padding: 40px; text-align: center;">
+        <img src="https://marvelmarts.vercel.app/logo.png" alt="MarvelMarts" style="height: 40px; margin-bottom: 30px; filter: brightness(0) invert(1);">
+        
+        <h1 style="font-size: 42px; font-style: italic; text-transform: uppercase; line-height: 1; margin: 0; letter-spacing: -2px;">
+          The Mart is <span style="color: #3b82f6;">Open.</span>
+        </h1>
+        
+        <p style="font-size: 16px; color: #93c5fd; margin-top: 20px; text-transform: uppercase; letter-spacing: 2px;">
+          Experience Shopping Redefined
+        </p>
+        
+        <div style="margin: 40px 0; background: rgba(59, 130, 246, 0.1); padding: 30px; border-radius: 16px; border: 1px dashed #3b82f6;">
+          <p style="font-size: 18px; margin: 0; font-family: sans-serif;">Hi ${name},</p>
+          <p style="font-family: sans-serif; line-height: 1.6; color: #d1d5db;">
+            The wait is over. We've upgraded our systems, stocked the vault, and the doors to <strong>MarvelMarts</strong> are now officially wide open.
+          </p>
+        </div>
+
+        <a href="${shopUrl}" style="display: inline-block; background-color: white; color: #001f3f; padding: 20px 40px; border-radius: 50px; text-decoration: none; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;">
+          Enter the Shop
+        </a>
+        
+        <p style="margin-top: 40px; font-size: 10px; color: #60a5fa; text-transform: uppercase; letter-spacing: 4px;">
+          Curated Tech • Premium Style • MarvelMarts 2026
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({ to, subject: "MarvelMarts is LIVE: Step Into Style", html });
 }
