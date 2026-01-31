@@ -1,11 +1,6 @@
-
-
-
-
 // import type { NextConfig } from "next";
 
 // const nextConfig: NextConfig = {
-//   // ❌ CHANGE THIS: trailingSlash: true causes NextAuth redirect loops
 //   trailingSlash: false, 
   
 //   images: {
@@ -17,36 +12,25 @@
 //     ],
 //   },
   
-//   async redirects() {
-//     return [
-//       {
-//         source: '/shop/:slug', 
-//         destination: '/products/:slug',
-//         permanent: true, 
-//       },
 
-     
-//     ];
+//   async redirects() {
+//     return [];
 //   },
+
+//   // Prisma Optimization for Vercel
+//   serverExternalPackages: ["@prisma/client", "bcryptjs"],
 
 //   productionBrowserSourceMaps: false,
-//   webpack: (config, { dev }) => {
-//     if (dev) {
-//       config.devtool = "eval-source-map";
-//     }
-//     return config;
-//   },
 // };
 
 // export default nextConfig;
 
 
 
-
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // ❌ CHANGE THIS: trailingSlash: true causes NextAuth redirect loops
   trailingSlash: false, 
   
   images: {
@@ -58,15 +42,30 @@ const nextConfig: NextConfig = {
     ],
   },
   
-
   async redirects() {
-    return [];
+    return [
+      {
+        source: '/shop/:slug', 
+        destination: '/products/:slug',
+        permanent: true, 
+      },
+
+     
+    ];
   },
 
-  // Prisma Optimization for Vercel
-  serverExternalPackages: ["@prisma/client", "bcryptjs"],
-
   productionBrowserSourceMaps: false,
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.devtool = "eval-source-map";
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
+
+
+
+
+
