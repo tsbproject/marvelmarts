@@ -1,29 +1,3 @@
-// import type { NextConfig } from "next";
-
-// const nextConfig: NextConfig = {
-//   trailingSlash: false, 
-  
-//   images: {
-//     remotePatterns: [
-//       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
-//       { protocol: "https", hostname: "utfs.io", pathname: "/**" },
-//       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
-//       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
-//     ],
-//   },
-  
-
-//   async redirects() {
-//     return [];
-//   },
-
-//   // Prisma Optimization for Vercel
-//   serverExternalPackages: ["@prisma/client", "bcryptjs"],
-
-//   productionBrowserSourceMaps: false,
-// };
-
-// export default nextConfig;
 
 
 
