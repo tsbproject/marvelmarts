@@ -2,11 +2,16 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./authSlice";
 import cartReducer from "./cartSlice"; 
 import productReducer from "./productSlice"; 
+import wishlistReducer from "./wishlistSlice";
+
+
 export const store = configureStore({
+
   reducer: {
     auth: authReducer,
     cart: cartReducer,
-    products: productReducer, // 2. Add this line to match 'state.products'
+    products: productReducer, 
+    wishlist: wishlistReducer, 
   },
 });
 

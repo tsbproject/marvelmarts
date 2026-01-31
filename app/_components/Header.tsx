@@ -101,20 +101,27 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       </div>
 
       {/* RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-90 -top-7 flex items-center gap-6 z-20 invisible lg:visible">
+      <div className="absolute right-30 -top-5 flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>
 
-      <div className="absolute right-45 top-20 flex items-center invisible lg:visible">
+      <div className="absolute right-100 top-20 flex items-center invisible lg:visible">
         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
         <button
           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
           onClick={() => setUserMenuOpen(true)}
         >
           <User className="w-10 h-10 border-2 rounded-3xl p-2 text-brand-primary" />
-          <span className="text-white text-sm">Account</span>
+          <span className="text-white text-md mt-4">Account</span>
         </button>
       </div>
+
+     
     </header>
   );
 }
+
+
+
+
+

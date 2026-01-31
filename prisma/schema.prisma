@@ -33,6 +33,8 @@ model User {
   sessions           Session[]
   vendorProfile      VendorProfile?      @relation("VendorProfileUser")
   verificationCodes  VerificationCode[]
+
+  wishlists          Wishlist[]
   
 
 }
@@ -174,6 +176,8 @@ model Product {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
+  wishlists         Wishlist[]
+
   //RELATIONS
   categoryId        String?
   category          Category?      @relation(fields: [categoryId], references: [id])
@@ -230,6 +234,19 @@ model Review {
 
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId]) // Prevents duplicate wishlist items
 }
 
 

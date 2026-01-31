@@ -193,12 +193,12 @@ export default function OrderTracker() {
       <div className="max-w-4xl mx-auto pt-20">
         <header className="text-center mb-12">
           <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#002B5B]">
-            Track Your <span className="text-[#F7931E]">Gear.</span>
+            Track Your <span className="text-[#F7931E]">Order.</span>
           </h1>
-          <form onSubmit={handleTrack} className="mt-8 flex gap-2 max-w-md mx-auto">
+          <form onSubmit={handleTrack} className="mt-8 flex gap-2 max-w-md md:max-w-xl mx-auto">
             <input
               type="text"
-              placeholder="MARVEL-XXXX"
+              placeholder="enter you order ID MARVEL-XXXX"
               className="flex-1 bg-white border-2 border-[#FFE8CC] p-4 rounded-2xl font-black text-[#002B5B] focus:border-[#F7931E] outline-none transition-all"
               value={orderId}
               onChange={(e) => setOrderId(e.target.value.toUpperCase())}
