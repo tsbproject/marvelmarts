@@ -121,9 +121,16 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { UserRole } from "@prisma/client";
 
+
+
+
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   
+
+  if (request.nextUrl.searchParams.has("_rsc") || pathname.startsWith("/_next")) {
+  return NextResponse.next();
+}
   // Force a boolean check. On Vercel, env vars are strings.
   const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
 

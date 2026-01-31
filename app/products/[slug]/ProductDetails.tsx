@@ -375,10 +375,17 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetails({ product, similarItems }: ProductDetailsProps) {
+
   const router = useRouter();
   const dispatch = useDispatch();
   const { notifySuccess, notifyError } = useNotification();
   const { setLoading } = useLoadingOverlay();
+
+     useEffect(() => {
+        // Force the loading overlay to hide once this component is rendered on the screen
+        setLoading(false);
+      }, [product.id, setLoading]);
+
 
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
@@ -395,6 +402,8 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
       ? product.images
       : [{ url: "/placeholder.png" }];
 
+
+   
   
     const handleAddToCart = (e: React.MouseEvent) => {
       e.preventDefault();

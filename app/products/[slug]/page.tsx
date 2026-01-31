@@ -181,27 +181,7 @@ export default async function ProductPage({ params }: Props) {
     (img) => img.url && img.url !== "/images/placeholder.png"
   );
 
-  // const formattedProduct: ProductWithRelations = {
-  //   ...product,
-  //   price: Number(product.price),
-  //   discountPrice: product.discountPrice
-  //     ? Number(product.discountPrice)
-  //     : null,
-  //   createdAt: product.createdAt.toISOString(),
-  //   updatedAt: product.updatedAt.toISOString(),
-  //   category: product.category,
-  //   images: sanitizedImages.length > 0 ? sanitizedImages : [],
-  //   variants: product.variants.map(v => ({
-  //     id: v.id,
-  //     name: v.name,
-  //     price: Number(v.price),
-  //     sku: v.sku,
-  //     stock: v.stock,
-  //     productId: v.productId,
-  //   })),
-  // };
 
-     // ... inside ProductPage function
 
   const formattedProduct: ProductWithRelations = {
     ...product,
