@@ -208,13 +208,29 @@ export async function middleware(request: NextRequest) {
 }
 
 // 6. Refined Matcher (Targeted, not Catch-all)
+// export const config = {
+//   matcher: [
+//     "/",
+//     "/shop/:path*",
+//     "/products/:path*",
+//     "/dashboard/:path*",
+//     "/account/:path*",
+//     "/maintenance"
+//   ],
+// };
+
+
 export const config = {
   matcher: [
-    "/",
-    "/shop/:path*",
-    "/products/:path*",
-    "/dashboard/:path*",
-    "/account/:path*",
-    "/maintenance"
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - images (your public images)
+     * - shop/products (your public shop pages)
+     * - favicon.ico
+     */
+    '/((?!api|_next/static|_next/image|images|shop|products|favicon.ico|logo.png).*)',
   ],
 };
