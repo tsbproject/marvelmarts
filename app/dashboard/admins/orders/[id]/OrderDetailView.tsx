@@ -128,7 +128,7 @@ export default function OrderDetailView({ order }: { order: any }) {
                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase">
                       <Phone size={12} /> {order.phone}
                    </div>
-                   <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase">
+                   <div className="flex items-center gap-2 text-[8px] font-bold text-gray-400 uppercase">
                       <Mail size={12} /> {order.email}
                    </div>
                 </div>

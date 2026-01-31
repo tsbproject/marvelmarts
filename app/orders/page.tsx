@@ -2,6 +2,11 @@
 
 import Image from 'next/image';
 
+import { 
+  Package, Truck, CheckCircle2, Search, 
+  Clock, ShieldCheck, BellRing, X, Loader2 
+} from "lucide-react";
+
 export default function OrderPage() {
   const order = {
     id: 'ORD-20251215-001',
