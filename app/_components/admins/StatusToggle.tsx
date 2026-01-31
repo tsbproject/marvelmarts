@@ -159,7 +159,7 @@ export default function StatusToggle({ order, onUpdate }: StatusManagerProps) {
 
     setLoadingStatus(newStatus);
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}/status`, {
+      const res = await fetch(`/api/admins/orders/${order.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
