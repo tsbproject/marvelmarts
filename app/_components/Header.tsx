@@ -20,7 +20,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <header className="bg-accent-navy h-35 md:h-48 shadow p-4 md:p-4 relative z-1001">
+    <header className="bg-accent-navy h-35 md:h-55 shadow p-4 md:p-4 relative z-1001">
       {/* Logo */}
       <div
         className="
@@ -73,7 +73,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
         className="
           absolute visible lg:invisible
           [@media(min-width:300px)]:left-90 [@media(min-width:300px)]:top-17
-          [@media(min-width:350px)]:left-112 [@media(min-width:350px)]:top-21
+          [@media(min-width:350px)]:left-108 [@media(min-width:350px)]:top-21
           [@media(min-width:400px)]:left-123 [@media(min-width:400px)]:top-21
           [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
           [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
@@ -90,7 +90,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
         className="
           absolute visible lg:invisible
           [@media(min-width:300px)]:left-103 [@media(min-width:300px)]:top-17
-          [@media(min-width:350px)]:left-128 [@media(min-width:350px)]:top-21
+          [@media(min-width:350px)]:left-125 [@media(min-width:350px)]:top-21
           [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
           [@media(min-width:500px)]:left-170 [@media(min-width:500px)]:top-20
           [@media(min-width:600px)]:left-210 [@media(min-width:600px)]:top-20

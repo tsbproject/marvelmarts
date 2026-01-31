@@ -200,7 +200,7 @@ export default function EcommerceCarousel() {
   return (
     <div className="relative w-full mx-auto overflow-hidden group">
       {/* Container Height */}
-      <div className="relative w-full h-[70vh] md:h-[45vh] min-h-[500px] overflow-hidden">
+      <div className="relative w-full h-[50vh] md:h-[70vh]  overflow-hidden">
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={current}
