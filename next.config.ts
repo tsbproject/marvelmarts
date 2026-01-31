@@ -1,7 +1,13 @@
+
+
+
+
 // import type { NextConfig } from "next";
 
 // const nextConfig: NextConfig = {
-//   trailingSlash: true,
+//   // ❌ CHANGE THIS: trailingSlash: true causes NextAuth redirect loops
+//   trailingSlash: false, 
+  
 //   images: {
 //     remotePatterns: [
 //       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
@@ -11,19 +17,20 @@
 //     ],
 //   },
   
-//   // 1. Redirects for SEO and UX consistency
 //   async redirects() {
 //     return [
 //       {
 //         source: '/shop/:slug', 
 //         destination: '/products/:slug',
-//         permanent: true, // This tells Google the move is permanent (301 redirect)
+//         permanent: true, 
 //       },
+
+     
 //     ];
 //   },
 
 //   productionBrowserSourceMaps: false,
-//   webpack: (config, { dev, isServer }) => {
+//   webpack: (config, { dev }) => {
 //     if (dev) {
 //       config.devtool = "eval-source-map";
 //     }
@@ -40,7 +47,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ❌ CHANGE THIS: trailingSlash: true causes NextAuth redirect loops
   trailingSlash: false, 
   
   images: {
@@ -52,31 +58,15 @@ const nextConfig: NextConfig = {
     ],
   },
   
-  async redirects() {
-    return [
-      {
-        source: '/shop/:slug', 
-        destination: '/products/:slug',
-        permanent: true, 
-      },
 
-     
-      // Optional: Redirect base /shop to /products if you moved that too
-      // {
-      //   source: '/shop',
-      //   destination: '/products',
-      //   permanent: true,
-      // }
-    ];
+  async redirects() {
+    return [];
   },
+
+  // Prisma Optimization for Vercel
+  serverExternalPackages: ["@prisma/client", "bcryptjs"],
 
   productionBrowserSourceMaps: false,
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.devtool = "eval-source-map";
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
