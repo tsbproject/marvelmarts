@@ -14,6 +14,8 @@ export interface SerializedProduct {
   reviewCount?: number;
   stock: number;
   brand?: string | null;
+  createdAt?: string; 
+  updatedAt?: string;
 
 
 }

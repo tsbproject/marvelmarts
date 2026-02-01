@@ -44,9 +44,8 @@ export default function WishlistPage() {
       discountPrice: null,
       images: [{ url: item.imageUrl }], 
       stock: 10, 
-      // Changed from .toISOString() string to actual Date objects
-      createdAt: new Date(), 
-      updatedAt: new Date(), 
+      createdAt: new Date().toISOString(), 
+      updatedAt: new Date().toISOString(),
     };
 
     dispatch(addToCart({ 
