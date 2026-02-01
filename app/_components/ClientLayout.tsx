@@ -1,3 +1,8 @@
+
+
+
+
+
 // "use client";
 
 // import { Provider } from "react-redux";
@@ -14,16 +19,16 @@
 // import { useEffect } from "react";
 // import { useDispatch } from "react-redux";
 // import { setUser } from "@/store/authSlice";
-
+// import { setWishlist } from "@/store/wishlistSlice"; 
 // /**
-//  * Syncs the NextAuth session and initializes the cart from LocalStorage
+//  * Syncs the NextAuth session, initializes the cart, and hydydrates the Wishlist
 //  */
 // function ReduxStateSync() {
 //   const { data: session } = useSession();
 //   const dispatch = useDispatch();
 
 //   useEffect(() => {
-//     // Sync Auth Session
+//     // 1. Sync Auth Session
 //     if (session?.user) {
 //       dispatch(
 //         setUser({
@@ -31,8 +36,26 @@
 //           name: session.user.name ?? "",
 //         })
 //       );
+
+//       // 2. Fetch Wishlist from Database on login/refresh
+//       const fetchUserWishlist = async () => {
+//         try {
+//           const res = await fetch("/api/wishlist/get");
+//           if (res.ok) {
+//             const data = await res.json();
+//             // Data should be an array of formatted products
+//             dispatch(setWishlist(data));
+//           }
+//         } catch (error) {
+//           console.error("Error hydrating wishlist:", error);
+//         }
+//       };
+
+//       fetchUserWishlist();
 //     } else {
 //       dispatch(setUser(null));
+//       // Optional: Clear wishlist on logout
+//       // dispatch(setWishlist([]));
 //     }
 //   }, [session, dispatch]);
 
@@ -48,14 +71,13 @@
 // interface ClientLayoutProps {
 //   children: React.ReactNode;
 //   settings: SiteSettings;
-//   initialCategories: CategoryWithChildren[]; 
+//   initialCategories: CategoryWithChildren[];
 // }
 
-// // Destructure initialCategories from props here
-// export default function ClientLayout({ 
-//   children, 
-//   settings, 
-//   initialCategories 
+// export default function ClientLayout({
+//   children,
+//   settings,
+//   initialCategories,
 // }: ClientLayoutProps) {
 //   return (
 //     <Provider store={store}>
@@ -67,7 +89,7 @@
 //               <ReduxStateSync />
 
 //               <NextTopLoader
-//                 color="#002B5B" 
+//                 color="#002B5B"
 //                 height={3}
 //                 showSpinner={false}
 //                 crawlSpeed={200}
@@ -75,10 +97,10 @@
 //                 speed={200}
 //               />
 
-//              <Header initialCategories={initialCategories} />
+//               <Header initialCategories={initialCategories} />
 
 //               <div className="">
-//                 {/*Pass the initialCategories prop to the CategoryMenu */}
+//                 {/*Pass the initialCategories prop to the CategoryMenu if needed */}
 //                 {/* <CategoryMenu initialCategories={initialCategories} /> */}
 //               </div>
 
@@ -114,16 +136,34 @@ import NextTopLoader from "nextjs-toploader";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/store/authSlice";
-import { setWishlist } from "@/store/wishlistSlice"; 
+import { setWishlist } from "@/store/wishlistSlice";
+import { hydrateCart } from "@/store/cartSlice"; // Imported the new action
+
 /**
- * Syncs the NextAuth session, initializes the cart, and hydydrates the Wishlist
+ * Syncs the NextAuth session, hydrates the Cart from localStorage, 
+ * and hydrates the Wishlist from the Database.
  */
 function ReduxStateSync() {
   const { data: session } = useSession();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // 1. Sync Auth Session
+    // 1. HYDRATE CART (From LocalStorage)
+    // We do this first so the UI reflects the user's saved items immediately
+    if (typeof window !== "undefined") {
+      const savedCart = localStorage.getItem("marvel_cart");
+      if (savedCart) {
+        try {
+          const items = JSON.parse(savedCart);
+          dispatch(hydrateCart(items));
+        } catch (error) {
+          console.error("Error hydrating cart:", error);
+          localStorage.removeItem("marvel_cart");
+        }
+      }
+    }
+
+    // 2. SYNC AUTH SESSION
     if (session?.user) {
       dispatch(
         setUser({
@@ -132,7 +172,7 @@ function ReduxStateSync() {
         })
       );
 
-      // 2. Fetch Wishlist from Database on login/refresh
+      // 3. FETCH WISHLIST (From Database on login/refresh)
       const fetchUserWishlist = async () => {
         try {
           const res = await fetch("/api/wishlist/get");
@@ -149,8 +189,7 @@ function ReduxStateSync() {
       fetchUserWishlist();
     } else {
       dispatch(setUser(null));
-      // Optional: Clear wishlist on logout
-      // dispatch(setWishlist([]));
+      // Optional: dispatch(setWishlist([]));
     }
   }, [session, dispatch]);
 
@@ -180,7 +219,7 @@ export default function ClientLayout({
         <CustomSessionProvider>
           <NotificationProvider>
             <LoadingOverlayProvider>
-              {/* Syncs Session & Global State */}
+              {/* This component handles all the data syncing in the background */}
               <ReduxStateSync />
 
               <NextTopLoader
@@ -192,6 +231,7 @@ export default function ClientLayout({
                 speed={200}
               />
 
+              {/* Keep existing styles and structure intact */}
               <Header initialCategories={initialCategories} />
 
               <div className="">
