@@ -16,6 +16,7 @@ export interface SerializedProduct {
   brand?: string | null;
   createdAt?: string; 
   updatedAt?: string;
+  variantId?: string;
 
 
 }

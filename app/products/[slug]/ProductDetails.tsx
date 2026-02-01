@@ -406,21 +406,27 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
     }
 
     const reduxProduct: SerializedProduct = {
-      id: product.id,
-      title: selectedVariant ? `${product.title} (${selectedVariant.name})` : product.title,
-      slug: product.slug,
-      price: currentPrice,
-      imageUrl: displayImages[0]?.url || "/logo.png",
-      categoryName: product.category?.name || "Tactical Gear",
-      description: product.description || "",
-      discountPrice: product.discountPrice || null,
-      images: product.images || [{ url: "/logo.png" }],
-      stock: currentMaxStock,
-      createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
-      updatedAt: product.updatedAt ? new Date(product.updatedAt) : new Date(),
-      variantId: selectedVariant?.id || null,
-    };
-
+  id: product.id,
+  title: selectedVariant 
+    ? `${product.title} (${selectedVariant.name})` 
+    : product.title,
+  slug: product.slug,
+  price: currentPrice,
+  imageUrl: displayImages[0]?.url || "/logo.png",
+  categoryName: product.category?.name || "Tactical Gear",
+  description: product.description || "",
+  discountPrice: product.discountPrice || null,
+  images: product.images || [{ url: "/logo.png" }],
+  stock: currentMaxStock,
+  // Fix 1: Use toISOString() for strings
+  createdAt: product.createdAt 
+    ? new Date(product.createdAt).toISOString() 
+    : new Date().toISOString(),
+  updatedAt: product.updatedAt 
+    ? new Date(product.updatedAt).toISOString() 
+    : new Date().toISOString(),
+   variantId: selectedVariant?.id || "", 
+};
     dispatch(addToCart({ product: reduxProduct, quantity }));
     notifySuccess(`${reduxProduct.title} added to your stash!`);
   };
