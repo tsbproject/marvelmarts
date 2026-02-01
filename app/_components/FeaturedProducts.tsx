@@ -35,7 +35,7 @@ export default function FeaturedProducts({ products }: { products: SerializedPro
     <section className="py-12">
       <div className="mb-10 text-center md:text-left">
         <h2 className="text-4xl md:text-5xl font-black italic text-accent-navy uppercase tracking-tighter">
-          Featured <span className="text-brand-primary">Loot</span>
+          Featured <span className="text-brand-primary">Products</span>
         </h2>
         <p className="text-xs font-bold text-neutral-gray uppercase tracking-[0.3em] mt-2">
           Elite Gear Hand-Picked for the Frontline

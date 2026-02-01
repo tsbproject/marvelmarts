@@ -182,8 +182,8 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-2 text-red-600">
           <Zap size={24} fill="currentColor" />
-          <h2 className="text-2xl font-black uppercase tracking-tighter italic">
-            Flash Sales
+          <h2 className="text-4xl font-black uppercase tracking-tighter italic">
+             Flash <span className="text-brand-primary">Sales</span>
           </h2>
         </div>
 
