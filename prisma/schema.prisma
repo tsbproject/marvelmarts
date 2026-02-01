@@ -163,14 +163,23 @@ model Product {
   brand             String?
   tags              String[]
   price             Decimal        @db.Decimal(10, 2)
+  shippingMethod String?
+  weight         Float?
   discountPrice     Decimal?       @db.Decimal(10, 2)
   stock             Int            @default(0)
   lowStockThreshold Int?           @default(5)
   status            ProductStatus  @default(ACTIVE)
   rating            Float          @default(0)
   ratingCount       Int            @default(0)
-  isFeatured        Boolean        @default(false)
+  
+  isFeatured      Boolean        @default(false)
+  isFlashSale     Boolean  @default(false) // Add this
+  isNewArrival    Boolean  @default(false) // Add this
+  
   isPublished       Boolean        @default(true)
+  
+
+
   metaTitle         String?
   metaDescription   String?
   createdAt         DateTime       @default(now())

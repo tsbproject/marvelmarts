@@ -2,9 +2,22 @@
 
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState } from "react";
+import { useCallback } from "react";
 import type { Category } from "@prisma/client";
-import { ChevronDown, LayoutGrid, ArrowRight, Sparkles } from "lucide-react";
+import { ChevronDown, LayoutGrid, ArrowRight, Sparkles, ChevronRight } from "lucide-react";
+
+
+
+
+
+const PRICE_RANGES = [
+  { label: "Under ₦50k", min: "0", max: "50000" },
+  { label: "₦50k - ₦150k", min: "50000", max: "150000" },
+  { label: "₦150k - ₦500k", min: "150000", max: "500000" },
+  { label: "Over ₦500k", min: "500000", max: "9999999" },
+];
 
 // Recursive type to match your server-side data structure
 export type CategoryTree = Category & { 

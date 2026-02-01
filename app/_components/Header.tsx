@@ -53,7 +53,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       {/* Mobile Hamburger - Now passing categories */}
       <div
         className="
-          absolute -top-6 visible lg:invisible
+          absolute -top-6 visible md:invisible
           [@media(min-width:300px)]:right-[250px]
           [@media(min-width:300px)]:top-12
           [@media(min-width:350px)]:right-[300px]

@@ -1,104 +1,3 @@
-
-
-
-
-
-// import { prisma } from "@/app/lib/prisma";
-// import { notFound } from "next/navigation";
-// import Link from "next/link";
-// import Image from "next/image";
-// import type { Prisma } from "@prisma/client";
-
-// type CategoryWithRelations = Prisma.CategoryGetPayload<{
-//   include: {
-//     children: true;
-//     products: { include: { images: true; variants: true } };
-//   };
-// }>;
-
-// export default async function CategoryPage({
-//   params,
-// }: {
-//   params: { slug?: string[] };
-// }) {
-//   if (!params.slug || params.slug.length === 0) {
-//     notFound(); // `/categories` handled separately in app/categories/page.tsx
-//   }
-
-//   const slugPath = params.slug.join("/");
-
-//   const category: CategoryWithRelations | null = await prisma.category.findUnique({
-//     where: { slug: slugPath },
-//     include: {
-//       children: true,
-//       products: { include: { images: true, variants: true } },
-//     },
-//   });
-
-//   if (!category) notFound();
-
-//   return (
-//     <div className="container mx-auto p-4">
-//       <h1 className="text-3xl font-bold">{category.name}</h1>
-
-//       {/* Subcategories */}
-//       {category.children?.length > 0 && (
-//         <div className="mt-6">
-//           <h2 className="text-xl font-semibold">Subcategories</h2>
-//           <ul className="grid grid-cols-2 gap-4 mt-4">
-//             {category.children.map((child) => (
-//               <li key={child.id}>
-//                 <Link
-//                   href={`/categories/${child.slug}`}
-//                   className="block p-4 bg-gray-100 rounded hover:bg-gray-200"
-//                 >
-//                   {child.name}
-//                 </Link>
-//               </li>
-//             ))}
-//           </ul>
-//         </div>
-//       )}
-
-//       {/* Products */}
-//       {category.products?.length > 0 && (
-//         <div className="mt-6">
-//           <h2 className="text-xl font-semibold">Products</h2>
-//           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-4">
-//             {category.products.map((product) => (
-//               <Link
-//                 key={product.id}
-//                 href={`/products/${product.slug}`}
-//                 className="block border rounded overflow-hidden hover:shadow-lg"
-//               >
-//                 {product.images?.[0] && (
-//                   <Image
-//                     src={product.images[0].url}
-//                     alt={product.title}
-//                     width={400}
-//                     height={300}
-//                     className="object-cover w-full h-48"
-//                   />
-//                 )}
-//                 <div className="p-2">
-//                   <h3 className="font-medium">{product.title}</h3>
-//                   {product.variants?.[0]?.price && (
-//                     <p className="text-sm text-gray-600">
-//                       {product.variants[0].price.toString()} USD
-//                     </p>
-//                   )}
-//                 </div>
-//               </Link>
-//             ))}
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-
-
 import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -117,91 +16,124 @@ type CategoryWithRelations = Prisma.CategoryGetPayload<{
   };
 }>;
 
+// Next.js 15: Params MUST be a Promise
 type PageProps = {
-  params: {
+  params: Promise<{
     slug: string[];
-  };
+  }>;
 };
 
 export default async function CategoryPage({ params }: PageProps) {
-  // Safety check (should never happen with [...slug])
-  if (!params.slug?.length) notFound();
+  // 1. Await the params (Required in Next.js 15)
+  const resolvedParams = await params;
+  const slugArray = resolvedParams.slug;
 
-  const slugPath = params.slug.join("/");
+  if (!slugArray || slugArray.length === 0) notFound();
 
-  const category: CategoryWithRelations | null =
-    await prisma.category.findUnique({
-      where: { slug: slugPath },
-      include: {
-        children: true,
-        products: {
-          include: {
-            images: true,
-            variants: true,
-          },
+  // 2. Join the slug array into a path string (e.g., "tactical/gear")
+  const slugPath = slugArray.join("/");
+
+  const category: CategoryWithRelations | null = await prisma.category.findUnique({
+    where: { slug: slugPath },
+    include: {
+      children: true,
+      products: {
+        include: {
+          images: true,
+          variants: true,
         },
       },
-    });
+    },
+  });
 
-  if (!category) notFound();
+  // 3. Debugging: If this triggers, your DB doesn't have a record matching slugPath
+  if (!category) {
+    console.error(`Dev Error: No category found in database for slug: "${slugPath}"`);
+    notFound();
+  }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold">{category.name}</h1>
+    <div className="max-w-screen-xl mx-auto px-4 py-12 min-h-screen">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-gray mb-6">
+        <Link href="/" className="hover:text-brand-primary">Home</Link>
+        <span>/</span>
+        <Link href="/shop" className="hover:text-brand-primary">Shop</Link>
+        <span>/</span>
+        <span className="text-accent-navy">{category.name}</span>
+      </nav>
 
-      {/* Subcategories */}
+      <header className="mb-12">
+        <h1 className="text-5xl md:text-7xl font-black italic uppercase text-accent-navy tracking-tighter leading-none">
+          {category.name.split(' ')[0]} <span className="text-brand-primary">{category.name.split(' ').slice(1).join(' ')}</span>
+        </h1>
+        <p className="text-neutral-gray mt-4 max-w-2xl font-medium">
+          Explore our professional grade collection of {category.name.toLowerCase()}. Engineered for performance and durability.
+        </p>
+      </header>
+
+      {/* Subcategories Section */}
       {category.children.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Subcategories</h2>
-          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <section className="mb-16">
+          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-primary mb-6">Sub-Departments</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {category.children.map((child) => (
-              <li key={child.id}>
-                <Link
-                  href={`/categories/${child.slug}`}
-                  className="block p-4 bg-gray-100 rounded hover:bg-gray-200 transition"
-                >
-                  {child.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Products */}
-      {category.products.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {category.products.map((product) => (
               <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="border rounded overflow-hidden bg-white hover:shadow-md transition"
+                key={child.id}
+                href={`/categories/${child.slug}`} // MUST MATCH FOLDER PATH
+                className="group p-6 bg-white border border-neutral-light rounded-[2rem] hover:border-brand-primary hover:shadow-xl hover:shadow-brand-primary/5 transition-all"
               >
-                {product.images?.[0] && (
-                  <Image
-                    src={product.images[0].url}
-                    alt={product.title}
-                    width={400}
-                    height={300}
-                    className="w-full h-48 object-cover"
-                  />
-                )}
-
-                <div className="p-3">
-                  <h3 className="font-medium">{product.title}</h3>
-                  {product.variants?.[0]?.price && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      ₦{Number(product.variants[0].price).toLocaleString()}
-                    </p>
-                  )}
-                </div>
+                <span className="block text-center font-black uppercase italic text-accent-navy group-hover:text-brand-primary transition-colors">
+                  {child.name}
+                </span>
               </Link>
             ))}
           </div>
         </section>
       )}
+
+      {/* Products Section */}
+      <section>
+        <div className="flex items-center justify-between mb-8 border-b border-neutral-light pb-4">
+          <h2 className="text-xl font-black uppercase italic text-accent-navy">Available Gear</h2>
+          <span className="text-[10px] font-bold text-neutral-gray uppercase tracking-widest">{category.products.length} Units Found</span>
+        </div>
+
+        {category.products.length === 0 ? (
+          <div className="py-20 text-center bg-neutral-light rounded-[3rem]">
+            <p className="font-black uppercase italic text-neutral-gray">No tactical units deployed in this sector yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {category.products.map((product) => (
+              <Link
+                key={product.id}
+                href={`/products/${product.slug}`}
+                className="group flex flex-col"
+              >
+                <div className="relative aspect-square bg-neutral-light rounded-[2.5rem] overflow-hidden mb-4 p-6">
+                  {product.images?.[0] ? (
+                    <Image
+                      src={product.images[0].url}
+                      alt={product.title}
+                      fill
+                      className="object-contain transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-neutral-gray font-bold">NO INTEL</div>
+                  )}
+                </div>
+                <h3 className="font-black uppercase italic text-accent-navy text-sm tracking-tight truncate group-hover:text-brand-primary transition-colors">
+                  {product.title}
+                </h3>
+                <p className="text-brand-primary font-black text-lg italic mt-1">
+                  ₦{Number(product.variants?.[0]?.price || 0).toLocaleString()}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
