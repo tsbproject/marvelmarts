@@ -292,45 +292,45 @@ export default function PublicProductPage() {
     : (product?.discountPrice ?? product?.price);
   const currentMaxStock = selectedVariant ? selectedVariant.stock : (product?.stock ?? 0);
 
-  const handleAddToCart = async () => {
-    if (!product) return;
-    
-    if (hasVariants && !selectedVariant) {
-      notifyError("Select your Loadout (Size/Color) first!");
-      return;
-    }
+const handleAddToCart = (e: React.MouseEvent) => {
+e.preventDefault();
 
-    try {
-      // 1. Sync with Database Cart
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        body: JSON.stringify({
-          productId: product.id,
-          variantId: selectedVariant?.id || null,
-          qty: quantity,
-        }),
-      });
+if (hasVariants && !selectedVariant) {
+  notifyError("Please select a variant first!");
+  return;
+}
 
-      if (!res.ok) throw new Error();
+// 1. Resolve the image URL clearly
+const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
 
-      // 2. Update Local Redux State
-      dispatch(addToCart({ 
-        product: {
-          id: product.id,
-          variantId: selectedVariant?.id || null,
-          slug: product.slug,
-          title: product.title + (selectedVariant ? ` (${selectedVariant.name})` : ""),
-          price: currentPrice,
-          imageUrl: product.images?.[0]?.url || product.imageUrl || "/placeholder.png"
-        }, 
-        quantity 
-      }));
+  // 2. Dispatch the full object
+  dispatch(addToCart({ 
+    product: {
+      id: product.id,
+      slug: product.slug,
+      title: selectedVariant 
+        ? `${product.title} (${selectedVariant.name})` 
+        : product.title,
+      price: currentPrice,
+      imageUrl: resolvedImageUrl, // Use the resolved constant here
+      description: product.description || "",
+      discountPrice: product.discountPrice || null,
+      categoryName: product.category?.name || "Tactical Gear",
+      images: product.images || [{ url: "/placeholder.png" }],
+      stock: currentMaxStock,
+      createdAt: product.createdAt 
+        ? new Date(product.createdAt).toISOString() 
+        : new Date().toISOString(),
+      updatedAt: product.updatedAt 
+        ? new Date(product.updatedAt).toISOString() 
+        : new Date().toISOString(),
+      variantId: selectedVariant?.id || null,
+    }, 
+    quantity: quantity 
+  }));
 
-      notifySuccess(`${product.title} added to your stash!`);
-    } catch (err) {
-      notifyError("Failed to add to cart. Try again.");
-    }
-  };
+  notifySuccess(`${product.title} added to your stash!`);
+};
 
   const navigateWithLoading = (path: string) => {
     setGlobalLoading(true);
