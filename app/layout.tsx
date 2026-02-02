@@ -65,8 +65,8 @@ export type CategoryWithChildren = Category & {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "MarvelMarts | The Armory",
-  description: "E-commerce for gadgets, phones & computers",
+  title: "Marvelmarts – Nigeria’s Trusted Online Store for Deals & Quality Products",
+  description: "Marvelmarts is your one‑stop online shopping destination in Nigeria. Discover affordable fashion, electronics, beauty, and home essentials with fast delivery and secure checkout."
 };
 
 const inter = Inter({
