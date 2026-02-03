@@ -53,11 +53,10 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
 
   // Sync reviews with Redux Store for real-time updates
   useEffect(() => {
-    if (product?.reviews) {
-      dispatch(setReviews(product.reviews));
-    }
-  }, [product.reviews, dispatch]);
-
+  if (product && Array.isArray(product.reviews)) {
+    dispatch(setReviews(product.reviews as any));
+  }
+}, [product, dispatch]);
   const hasVariants = product.variants && product.variants.length > 0;
   const currentPrice = selectedVariant?.price 
     ? Number(selectedVariant.price) 
@@ -258,3 +257,7 @@ function Badge({ icon, title, subtitle }: { icon: React.ReactNode; title: string
     </div>
   );
 }
+
+
+
+

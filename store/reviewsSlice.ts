@@ -1,14 +1,16 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-interface Review {
+export interface Review {
   id: string;
-  productId: string;
-  userId: string;
   rating: number;
   body: string | null;
-  approved: boolean;
   createdAt: string;
+  isVerified: boolean;
   user: { name: string | null };
+  // Make these optional by adding the '?'
+  productId?: string; 
+  userId?: string;
+  approved?: boolean;
 }
 
 interface ReviewsState {
