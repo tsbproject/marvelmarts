@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -217,7 +214,11 @@ export default function AdminReviewManager() {
                       ) : (
                         <span className="text-[8px] font-black bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 uppercase tracking-tighter">In-Review</span>
                       )}
-                      {r.isVerified && <ShieldCheck size={14} className="text-blue-500" title="Verified Purchase" />}
+                      {r.isVerified && (
+                        <span title="Verified Purchase">
+                          <ShieldCheck size={14} className="text-blue-500" />
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-5 text-right flex items-center justify-end gap-2">
