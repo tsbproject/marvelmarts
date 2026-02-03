@@ -209,7 +209,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
         <div id="field-reports" className="mt-32 border-t border-gray-100 pt-20">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
             <div className="lg:col-span-2">
-              <ReviewList reviews={product.reviews} />
+              <ReviewList />
             </div>
             <div className="lg:col-span-1">
               <div className="sticky top-24">
