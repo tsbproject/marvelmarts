@@ -1,15 +1,13 @@
-// // app/products/[slug]/page.tsx
-// export const dynamic = "force-dynamic"
+// export const dynamic = "force-dynamic";
 
 // import { notFound } from "next/navigation";
-// import prisma from "@/app/lib/prisma";
+// import { prisma } from "@/app/lib/prisma";
 // import ProductDetails from "./ProductDetails";
 // import type { Product, Category, ProductImage } from "@prisma/client";
 
-
-
+// // NEXT.JS 15 FIX: params must be a Promise
 // interface Props {
-//   params: { slug: string };
+//   params: Promise<{ slug: string }>;
 // }
 
 // export type ProductWithRelations = Omit<
@@ -22,6 +20,7 @@
 //   updatedAt: string;
 //   category: Category | null;
 //   images: ProductImage[];
+//   imageUrl: string;
 //   variants: {
 //     id: string;
 //     name: string;
@@ -30,21 +29,38 @@
 //     stock: number;
 //     productId: string;
 //   }[];
+//   // INTEL: Added Reviews to the type
+//   reviews: {
+//     id: string;
+//     rating: number;
+//     comment: string | null;
+//     createdAt: string;
+//     user: { name: string | null };
+//   }[];
 // };
 
 // export default async function ProductPage({ params }: Props) {
-//   const { slug } = params;
+//   const { slug } = await params;
 
 //   if (!slug) return notFound();
 
 //   const product = await prisma.product.findUnique({
-//     where: { slug },
-//     include: {
-//       category: true,
-//       images: { orderBy: { order: "asc" } },
-//       variants: true,
+//   where: { slug },
+//   include: {
+//     category: true,
+//     images: { orderBy: { order: "asc" } },
+//     variants: true,
+//     reviews: {
+//       where: { 
+//         approved: true // Change 'status: "APPROVED"' to 'approved: true'
+//       },
+//       include: {
+//         user: { select: { name: true } },
+//       },
+//       orderBy: { createdAt: "desc" },
 //     },
-//   });
+//   },
+// });
 
 //   if (!product) return notFound();
 
@@ -68,14 +84,14 @@
 //   const formattedProduct: ProductWithRelations = {
 //     ...product,
 //     price: Number(product.price),
-//     discountPrice: product.discountPrice
-//       ? Number(product.discountPrice)
-//       : null,
+//     discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
 //     createdAt: product.createdAt.toISOString(),
 //     updatedAt: product.updatedAt.toISOString(),
 //     category: product.category,
-//     images: product.images,
-//     variants: product.variants.map(v => ({
+//     images: product.images.length > 0 ? product.images : [],
+//     imageUrl: product.images.length > 0 ? product.images[0].url : "/logo.png",
+
+//     variants: product.variants.map((v) => ({
 //       id: v.id,
 //       name: v.name,
 //       price: Number(v.price),
@@ -83,39 +99,44 @@
 //       stock: v.stock,
 //       productId: v.productId,
 //     })),
+
+//     // INTEL: Mapping reviews to satisfy the string date requirement
+//     reviews: product.reviews.map((r) => ({
+//       id: r.id,
+//       rating: r.rating,
+//       comment: r.comment,
+//       createdAt: r.createdAt.toISOString(),
+//       user: { name: r.user.name },
+//     })),
 //   };
 
-//   const formattedSimilar = similarProducts.map(p => ({
-//     id: p.id,
-//     title: p.title,
-//     slug: p.slug,
-//     price: Number(p.price),
-//     discountPrice: p.discountPrice
-//       ? Number(p.discountPrice)
-//       : null,
-//     imageUrl: p.images[0]?.url || "/placeholder.png",
-//   }));
+//   const formattedSimilar = similarProducts.map((p) => {
+//     const firstImg = p.images[0]?.url;
+//     const safeUrl = firstImg && firstImg !== "/images/placeholder.png" ? firstImg : "/logo.png";
 
-//   return (
-//     <ProductDetails
-//       product={formattedProduct}
-//       similarItems={formattedSimilar}
-//     />
-//   );
+//     return {
+//       id: p.id,
+//       title: p.title,
+//       slug: p.slug,
+//       price: Number(p.price),
+//       discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+//       imageUrl: safeUrl,
+//     };
+//   });
+
+//   return <ProductDetails product={formattedProduct} similarItems={formattedSimilar} />;
 // }
 
 
 
 
-// app/products/[slug]/page.tsx
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import prisma from "@/app/lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage } from "@prisma/client";
 
-// NEXT.JS 15 FIX: params must be a Promise
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -139,22 +160,57 @@ export type ProductWithRelations = Omit<
     stock: number;
     productId: string;
   }[];
+  reviews: {
+    id: string;
+    rating: number;
+    body: string | null; // SCHEMA FIX: comment -> body
+    createdAt: string;
+    isVerified: boolean; // TACTICAL UPGRADE
+    user: { name: string | null };
+  }[];
 };
 
 export default async function ProductPage({ params }: Props) {
-  // NEXT.JS 15 FIX: Unwrapping the params promise
   const { slug } = await params;
 
   if (!slug) return notFound();
 
   const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      images: { orderBy: { order: "asc" } },
-      variants: true,
+  where: { slug },
+  include: {
+    category: true,
+    images: { orderBy: { order: "asc" } },
+    variants: true,
+    reviews: {
+      where: { approved: true },
+      include: {
+        user: {
+          select: {
+            name: true,
+            orders: {
+              where: {
+                items: {
+                  some: {
+                  
+                    productId: { not: undefined } 
+                  }
+                },
+                status: "DELIVERED"
+              },
+             
+              select: {
+                items: {
+                  select: { productId: true }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
     },
-  });
+  },
+});
 
   if (!product) return notFound();
 
@@ -175,14 +231,6 @@ export default async function ProductPage({ params }: Props) {
     },
   });
 
-  // 1. Sanitize Main Product Images
-  // This removes the broken placeholder from the gallery before it hits ProductDetails
-  const sanitizedImages = product.images.filter(
-    (img) => img.url && img.url !== "/images/placeholder.png"
-  );
-
-
-
   const formattedProduct: ProductWithRelations = {
     ...product,
     price: Number(product.price),
@@ -190,44 +238,36 @@ export default async function ProductPage({ params }: Props) {
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
     category: product.category,
-    // If the gallery is empty, use the logo.
     images: product.images.length > 0 ? product.images : [],
-    
-    // We override the top-level imageUrl with the first real gallery image
     imageUrl: product.images.length > 0 ? product.images[0].url : "/logo.png",
 
-    variants: product.variants.map(v => ({
-      id: v.id,
-      name: v.name,
+    variants: product.variants.map((v) => ({
+      ...v,
       price: Number(v.price),
-      sku: v.sku,
-      stock: v.stock,
-      productId: v.productId,
+    })),
+
+    // Mapping reviews with correct Schema field 'body' and Verified logic
+    reviews: product.reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      body: r.body, // Fixed field name
+      createdAt: r.createdAt.toISOString(),
+      // Logic: If user has at least 1 delivered order containing this product
+      isVerified: r.user.orders.some(order => 
+        order.items.some((item: any) => item.productId === product.id)
+      ),
+      user: { name: r.user.name },
     })),
   };
 
-  // 2. Sanitize Similar Products
-  const formattedSimilar = similarProducts.map(p => {
-    const firstImg = p.images[0]?.url;
-    // Strictly check against the broken path
-    const safeUrl = (firstImg && firstImg !== "/images/placeholder.png") 
-      ? firstImg 
-      : "/logo.png";
+  const formattedSimilar = similarProducts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    price: Number(p.price),
+    discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+    imageUrl: p.images[0]?.url || "/logo.png",
+  }));
 
-    return {
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      price: Number(p.price),
-      discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
-      imageUrl: safeUrl,
-    };
-  });
-
-  return (
-    <ProductDetails
-      product={formattedProduct}
-      similarItems={formattedSimilar}
-    />
-  );
+  return <ProductDetails product={formattedProduct} similarItems={formattedSimilar} />;
 }

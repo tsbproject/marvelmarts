@@ -200,6 +200,7 @@ model Product {
   images            ProductImage[]
   reviews           Review[]
   variants          Variant[]
+  flashSales        FlashSale[] @relation("ProductToFlashSale")
 }
 
 model ProductImage {
@@ -239,11 +240,44 @@ model Review {
   flagged   Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  isVerified Boolean @default(false) 
 
 
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Coupon {
+  id            String    @id @default(cuid())
+  code          String    @unique // e.g., "MARVEL20"
+  discountValue Decimal   @db.Decimal(10, 2)
+  isPercentage  Boolean   @default(true)
+  limit         Int       @default(1) // Usage limits [cite: 114]
+  usedCount     Int       @default(0)
+  expiryDate    DateTime
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+}
+
+model FlashSale {
+  id          String    @id @default(cuid())
+  name        String    // e.g., "Black Friday Tactical Drop"
+  startTime   DateTime
+  endTime     DateTime  
+  discount    Float     // Multiplier for all products in this sale
+  isActive    Boolean   @default(false)
+  products    Product[] @relation("ProductToFlashSale")
+}
+
+
+
+
 
 
 
@@ -285,9 +319,11 @@ model CartItem {
 model Order {
   id              String      @id @default(cuid())
   orderNumber     String      @unique @default("MARVEL-TEMP") 
-  paymentStatus        Boolean     @default(false)
+  paymentStatus   Boolean     @default(false)
   userId          String
   user            User        @relation(fields: [userId], references: [id])
+  trackingNumber String?
+  refundStatus   String?  
 
   emailSent   Boolean  @default(false) 
 
