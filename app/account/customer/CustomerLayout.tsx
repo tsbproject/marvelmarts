@@ -30,13 +30,13 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
       </div>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="hidden lg:block border-r border-gray-200 bg-white w-64 fixed h-full z-40">
-        <DashboardSidebar 
-          sections={sectionsData} 
-          user={session?.user}
-          role="Customer"
-        />
-      </aside>
+      <aside className="hidden lg:flex flex-col border-r-2 border-blue-500 bg-white w-64 fixed inset-y-0 left-0 z-50 shadow-xl">
+  <DashboardSidebar 
+    sections={sectionsData} 
+    role="Customer" 
+    user={session?.user} 
+  />
+    </aside>
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative">

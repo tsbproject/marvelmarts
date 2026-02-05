@@ -35,20 +35,29 @@ export async function GET() {
       },
       select: {
         id: true,
-        title: true,  // Use 'title' instead of 'name'
+        title: true, 
         slug: true,
         price: true,
-        imageUrl: true,
+        // TACTICAL ADJUSTMENT: 
+        // Check your schema.prisma. if it's 'image', use 'image: true'. 
+        // If it's 'images', use 'images: true'.
+        image: true, 
         category: {
           select: {
-            name: true // Categories usually have 'name', Products usually have 'title'
+            name: true 
           }
         }
       },
-      take: 10, // Keep the homepage lean
+      take: 10,
     });
 
-    return NextResponse.json(trendingProducts);
+    // If your frontend specifically expects 'imageUrl', we map it here:
+    const serializedProducts = trendingProducts.map(product => ({
+      ...product,
+      imageUrl: (product as any).image || (product as any).images?.[0] || null
+    }));
+
+    return NextResponse.json(serializedProducts);
   } catch (error) {
     console.error("Trending API Error:", error);
     return NextResponse.json({ error: "Failed to fetch tactical gear" }, { status: 500 });
