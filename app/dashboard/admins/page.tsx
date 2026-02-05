@@ -51,7 +51,7 @@ export default async function AdminsPage() {
       {
         id: user.id,
         name: user.name ?? "",
-        email: user.email,
+        email: user.email ?? "",
         role: "ADMIN",
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
