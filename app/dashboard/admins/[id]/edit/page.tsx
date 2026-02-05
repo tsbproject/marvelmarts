@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import DashboardHeader from "@/app/_components/DashboardHeader"; 
-import EditAdminForm from "@/app/_components/EditAdminForm";
+import EditAdminForm from "./EditAdminForm";
 import { Admin, Permissions } from "@/types/admin";
 import { useNotification } from "@/app/_context/NotificationContext";
+
+ 
 
 export default function EditAdminPage() {
   const params = useParams();
@@ -44,7 +45,11 @@ export default function EditAdminPage() {
           manageOrders: false,
           manageMessages: false,
           manageSettings: false,
-          manageCategories: false,
+          manageCategories: false, 
+          manageReviews: false, 
+          manageSupport: false, 
+          manageActivity: false, 
+           manageTrending: false, 
         };
 
         const mappedAdmin: Admin = {
@@ -74,11 +79,15 @@ export default function EditAdminPage() {
   if (!admin) return <div className="p-8">Admin not found</div>;
 
   return (
-    <DashboardSidebar>
+ 
       <div className="p-8 w-full">
-        <DashboardHeader title="Edit Admin" /> 
+        <DashboardHeader title="Edit Admin" 
+         showLogout={false}
+        /> 
+        
+        
         <EditAdminForm mode="edit" initialData={admin} />
       </div>
-    </DashboardSidebar>
+   
   );
 }

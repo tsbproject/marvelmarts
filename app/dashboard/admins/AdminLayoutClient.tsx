@@ -152,15 +152,17 @@ export default function AdminLayoutClient({ user, children, todayRevenue = 0 }: 
   const sections = useMemo(() => {
     const general = [{ label: "Overview", href: "/dashboard", visible: true }];
     const management = [
-      { label: "Activity", href: "/dashboard/admins/activity", visible: isSuperAdmin || permissions.manageOrders },
-      { label: "Review", href: "/dashboard/admins/review", visible: isSuperAdmin || permissions.manageReciew },
+      { label: "Activity", href: "/dashboard/admins/activity", visible: isSuperAdmin || permissions.manageActivity },
+      { label: "Review", href: "/dashboard/admins/review", visible: isSuperAdmin || permissions.manageReviews },
       { label: "Admins", href: "/dashboard/admins", visible: isSuperAdmin || permissions.manageAdmins },
       { label: "Users", href: "/dashboard/admins/users", visible: isSuperAdmin || permissions.manageUsers },
       { label: "Blogs", href: "/dashboard/blogs", visible: isSuperAdmin || permissions.manageBlogs },
       { label: "Products", href: "/dashboard/admins/products", visible: isSuperAdmin || permissions.manageProducts },
+      { label: "Trending", href: "/dashboard/admins/trending", visible: isSuperAdmin || permissions.manageTrending },
       { label: "Orders", href: "/dashboard/admins/orders", visible: isSuperAdmin || permissions.manageOrders },
       { label: "Categories", href: "/dashboard/admins/categories", visible: isSuperAdmin || permissions.manageCategories },
       { label: "Settings", href: "/dashboard/admins/settings", visible: isSuperAdmin || permissions.manageSettings },
+      { label: "Subscribers", href: "/dashboard/admins/Subscribers", visible: isSuperAdmin || permissions.manageSubscribers },
     ];
     const permissionsMenu = Object.entries(permissions)
       .filter(([_, value]) => value)

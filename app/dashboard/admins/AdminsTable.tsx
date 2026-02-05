@@ -1,5 +1,11 @@
+
+
+
+
 "use client";
 
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Link from "next/link";
 import AdminDeleteButton from "@/app/_components/AdminDeleteButton";
 import { 
@@ -12,27 +18,48 @@ import {
   Clock,
   Activity
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns"; // Recommended: npm install date-fns
-
+import { formatDistanceToNow } from "date-fns"; 
+import { setAdmins } from "@/store/adminSlice"; 
+import { RootState } from "@/store"; 
 export type Admin = {
   id: string;
   name: string;
   email: string;
   role: "ADMIN" | "SUPER_ADMIN";
   createdAt: string;
-  lastLogin?: string; // Added field
+  lastLogin?: string;
   adminProfile: { permissions: Record<string, boolean> };
 };
 
 export default function AdminsTable({
-  admins,
+  initialAdmins, // Changed from 'admins' to 'initialAdmins' for hydration
   canManageAdmins,
   currentUserId,
 }: {
-  admins: Admin[];
+  initialAdmins: Admin[];
   canManageAdmins: boolean;
   currentUserId: string;
 }) {
+  const dispatch = useDispatch();
+
+  // 1. Hydrate Redux with data from Server Component on mount
+  useEffect(() => {
+    if (initialAdmins) {
+      dispatch(setAdmins(initialAdmins));
+    }
+  }, [initialAdmins, dispatch]);
+
+  // 2. Select live data and searchTerm from Redux
+  const adminsFromRedux = useSelector((state: RootState) => state.admin.admins);
+  const searchTerm = useSelector((state: RootState) => state.admin.searchTerm);
+
+  // 3. Tactical UI Filter (Search Logic)
+  const filteredAdmins = (adminsFromRedux || []).filter((admin) =>
+    admin.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.role?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header Section */}
@@ -45,13 +72,13 @@ export default function AdminsTable({
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-2xl text-indigo-700 text-sm font-bold uppercase">
           <Activity size={18} className="animate-pulse" />
-          {admins.length} Active Admins
+          {filteredAdmins.length} Active Admins
         </div>
       </div>
 
       {/* MOBILE & MID VIEW (Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-        {(admins ?? []).map((admin) => {
+        {filteredAdmins.map((admin) => {
           const isSelf = admin.id === currentUserId;
           const enabledPermissions = Object.entries(admin.adminProfile.permissions || {})
             .filter(([_, value]) => value)
@@ -73,7 +100,6 @@ export default function AdminsTable({
                 </div>
               </div>
 
-              {/* Mobile Last Login Info */}
               <div className="mb-4 flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 <Clock size={12} />
                 Last Active: {admin.lastLogin ? formatDistanceToNow(new Date(admin.lastLogin)) + ' ago' : 'Never'}
@@ -123,13 +149,12 @@ export default function AdminsTable({
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {(admins ?? []).map((admin) => {
+            {filteredAdmins.map((admin) => {
               const isSelf = admin.id === currentUserId;
               const enabledPermissions = Object.entries(admin.adminProfile.permissions || {})
                 .filter(([_, value]) => value)
                 .map(([key]) => key.replace(/([A-Z])/g, " $1"));
 
-              // Check if user was active in the last 15 mins
               const isOnline = admin.lastLogin && (new Date().getTime() - new Date(admin.lastLogin).getTime() < 15 * 60 * 1000);
 
               return (

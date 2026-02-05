@@ -2,7 +2,7 @@
 
 
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import EditAdminForm from "@/app/_components/EditAdminForm";
+import EditAdminForm from "./EditAdminForm";
 
 export default function CreateAdminPage() {
   return (

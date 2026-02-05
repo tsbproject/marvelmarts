@@ -1,3 +1,6 @@
+
+
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -14,24 +17,24 @@ const DEFAULT_PERMISSIONS: PermissionsShape = {
   manageOrders: false,
   manageMessages: false,
   manageSettings: false,
+  manageCategories: false, 
+  manageReview: false, 
+  manageSupport: false, 
+  manageActivity: false, 
 };
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 
 /* ============================================================
    GET: Fetch Admin by ID
    ============================================================ */
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-
-    if (!id)
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+    const { id } = await params;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -42,29 +45,20 @@ export async function GET(
       return NextResponse.json({ error: "Admin not found" }, { status: 404 });
     }
 
-    return NextResponse.json(
-        {
-          user: {
-            ...user,
-            adminProfile: {
-              ...user.adminProfile,
-              permissions: {
-                ...DEFAULT_PERMISSIONS,
-                ...(typeof user.adminProfile?.permissions === "object" &&
-                  user.adminProfile?.permissions !== null &&
-                  !Array.isArray(user.adminProfile?.permissions)
-                  ? (user.adminProfile.permissions as Record<string, boolean>)
-                  : {}),
-              },
-            },
+    return NextResponse.json({
+      user: {
+        ...user,
+        adminProfile: {
+          ...user.adminProfile,
+          permissions: {
+            ...DEFAULT_PERMISSIONS,
+            ...(user.adminProfile?.permissions as Record<string, boolean> || {}),
           },
         },
-        { status: 200 }
-      );
-
-    
+      },
+    });
   } catch (err) {
-    console.error("GET /api/admins/[id] error:", err);
+    console.error("GET Error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -74,76 +68,46 @@ export async function GET(
    ============================================================ */
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-
+    const { id } = await params;
     const session = await getServerSession(authOptions);
-    const currentUser = session?.user;
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!currentUser)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const body = await req.json();
+    const target = await prisma.user.findUnique({ where: { id } });
 
-    if (!id)
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+    if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const body = (await req.json()) as {
-      name?: string;
-      email?: string;
-      role?: "ADMIN" | "SUPER_ADMIN";
-      password?: string | null;
-      permissions?: PermissionsShape;
-    };
-
-    const target = await prisma.user.findUnique({
-      where: { id },
-      include: { adminProfile: true },
-    });
-
-    if (!target)
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    if (target.role === "SUPER_ADMIN" && currentUser.role !== "SUPER_ADMIN") {
-      return NextResponse.json(
-        { error: "Cannot modify SUPER_ADMIN" },
-        { status: 403 }
-      );
+    // Protect Super Admins
+    if (target.role === "SUPER_ADMIN" && session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const updateData: any = {};
     if (body.name) updateData.name = body.name;
     if (body.email) updateData.email = body.email.toLowerCase().trim();
-    if (body.role && currentUser.role === "SUPER_ADMIN")
-      updateData.role = body.role;
-    if (body.password)
-      updateData.passwordHash = await bcrypt.hash(body.password, 10);
+    if (body.role && session.user.role === "SUPER_ADMIN") updateData.role = body.role;
+    if (body.password) updateData.passwordHash = await bcrypt.hash(body.password, 10);
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: updateData,
+    // Use transaction for User + Profile update
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({ where: { id }, data: updateData });
+      
+      if (body.permissions) {
+        await tx.adminProfile.upsert({
+          where: { userId: id },
+          update: { permissions: body.permissions },
+          create: { userId: id, permissions: body.permissions },
+        });
+      }
+      return user;
     });
 
-    if (body.permissions) {
-      const safePermissions = {
-        ...DEFAULT_PERMISSIONS,
-        ...body.permissions,
-      };
-
-      await prisma.adminProfile.upsert({
-        where: { userId: id },
-        update: { permissions: safePermissions },
-        create: { userId: id, permissions: safePermissions },
-      });
-    }
-
-    return NextResponse.json({ user: updatedUser }, { status: 200 });
+    return NextResponse.json({ user: result });
   } catch (err) {
-    console.error("PUT /api/admins/[id] error:", err);
-    return NextResponse.json(
-      { error: (err as Error).message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
 
@@ -156,321 +120,51 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-
     const session = await getServerSession(authOptions);
-    const currentUser = session?.user;
 
-    if (!currentUser)
+    // 1. Auth Guard
+    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    if (!id)
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-
-    if (currentUser.id === id) {
-      return NextResponse.json(
-        { error: "Cannot delete yourself" },
-        { status: 400 }
-      );
     }
 
-    const target = await prisma.user.findUnique({
-      where: { id },
-      include: { adminProfile: true },
+    // 2. Self-deletion Check
+    if (session.user.id === id) {
+      return NextResponse.json({ error: "You cannot delete yourself" }, { status: 400 });
+    }
+
+    // 3. Execution via Transaction
+    await prisma.$transaction(async (tx) => {
+      // Step A: "Unhook" Products (Set vendor to null so product isn't deleted)
+      await tx.product.updateMany({
+        where: { vendorId: id },
+        data: { vendorId: null },
+      });
+
+      // Step B: "Unhook" Orders (Keep the sales record, remove the user link)
+      await tx.order.updateMany({
+        where: { userId: id },
+        data: { userId: null },
+      });
+
+      // Step C: Delete secondary records (Cascade-like behavior for non-essential data)
+      await tx.account.deleteMany({ where: { userId: id } });
+      await tx.address.deleteMany({ where: { userId: id } });
+      await tx.review.deleteMany({ where: { userId: id } });
+      await tx.adminProfile.deleteMany({ where: { userId: id } });
+
+      // Step D: Finally, delete the User
+      await tx.user.delete({
+        where: { id },
+      });
     });
 
-    if (!target)
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
+    return NextResponse.json({ message: "Admin removed successfully" }, { status: 200 });
 
-    if (target.role === "SUPER_ADMIN") {
-      return NextResponse.json(
-        { error: "Cannot delete SUPER_ADMIN" },
-        { status: 403 }
-      );
-    }
-
-    if (currentUser.role === "ADMIN" && target.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Admins can delete only other admins" },
-        { status: 403 }
-      );
-    }
-
-    await prisma.adminProfile.deleteMany({ where: { userId: id } });
-    await prisma.user.delete({ where: { id } });
-
+  } catch (err: any) {
+    console.error("MANUAL DELETE ERROR:", err);
     return NextResponse.json(
-      { message: "Deleted successfully" },
-      { status: 200 }
-    );
-  } catch (err) {
-    console.error("DELETE /api/admins/[id] error:", err);
-    return NextResponse.json(
-      { error: (err as Error).message || "Server error" },
+      { error: "Delete failed: " + (err.message || "Internal Server Error") },
       { status: 500 }
     );
   }
 }
-
-
-
-
-// import { NextRequest, NextResponse } from "next/server";
-// import { prisma } from "@/app/lib/prisma";
-// import bcrypt from "bcryptjs";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
-
-// export const runtime = "nodejs";
-// export const dynamic = "force-dynamic";
-
-// /* ============================================================
-//    Types & Constants
-//    ============================================================ */
-
-// type PermissionsShape = Record<string, boolean>;
-
-// const DEFAULT_PERMISSIONS: PermissionsShape = {
-//   manageAdmins: false,
-//   manageUsers: false,
-//   manageBlogs: false,
-//   manageProducts: false,
-//   manageOrders: false,
-//   manageMessages: false,
-//   manageSettings: false,
-// };
-
-// /* ============================================================
-//    Helpers
-//    ============================================================ */
-
-// function normalizePermissions(value: unknown): PermissionsShape {
-//   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-//     return { ...DEFAULT_PERMISSIONS };
-//   }
-
-//   return {
-//     ...DEFAULT_PERMISSIONS,
-//     ...(value as PermissionsShape),
-//   };
-// }
-
-// /* ============================================================
-//    GET: Fetch Admin by ID
-//    ============================================================ */
-
-// export async function GET(
-//   _req: NextRequest,
-//   context: { params: { id: string } }
-// ) {
-//   try {
-//     const { id } = context.params;
-
-//     if (!id) {
-//       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-//     }
-
-//     const user = await prisma.user.findUnique({
-//       where: { id },
-//       include: { adminProfile: true },
-//     });
-
-//     if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-//       return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-//     }
-
-//     return NextResponse.json(
-//       {
-//         user: {
-//           id: user.id,
-//           name: user.name,
-//           email: user.email,
-//           role: user.role,
-//           createdAt: user.createdAt.toISOString(),
-//           adminProfile: {
-//             permissions: normalizePermissions(
-//               user.adminProfile?.permissions
-//             ),
-//           },
-//         },
-//       },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("GET /api/admins/[id] error:", error);
-//     return NextResponse.json(
-//       { error: "Server error" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// /* ============================================================
-//    PUT: Update Admin by ID
-//    ============================================================ */
-
-// export async function PUT(
-//   req: NextRequest,
-//   context: { params: { id: string } }
-// ) {
-//   try {
-//     const { id } = context.params;
-
-//     const session = await getServerSession(authOptions);
-//     const currentUser = session?.user;
-
-//     if (!currentUser) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     if (!id) {
-//       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-//     }
-
-//     const body = (await req.json()) as {
-//       name?: string;
-//       email?: string;
-//       role?: "ADMIN" | "SUPER_ADMIN";
-//       password?: string | null;
-//       permissions?: PermissionsShape;
-//     };
-
-//     const target = await prisma.user.findUnique({
-//       where: { id },
-//       include: { adminProfile: true },
-//     });
-
-//     if (!target) {
-//       return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-//     }
-
-//     if (
-//       target.role === "SUPER_ADMIN" &&
-//       currentUser.role !== "SUPER_ADMIN"
-//     ) {
-//       return NextResponse.json(
-//         { error: "Cannot modify SUPER_ADMIN" },
-//         { status: 403 }
-//       );
-//     }
-
-//     const updateData: Record<string, any> = {};
-
-//     if (body.name) updateData.name = body.name;
-//     if (body.email)
-//       updateData.email = body.email.toLowerCase().trim();
-
-//     if (body.role && currentUser.role === "SUPER_ADMIN") {
-//       updateData.role = body.role;
-//     }
-
-//     if (body.password) {
-//       updateData.passwordHash = await bcrypt.hash(body.password, 10);
-//     }
-
-//     await prisma.user.update({
-//       where: { id },
-//       data: updateData,
-//     });
-
-//     if (body.permissions) {
-//       const safePermissions = normalizePermissions(body.permissions);
-
-//       await prisma.adminProfile.upsert({
-//         where: { userId: id },
-//         update: { permissions: safePermissions },
-//         create: {
-//           userId: id,
-//           permissions: safePermissions,
-//         },
-//       });
-//     }
-
-//     return NextResponse.json(
-//       { message: "Admin updated successfully" },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("PUT /api/admins/[id] error:", error);
-//     return NextResponse.json(
-//       { error: "Server error" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// /* ============================================================
-//    DELETE: Remove Admin by ID
-//    ============================================================ */
-
-// export async function DELETE(
-//   _req: NextRequest,
-//   context: { params: { id: string } }
-// ) {
-//   try {
-//     const { id } = context.params;
-
-//     const session = await getServerSession(authOptions);
-//     const currentUser = session?.user;
-
-//     if (!currentUser) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     if (!id) {
-//       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-//     }
-
-//     if (currentUser.id === id) {
-//       return NextResponse.json(
-//         { error: "Cannot delete yourself" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const target = await prisma.user.findUnique({
-//       where: { id },
-//       include: { adminProfile: true },
-//     });
-
-//     if (!target) {
-//       return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-//     }
-
-//     if (target.role === "SUPER_ADMIN") {
-//       return NextResponse.json(
-//         { error: "Cannot delete SUPER_ADMIN" },
-//         { status: 403 }
-//       );
-//     }
-
-//     if (
-//       currentUser.role === "ADMIN" &&
-//       target.role !== "ADMIN"
-//     ) {
-//       return NextResponse.json(
-//         { error: "Admins can delete only other admins" },
-//         { status: 403 }
-//       );
-//     }
-
-//     await prisma.adminProfile.deleteMany({
-//       where: { userId: id },
-//     });
-
-//     await prisma.user.delete({
-//       where: { id },
-//     });
-
-//     return NextResponse.json(
-//       { message: "Admin deleted successfully" },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("DELETE /api/admins/[id] error:", error);
-//     return NextResponse.json(
-//       { error: "Server error" },
-//       { status: 500 }
-//     );
-//   }
-// }
-

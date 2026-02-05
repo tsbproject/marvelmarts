@@ -21,22 +21,29 @@ model User {
   role               UserRole            @default(CUSTOMER)
   IsVerified         Boolean             @default(false)
   isSuspended        Boolean             @default(false) 
-  accounts           Account[]
-  addresses          Address[]
+
+  // --- RELATIONS WITH CASCADE (Safe to delete automatically) ---
+  accounts           Account[]           // Ensure Account model has onDelete: Cascade
+  sessions           Session[]           // Ensure Session model has onDelete: Cascade
+  addresses          Address[]           // Ensure Address model has onDelete: Cascade
+  verificationCodes  VerificationCode[]  // Ensure VerificationCode model has onDelete: Cascade
+  wishlists          Wishlist[]          // Ensure Wishlist model has onDelete: Cascade
+  cart               Cart?               // Ensure Cart model has onDelete: Cascade
+  
+  // --- PROFILES (Already likely have Cascade in their own models) ---
   adminProfile       AdminProfile?       @relation("AdminProfileUser")
-  cart               Cart?
   customerProfile    CustomerProfile?    @relation("CustomerProfileUser")
+  vendorProfile      VendorProfile?      @relation("VendorProfileUser")
+
+  // --- BUSINESS DATA (Decide: Cascade or SetNull?) ---
+  // keeping the products/orders even when user is gone:
+  // 1. Change the relation in the Product/Order model to 'onDelete: SetNull'
+  // 2. Make the userId in those models optional (String?)
   products           Product[]
   orders             Order[]
-  passwordResetToken PasswordResetToken?
   reviews            Review[]
-  sessions           Session[]
-  vendorProfile      VendorProfile?      @relation("VendorProfileUser")
-  verificationCodes  VerificationCode[]
-
-  wishlists          Wishlist[]
   
-
+  passwordResetToken PasswordResetToken?
 }
 
 model VerificationCode {
@@ -195,7 +202,7 @@ model Product {
   
   //Multi-Vendor Link
   vendorId          String?        // ID of the User who owns this product
-  vendor            User?          @relation(fields: [vendorId], references: [id])
+  vendor  User?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
   cartItems         CartItem[]
   orderItems        OrderItem[]
@@ -322,8 +329,8 @@ model Order {
   id              String      @id @default(cuid())
   orderNumber     String      @unique @default("MARVEL-TEMP") 
   paymentStatus   Boolean     @default(false)
-  userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  userId          String?
+  user            User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   trackingNumber String?
   
   

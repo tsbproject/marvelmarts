@@ -1,6 +1,3 @@
-
-
-
 export const dynamic = "force-dynamic";
 
 import { getServerSession } from "next-auth";
@@ -17,7 +14,7 @@ export default async function AdminsPage() {
 
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const isAdmin = user.role === "ADMIN";
-
+  
   let normalizedAdmins: Admin[] = [];
 
   if (isSuperAdmin) {
@@ -29,7 +26,7 @@ export default async function AdminsPage() {
         email: true,
         role: true,
         createdAt: true,
-        updatedAt: true, // Use existing updatedAt as a proxy for activity
+        updatedAt: true,
         adminProfile: { select: { permissions: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -43,15 +40,13 @@ export default async function AdminsPage() {
         email: a.email,
         role: a.role as "ADMIN" | "SUPER_ADMIN",
         createdAt: a.createdAt.toISOString(),
-        // Mapping updatedAt to the lastLogin prop in our Table
         lastLogin: a.updatedAt.toISOString(), 
         adminProfile: {
           permissions: (a.adminProfile?.permissions ?? {}) as Record<string, boolean>,
         },
       }));
-  }
-
-  if (isAdmin) {
+  } else if (isAdmin) {
+    // Standardized the fallback for Admin role
     normalizedAdmins = [
       {
         id: user.id,
@@ -95,17 +90,9 @@ export default async function AdminsPage() {
 
       {/* Table Section */}
       <div className="mt-4">
-        <div className="flex items-center justify-between mb-6 px-2">
-          <h3 className="text-xs font-black uppercase tracking-[0.4em] text-gray-400">
-              System Administrators
-          </h3>
-          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest">
-            {normalizedAdmins.length} Total
-          </span>
-        </div>
-        
+        {/* Pass the data to the Table which will handle Redux hydration */}
         <AdminsTable
-          admins={normalizedAdmins}
+          initialAdmins={normalizedAdmins} // Changed to initialAdmins
           canManageAdmins={isSuperAdmin}
           currentUserId={user.id}
         />

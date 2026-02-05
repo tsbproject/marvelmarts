@@ -46,7 +46,7 @@
     "app/api/auth/forgot-password",
     "app/_components/UserMenu.tsx",
     ".next/dev/types/**/*.ts"
-, "app/_components/SearchBar.tsxx", "next-sitemap.config.js"  ],
+, "app/_components/SearchBar.tsxx", "next-sitemap.config.js", "app/dashboard/admins/[id]/page.tsx"  ],
   "exclude": [
     "node_modules"
   ]

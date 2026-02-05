@@ -1,76 +1,3 @@
-// import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-// interface AdminReview {
-//   id: string;
-//   rating: number;
-//   body: string | null;
-//   approved: boolean;
-//   isVerified: boolean;
-//   createdAt: string;
-//   product: { title: string };
-//   user: { name: string | null; email: string | null };
-// }
-
-// interface AdminState {
-//   reviews: AdminReview[];
-//   loading: boolean;
-//   error: string | null;
-// }
-
-// const initialState: AdminState = {
-//   reviews: [],
-//   loading: false,
-//   error: null,
-// };
-
-// const adminSlice = createSlice({
-//   name: "admin",
-//   initialState,
-//   reducers: {
-//     setAdminReviews: (state, action: PayloadAction<AdminReview[]>) => {
-//       state.reviews = action.payload;
-//     },
-//     updateReviewStatus: (state, action: PayloadAction<{ id: string; approved: boolean }>) => {
-//       const review = state.reviews.find((r) => r.id === action.id);
-//       if (review) {
-//         review.approved = action.payload.approved;
-//       }
-//     },
-//     deleteAdminReview: (state, action: PayloadAction<string>) => {
-//       state.reviews = state.reviews.filter((r) => r.id !== action.payload);
-//     },
-//     setAdminLoading: (state, action: PayloadAction<boolean>) => {
-//       state.loading = action.payload;
-//     },
-
-//         bulkDeleteReviews: (state, action: PayloadAction<string[]>) => {
-//     state.reviews = state.reviews.filter((r) => !action.payload.includes(r.id));
-//     },
-
-//     bulkUpdateStatus: (state, action: PayloadAction<{ ids: string[]; approved: boolean }>) => {
-//   state.reviews = state.reviews.map((r) =>
-//     action.payload.ids.includes(r.id) 
-//       ? { ...r, approved: action.payload.approved } 
-//       : r
-//   );
-// },
-
-
-//   },
-// });
-
-// export const { 
-//   setAdminReviews, 
-//   updateReviewStatus, 
-//   deleteAdminReview, 
-//   setAdminLoading,
-//   bulkUpdateStatus 
-// } = adminSlice.actions;
-
-// export default adminSlice.reducer;
-
-
-
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AdminReview {
@@ -85,7 +12,17 @@ interface AdminReview {
   user: { name: string | null; email: string | null };
 }
 
+// New interface for Admin Users
+interface AdminUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: "ADMIN" | "SUPER_ADMIN";
+  createdAt: string;
+}
+
 interface AdminState {
+  admins: AdminUser[];     // Track Admin Users
   reviews: AdminReview[];
   searchTerm: string;      // Tactical Search
   currentPage: number;     // Pagination State
@@ -94,6 +31,7 @@ interface AdminState {
 }
 
 const initialState: AdminState = {
+  admins: [],
   reviews: [],
   searchTerm: "",
   currentPage: 1,
@@ -105,7 +43,15 @@ const adminSlice = createSlice({
   name: "admin",
   initialState,
   reducers: {
-    // --- Data Hydration ---
+    // --- Admin User Management ---
+    setAdmins: (state, action: PayloadAction<AdminUser[]>) => {
+      state.admins = action.payload;
+    },
+    deleteAdmin: (state, action: PayloadAction<string>) => {
+    state.admins = state.admins.filter((admin) => admin.id !== action.payload);
+},
+
+    // --- Review Data Hydration ---
     setAdminReviews: (state, action: PayloadAction<AdminReview[]>) => {
       state.reviews = action.payload;
     },
@@ -119,7 +65,7 @@ const adminSlice = createSlice({
       state.currentPage = action.payload;
     },
     
-    // --- Individual Actions ---
+    // --- Individual Review Actions ---
     updateReviewStatus: (state, action: PayloadAction<{ id: string; approved: boolean }>) => {
       const review = state.reviews.find((r) => r.id === action.payload.id);
       if (review) {
@@ -142,20 +88,28 @@ const adminSlice = createSlice({
       );
     },
 
+    // --- Global Helpers ---
     setAdminLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
+    },
+    setAdminError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     },
   },
 });
 
-// All actions exported for use in AdminReviewManager
+
+
 export const { 
+  setAdmins,
+  deleteAdmin,
   setAdminReviews, 
   setSearchTerm,
   setCurrentPage,
   updateReviewStatus, 
   deleteAdminReview, 
   setAdminLoading,
+  setAdminError,
   bulkUpdateStatus,
   bulkDeleteReviews 
 } = adminSlice.actions;
