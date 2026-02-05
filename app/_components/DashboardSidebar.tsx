@@ -20,6 +20,7 @@ import {
   Mail,
   Activity, 
   StarHalf,
+  Flame
 } from "lucide-react";
 import { Sections, SectionLink } from "@/types/dashboard";
 
@@ -90,11 +91,17 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
           icon: <Newspaper size={20} />,
           visible: isSuperAdmin || (role === "ADMIN" && !!permissions.manageBlogs),
         },
-        {
+       {
           label: "Products",
           href: "/dashboard/admins/products",
           icon: <Package size={20} />,
           visible: isSuperAdmin || !!permissions.manageProducts,
+        },
+        {
+          label: "Trending Gear",
+          href: "/dashboard/admins/trending",
+          icon: <Flame size={20} className="text-orange-500" />, // Matching the homepage vibe
+          visible: isSuperAdmin || !!permissions.manageProducts, // Same permissions as products
         },
         {
           label: "Orders",

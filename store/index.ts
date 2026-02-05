@@ -9,6 +9,7 @@ import wishlistReducer from "./wishlistSlice";
 import reviewsReducer from "./reviewsSlice"; 
 import adminReducer from "./adminSlice"; 
 import orderReducer from "./orderSlice"; 
+import trendingReducer from './trendingSlice';
 
 /**
  * Global Store Configuration for MarvelMarts
@@ -24,6 +25,7 @@ export const store = configureStore({
     reviews: reviewsReducer, 
     admin: adminReducer, 
     orders: orderReducer, 
+    trending: trendingReducer,
   },
   // Adding middleware configuration to handle non-serializable data (like Dates from Prisma)
   middleware: (getDefaultMiddleware) =>

@@ -1,12 +1,19 @@
-// app/api/admins/orders/[id]/route.ts
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+// Next.js 15+ Requirement: Params must be handled as a Promise
+type Context = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PATCH(req: NextRequest, context: Context) {
   const session = await getServerSession(authOptions);
   
+  // 1. Await the dynamic parameters (Fixes Vercel Build Error)
+  const { id } = await context.params;
+
   // Security Gate
   if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,11 +36,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     const updatedOrder = await prisma.order.update({
-      where: { id: params.id },
+      where: { id: id }, // Use the awaited id
       data: updateData
     });
 
-    return NextResponse.json(updatedOrder);
+    // 2. TACTICAL SERIALIZATION
+    // Convert any Prisma Decimals to Numbers to prevent serialization errors
+    const serializedOrder = {
+      ...updatedOrder,
+      total: (updatedOrder as any).total ? Number((updatedOrder as any).total) : 0,
+    };
+
+    return NextResponse.json(serializedOrder);
   } catch (error) {
     console.error("API Update Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
