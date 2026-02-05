@@ -76,7 +76,7 @@ export default function CheckoutPage() {
     }
     
     if (status === "authenticated" && session?.user?.email && !formData.email) {
-      setFormData(prev => ({ ...prev, email: session.user.email }));
+      setFormData(prev => ({ ...prev, email: session.user.email ?? "" }));
     }
   }, [status, session?.user?.email, router, formData.email, mounted]);
 
