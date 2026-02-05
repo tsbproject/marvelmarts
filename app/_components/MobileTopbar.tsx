@@ -2,9 +2,11 @@
 
 // import { useState } from "react";
 // import { motion, AnimatePresence, Variants } from "framer-motion";
-// import { Menu, X, LogOut, ChevronRight, Activity } from "lucide-react";
+// import { Menu, X, LogOut, ChevronRight, MessageSquareQuote } from "lucide-react";
 // import Link from "next/link";
 // import { signOut } from "next-auth/react";
+// import { useSelector } from "react-redux";
+// import { RootState } from "@/store";
 
 // // --- Animation Variants ---
 // const menuVariants: Variants = {
@@ -33,12 +35,22 @@
 //   exit: { opacity: 0 },
 // };
 
+
+
 // interface MobileTopbarProps {
 //   role: string;
 //   sections: any;
 //   isSuperAdmin?: boolean;
 //   todayRevenue?: number;
+//   user?: {
+//     name?: string | null;
+//     email?: string | null;
+//     image?: string | null;
+//   };
 // }
+
+
+
 
 // export default function MobileTopbar({
 //   role,
@@ -47,6 +59,10 @@
 //   todayRevenue = 0,
 // }: MobileTopbarProps) {
 //   const [isOpen, setIsOpen] = useState(false);
+  
+//   // Access Redux for Real-time Review Intel
+//   const { reviews } = useSelector((state: RootState) => state.admin || { reviews: [] });
+//   const pendingReviewsCount = reviews?.filter((r: any) => !r.approved).length || 0;
 
 //   const handleLogout = () => signOut({ callbackUrl: "/auth/sign-in" });
 
@@ -56,7 +72,9 @@
 //       <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-40">
 //         <Link href="/dashboard" className="flex items-center gap-2">
 //           <img src="/logo.png" alt="MarvelMarts" className="h-8 w-auto" />
-//           <span className="font-black italic tracking-tighter text-xl uppercase">Marvel<span className="text-blue-600">Marts</span></span>
+//           <span className="font-black italic tracking-tighter text-xl uppercase text-[#002B5B]">
+//             Marvel<span className="text-[#F7931E]">Marts</span>
+//           </span>
 //         </Link>
 //         <button 
 //           onClick={() => setIsOpen(true)}
@@ -89,7 +107,7 @@
 //               <div className="p-6 flex items-center justify-between border-b border-gray-50">
 //                 <div className="flex flex-col">
 //                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-1">Command Center</span>
-//                   <span className="text-sm font-black uppercase tracking-tighter italic text-gray-900">{role} Access</span>
+//                   <span className="text-sm font-black uppercase tracking-tighter italic text-[#002B5B]">{role} Access</span>
 //                 </div>
 //                 <button onClick={() => setIsOpen(false)} className="p-3 bg-gray-100 rounded-2xl text-gray-400 active:rotate-90 transition-transform">
 //                   <X size={20} />
@@ -99,54 +117,63 @@
 //               {/* Scrollable Content */}
 //               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 
-//             {/* REVENUE WIDGET */}
-//             <motion.section variants={itemVariants} className="relative overflow-hidden p-6 rounded-[2rem] bg-indigo-600 text-white shadow-xl shadow-indigo-100">
-//               <div className="relative z-10">
-//                 {/* CHANGED <p> TO <div> TO AVOID HYDRATION ERROR */}
-//                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2 flex items-center gap-2">
-//                   <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-//                   Live Revenue Today
-//                 </div>
-                
-//                 <div className="flex items-baseline gap-1">
-//                   <span className="text-3xl font-black italic tracking-tighter">
-//                     ₦{todayRevenue.toLocaleString()}
-//                   </span>
-//                   <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
-//                 </div>
-//               </div>
-//               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
-//             </motion.section>
-
-//                {/* Navigation Sections */}
-//               {Object.entries(sections).map(([key, items]: [string, any]) => (
-//                 <motion.section key={key} variants={itemVariants}>
-//                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-4 px-2">
-//                     {key}
-//                   </h3>
-//                   <div className="space-y-2">
-//                     {/* 1. Add 'index' to the map function */}
-//                     {items.map((item: any, index: number) => (
-//                       <Link
-//                         /* 2. Create a truly unique key by combining label and index */
-//                         key={`${item.label}-${index}`}
-//                         href={item.href}
-//                         onClick={() => setIsOpen(false)}
-//                         className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 transition-all group"
-//                       >
-//                         <span className="text-xs font-black uppercase tracking-widest">
-//                           {item.label}
-//                         </span>
-//                         <ChevronRight 
-//                           size={14} 
-//                           className="text-gray-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1" 
-//                         />
-//                       </Link>
-//                     ))}
+//                 {/* REVENUE WIDGET */}
+//                 <motion.section variants={itemVariants} className="relative overflow-hidden p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-xl shadow-indigo-100">
+//                   <div className="relative z-10">
+//                     <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2 flex items-center gap-2">
+//                       <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+//                       Live Revenue Today
+//                     </div>
+                    
+//                     <div className="flex items-baseline gap-1">
+//                       <span className="text-3xl font-black italic tracking-tighter">
+//                         ₦{todayRevenue.toLocaleString()}
+//                       </span>
+//                       <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
+//                     </div>
 //                   </div>
+//                   <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
 //                 </motion.section>
-//               ))}
+
+//                 {/* Navigation Sections */}
+//                 {Object.entries(sections).map(([key, items]: [string, any[]]) => (
+//                   <motion.section key={key} variants={itemVariants}>
+//                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-4 px-2">
+//                       {key}
+//                     </h3>
+//                     <div className="space-y-2">
+//                       {items.map((item, index) => {
+//                         const isReviewLink = item.label.toLowerCase().includes("review");
+                        
+//                         return (
+//                           <Link
+//                             key={`${item.label}-${index}`}
+//                             href={item.href}
+//                             onClick={() => setIsOpen(false)}
+//                             className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 transition-all group"
+//                           >
+//                             <div className="flex items-center gap-3">
+//                               <span className="text-xs font-black uppercase tracking-widest">
+//                                 {item.label}
+//                               </span>
+//                               {/* TACTICAL BADGE: Shows count if it's the reviews link */}
+//                               {isReviewLink && pendingReviewsCount > 0 && (
+//                                 <span className="bg-[#F7931E] text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
+//                                   {pendingReviewsCount}
+//                                 </span>
+//                               )}
 //                             </div>
+//                             <ChevronRight 
+//                               size={14} 
+//                               className="text-gray-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1" 
+//                             />
+//                           </Link>
+//                         );
+//                       })}
+//                     </div>
+//                   </motion.section>
+//                 ))}
+//               </div>
 
 //               {/* Drawer Footer / Logout */}
 //               <motion.div variants={itemVariants} className="p-6 border-t border-gray-50">
@@ -168,11 +195,13 @@
 
 
 
+
+
 "use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { Menu, X, LogOut, ChevronRight, MessageSquareQuote } from "lucide-react";
+import { Menu, X, LogOut, ChevronRight, User } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { useSelector } from "react-redux";
@@ -207,9 +236,14 @@ const overlayVariants: Variants = {
 
 interface MobileTopbarProps {
   role: string;
-  sections: Record<string, any[]>;
+  sections: any;
   isSuperAdmin?: boolean;
   todayRevenue?: number;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 }
 
 export default function MobileTopbar({
@@ -217,21 +251,25 @@ export default function MobileTopbar({
   sections,
   isSuperAdmin,
   todayRevenue = 0,
+  user // Received from Layout
 }: MobileTopbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   
-  // Access Redux for Real-time Review Intel
+  // Access Redux for Real-time Review Intel (Only relevant for Admins)
   const { reviews } = useSelector((state: RootState) => state.admin || { reviews: [] });
   const pendingReviewsCount = reviews?.filter((r: any) => !r.approved).length || 0;
 
   const handleLogout = () => signOut({ callbackUrl: "/auth/sign-in" });
 
+  const isAdmin = role.toUpperCase().includes("ADMIN");
+
   return (
     <>
       {/* Top Bar */}
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-40">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/logo.png" alt="MarvelMarts" className="h-8 w-auto" />
+        <Link href="/" className="flex items-center gap-2">
+          {/* Using a placeholder for the logo if file is missing, otherwise img is fine */}
+          <div className="w-8 h-8 bg-[#002B5B] rounded-lg flex items-center justify-center text-white font-black text-xs">M</div>
           <span className="font-black italic tracking-tighter text-xl uppercase text-[#002B5B]">
             Marvel<span className="text-[#F7931E]">Marts</span>
           </span>
@@ -277,32 +315,49 @@ export default function MobileTopbar({
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 
-                {/* REVENUE WIDGET */}
-                <motion.section variants={itemVariants} className="relative overflow-hidden p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-xl shadow-indigo-100">
-                  <div className="relative z-10">
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                      Live Revenue Today
-                    </div>
-                    
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black italic tracking-tighter">
-                        ₦{todayRevenue.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
-                    </div>
+                {/* USER PROFILE INFO */}
+                <motion.div variants={itemVariants} className="flex items-center gap-4 p-2">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center overflow-hidden">
+                    {user?.image ? (
+                      <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={20} className="text-indigo-600" />
+                    )}
                   </div>
-                  <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
-                </motion.section>
+                  <div>
+                    <p className="text-xs font-black uppercase text-gray-900 truncate max-w-[150px]">{user?.name || "Guest User"}</p>
+                    <p className="text-[9px] font-bold text-gray-400 truncate max-w-[150px]">{user?.email}</p>
+                  </div>
+                </motion.div>
+
+                {/* REVENUE WIDGET (Conditional for Admins) */}
+                {isAdmin && (
+                  <motion.section variants={itemVariants} className="relative overflow-hidden p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-xl shadow-indigo-100">
+                    <div className="relative z-10">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                        Live Revenue Today
+                      </div>
+                      
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black italic tracking-tighter">
+                          ₦{todayRevenue.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
+                      </div>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
+                  </motion.section>
+                )}
 
                 {/* Navigation Sections */}
-                {Object.entries(sections).map(([key, items]: [string, any[]]) => (
+                {Object.entries(sections).map(([key, items]: [string, any]) => (
                   <motion.section key={key} variants={itemVariants}>
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-4 px-2">
                       {key}
                     </h3>
                     <div className="space-y-2">
-                      {items.map((item, index) => {
+                      {Array.isArray(items) && items.map((item, index) => {
                         const isReviewLink = item.label.toLowerCase().includes("review");
                         
                         return (
@@ -313,10 +368,10 @@ export default function MobileTopbar({
                             className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 transition-all group"
                           >
                             <div className="flex items-center gap-3">
+                              {item.icon && <span className="text-gray-400 group-hover:text-indigo-600">{item.icon}</span>}
                               <span className="text-xs font-black uppercase tracking-widest">
                                 {item.label}
                               </span>
-                              {/* TACTICAL BADGE: Shows count if it's the reviews link */}
                               {isReviewLink && pendingReviewsCount > 0 && (
                                 <span className="bg-[#F7931E] text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
                                   {pendingReviewsCount}
@@ -336,10 +391,10 @@ export default function MobileTopbar({
               </div>
 
               {/* Drawer Footer / Logout */}
-              <motion.div variants={itemVariants} className="p-6 border-t border-gray-50">
+              <motion.div variants={itemVariants} className="p-6 border-t border-gray-50 bg-gray-50/30">
                 <button 
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-3 p-5 rounded-3xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                  className="w-full flex items-center justify-center gap-3 p-5 rounded-3xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95"
                 >
                   <LogOut size={18} />
                   Secure Logout

@@ -24,9 +24,19 @@ import {
 } from "lucide-react";
 import { Sections, SectionLink } from "@/types/dashboard";
 
+
+
+
 interface DashboardSidebarProps {
   children?: ReactNode;
-  sections?: Sections;
+  sections: any;
+  role: string;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    role?: string;
+  };
 }
 
 type EnhancedLink = SectionLink & {
