@@ -271,11 +271,11 @@ export type Admin = {
   id: string;
   name: string | null;
   email: string;
-  role: string; // Changed to string for better flexibility with Redux/Prisma
+  role: string;
   createdAt: string;
   lastLogin?: string | null;
   adminProfile?: { 
-    permissions?: Record<string, boolean> | null;
+    permissions?: Record<string, boolean> | null; 
   } | null;
 };
 
@@ -329,6 +329,9 @@ export default function AdminsTable({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
         {filteredAdmins.map((admin: Admin) => { 
           const isSelf = admin.id === currentUserId;
+          
+          
+          
           // Fix: Using optional chaining and nullish coalescing for permissions
           const enabledPermissions = Object.entries(admin.adminProfile?.permissions ?? {})
             .filter(([_, value]) => value === true)
@@ -399,14 +402,21 @@ export default function AdminsTable({
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {filteredAdmins.map((admin) => {
+            {filteredAdmins.map((rawAdmin) => {
+              const admin = rawAdmin as unknown as Admin;
               const isSelf = admin.id === currentUserId;
               // Fix: Using optional chaining and nullish coalescing to avoid "Property does not exist" errors
-              const enabledPermissions = Object.entries(admin.adminProfile?.permissions ?? {})
-                .filter(([_, value]) => value === true)
-                .map(([key]) => key.replace(/([A-Z])/g, " $1"));
+             const enabledPermissions = Object.entries(admin.adminProfile?.permissions ?? {})
+              .filter(([_, value]) => value === true)
+              .map(([key]) => key.replace(/([A-Z])/g, " $1"));
+              
+              const lastLoginVal = admin.lastLogin;
+              const isOnline = lastLoginVal 
+                ? (new Date().getTime() - new Date(lastLoginVal).getTime() < 15 * 60 * 1000)
+                : false;
 
-              const isOnline = admin.lastLogin && (new Date().getTime() - new Date(admin.lastLogin).getTime() < 15 * 60 * 1000);
+
+              // {lastLoginDate ? formatDistanceToNow(lastLoginDate) + ' ago' : 'Never'}
 
               return (
                 <tr key={admin.id} className="hover:bg-gray-50/80 transition-colors group">
