@@ -1,9 +1,171 @@
+// // app/(storefront)/page.tsx
+// import prisma from "@/app/lib/prisma";
+// import { SerializedProduct } from "@/types/product";
+// import EcommerceCarousel from './_components/EcommerceCarousel';
+// import FlashSales from './_components/FlashSales';
+// import NewArrival from './_components/NewArrival';
+// import FeaturedProducts from './_components/FeaturedProducts';
+// import StoreHydrator from './_components/StoreHydrator';
+// import FeaturedCategoriesHome from './_components/home/FeaturedCategoriesHome';
+// import TrendingCarousel from './_components/home/TrendingCarousel';
+
+// export default async function HomePage() {
+//   // 1. Fetch all tactical data in parallel
+//   const [flashRaw, newRaw, featuredRaw, trendingRaw, featuredCatsRaw] = await Promise.all([
+//     // FLASH SALES
+//     prisma.product.findMany({
+//       where: { status: "ACTIVE", isFlashSale: true },
+//       include: { images: true, category: true },
+//       take: 6,
+//       orderBy: { updatedAt: 'desc' }
+//     }),
+    
+//     // NEW ARRIVALS
+//     prisma.product.findMany({
+//       where: { 
+//         status: "ACTIVE",
+//         OR: [
+//           { isNewArrival: true },
+//           { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }
+//         ]
+//       },
+//       include: { images: true, category: true },
+//       orderBy: { createdAt: 'desc' },
+//       take: 8,
+//     }),
+    
+//     // FEATURED PRODUCTS
+//     prisma.product.findMany({
+//       where: { status: "ACTIVE", isFeatured: true },
+//       include: { images: true, category: true },
+//       take: 12,
+//       orderBy: { updatedAt: 'desc' }
+//     }),
+
+//     // TRENDING PRODUCTS
+//     prisma.product.findMany({
+//       where: { status: "ACTIVE", isTrending: true },
+//       include: { images: true, category: true },
+//       take: 10,
+//       orderBy: { updatedAt: 'desc' }
+//     }),
+
+//     // FEATURED CATEGORIES
+//     // FEATURED CATEGORIES
+//     prisma.category.findMany({
+//       where: { isFeatured: true },
+//       orderBy: { position: 'asc' },
+//       take: 6,
+//       select: {
+//         id: true,
+//         name: true,
+//         slug: true,
+//         imageUrl: true, // This is what we need to verify
+//         _count: { select: { products: true } }
+//       }
+//     })
+//   ]);
+
+//   // 2. Product Serialization
+//   const serializeProducts = (items: any[]): SerializedProduct[] => {
+//     return items.map(item => ({
+//       id: item.id,
+//       slug: item.slug,
+//       title: item.name || item.title || "Product",
+//       description: item.description || "",
+//       price: Number(item.price),
+//       discountPrice: item.discountPrice ? Number(item.discountPrice) : null,
+//       categoryName: item.category?.name || "General",
+//       stock: item.stock || 0,
+//       imageUrl: item.images?.[0]?.url || "/placeholder-product.jpg", // Fallback
+//       images: item.images?.map((img: any) => ({ url: img.url })) || [],
+//       isTrending: !!item.isTrending,
+//     }));
+//   };
+//   // 3. Category Serialization (Fixes the 'featuredCats' red error)
+//  const featuredCats = featuredCatsRaw.map(cat => {
+//     // If imageUrl is null or empty, provide a placeholder based on the category name
+//     const categoryImage = cat.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(cat.name)}`;
+    
+//     return {
+//       id: cat.id,
+//       name: cat.name,
+//       slug: cat.slug,
+//       imageUrl: categoryImage, // Map the verified URL here
+//       _count: {
+//         products: cat._count.products
+//       }
+//     };
+//   });
+
+//   // 4. Prepare Serialized Data (Updated function calls)
+//   const flashProducts = serializeProducts(flashRaw);
+//   const newArrivalProducts = serializeProducts(newRaw);
+//   const featuredProducts = serializeProducts(featuredRaw);
+//   const trendingProducts = serializeProducts(trendingRaw);
+  
+//   const serializedAll = [...flashProducts, ...newArrivalProducts, ...featuredProducts, ...trendingProducts];
+//   const flashSaleEndTime = new Date();
+//   flashSaleEndTime.setHours(flashSaleEndTime.getHours() + 24);
+
+//   return (
+//     <div className="bg-[#F8FAFC] min-h-screen">
+//       {/* Sync Server Data to Redux */}
+//       <StoreHydrator products={serializedAll} />
+
+//       <div className="relative top-0 md:-top-4">
+//         <EcommerceCarousel />
+//       </div>
+      
+//       <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20">
+        
+//         {/* Flash Sales */}
+//         {flashProducts.length > 0 && (
+//           <section>
+//             <FlashSales 
+//               products={flashProducts} 
+//               endTime={flashSaleEndTime.toISOString()} 
+//             />
+//           </section>
+//         )}
+
+//         {/* Featured Categories - Item B */}
+//          {featuredCats.length > 0 && (
+//           <section>
+//             <FeaturedCategoriesHome categories={featuredCats} />
+//           </section>
+//         )}
+
+//         {/* Trending Carousel - Item C */}
+//         {trendingProducts.length > 0 && (
+//           <section>
+//             <TrendingCarousel initialData={trendingProducts} />
+//           </section>
+//         )}
+
+//         {/* Featured Products */}
+//         {featuredProducts.length > 0 && (
+//           <section>
+//             <FeaturedProducts products={featuredProducts} />
+//           </section>
+//         )}
+
+//         {/* New Arrivals */}
+//         {newArrivalProducts.length > 0 && (
+//           <section>
+//             <NewArrival products={newArrivalProducts} />
+//           </section>
+//         )}
+
+//       </div>
+//     </div>
+//   );
+// }
 
 
 
 
-
-
+// app/(storefront)/page.tsx
 import prisma from "@/app/lib/prisma";
 import { SerializedProduct } from "@/types/product";
 import EcommerceCarousel from './_components/EcommerceCarousel';
@@ -11,19 +173,17 @@ import FlashSales from './_components/FlashSales';
 import NewArrival from './_components/NewArrival';
 import FeaturedProducts from './_components/FeaturedProducts';
 import StoreHydrator from './_components/StoreHydrator';
+import FeaturedCategoriesHome from './_components/home/FeaturedCategoriesHome';
+import TrendingCarousel from './_components/home/TrendingCarousel';
 
 export default async function HomePage() {
-  // 1. Fetch data from Prisma
-  const [flashRaw, newRaw, featuredRaw] = await Promise.all([
-    // FLASH SALES: Fetching 6 to fill the flex row
+  const [flashRaw, newRaw, featuredRaw, trendingRaw, featuredCatsRaw] = await Promise.all([
     prisma.product.findMany({
       where: { status: "ACTIVE", isFlashSale: true },
       include: { images: true, category: true },
       take: 6,
       orderBy: { updatedAt: 'desc' }
     }),
-    
-    // NEW ARRIVALS: Fetching 8 (standard grid)
     prisma.product.findMany({
       where: { 
         status: "ACTIVE",
@@ -36,52 +196,75 @@ export default async function HomePage() {
       orderBy: { createdAt: 'desc' },
       take: 8,
     }),
-    
-    // FEATURED: Fetching 12 (multiple rows)
     prisma.product.findMany({
       where: { status: "ACTIVE", isFeatured: true },
       include: { images: true, category: true },
       take: 12,
       orderBy: { updatedAt: 'desc' }
+    }),
+    prisma.product.findMany({
+      where: { status: "ACTIVE", isTrending: true },
+      include: { images: true, category: true },
+      take: 10,
+      orderBy: { updatedAt: 'desc' }
+    }),
+    prisma.category.findMany({
+      where: { isFeatured: true },
+      orderBy: { position: 'asc' },
+      take: 6,
+      // Ensure these field names match your schema exactly
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        imageUrl: true, 
+        _count: { select: { products: true } }
+      }
     })
   ]);
 
-  // 2. Centralized Serialization Function
-  const serialize = (items: any[]): SerializedProduct[] => {
-    return (items || []).map(item => {
-      const primaryImage = item.images?.[0]?.url || 
-        `https://placehold.co/600x400?text=${encodeURIComponent(item.title)}`;
-
-      return {
-        id: item.id,
-        slug: item.slug,
-        title: item.title,
-        description: item.description || "",
-        price: Number(item.price),
-        discountPrice: item.discountPrice ? Number(item.discountPrice) : null,
-        categoryName: item.category?.name || "General",
-        stock: item.stock || 0,
-        imageUrl: primaryImage,
-        images: item.images?.map((img: any) => ({ url: img.url })) || [],
-      };
-    });
+  // Product Serialization
+  const serializeProducts = (items: any[]): SerializedProduct[] => {
+    return items.map(item => ({
+      id: item.id,
+      slug: item.slug,
+      title: item.name || item.title || "Untitled Gear",
+      description: item.description || "",
+      price: Number(item.price),
+      discountPrice: item.discountPrice ? Number(item.discountPrice) : null,
+      categoryName: item.category?.name || "General",
+      stock: item.stock || 0,
+      imageUrl: item.images?.[0]?.url || "https://placehold.co/600x400?text=No+Image",
+      images: item.images?.map((img: any) => ({ url: img.url })) || [],
+      isTrending: !!item.isTrending,
+    }));
   };
 
-  // 3. Prepare serialized lists
-  const flashProducts = serialize(flashRaw);
-  const newArrivalProducts = serialize(newRaw);
-  const featuredProducts = serialize(featuredRaw);
-  
-  // Master list for Redux Hydration
-  const serializedAll = [...flashProducts, ...newArrivalProducts, ...featuredProducts];
+  // Category Serialization - FIXING CLOUDINARY IMAGES
+  const featuredCats = featuredCatsRaw.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    // If Cloudinary URL exists in DB, use it. If not, use placeholder.
+    imageUrl: cat.imageUrl && cat.imageUrl.length > 0 
+      ? cat.imageUrl 
+      : `https://placehold.co/600x400?text=${encodeURIComponent(cat.name)}`,
+    _count: {
+      products: cat._count.products
+    }
+  }));
 
-  // Set Flash Sale Timer
+  const flashProducts = serializeProducts(flashRaw);
+  const newArrivalProducts = serializeProducts(newRaw);
+  const featuredProducts = serializeProducts(featuredRaw);
+  const trendingProducts = serializeProducts(trendingRaw);
+  
+  const serializedAll = [...flashProducts, ...newArrivalProducts, ...featuredProducts, ...trendingProducts];
   const flashSaleEndTime = new Date();
   flashSaleEndTime.setHours(flashSaleEndTime.getHours() + 24);
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen">
-      {/* Hydrate Redux Store once with all data */}
       <StoreHydrator products={serializedAll} />
 
       <div className="relative top-0 md:-top-4">
@@ -89,31 +272,26 @@ export default async function HomePage() {
       </div>
       
       <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20">
-        
-        {/* Flash Sales Row (Now receives 6 products) */}
         {flashProducts.length > 0 && (
-          <section>
-            <FlashSales 
-              products={flashProducts} 
-              endTime={flashSaleEndTime.toISOString()} 
-            />
-          </section>
+          <FlashSales products={flashProducts} endTime={flashSaleEndTime.toISOString()} />
         )}
 
-        {/* Featured Section */}
+        {/* This should no longer be red */}
+        {featuredCats.length > 0 && (
+          <FeaturedCategoriesHome categories={featuredCats} />
+        )}
+
+        {trendingProducts.length > 0 && (
+          <TrendingCarousel initialData={trendingProducts} />
+        )}
+
         {featuredProducts.length > 0 && (
-          <section>
-            <FeaturedProducts products={featuredProducts} />
-          </section>
+          <FeaturedProducts products={featuredProducts} />
         )}
 
-        {/* New Arrivals Section */}
         {newArrivalProducts.length > 0 && (
-          <section>
-            <NewArrival products={newArrivalProducts} />
-          </section>
+          <NewArrival products={newArrivalProducts} />
         )}
-
       </div>
     </div>
   );

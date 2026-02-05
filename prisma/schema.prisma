@@ -144,6 +144,7 @@ model Category {
   imageUrl        String?    // for category image upload
   metaTitle       String?    // SEO title (≤ 60 chars)
   metaDescription String?    // SEO description (≤ 160 chars)
+  isFeatured      Boolean    @default(false) 
 }
 
 
@@ -175,6 +176,7 @@ model Product {
   isFeatured      Boolean        @default(false)
   isFlashSale     Boolean  @default(false) // Add this
   isNewArrival    Boolean  @default(false) // Add this
+  isTrending      Boolean  @default(false) // This is our tactical flag
   
   isPublished       Boolean        @default(true)
   
@@ -323,7 +325,11 @@ model Order {
   userId          String
   user            User        @relation(fields: [userId], references: [id])
   trackingNumber String?
-  refundStatus   String?  
+  
+  
+  refundStatus    String?     // Values: "none", "requested", "processing", "completed", "rejected"
+  refundReason    String?     
+  refundReference String?     @unique // Store the specific Paystack/Stripe refund ID 
 
   emailSent   Boolean  @default(false) 
 

@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import Link from "next/link";
@@ -53,7 +49,7 @@ export default function DashboardSidebar({ children, sections }: DashboardSideba
       const general: EnhancedLink[] = [
         {
           label: "Overview",
-          href: "/dashboard/overview",
+          href: "/dashboard/admins/overview",
           icon: <LayoutDashboard size={20} />,
           visible: true,
         },

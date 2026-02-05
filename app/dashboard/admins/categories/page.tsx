@@ -3,14 +3,14 @@ export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import prisma from "@/app/lib/prisma"; 
-import CategoriesTable, { CategoryRow } from "./CategoriesTable";
+import CategoriesTable, { type CategoryRow } from "./CategoriesTable";
 import CategoriesSearch from "@/app/_components/CategoriesSearch";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import DashboardHeader from "@/app/_components/DashboardHeader";
 
 /* ---------------- TYPES ---------------- */
-type PageProps = {
+interface PageProps {
   searchParams: Promise<{
     page?: string;
     pageSize?: string;
@@ -18,21 +18,21 @@ type PageProps = {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }>;
-};
+}
 
+/* ---------------- MAIN COMPONENT ---------------- */
 export default async function CategoriesPage({ searchParams }: PageProps) {
   /* 1. Await Search Params */
   const params = await searchParams;
 
   /* 2. Authentication & Authorization */
   const session = await getServerSession(authOptions);
-  const user = session?.user;
+  if (!session?.user) redirect("/auth/sign-in");
 
-  if (!user) redirect("/auth/sign-in");
-
+  const user = session.user;
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const canViewPage = isSuperAdmin || user.role === "ADMIN";
-  const canManageCategories = isSuperAdmin || user.permissions?.manageCategories;
+  const canManageCategories = !!(isSuperAdmin || user.permissions?.manageCategories);
 
   if (!canViewPage) {
     return (
@@ -53,7 +53,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
   const sortBy = (params.sortBy as keyof Prisma.CategoryOrderByWithRelationInput) ?? "position";
   const sortOrder = params.sortOrder ?? "asc";
 
-  /* 4. Database Filtering (Prisma Where Clause) */
+  /* 4. Database Filtering */
   const where: Prisma.CategoryWhereInput = search
     ? {
         OR: [
@@ -64,7 +64,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
     : {};
 
   /* 5. Fetch Count & Data in Parallel */
-  const [total, categories] = await Promise.all([
+  const [total, categories, featuredCount] = await Promise.all([
     prisma.category.count({ where }),
     prisma.category.findMany({
       where,
@@ -76,6 +76,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
         name: true,
         slug: true,
         position: true,
+        isFeatured: true, 
         parent: { select: { name: true } },
         createdAt: true,
         children: {
@@ -96,17 +97,19 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
         },
       },
     }),
+    prisma.category.count({ where: { isFeatured: true } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
 
-  /* 6. Normalize Data for Client Component */
+  /* 6. Normalize Data */
   const normalizedCategories: CategoryRow[] = categories.map((c) => ({
     id: c.id,
     name: c.name,
     slug: c.slug,
     position: c.position,
+    isFeatured: !!c.isFeatured, 
     parentName: c.parent?.name ?? null,
     children: (c.children ?? []).map((child) => ({
       id: child.id,
@@ -123,26 +126,27 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-4 md:p-8 w-full max-w-[1600px] mx-auto space-y-6">
-      {/* Page Header */}
       <DashboardHeader
         title="Category Directory"
         showAddButton={false} 
+        showLogout={false}
       />
 
-      {/* Advanced Search System */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
          <CategoriesSearch initialSearch={search} />
          
-         {/* Optional: Filter chips/stats could go here */}
-         <div className="hidden lg:flex gap-4 mb-8">
+         <div className="hidden lg:flex gap-4">
             <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
                 <p className="text-[10px] font-black uppercase text-blue-400 leading-none">Total categories</p>
                 <p className="text-xl font-black text-blue-700">{total}</p>
             </div>
+            <div className="bg-yellow-50 border border-yellow-100 px-4 py-2 rounded-xl">
+                <p className="text-[10px] font-black uppercase text-yellow-500 leading-none">Featured on Home</p>
+                <p className="text-xl font-black text-yellow-700">{featuredCount}</p>
+            </div>
          </div>
       </div>
       
-      {/* Results Table */}
       <CategoriesTable
         categories={normalizedCategories}
         canManageCategories={canManageCategories}
