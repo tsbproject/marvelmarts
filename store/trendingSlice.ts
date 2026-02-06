@@ -26,7 +26,7 @@ const trendingSlice = createSlice({
       state.items = action.payload;
     },
     updateProductTrendingStatus: (state, action: PayloadAction<{ id: string; status: boolean }>) => {
-      const product = state.items.find(p => p.id === action.id);
+    const product = state.items.find(p => p.id === action.payload.id);
       if (product) {
         product.isTrending = action.payload.status;
       }
