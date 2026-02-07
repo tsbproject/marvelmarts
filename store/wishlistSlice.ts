@@ -1,12 +1,16 @@
+
+
+
+
 // import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // export interface WishlistItem {
-//   id: string;        // The Wishlist ID
-//   productId: string; // The Actual Product ID
-//   name: string;      // Matches your Prisma product field
-//   slug: string;
+//  id: string;
+//   productId: string;
+//   title: string;
+//   imageUrl: string;
 //   price: number;
-//   image: string;     // Matches the sanitized image string from your fetch
+//   slug?: string;    // Changed from 'imageUrl' to match your mapping
 // }
 
 // interface WishlistState {
@@ -33,18 +37,29 @@
 
 //     // Handles adding/removing from the Product Cards
 //     toggleWishlist: (state, action: PayloadAction<WishlistItem>) => {
-//       const exists = state.items.find((item) => item.productId === action.payload.productId);
+//       // Check both ID types to be safe
+//       const exists = state.items.find(
+//         (item) => 
+//           item.productId === action.payload.productId || 
+//           (action.payload.id && item.id === action.payload.id)
+//       );
+
 //       if (exists) {
-//         state.items = state.items.filter((item) => item.productId !== action.payload.productId);
+//         state.items = state.items.filter(
+//           (item) => 
+//             item.productId !== action.payload.productId && 
+//             item.id !== action.payload.id
+//         );
 //       } else {
 //         state.items.unshift(action.payload); // Add new items to the top
 //       }
 //     },
 
 //     // Specific action for the Wishlist Page "Trash" button
+//     // Updated to be defensive: filters by both potential ID fields
 //     removeFromWishlist: (state, action) => {
-//       state.items = state.items.filter((item: any) => item.id !== action.payload);
-//     },
+//   state.items = state.items.filter((item: any) => item.id !== action.payload);
+// },
 
 //     setLoading: (state, action: PayloadAction<boolean>) => {
 //       state.loading = action.payload;
@@ -70,16 +85,19 @@
 
 
 
-
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+/**
+ * Updated interface to match your Prisma model and component needs.
+ * This prevents the "missing title/imageUrl" build errors on Vercel.
+ */
 export interface WishlistItem {
-  id: string;        // The Wishlist Record ID (from Prisma)
-  productId: string; // The Actual Product ID
-  name: string;      // Changed from 'title' to match your components
-  slug: string;
+  id: string;        // The record ID from Prisma
+  productId: string; // The specific product reference
+  title: string;
+  imageUrl: string;
   price: number;
-  image: string;     // Changed from 'imageUrl' to match your mapping
+  slug?: string;
 }
 
 interface WishlistState {
@@ -98,15 +116,17 @@ const wishlistSlice = createSlice({
   name: "wishlist",
   initialState,
   reducers: {
-    // Used when the page first loads to hydrate from Prisma
+    // Syncs the Redux store with the database response
     setWishlist: (state, action: PayloadAction<WishlistItem[]>) => {
       state.items = action.payload;
       state.loading = false;
     },
 
-    // Handles adding/removing from the Product Cards
+    /**
+     * Toggles an item in the wishlist.
+     * Checks for existence using both productId and the database record id.
+     */
     toggleWishlist: (state, action: PayloadAction<WishlistItem>) => {
-      // Check both ID types to be safe
       const exists = state.items.find(
         (item) => 
           item.productId === action.payload.productId || 
@@ -120,15 +140,20 @@ const wishlistSlice = createSlice({
             item.id !== action.payload.id
         );
       } else {
-        state.items.unshift(action.payload); // Add new items to the top
+        // Add new items to the top of the list
+        state.items.unshift(action.payload);
       }
     },
 
-    // Specific action for the Wishlist Page "Trash" button
-    // Updated to be defensive: filters by both potential ID fields
-    removeFromWishlist: (state, action) => {
-  state.items = state.items.filter((item: any) => item.id !== action.payload);
-},
+    /**
+     * Specific action for the Wishlist Page "Trash" button.
+     * Uses a broad filter to ensure the item is removed regardless of which ID is passed.
+     */
+    removeFromWishlist: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter(
+        (item) => item.id !== action.payload && item.productId !== action.payload
+      );
+    },
 
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;

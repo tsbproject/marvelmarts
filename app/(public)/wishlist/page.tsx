@@ -25,7 +25,7 @@ export default function WishlistPage() {
   const dispatch = useDispatch();
   
   // 2. Select items from Redux store
-  const items = useSelector((state: RootState) => state.wishlist.items) as WishlistItem[];
+  const items = useSelector((state: RootState) => state.wishlist.items) as unknown as WishlistItem[];
   const { notifySuccess } = useNotification();
 
   /**
