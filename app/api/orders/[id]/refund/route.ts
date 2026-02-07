@@ -3,23 +3,24 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
+// 1. Change 'Request' to 'NextRequest' 
+// 2. Change 'params' to a 'Promise'
 export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-    // 1. Await params (Required in Next.js 15)
-    const resolvedParams = await params;
-    const orderId = resolvedParams.id;
+    // 3. Await the params (This is the fix)
+    const { id: orderId } = await params;
 
     const session = await getServerSession(authOptions);
 
-    // 2. Auth Guard
+    // Auth Guard
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 3. Fetch Order and verify ownership
+    // Fetch Order and verify ownership
     const order = await prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -32,8 +33,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden: Not your order" }, { status: 403 });
     }
 
-    // 4. Business Logic Guard
-    // Only allow refund if status is 'delivered' and no refund is currently active
+    // Business Logic Guard
     if (order.status !== "delivered") {
       return NextResponse.json(
         { error: "Only delivered orders can be refunded" }, 
@@ -48,7 +48,7 @@ export async function POST(
       );
     }
 
-    // 5. Update Database
+    // Update Database
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
