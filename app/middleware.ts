@@ -230,14 +230,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - images (your public images)
-     * - shop/products (your public shop pages)
-     * - favicon.ico
+     * Match all request paths except for:
+     * 1. api (Excludes all API routes from middleware processing)
+     * 2. _next/static, _next/image, favicon.ico, logo.png, images
      */
-    '/((?!api|_next/static|_next/image|images|shop|products|favicon.ico|logo.png).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|logo.png|images).*)',
   ],
 };

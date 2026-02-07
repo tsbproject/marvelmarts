@@ -23,12 +23,12 @@ model User {
   isSuspended        Boolean             @default(false) 
 
   // --- RELATIONS WITH CASCADE (Safe to delete automatically) ---
-  accounts           Account[]           // Ensure Account model has onDelete: Cascade
-  sessions           Session[]           // Ensure Session model has onDelete: Cascade
-  addresses          Address[]           // Ensure Address model has onDelete: Cascade
-  verificationCodes  VerificationCode[]  // Ensure VerificationCode model has onDelete: Cascade
-  wishlists          Wishlist[]          // Ensure Wishlist model has onDelete: Cascade
-  cart               Cart?               // Ensure Cart model has onDelete: Cascade
+  accounts           Account[]           
+  sessions           Session[]           
+  addresses          Address[]           
+  verificationCodes  VerificationCode[]  
+  wishlists          Wishlist[]          
+  cart               Cart?               
   
   // --- PROFILES (Already likely have Cascade in their own models) ---
   adminProfile       AdminProfile?       @relation("AdminProfileUser")

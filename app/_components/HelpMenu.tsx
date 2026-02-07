@@ -20,7 +20,7 @@ import Link from "next/link";
 
 // Fallback items shown when search is empty (Quick Links)
 const defaultItems = [
-  { label: "Track My Order", description: "Real-time delivery updates", href: "/orders/track", icon: Package, color: "text-blue-500" },
+  { label: "Track My Order", description: "Real-time delivery updates", href: "/orders/track-order", icon: Package, color: "text-blue-500" },
   { label: "Help Center", description: "Browse guides & tutorials", href: "/support", icon: LifeBuoy, color: "text-purple-500" },
   { label: "Contact Us", description: "24/7 Customer support", href: "/support/contact", icon: MessageCircle, color: "text-green-500" },
   { label: "FAQs", description: "Quick answers to common questions", href: "/support/faqs", icon: FileText, color: "text-orange-500" },

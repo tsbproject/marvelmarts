@@ -3,20 +3,20 @@ import { prisma } from "@/app/lib/prisma";
 
 export async function GET(
   req: Request,
-  // Next.js 16 requires params to be a Promise
-  { params }: { params: Promise<{ orderId: string }> } 
+  // Changed orderId to id to match your other routes
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     // 1. Await the params promise
-    const { orderId } = await params;
+    const { id } = await params;
 
-    if (!orderId) {
+    if (!id) {
       return NextResponse.json({ error: "Order ID missing" }, { status: 400 });
     }
 
     // 2. Fetch the order from Neon
     const order = await prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: id }, // Use the 'id' variable here
       include: {
         items: true,
       },
@@ -26,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 3. Convert Decimal fields to regular numbers for the frontend
+    // 3. Convert Decimal fields
     const serializedOrder = {
       ...order,
       total: Number(order.total),

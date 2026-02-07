@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -49,10 +46,11 @@ export default function ProductCard({
     // Instant Redux Update for snappy UI
     dispatch(toggleWishlist({
       id: product.id,
-      title: product.title,
+      productId: product.id, 
+      name: product.title,   
       slug: typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current,
       price: product.discountPrice ?? product.price,
-      imageUrl: product.imageUrl || product.images?.[0]?.url || "/logo.png"
+      image: product.imageUrl || product.images?.[0]?.url || "/logo.png" 
     }));
 
     // Sync with Database in background
@@ -116,6 +114,9 @@ export default function ProductCard({
           src={product.imageUrl || product.images?.[0]?.url || "/logo.png"} 
           alt={product.title}
           fill 
+          priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          unoptimized
           className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
         />
         
