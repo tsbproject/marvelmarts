@@ -1,22 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const orderId = params.id;
+    // 1. Await params (Required in Next.js 15)
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
 
-    // 1. Auth Guard
+    const session = await getServerSession(authOptions);
+
+    // 2. Auth Guard
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch Order and verify ownership
+    // 3. Fetch Order and verify ownership
     const order = await prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -29,7 +32,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden: Not your order" }, { status: 403 });
     }
 
-    // 3. Business Logic Guard
+    // 4. Business Logic Guard
     // Only allow refund if status is 'delivered' and no refund is currently active
     if (order.status !== "delivered") {
       return NextResponse.json(
@@ -45,17 +48,13 @@ export async function POST(
       );
     }
 
-    // 4. Update Database
+    // 5. Update Database
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
         refundStatus: "requested",
-        // You might want to track the timestamp or reason here too
       },
     });
-
-    // 5. Admin Alert (Optional but recommended for Roadmap point 'h')
-    // await createAdminNotification(`New refund request for Order #${orderId.slice(-6)}`);
 
     return NextResponse.json({ 
       message: "Refund request submitted", 

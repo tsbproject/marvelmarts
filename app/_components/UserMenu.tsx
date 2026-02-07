@@ -2,17 +2,19 @@
 
 // import { motion, AnimatePresence } from "framer-motion";
 // import { 
-//  User, 
+//   User, 
 //   X, 
 //   ShoppingBag, 
 //   Heart, 
 //   Star, 
 //   LogIn, 
+//   LogOut,
 //   ChevronRight,
 //   ShieldCheck, 
-//   Settings     
+//   Settings 
 // } from "lucide-react";
 // import { useRouter } from "next/navigation";
+// import { useSession, signOut } from "next-auth/react";
 // import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
 // interface MenuItem {
@@ -29,14 +31,19 @@
 
 // export default function UserMenu({ open, onClose }: UserMenuProps) {
 //   const router = useRouter();
+//   const { data: session, status } = useSession(); 
 //   const { setLoading } = useLoadingOverlay();
+
+  
+
+//   // status can be "loading", "authenticated", or "unauthenticated"
+//   const isLoading = status === "loading";
 
 //   const menuItems: MenuItem[] = [
 //     { label: "My Orders", type: "normal", link: "/orders", icon: <ShoppingBag size={20} /> },
 //     { label: "Wishlist", type: "normal", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
 //     { label: "Product Reviews", type: "normal", link: "/reviews", icon: <Star size={20} /> },
-//     // 2. Use ShieldCheck or Settings here
-//     { label: "Account Settings", type: "normal", link: "account/customer/profile", icon: <Settings size={20} /> },
+//     { label: "Account Settings", type: "normal", link: "/account/customer/profile", icon: <Settings size={20} /> },
 //   ];
 
 //   const handleClick = (item: Partial<MenuItem>) => {
@@ -45,6 +52,14 @@
 //       router.push(item.link);
 //       onClose();
 //     }
+//   };
+
+//   const handleLogout = async () => {
+//     setLoading(true);
+//     // Use undefined callback to handle the redirect manually if preferred, 
+//     // but callbackUrl: "/" is standard for MarvelMarts
+//     await signOut({ callbackUrl: "/" });
+//     onClose();
 //   };
 
 //   return (
@@ -87,25 +102,60 @@
 //             {/* Content */}
 //             <div className="flex-1 px-6 space-y-8 overflow-y-auto">
               
-//               {/* Auth Section - High Prominence */}
+//               {/* Auth Section */}
 //               <div className="space-y-4">
-//                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Welcome</p>
-//                 <motion.div 
-//                   whileTap={{ scale: 0.98 }}
-//                   onClick={() => handleClick({ link: "/auth/sign-in" })}
-//                   className="group cursor-pointer p-6 rounded-4xl bg-accent-navy text-white shadow-xl shadow-indigo-200 flex items-center justify-between"
-//                 >
-//                   <div className="flex items-center gap-4">
-//                     <div className="p-3 bg-white/20 rounded-xl">
-//                       <LogIn size={24} />
-//                     </div>
-//                     <div>
-//                       <p className="font-black text-lg leading-tight">Sign In</p>
-//                       <p className="text-xs text-indigo-100 font-medium">Access your account</p>
-//                     </div>
+//                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+//                   {session ? "Account Status" : "Welcome"}
+//                 </p>
+
+//                 {isLoading ? (
+//                   /* SKELETON LOADER - Prevents the "refresh to see" layout jump */
+//                   <div className="w-full h-32 bg-gray-50 rounded-4xl animate-pulse flex items-center justify-center">
+//                     <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
 //                   </div>
-//                   <ChevronRight size={20} className="text-indigo-300 group-hover:translate-x-1 transition-transform" />
-//                 </motion.div>
+//                 ) : session ? (
+//                   /* LOGGED IN VIEW */
+//                   <div className="space-y-3">
+//                     <div className="p-6 rounded-4xl bg-gray-50 border border-gray-100 flex items-center gap-4">
+//                       <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
+//                         <User size={24} />
+//                       </div>
+//                       <div className="overflow-hidden">
+//                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Logged in as</p>
+//                         <p className="font-black text-gray-900 truncate uppercase tracking-tight">
+//                           {session.user?.name || session.user?.email?.split('@')[0]}
+//                         </p>
+//                       </div>
+//                     </div>
+                    
+//                     <motion.button 
+//                       whileTap={{ scale: 0.95 }}
+//                       onClick={handleLogout}
+//                       className="w-full p-4 rounded-2xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-[0.1em] flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+//                     >
+//                       <LogOut size={18} />
+//                       Sign Out
+//                     </motion.button>
+//                   </div>
+//                 ) : (
+//                   /* LOGGED OUT VIEW */
+//                   <motion.div 
+//                     whileTap={{ scale: 0.98 }}
+//                     onClick={() => handleClick({ link: "/auth/sign-in" })}
+//                     className="group cursor-pointer p-6 rounded-4xl bg-accent-navy text-white shadow-xl shadow-indigo-200 flex items-center justify-between"
+//                   >
+//                     <div className="flex items-center gap-4">
+//                       <div className="p-3 bg-white/20 rounded-xl">
+//                         <LogIn size={24} />
+//                       </div>
+//                       <div>
+//                         <p className="font-black text-lg leading-tight">Sign In</p>
+//                         <p className="text-xs text-indigo-100 font-medium">Access your account</p>
+//                       </div>
+//                     </div>
+//                     <ChevronRight size={20} className="text-indigo-300 group-hover:translate-x-1 transition-transform" />
+//                   </motion.div>
+//                 )}
 //               </div>
 
 //               {/* General Links */}
@@ -151,6 +201,7 @@
 //     </AnimatePresence>
 //   );
 // }
+
 
 
 
@@ -211,8 +262,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
 
   const handleLogout = async () => {
     setLoading(true);
-    // Use undefined callback to handle the redirect manually if preferred, 
-    // but callbackUrl: "/" is standard for MarvelMarts
+    // callbackUrl: "/" ensures the user is sent back to the homepage after clearing session
     await signOut({ callbackUrl: "/" });
     onClose();
   };
@@ -264,7 +314,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                 </p>
 
                 {isLoading ? (
-                  /* SKELETON LOADER - Prevents the "refresh to see" layout jump */
+                  /* SKELETON LOADER - Prevents layout jump while checking session */
                   <div className="w-full h-32 bg-gray-50 rounded-4xl animate-pulse flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                   </div>

@@ -1,5 +1,3 @@
-
-
 // "use client";
 
 // import React, { useEffect } from "react";
@@ -39,7 +37,6 @@
 //           dispatch(hydrateCart(items));
 //         } catch (error) {
 //           console.error("Error hydrating cart:", error);
-//           // If data is corrupt, clear it to prevent further crashes
 //           localStorage.removeItem("marvel_cart");
 //         }
 //       }
@@ -48,8 +45,8 @@
 
 //   useEffect(() => {
 //     // 2. SYNC AUTH SESSION & FETCH WISHLIST
+//     // Using 'loading' check ensures we don't clear the user while the session is still fetching
 //     if (status === "authenticated" && session?.user) {
-//       // Set User in Redux with fallbacks to satisfy "string" type requirements
 //       dispatch(
 //         setUser({
 //           id: session.user.id ?? "",
@@ -60,13 +57,11 @@
 //         })
 //       );
 
-//       // Fetch Wishlist from Database
 //       const fetchUserWishlist = async () => {
 //         try {
 //           const res = await fetch("/api/wishlist/get");
 //           if (res.ok) {
 //             const data = await res.json();
-//             // Assuming the API returns an array of product objects
 //             dispatch(setWishlist(data));
 //           }
 //         } catch (error) {
@@ -80,7 +75,7 @@
 //     // 3. HANDLE LOGOUT / UNAUTHENTICATED STATE
 //     else if (status === "unauthenticated") {
 //       dispatch(clearUser());
-//       dispatch(setWishlist([])); // Clear wishlist state on sign out
+//       dispatch(setWishlist([])); 
 //     }
 //   }, [session, status, dispatch]);
 
@@ -99,16 +94,23 @@
 //   children: React.ReactNode;
 //   settings: SiteSettings;
 //   initialCategories: CategoryWithChildren[];
+//   session?: any; // Added to receive session from server component
 // }
+
+
 
 // export default function ClientLayout({
 //   children,
 //   settings,
 //   initialCategories,
+//   session, // Destructured session
 // }: ClientLayoutProps) {
 //   return (
 //     <Provider store={store}>
-//       <NextAuthSessionProvider>
+//       {/* CRITICAL: Passing 'session' here hydrates the useSession() hook 
+//           immediately on the client, fixing the "need to refresh" bug.
+//       */}
+//       <NextAuthSessionProvider session={session}>
 //         <CustomSessionProvider>
 //           <NotificationProvider>
 //             <LoadingOverlayProvider>
@@ -143,6 +145,7 @@
 
 
 
+
 "use client";
 
 import React, { useEffect } from "react";
@@ -172,8 +175,8 @@ function ReduxStateSync() {
   const { data: session, status } = useSession();
   const dispatch = useDispatch();
 
+  // 1. HYDRATE CART (From LocalStorage) - Runs once on mount
   useEffect(() => {
-    // 1. HYDRATE CART (From LocalStorage)
     if (typeof window !== "undefined") {
       const savedCart = localStorage.getItem("marvel_cart");
       if (savedCart) {
@@ -188,10 +191,10 @@ function ReduxStateSync() {
     }
   }, [dispatch]);
 
+  // 2. SYNC AUTH SESSION & FETCH WISHLIST
   useEffect(() => {
-    // 2. SYNC AUTH SESSION & FETCH WISHLIST
-    // Using 'loading' check ensures we don't clear the user while the session is still fetching
     if (status === "authenticated" && session?.user) {
+      // Immediate Redux Update for Auth State
       dispatch(
         setUser({
           id: session.user.id ?? "",
@@ -217,12 +220,12 @@ function ReduxStateSync() {
       fetchUserWishlist();
     } 
     
-    // 3. HANDLE LOGOUT / UNAUTHENTICATED STATE
+    // Handle Logout State
     else if (status === "unauthenticated") {
       dispatch(clearUser());
       dispatch(setWishlist([])); 
     }
-  }, [session, status, dispatch]);
+  }, [session, status, dispatch]); // session inclusion ensures reactivity on login/logout events
 
   return null;
 }
@@ -239,7 +242,7 @@ interface ClientLayoutProps {
   children: React.ReactNode;
   settings: SiteSettings;
   initialCategories: CategoryWithChildren[];
-  session?: any; // Added to receive session from server component
+  session?: any; 
 }
 
 
@@ -248,13 +251,10 @@ export default function ClientLayout({
   children,
   settings,
   initialCategories,
-  session, // Destructured session
+  session, 
 }: ClientLayoutProps) {
   return (
     <Provider store={store}>
-      {/* CRITICAL: Passing 'session' here hydrates the useSession() hook 
-          immediately on the client, fixing the "need to refresh" bug.
-      */}
       <NextAuthSessionProvider session={session}>
         <CustomSessionProvider>
           <NotificationProvider>
