@@ -92,14 +92,14 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
  * This prevents the "missing title/imageUrl" build errors on Vercel.
  */
 export interface WishlistItem {
-  id: string;        // The record ID from Prisma
-  productId: string; // The specific product reference
+  id: string;
+  productId: string;
   title: string;
   imageUrl: string;
   price: number;
-  slug?: string;
+  slug: string;
+  categoryName?: string; // Add this line here!
 }
-
 interface WishlistState {
   items: WishlistItem[];
   loading: boolean;

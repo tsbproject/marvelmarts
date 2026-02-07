@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
-import { toggleWishlist } from "@/store/wishlistSlice";
+import { toggleWishlist, WishlistItem } from "@/store/wishlistSlice"; // Use ONLY the shared type
 import { addToCart } from "@/store/cartSlice";
 import { useNotification } from "@/app/_context/NotificationContext";
 import Image from "next/image";
@@ -11,35 +11,25 @@ import { Trash2, Heart, ArrowRight, ShoppingBag } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
 
-// 1. Interface for the items as they exist in the Wishlist state
-interface WishlistItem {
-  id: string;
-  title: string;
-  slug: string;
-  price: number;
-  imageUrl: string;
-  categoryName?: string;
-}
-
 export default function WishlistPage() {
   const dispatch = useDispatch();
-  
-  // 2. Select items from Redux store
-  const items = useSelector((state: RootState) => state.wishlist.items) as unknown as WishlistItem[];
   const { notifySuccess } = useNotification();
 
+  // 1. Select items from Redux - RootState now provides the type naturally
+  const items = useSelector((state: RootState) => state.wishlist.items);
+
   /**
-   * 3. handleMoveToCart updated to satisfy the SerializedProduct type
-   * Fixed: createdAt/updatedAt now use Date objects to match Prisma/TypeScript types.
+   * 2. Handle Move to Cart
+   * Maps the WishlistItem structure to the SerializedProduct structure strictly.
    */
   const handleMoveToCart = (item: WishlistItem) => {
     const productForCart: SerializedProduct = {
-      id: item.id,
+      id: item.productId, // Use the product reference ID
       title: item.title,
-      slug: item.slug,
+      slug: item.slug || "",
       price: item.price,
       imageUrl: item.imageUrl,
-      categoryName: item.categoryName || "Gear",
+      categoryName: item.categoryName || "Tactical Gear",
       description: "", 
       discountPrice: null,
       images: [{ url: item.imageUrl }], 
@@ -56,14 +46,19 @@ export default function WishlistPage() {
     notifySuccess(`${item.title} moved to stash!`);
   };
 
-  // 4. Properly typed the removal function
+  /**
+   * 3. Sync Removal
+   * Uses the centralized type to ensure productId is never undefined.
+   */
   const removeFromWishlist = async (item: WishlistItem) => {
+    // UI updates instantly via Redux
     dispatch(toggleWishlist(item));
+    
     try {
       await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: item.id }),
+        body: JSON.stringify({ productId: item.productId }),
       });
     } catch (error) {
       console.error("Failed to sync wishlist removal:", error);
@@ -109,12 +104,11 @@ export default function WishlistPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {items.map((item: WishlistItem) => (
+        {items.map((item) => (
           <div 
             key={item.id} 
             className="group relative bg-white rounded-[2.5rem] border border-gray-100 p-4 transition-all hover:shadow-2xl hover:shadow-blue-600/10 overflow-hidden"
           >
-            {/* Image Container */}
             <Link 
               href={`/products/${item.slug}`} 
               className="block relative aspect-square bg-gray-50 rounded-[2rem] mb-6 overflow-hidden"
@@ -127,7 +121,6 @@ export default function WishlistPage() {
               />
             </Link>
 
-            {/* Content */}
             <div className="px-2 space-y-1 mb-6">
               <h3 className="font-black uppercase italic text-slate-900 text-sm tracking-tight truncate">
                 {item.title}
@@ -137,7 +130,6 @@ export default function WishlistPage() {
               </p>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-2">
               <button
                 onClick={() => handleMoveToCart(item)}
