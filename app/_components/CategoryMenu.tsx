@@ -5,24 +5,29 @@
 // import CategoryMobileMenu from "./CategoryMobileMenu";
 // import { CategoryWithChildren as CategoryTree } from "../layout";
 
-// export default function CategoryMenu({ initialCategories = [] }: { initialCategories: CategoryTree[] }) {
-//   // 1. Initialize with a guess, but handle hydration carefully
+// interface CategoryMenuProps {
+//   initialCategories: CategoryTree[];
+//   onClose?: () => void;
+// }
+
+// export default function CategoryMenu({
+//   initialCategories = [],
+//   onClose,
+// }: CategoryMenuProps) {
 //   const [isMobile, setIsMobile] = useState(false);
 //   const [categories] = useState<CategoryTree[]>(initialCategories);
 
 //   useEffect(() => {
 //     const checkScreen = () => {
-//       // Logic matching Tailwind's 'lg' (1024px)
+//       // Matches Tailwind lg breakpoint (1024px)
 //       setIsMobile(window.innerWidth < 1024);
 //     };
-    
+
 //     checkScreen();
 //     window.addEventListener("resize", checkScreen);
 //     return () => window.removeEventListener("resize", checkScreen);
 //   }, []);
 
-//   // 2.If categories are empty, don't just 'return null'. 
-//   // Show a "Menu" button or a placeholder so the user isn't stuck.
 //   if (!categories || categories.length === 0) {
 //     return (
 //       <div className="p-4 bg-white text-brand-gray text-[10px] font-bold uppercase tracking-widest">
@@ -32,9 +37,15 @@
 //   }
 
 //   return isMobile ? (
-//     <CategoryMobileMenu categories={categories} />
+//     <CategoryMobileMenu
+//       categories={categories}
+//       onClose={onClose}
+//     />
 //   ) : (
-//     <CategoryTopbar categories={categories} />
+//     <CategoryTopbar
+//       categories={categories}
+//       onClose={onClose}
+//     />
 //   );
 // }
 
@@ -53,41 +64,44 @@ interface CategoryMenuProps {
   onClose?: () => void;
 }
 
-export default function CategoryMenu({
-  initialCategories = [],
-  onClose,
+export default function CategoryMenu({ 
+  initialCategories = [], 
+  onClose 
 }: CategoryMenuProps) {
+  // 1. Initialize screen state
   const [isMobile, setIsMobile] = useState(false);
   const [categories] = useState<CategoryTree[]>(initialCategories);
 
   useEffect(() => {
     const checkScreen = () => {
-      // Matches Tailwind lg breakpoint (1024px)
+      // Logic matching Tailwind's 'lg' (1024px)
       setIsMobile(window.innerWidth < 1024);
     };
-
+    
     checkScreen();
     window.addEventListener("resize", checkScreen);
     return () => window.removeEventListener("resize", checkScreen);
   }, []);
 
+  // 2. Loading state to prevent empty UI
   if (!categories || categories.length === 0) {
     return (
-      <div className="p-4 bg-white text-brand-gray text-[10px] font-bold uppercase tracking-widest">
+      <div className="p-4 bg-white text-brand-gray text-[10px] font-bold uppercase tracking-widest animate-pulse">
         Loading Categories...
       </div>
     );
   }
 
   return isMobile ? (
-    <CategoryMobileMenu
-      categories={categories}
-      onClose={onClose}
-    />
+    /* Mobile needs the onClose prop to shut the 
+       Hamburger menu when a category is selected. 
+    */
+    <CategoryMobileMenu categories={categories} onClose={onClose} />
   ) : (
-    <CategoryTopbar
-      categories={categories}
-      onClose={onClose}
-    />
+    /* Desktop Topbar (CategoryTopbar) does NOT use onClose 
+       because it is a persistent horizontal bar, not a drawer.
+       Removing onClose here fixes the build error.
+    */
+    <CategoryTopbar categories={categories} />
   );
 }
