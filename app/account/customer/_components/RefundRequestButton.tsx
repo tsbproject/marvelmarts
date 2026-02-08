@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { requestRefund, setError } from "@/store/orderSlice";
 import { useNotification } from "@/app/_context/NotificationContext";
-import { RefreshCcw, CheckCircle2 } from "lucide-react";
+import { RefreshCcw, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface RefundRequestButtonProps {
   orderId: string;
@@ -19,13 +19,13 @@ export default function RefundRequestButton({
 }: RefundRequestButtonProps) {
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  
+  // Using your specific NotificationContext setup
   const { notifySuccess, notifyError } = useNotification();
 
-  // Only allow refund requests for delivered items that haven't requested one yet
   const canRequestRefund = orderStatus === "delivered" && refundStatus === "none";
 
   const handleRefundRequest = async () => {
-    // Basic browser confirmation for high-stakes actions
     if (!confirm("Are you sure you want to request a refund for this order?")) return;
 
     setLoading(true);
@@ -41,10 +41,9 @@ export default function RefundRequestButton({
         throw new Error(data.error || "Failed to submit refund request");
       }
 
-      // 1. Update Redux State locally for instant UI response
       dispatch(requestRefund({ id: orderId }));
       
-      // 2. Notify the user using your custom notification handlers
+      // Correct notification calls
       notifySuccess("Refund request submitted successfully.");
     } catch (err: any) {
       notifyError(err.message || "Something went wrong");
@@ -54,36 +53,49 @@ export default function RefundRequestButton({
     }
   };
 
-  // State: Refund already requested
   if (refundStatus === "requested") {
     return (
-      <div className="flex items-center text-amber-600 text-[10px] font-black uppercase tracking-widest bg-amber-50 px-4 py-2 rounded-xl">
+      <div className="flex items-center text-amber-600 text-[10px] font-black uppercase tracking-widest bg-amber-50 px-4 py-2 rounded-xl border border-amber-100">
         <RefreshCcw size={14} className="mr-2 animate-spin" />
         Refund Pending
       </div>
     );
   }
 
-  // State: Refund completed
   if (refundStatus === "approved") {
     return (
-      <div className="flex items-center text-green-600 text-[10px] font-black uppercase tracking-widest bg-green-50 px-4 py-2 rounded-xl">
+      <div className="flex items-center text-green-600 text-[10px] font-black uppercase tracking-widest bg-green-50 px-4 py-2 rounded-xl border border-green-100">
         <CheckCircle2 size={14} className="mr-2" />
         Refunded
       </div>
     );
   }
 
-  // State: Not eligible for refund (e.g., order still in transit)
+  if (refundStatus === "rejected") {
+    return (
+      <div className="flex items-center text-red-600 text-[10px] font-black uppercase tracking-widest bg-red-50 px-4 py-2 rounded-xl border border-red-100">
+        <AlertCircle size={14} className="mr-2" />
+        Refund Rejected
+      </div>
+    );
+  }
+
   if (!canRequestRefund) return null;
 
   return (
     <button
       onClick={handleRefundRequest}
       disabled={loading}
-      className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 hover:text-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100 px-4 py-2 rounded-xl hover:bg-blue-50"
+      className="w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100 px-4 py-3 rounded-xl hover:bg-blue-600"
     >
-      {loading ? "Processing..." : "Request Refund"}
+      {loading ? (
+        <>
+          <RefreshCcw size={14} className="mr-2 animate-spin" />
+          Processing...
+        </>
+      ) : (
+        "Request Refund"
+      )}
     </button>
   );
 }

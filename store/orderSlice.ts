@@ -146,6 +146,13 @@ const orderSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+    updateOrderInState: (state, action) => {
+    const updatedOrder = action.payload;
+    const index = state.orders.findIndex((o) => o.id === updatedOrder.id);
+    if (index !== -1) {
+      state.orders[index] = updatedOrder;
+    }
+  },
   },
 });
 
@@ -153,6 +160,7 @@ export const {
   setOrders, 
   addOrder, 
   updateOrderStatus, 
+  updateOrderInState,
   requestRefund, 
   updateRefundStatus, 
   clearOrders,
