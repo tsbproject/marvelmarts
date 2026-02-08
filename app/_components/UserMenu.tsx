@@ -34,13 +34,11 @@
 //   const { data: session, status } = useSession(); 
 //   const { setLoading } = useLoadingOverlay();
 
-  
-
 //   // status can be "loading", "authenticated", or "unauthenticated"
 //   const isLoading = status === "loading";
 
 //   const menuItems: MenuItem[] = [
-//     { label: "My Orders", type: "normal", link: "/orders", icon: <ShoppingBag size={20} /> },
+//     { label: "My Orders", type: "normal", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
 //     { label: "Wishlist", type: "normal", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
 //     { label: "Product Reviews", type: "normal", link: "/reviews", icon: <Star size={20} /> },
 //     { label: "Account Settings", type: "normal", link: "/account/customer/profile", icon: <Settings size={20} /> },
@@ -56,8 +54,7 @@
 
 //   const handleLogout = async () => {
 //     setLoading(true);
-//     // Use undefined callback to handle the redirect manually if preferred, 
-//     // but callbackUrl: "/" is standard for MarvelMarts
+//     // callbackUrl: "/" ensures the user is sent back to the homepage after clearing session
 //     await signOut({ callbackUrl: "/" });
 //     onClose();
 //   };
@@ -109,7 +106,7 @@
 //                 </p>
 
 //                 {isLoading ? (
-//                   /* SKELETON LOADER - Prevents the "refresh to see" layout jump */
+//                   /* SKELETON LOADER - Prevents layout jump while checking session */
 //                   <div className="w-full h-32 bg-gray-50 rounded-4xl animate-pulse flex items-center justify-center">
 //                     <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
 //                   </div>
@@ -204,13 +201,11 @@
 
 
 
-
-
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  User, 
+  User as UserIcon, 
   X, 
   ShoppingBag, 
   Heart, 
@@ -222,8 +217,11 @@ import {
   Settings 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+import { useDispatch, useSelector } from "react-redux";
+import { useNotification } from "@/app/_context/NotificationContext";
+import { RootState } from "@/store";
 
 interface MenuItem {
   label: string;
@@ -239,14 +237,21 @@ interface UserMenuProps {
 
 export default function UserMenu({ open, onClose }: UserMenuProps) {
   const router = useRouter();
-  const { data: session, status } = useSession(); 
+  const dispatch = useDispatch();
+  const { notifySuccess } = useNotification();
   const { setLoading } = useLoadingOverlay();
+  
+  // Get session status for the skeleton loader
+  const { status } = useSession();
 
-  // status can be "loading", "authenticated", or "unauthenticated"
+  // INSTANT UPDATE: Use Redux as the primary source of truth for the UI
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
   const isLoading = status === "loading";
 
   const menuItems: MenuItem[] = [
-    { label: "My Orders", type: "normal", link: "/orders", icon: <ShoppingBag size={20} /> },
+    { label: "My Orders", type: "normal", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
     { label: "Wishlist", type: "normal", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
     { label: "Product Reviews", type: "normal", link: "/reviews", icon: <Star size={20} /> },
     { label: "Account Settings", type: "normal", link: "/account/customer/profile", icon: <Settings size={20} /> },
@@ -262,7 +267,14 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
 
   const handleLogout = async () => {
     setLoading(true);
-    // callbackUrl: "/" ensures the user is sent back to the homepage after clearing session
+    
+    // 1. Unified Redux Reset (Triggers Root Reducer in store/index.ts)
+    dispatch({ type: "auth/logout" });
+
+    // 2. Marvel Success Notification
+    notifySuccess("Security Protocol: Session Terminated.");
+
+    // 3. Next-Auth Sign Out
     await signOut({ callbackUrl: "/" });
     onClose();
   };
@@ -310,25 +322,25 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
               {/* Auth Section */}
               <div className="space-y-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-                  {session ? "Account Status" : "Welcome"}
+                  {isAuthenticated ? "Account Status" : "Welcome"}
                 </p>
 
                 {isLoading ? (
-                  /* SKELETON LOADER - Prevents layout jump while checking session */
+                  /* SKELETON LOADER */
                   <div className="w-full h-32 bg-gray-50 rounded-4xl animate-pulse flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                ) : session ? (
-                  /* LOGGED IN VIEW */
+                ) : isAuthenticated ? (
+                  /* LOGGED IN VIEW - Updates instantly via Redux */
                   <div className="space-y-3">
                     <div className="p-6 rounded-4xl bg-gray-50 border border-gray-100 flex items-center gap-4">
                       <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
-                        <User size={24} />
+                        <UserIcon size={24} />
                       </div>
                       <div className="overflow-hidden">
                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Logged in as</p>
                         <p className="font-black text-gray-900 truncate uppercase tracking-tight">
-                          {session.user?.name || session.user?.email?.split('@')[0]}
+                          {user?.name || user?.email?.split('@')[0]}
                         </p>
                       </div>
                     </div>

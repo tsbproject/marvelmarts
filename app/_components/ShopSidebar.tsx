@@ -38,7 +38,7 @@ export default function ShopSidebar({ categories }: SidebarProps) {
   const connectivity = ["Wi-Fi 6E", "5G LTE", "Bluetooth 5.3", "Ethernet"];
 
   return (
-    <aside className="w-full lg:w-80 flex flex-col gap-4">
+    <aside className="w-full lg:w-100 flex flex-col gap-4">
       {/* Tactical Header */}
       <div className="flex items-center justify-between pb-4 border-b-2 border-accent-navy">
         <div className="flex items-center gap-2">
@@ -54,15 +54,15 @@ export default function ShopSidebar({ categories }: SidebarProps) {
 
       {/* 1. PRIMARY CATEGORIES */}
       <SidebarAccordion 
-        title="Classification" 
-        icon={<ShieldCheck className="w-4 h-4" />} 
+        title="Categories Classification" 
+        icon={<ShieldCheck className="w-6 h-6" />} 
         isOpen={openSections.categories} 
         onToggle={() => toggleSection("categories")}
       >
         <ul className="space-y-1 py-2">
           {categories.map((cat) => (
             <li key={cat.id}>
-              <Link href={`/shop?category=${cat.slug}`} className="flex items-center gap-2 p-2 text-xs font-bold text-neutral-gray hover:text-brand-primary transition-all">
+              <Link href={`/shop?category=${cat.slug}`} className="flex items-center gap-2 p-2 text-lg font-bold text-neutral-gray hover:text-brand-primary transition-all">
                 <Circle className="w-1.5 h-1.5 fill-brand-primary" /> {cat.name.toUpperCase()}
               </Link>
             </li>
@@ -73,22 +73,23 @@ export default function ShopSidebar({ categories }: SidebarProps) {
       {/* 2. LOGISTICS */}
       <SidebarAccordion 
         title="Logistics" 
-        icon={<Truck className="w-4 h-4" />} 
+        icon={<Truck className="w-6 h-6 text-xl" />} 
         isOpen={openSections.logistics} 
         onToggle={() => toggleSection("logistics")}
+      
       >
         <div className="space-y-3 py-3">
           <FilterGroup title="Availability">
             {["In Stock", "Pre-Order"].map(opt => (
-              <label key={opt} className="flex items-center gap-2 text-[11px] font-bold text-accent-navy cursor-pointer">
-                <input type="checkbox" className="w-3 h-3 accent-brand-primary" /> {opt}
+              <label key={opt} className="flex items-center gap-2 text-[13px] font-bold text-accent-navy cursor-pointer">
+                <input type="checkbox" className="w-6 h-6 accent-brand-primary" /> {opt}
               </label>
             ))}
           </FilterGroup>
           <FilterGroup title="Shipping Method">
             {["Express", "Standard", "Vendor Drop"].map(opt => (
-              <label key={opt} className="flex items-center gap-2 text-[11px] font-bold text-neutral-gray cursor-pointer">
-                <input type="radio" name="shipping" className="w-3 h-3 accent-brand-primary" /> {opt}
+              <label key={opt} className="flex items-center gap-2 text-[13px] font-bold text-neutral-gray cursor-pointer">
+                <input type="radio" name="shipping" className="w-6 h-6 accent-brand-primary" /> {opt}
               </label>
             ))}
           </FilterGroup>
@@ -97,21 +98,21 @@ export default function ShopSidebar({ categories }: SidebarProps) {
 
       {/* 3. TECHNICAL SPECS */}
       <SidebarAccordion 
-        title="System Specs" 
-        icon={<Cpu className="w-4 h-4" />} 
+        title="Technical Specs" 
+        icon={<Cpu className="w-6 h-6 " />} 
         isOpen={openSections.specs} 
         onToggle={() => toggleSection("specs")}
       >
         <div className="space-y-4 py-3 border-t border-gray-50">
-          <FilterGroup title="Tactical Finish">
+          <FilterGroup title="Color Specs">
             <div className="flex gap-2 flex-wrap">
               {colors.map(c => (
-                <button key={c} style={{ backgroundColor: c }} className="w-6 h-6 rounded-full border border-gray-200 ring-offset-2 hover:ring-2 ring-brand-primary transition-all" />
+                <button key={c} style={{ backgroundColor: c }} className="w-6 h-6  rounded-full border border-gray-200 ring-offset-2 hover:ring-2 ring-brand-primary transition-all" />
               ))}
             </div>
           </FilterGroup>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 text-2xl">
             <SelectFilter label="RAM" options={ramSizes} icon={<Tablet className="w-3 h-3"/>} />
             <SelectFilter label="OS" options={osTypes} icon={<Monitor className="w-3 h-3"/>} />
           </div>

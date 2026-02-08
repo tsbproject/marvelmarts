@@ -133,6 +133,11 @@ const orderSlice = createSlice({
       }
     },
 
+    // Manual cleanup action
+    clearOrders: (state) => {
+      return initialState;
+    },
+
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
@@ -150,6 +155,7 @@ export const {
   updateOrderStatus, 
   requestRefund, 
   updateRefundStatus, 
+  clearOrders,
   setLoading, 
   setError 
 } = orderSlice.actions;

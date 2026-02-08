@@ -1,3 +1,7 @@
+
+
+
+
 // "use client";
 
 // import React, { useEffect } from "react";
@@ -7,6 +11,7 @@
 // import { SessionProvider as CustomSessionProvider } from "@/app/_context/useSessionContext";
 // import { NotificationProvider } from "@/app/_context/NotificationContext";
 // import { LoadingOverlayProvider } from "@/app/_context/LoadingOverlayContext";
+// import AuthStateSync from "./AuthStateSync";
 // import Header from "@/app/_components/Header";
 // import Footer from "@/app/_components/Footer";
 // import NextTopLoader from "nextjs-toploader";
@@ -15,6 +20,7 @@
 // import { setUser, clearUser } from "@/store/authSlice";
 // import { setWishlist } from "@/store/wishlistSlice";
 // import { hydrateCart } from "@/store/cartSlice";
+
 
 // // Types
 // import { CategoryWithChildren } from "../layout";
@@ -27,8 +33,8 @@
 //   const { data: session, status } = useSession();
 //   const dispatch = useDispatch();
 
+//   // 1. HYDRATE CART (From LocalStorage) - Runs once on mount
 //   useEffect(() => {
-//     // 1. HYDRATE CART (From LocalStorage)
 //     if (typeof window !== "undefined") {
 //       const savedCart = localStorage.getItem("marvel_cart");
 //       if (savedCart) {
@@ -43,10 +49,10 @@
 //     }
 //   }, [dispatch]);
 
+//   // 2. SYNC AUTH SESSION & FETCH WISHLIST
 //   useEffect(() => {
-//     // 2. SYNC AUTH SESSION & FETCH WISHLIST
-//     // Using 'loading' check ensures we don't clear the user while the session is still fetching
 //     if (status === "authenticated" && session?.user) {
+//       // Immediate Redux Update for Auth State
 //       dispatch(
 //         setUser({
 //           id: session.user.id ?? "",
@@ -72,12 +78,12 @@
 //       fetchUserWishlist();
 //     } 
     
-//     // 3. HANDLE LOGOUT / UNAUTHENTICATED STATE
+//     // Handle Logout State
 //     else if (status === "unauthenticated") {
 //       dispatch(clearUser());
 //       dispatch(setWishlist([])); 
 //     }
-//   }, [session, status, dispatch]);
+//   }, [session, status, dispatch]); // session inclusion ensures reactivity on login/logout events
 
 //   return null;
 // }
@@ -94,7 +100,7 @@
 //   children: React.ReactNode;
 //   settings: SiteSettings;
 //   initialCategories: CategoryWithChildren[];
-//   session?: any; // Added to receive session from server component
+//   session?: any; 
 // }
 
 
@@ -103,13 +109,11 @@
 //   children,
 //   settings,
 //   initialCategories,
-//   session, // Destructured session
+//   session, 
 // }: ClientLayoutProps) {
 //   return (
 //     <Provider store={store}>
-//       {/* CRITICAL: Passing 'session' here hydrates the useSession() hook 
-//           immediately on the client, fixing the "need to refresh" bug.
-//       */}
+//       <AuthStateSync /> 
 //       <NextAuthSessionProvider session={session}>
 //         <CustomSessionProvider>
 //           <NotificationProvider>
@@ -197,11 +201,11 @@ function ReduxStateSync() {
       // Immediate Redux Update for Auth State
       dispatch(
         setUser({
-          id: session.user.id ?? "",
+          id: (session.user as any).id ?? "",
           name: session.user.name ?? "",
           email: session.user.email ?? "",
-          role: session.user.role,
-          permissions: session.user.permissions ?? {},
+          role: (session.user as any).role,
+          permissions: (session.user as any).permissions ?? {},
         })
       );
 
@@ -225,7 +229,7 @@ function ReduxStateSync() {
       dispatch(clearUser());
       dispatch(setWishlist([])); 
     }
-  }, [session, status, dispatch]); // session inclusion ensures reactivity on login/logout events
+  }, [session, status, dispatch]);
 
   return null;
 }
@@ -245,8 +249,6 @@ interface ClientLayoutProps {
   session?: any; 
 }
 
-
-
 export default function ClientLayout({
   children,
   settings,
@@ -255,14 +257,16 @@ export default function ClientLayout({
 }: ClientLayoutProps) {
   return (
     <Provider store={store}>
+      {/* VITAL CHANGE: Everything using useSession() must be INSIDE NextAuthSessionProvider.
+          I removed the duplicate AuthStateSync and put ReduxStateSync inside the provider.
+      */}
       <NextAuthSessionProvider session={session}>
+        <ReduxStateSync /> 
+        
         <CustomSessionProvider>
           <NotificationProvider>
             <LoadingOverlayProvider>
-              {/* Background Sync Logic */}
-              <ReduxStateSync />
-
-              {/* Visual Progress Bar */}
+              
               <NextTopLoader
                 color="#002B5B"
                 height={3}
@@ -272,7 +276,6 @@ export default function ClientLayout({
                 speed={200}
               />
 
-              {/* Site Structure */}
               <Header initialCategories={initialCategories} />
 
               <main className="min-h-screen">
