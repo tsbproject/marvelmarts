@@ -1,66 +1,36 @@
-// // app/api/admin/orders/[id]/approve-refund/route.ts
-// import { prisma } from "@/app/lib/prisma";
-// import { pusherServer } from "@/app/lib/pusherServer";
-// import { NextResponse } from "next/server";
-
-// export async function PATCH(
-//   req: Request,
-//   { params }: { params: { id: string } }
-// ) {
-//   try {
-//     const orderId = params.id;
-
-//     // 1. Update Order in Database
-//     const updatedOrder = await prisma.order.update({
-//       where: { id: orderId },
-//       data: {
-//         refundStatus: "approved",
-//         status: "refunded", // Optional: update general status too
-//       },
-//     });
-
-//     // 2. Trigger Pusher Sync
-//     // This is what makes it appear on Tayo's screen instantly
-//     await pusherServer.trigger(
-//       `user-${updatedOrder.userId}`, 
-//       "order-update", 
-//       updatedOrder
-//     );
-
-//     return NextResponse.json(updatedOrder);
-//   } catch (error) {
-//     return NextResponse.json({ error: "Approval failed" }, { status: 500 });
-//   }
-// }
-
-
-
-
-
-
-// app/api/admin/orders/[id]/approve-refund/route.ts
 import { prisma } from "@/app/lib/prisma";
 import { pusherServer } from "@/app/lib/pusherServer";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// Define the context type for Next.js 15+ 
+type Context = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PATCH(req: NextRequest, context: Context) {
+  // 1. Await params to prevent Build Error
+  const { id } = await context.params;
+
   try {
-    const { action } = await req.json(); // "approved" or "rejected"
-    const orderId = params.id;
+    // 2. Get the action from the body ("approved" or "rejected")
+    const { action } = await req.json(); 
 
+    if (!action || !["approved", "rejected"].includes(action)) {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    // 3. Update Order in Database
     const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: id },
       data: {
         refundStatus: action,
-        // Only set status to 'refunded' if approved
-        ...(action === "approved" && { status: "refunded" })
+        // Only set the main order status to 'refunded' if it was approved
+        ...(action === "approved" && { status: "refunded" }),
       },
     });
 
-    // Notify Customer via Pusher
+    // 4. Trigger Pusher Sync
+    // This makes the update appear on the customer's screen instantly
     await pusherServer.trigger(
       `user-${updatedOrder.userId}`, 
       "order-update", 
@@ -69,6 +39,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedOrder);
   } catch (error) {
+    console.error("MarvelMarts Refund Process Error:", error);
     return NextResponse.json({ error: "Action failed" }, { status: 500 });
   }
 }
