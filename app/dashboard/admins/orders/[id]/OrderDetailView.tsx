@@ -1,14 +1,12 @@
-
-
-
 // "use client";
 
 // import { useState } from "react";
 // import { useRouter } from "next/navigation";
 // import { useNotification } from "@/app/_context/NotificationContext";
-// import { ArrowLeft, Printer, MapPin, Phone, Mail, RotateCcw, ShieldAlert } from "lucide-react";
-// import { processRefund } from "@/app/services/adminOrderActions";
+// import { ArrowLeft, Printer, MapPin, Phone, Mail, RotateCcw, ShieldAlert, CheckCircle, XCircle } from "lucide-react";
 // import { useSession } from "next-auth/react";
+// import { UserRole } from "@prisma/client"; 
+// import AdminRefundModal from "@/app/_components/admins/AdminRefundModal";
 
 // export default function OrderDetailView({ order }: { order: any }) {
 //   const router = useRouter();
@@ -17,9 +15,23 @@
 //   const [updating, setUpdating] = useState(false);
 //   const [refunding, setRefunding] = useState(false);
 
-//   // Status mapping for visual clarity
-//   const isRefunded = order.status === "refunded";
-//   const canRefund = order.paymentStatus === true && !isRefunded && session?.user?.role === "SUPER_ADMIN";
+//   // Modal State for unified decision making
+//   const [decisionModal, setDecisionModal] = useState<{ 
+//     open: boolean, 
+//     action: "approved" | "rejected" | null 
+//   }>({
+//     open: false,
+//     action: null
+//   });
+
+//   const isRefunded = order.status === "refunded" || order.refundStatus === "approved";
+//   const isRefundRequested = order.refundStatus === "pending" || order.refundStatus === "requested";
+  
+//   const isAdmin = 
+//     session?.user?.role === UserRole.ADMIN || 
+//     session?.user?.role === UserRole.SUPER_ADMIN;
+    
+//   const canRefund = order.paymentStatus === true && !isRefunded && isAdmin;
 
 //   const updateStatus = async (newStatus: string) => {
 //     setUpdating(true);
@@ -41,40 +53,67 @@
 //     }
 //   };
 
-//   const handleRefundRequest = async () => {
-//     const reason = prompt("Enter reason for tactical reversal (Refund):");
-//     if (!reason) return;
+//   const handleDecisionConfirm = async (reason: string) => {
+//     const action = decisionModal.action;
+//     if (!action) return;
 
+//     setDecisionModal({ open: false, action: null });
 //     setRefunding(true);
+
 //     try {
-//       const result = await processRefund(order.id, reason);
-//       if (result.success) {
-//         notifySuccess(result.message);
-//         router.refresh();
-//       } else {
-//         notifyError(result.message);
-//       }
-//     } catch (error) {
-//       notifyError("Critical failure during refund sequence.");
+//       const res = await fetch(`/api/admins/orders/${order.id}/approve-refund`, {
+//         method: "PATCH",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ action, reason }),
+//       });
+
+//       const data = await res.json();
+//       if (!res.ok) throw new Error(data.error || "Action failed");
+
+//       notifySuccess(`Refund ${action} successfully.`);
+//       router.refresh();
+//     } catch (err: any) {
+//       notifyError(err.message || "Critical failure during refund sequence.");
 //     } finally {
 //       setRefunding(false);
 //     }
 //   };
 
 //   return (
-//     <div className="max-w-5xl mx-auto pb-20">
+//     <div className="max-w-[1600px] mx-auto pb-20 px-4 lg:px-0">
 //       {/* Header Actions */}
 //       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
 //         <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-gray-900 transition-colors">
 //           <ArrowLeft size={14} /> Back to Command Center
 //         </button>
 //         <div className="flex gap-2 w-full md:w-auto">
-//           {/* Item (a): Refund Trigger - Only visible to SUPER_ADMIN if order is paid */}
-//           {canRefund && (
+          
+//           {/* CASE 1: Refund Requested by Customer (Approve/Reject) */}
+//           {isRefundRequested && isAdmin && (
+//             <div className="flex gap-2 flex-1 md:flex-none">
+//               <button 
+//                 disabled={refunding}
+//                 onClick={() => setDecisionModal({ open: true, action: "approved" })}
+//                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-sm active:scale-95"
+//               >
+//                 <CheckCircle size={14} /> {refunding ? "Processing..." : "Approve Refund"}
+//               </button>
+//               <button 
+//                 disabled={refunding}
+//                 onClick={() => setDecisionModal({ open: true, action: "rejected" })}
+//                 className="flex-1 px-6 py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-50 transition-all shadow-sm active:scale-95"
+//               >
+//                 <XCircle size={14} /> Reject
+//               </button>
+//             </div>
+//           )}
+
+//           {/* CASE 2: Force Refund (Standard Initiate Button) */}
+//           {!isRefundRequested && canRefund && (
 //             <button 
 //               disabled={refunding}
-//               onClick={handleRefundRequest}
-//               className="flex-1 md:flex-none px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
+//               onClick={() => setDecisionModal({ open: true, action: "approved" })}
+//               className="flex-1 md:flex-none px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100 active:scale-95"
 //             >
 //               <RotateCcw size={14} /> {refunding ? "Processing..." : "Initiate Refund"}
 //             </button>
@@ -89,7 +128,6 @@
 //       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 //         {/* Left Column: Order Items & Summary */}
 //         <div className="lg:col-span-2 space-y-6">
-//           {/* Refund Alert Banner */}
 //           {isRefunded && (
 //             <div className="bg-red-600 text-white rounded-[2rem] p-6 flex items-center gap-4 shadow-xl shadow-red-100">
 //               <ShieldAlert size={32} />
@@ -150,7 +188,7 @@
 //               {['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map((status) => (
 //                 <button
 //                   key={status}
-//                   disabled={updating || order.status === status || (status === 'refunded' && session?.user?.role !== "SUPER_ADMIN")}
+//                   disabled={updating || order.status === status || (status === 'refunded' && !isAdmin)}
 //                   onClick={() => updateStatus(status)}
 //                   className={`w-full py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
 //                     order.status === status 
@@ -169,14 +207,14 @@
 //                <MapPin size={12} /> Shipping Logistics
 //              </h3>
 //              <div className="space-y-4">
-//                 <div>
-//                   <p className="font-black text-gray-900 uppercase text-xs mb-1">{order.firstName} {order.lastName}</p>
-//                   <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase">
-//                     {order.streetAddress}, {order.city}<br/>
-//                     {order.state} State, Nigeria
-//                   </p>
-//                 </div>
-//                 <div className="pt-4 space-y-3 border-t border-gray-50">
+//                <div>
+//                  <p className="font-black text-gray-900 uppercase text-xs mb-1">{order.firstName} {order.lastName}</p>
+//                  <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase">
+//                    {order.streetAddress}, {order.city}<br/>
+//                    {order.state} State, Nigeria
+//                  </p>
+//                </div>
+//                <div className="pt-4 space-y-3 border-t border-gray-50">
 //                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-900 uppercase">
 //                       <div className="bg-gray-100 p-1.5 rounded-lg"><Phone size={10} /></div> {order.phone}
 //                    </div>
@@ -188,10 +226,17 @@
 //           </div>
 //         </div>
 //       </div>
+
+//       {/* Decision Modal Implementation */}
+//       <AdminRefundModal 
+//         isOpen={decisionModal.open}
+//         action={decisionModal.action}
+//         onClose={() => setDecisionModal({ open: false, action: null })}
+//         onConfirm={handleDecisionConfirm}
+//       />
 //     </div>
 //   );
 // }
-
 
 
 
@@ -201,8 +246,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { ArrowLeft, Printer, MapPin, Phone, Mail, RotateCcw, ShieldAlert, CheckCircle, XCircle } from "lucide-react";
-import { processRefund } from "@/app/services/adminOrderActions";
 import { useSession } from "next-auth/react";
+import { UserRole } from "@prisma/client"; 
+import AdminRefundModal from "@/app/_components/admins/AdminRefundModal";
 
 export default function OrderDetailView({ order }: { order: any }) {
   const router = useRouter();
@@ -211,11 +257,26 @@ export default function OrderDetailView({ order }: { order: any }) {
   const [updating, setUpdating] = useState(false);
   const [refunding, setRefunding] = useState(false);
 
-  // Status mapping for visual clarity
-  const isRefunded = order.status === "refunded" || order.refundStatus === "approved";
-  const isRefundRequested = order.refundStatus === "requested";
-  const canRefund = order.paymentStatus === true && !isRefunded && session?.user?.role === "SUPER_ADMIN";
+  // Modal State for unified decision making
+  const [decisionModal, setDecisionModal] = useState<{ 
+    open: boolean, 
+    action: "approved" | "rejected" | null 
+  }>({
+    open: false,
+    action: null
+  });
 
+  // Status mapping
+  const isRefunded = order.status === "refunded" || order.refundStatus === "approved";
+  const isRefundRequested = order.refundStatus === "pending" || order.refundStatus === "requested";
+  
+  const isAdmin = 
+    session?.user?.role === UserRole.ADMIN || 
+    session?.user?.role === UserRole.SUPER_ADMIN;
+    
+  const canRefund = order.paymentStatus === true && !isRefunded && isAdmin;
+
+  // 1. UPDATE ORDER STATUS (Pending, Shipped, etc.)
   const updateStatus = async (newStatus: string) => {
     setUpdating(true);
     try {
@@ -236,26 +297,30 @@ export default function OrderDetailView({ order }: { order: any }) {
     }
   };
 
-  // NEW: Optimized logic to handle Approve/Reject and trigger Pusher
-  const handleRefundAction = async (action: "approved" | "rejected") => {
-    const reason = action === "rejected" 
-      ? prompt("Enter reason for rejection (Customer will see this):") 
-      : prompt("Enter reason for tactical reversal (Refund):");
-    
-    if (!reason) return;
+  // 2. UNIFIED REFUND ACTION (Approve/Reject)
+  const handleDecisionConfirm = async (reason: string) => {
+    const action = decisionModal.action;
+    if (!action) return;
 
+    setDecisionModal({ open: false, action: null });
     setRefunding(true);
+
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}/approve-refund`, {
+      // Calling the unified endpoint we created
+      const res = await fetch(`/api/admin/refunds`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
+        body: JSON.stringify({ 
+          orderId: order.id, 
+          action: action, 
+          adminNote: reason 
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Action failed");
 
-      notifySuccess(`Refund ${action} successfully.`);
+      notifySuccess(`Refund ${action.toUpperCase()} successfully.`);
       router.refresh();
     } catch (err: any) {
       notifyError(err.message || "Critical failure during refund sequence.");
@@ -265,7 +330,6 @@ export default function OrderDetailView({ order }: { order: any }) {
   };
 
   return (
-    // Style Change: Expanded to max-w-[1600px] to match your table's new width
     <div className="max-w-[1600px] mx-auto pb-20 px-4 lg:px-0">
       {/* Header Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -274,32 +338,32 @@ export default function OrderDetailView({ order }: { order: any }) {
         </button>
         <div className="flex gap-2 w-full md:w-auto">
           
-          {/* CASE 1: Refund Requested by Customer (Approve/Reject) */}
-          {isRefundRequested && session?.user?.role === "SUPER_ADMIN" && (
+          {/* CASE 1: Refund Requested by Customer */}
+          {isRefundRequested && isAdmin && (
             <div className="flex gap-2 flex-1 md:flex-none">
               <button 
                 disabled={refunding}
-                onClick={() => handleRefundAction("approved")}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-sm"
+                onClick={() => setDecisionModal({ open: true, action: "approved" })}
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
-                <CheckCircle size={14} /> Approve
+                <CheckCircle size={14} /> {refunding && decisionModal.action === 'approved' ? "Processing..." : "Approve Refund"}
               </button>
               <button 
                 disabled={refunding}
-                onClick={() => handleRefundAction("rejected")}
-                className="flex-1 px-6 py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-50 transition-all shadow-sm"
+                onClick={() => setDecisionModal({ open: true, action: "rejected" })}
+                className="flex-1 px-6 py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
                 <XCircle size={14} /> Reject
               </button>
             </div>
           )}
 
-          {/* CASE 2: Force Refund (Original Button) */}
+          {/* CASE 2: Admin Force Refund */}
           {!isRefundRequested && canRefund && (
             <button 
               disabled={refunding}
-              onClick={() => handleRefundAction("approved")}
-              className="flex-1 md:flex-none px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
+              onClick={() => setDecisionModal({ open: true, action: "approved" })}
+              className="flex-1 md:flex-none px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100 active:scale-95 disabled:opacity-50"
             >
               <RotateCcw size={14} /> {refunding ? "Processing..." : "Initiate Refund"}
             </button>
@@ -314,13 +378,12 @@ export default function OrderDetailView({ order }: { order: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Order Items & Summary */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Refund Alert Banner */}
           {isRefunded && (
             <div className="bg-red-600 text-white rounded-[2rem] p-6 flex items-center gap-4 shadow-xl shadow-red-100">
               <ShieldAlert size={32} />
               <div>
                 <p className="font-black uppercase italic tracking-wider">Asset Deauthorized</p>
-                <p className="text-sm font-bold opacity-90">Reason: {order.refundReason || "Administrative Reversal"}</p>
+                <p className="text-sm font-bold opacity-90">Reason: {order.cancelReason || order.refundReason || "Administrative Reversal"}</p>
               </div>
             </div>
           )}
@@ -375,7 +438,7 @@ export default function OrderDetailView({ order }: { order: any }) {
               {['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map((status) => (
                 <button
                   key={status}
-                  disabled={updating || order.status === status || (status === 'refunded' && session?.user?.role !== "SUPER_ADMIN")}
+                  disabled={updating || order.status === status || (status === 'refunded' && !isAdmin)}
                   onClick={() => updateStatus(status)}
                   className={`w-full py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
                     order.status === status 
@@ -413,6 +476,14 @@ export default function OrderDetailView({ order }: { order: any }) {
           </div>
         </div>
       </div>
+
+      {/* Decision Modal Implementation */}
+      <AdminRefundModal 
+        isOpen={decisionModal.open}
+        action={decisionModal.action}
+        onClose={() => setDecisionModal({ open: false, action: null })}
+        onConfirm={handleDecisionConfirm}
+      />
     </div>
   );
 }

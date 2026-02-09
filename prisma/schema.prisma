@@ -335,7 +335,8 @@ model Order {
   
   
   refundStatus    String?     // Values: "none", "requested", "processing", "completed", "rejected"
-  refundReason    String?     
+  refundReason    String?  
+  cancelReason    String?        @db.Text   
   refundReference String?     @unique // Store the specific Paystack/Stripe refund ID 
 
   emailSent   Boolean  @default(false) 

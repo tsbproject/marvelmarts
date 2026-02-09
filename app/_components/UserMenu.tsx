@@ -254,7 +254,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     { label: "My Orders", type: "normal", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
     { label: "Wishlist", type: "normal", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
     { label: "Product Reviews", type: "normal", link: "/reviews", icon: <Star size={20} /> },
-    { label: "Account Settings", type: "normal", link: "/account/customer/profile", icon: <Settings size={20} /> },
+    { label: "My Dashboard", type: "normal", link: "/account/customer", icon: <Settings size={20} /> },
   ];
 
   const handleClick = (item: Partial<MenuItem>) => {

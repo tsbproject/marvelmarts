@@ -81,6 +81,8 @@ export default function DashboardOverview() {
         title="Overview"
         showAddButton={true}
         addButtonLabel="New Product"
+        showLogout={false}
+        showNotificationBell={false}
         addButtonLink="/dashboard/admins/products/new"
       />
 

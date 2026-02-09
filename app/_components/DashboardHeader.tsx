@@ -1,10 +1,17 @@
+
+
+
+
+
 "use client";
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Plus, ChevronRight } from "lucide-react";
 import SignOutButton from "./SignOutButton";
+import AdminNotificationBell from "./AdminNotificationBell"; 
 import React from "react";
+import { UserRole } from "@prisma/client";
 
 type ActionButton = {
   label: string;
@@ -26,6 +33,7 @@ type DashboardHeaderProps = {
   secondaryButtonIcon?: React.ReactNode;
   actions?: ActionButton[];
   showLogout?: boolean;
+  showNotificationBell?: boolean;
 };
 
 export default function DashboardHeader({
@@ -40,6 +48,7 @@ export default function DashboardHeader({
   secondaryButtonLink,
   secondaryButtonIcon,
   showLogout = true,
+  showNotificationBell = true,
 }: DashboardHeaderProps) {
   const { data: session } = useSession();
 
@@ -108,9 +117,16 @@ export default function DashboardHeader({
               </Link>
             )}
 
-            {/* Logout Button (Fixed: Visible on ALL screen sizes now) */}
+            {/* ADMIN NOTIFICATION BELL (Neatly tucked before logout) */}
+            {(session?.user?.role === UserRole.ADMIN || session?.user?.role === UserRole.SUPER_ADMIN) && (
+            <div className="flex items-center px-2 md:border-l md:border-gray-100 md:ml-2">
+              <AdminNotificationBell />
+            </div>
+          )}
+
+            {/* Logout Button */}
             {showLogout && (
-              <div className="flex items-center ml-auto md:ml-2 md:border-l md:border-gray-100 md:pl-4">
+              <div className="flex items-center ml-auto md:ml-0 md:pl-2">
                 <SignOutButton
                   label="Sign Out"
                   className="inline-flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm font-black text-[10px] uppercase tracking-widest"
