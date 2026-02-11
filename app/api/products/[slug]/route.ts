@@ -39,10 +39,12 @@ export async function GET(
         category: { select: { id: true, name: true } },
         variants: true,
         reviews: { include: { user: { select: { name: true, image: true } } } },
-        vendor: {
+        // FIXED: Corrected relationship naming for Vendor Profile
+        vendorProfile: {
           select: {
-            name: true,
-            vendorProfile: true,
+            storeName: true,
+            logoUrl: true,
+            id: true,
           }
         }
       },
@@ -72,20 +74,28 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!session?.user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const { slug } = await params;
     
     // 1. Ownership & Security Check
     const existingProduct = await prisma.product.findUnique({
       where: { slug },
-      select: { id: true, vendorId: true }
+      // FIXED: Use vendorProfileId instead of vendorId
+      select: { id: true, vendorProfileId: true }
     });
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
-    const isOwner = existingProduct.vendorId === session.user.id;
+    
+    // Check ownership by comparing vendorProfile link (User ID check)
+    const vendorProfile = await prisma.vendorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    });
+
+    const isOwner = vendorProfile?.id === existingProduct.vendorProfileId;
 
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -105,7 +115,6 @@ export async function PUT(
         categoryId: parsed.categoryId,
         status: parsed.status,
         isFeatured: parsed.isFeatured,
-        // Aligns with Phase 2: SEO and Metadata
         metaTitle: parsed.metaTitle || parsed.title,
         metaDescription: parsed.metaDescription || parsed.description?.substring(0, 160),
       },
@@ -132,19 +141,26 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!session?.user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const { slug } = await params;
 
     const existingProduct = await prisma.product.findUnique({
       where: { slug },
-      select: { vendorId: true }
+      // FIXED: Use vendorProfileId
+      select: { vendorProfileId: true }
     });
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
-    const isOwner = existingProduct.vendorId === session.user.id;
+    
+    const vendorProfile = await prisma.vendorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    });
+
+    const isOwner = vendorProfile?.id === existingProduct.vendorProfileId;
 
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -154,6 +170,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Product deleted successfully" });
   } catch (err) {
+    console.error("Delete error:", err);
     return NextResponse.json({ success: false, message: "Delete failed" }, { status: 500 });
   }
 }
