@@ -561,3 +561,28 @@ export async function sendStoreLiveEmail(to: string, name: string) {
   `;
   return sendEmail({ to, subject: "MarvelMarts is LIVE: Step Into Style", html });
 }
+
+
+
+
+// PASSPORT RESET EMAIL
+
+export async function sendPasswordResetEmail(to: string, token: string) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail", // or your SMTP provider
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: process.env.SMTP_PASS!,
+    },
+  });
+
+  const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
+
+  await transporter.sendMail({
+    from: `"MarvelMarts" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Password Reset Request",
+    text: `Click the following link to reset your password: ${resetUrl}`,
+    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+  });
+}
