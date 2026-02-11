@@ -2,7 +2,7 @@
 import { prisma } from "@/app/lib/prisma";
 import ShopSidebar from "@/app/_components/ShopSidebar";
 import ShopContent from "@/app/shop/components/Shopcontent"; 
-import { SerializedProduct } from "@/types/product"; // Ensure this import path is correct
+import { SerializedProduct } from "@/types/product"; 
 
 export default async function ShopPage({
   searchParams,
@@ -13,7 +13,7 @@ export default async function ShopPage({
     brand?: string; 
     minPrice?: string; 
     maxPrice?: string 
-  }>;
+   }>;
 }) {
   const filters = await searchParams;
 
@@ -25,6 +25,10 @@ export default async function ShopPage({
 
   // 2. Build the query
   const where: any = {};
+  
+  // Roadmap: Only show published products in the public shop
+  where.isPublished = true;
+
   if (filters.category) where.category = { slug: filters.category };
   if (filters.subcategory) where.category = { slug: filters.subcategory };
   if (filters.brand) where.brand = filters.brand;
@@ -50,7 +54,7 @@ export default async function ShopPage({
     description: p.description || "",
     stock: p.stock || 0,
     
-    // Numeric conversions for Decimals
+    // Numeric conversions for Decimals (Critical for Redux)
     price: Number(p.price || 0),
     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
     
@@ -65,13 +69,18 @@ export default async function ShopPage({
       price: Number(v.price)
     })) : [],
 
-    // Date to String serialization
+    // Date to String serialization (Prevents Redux non-serializable errors)
     createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
     updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : new Date(p.updatedAt).toISOString(),
     
-    // Additional optional fields
+    // Additional properties
     brand: p.brand || null,
-    vendorId: p.vendorId || null,
+    vendorProfileId: p.vendorProfileId || null,
+    
+    // FIXED: Added missing required field to satisfy SerializedProduct type
+    isPublished: p.isPublished ?? true,
+    isTrending: p.isTrending || false,
+    isFeatured: p.isFeatured || false,
   }));
 
   return (
@@ -80,10 +89,10 @@ export default async function ShopPage({
       <div className="bg-accent-navy py-16 px-4">
         <div className="container mx-auto">
           <p className="text-brand-primary font-black uppercase tracking-[0.4em] text-[10px] mb-4">
-            Elite Equipment Selection
+            Elite Products Selection
           </p>
           <h1 className="text-5xl md:text-7xl font-black italic uppercase text-white tracking-tighter leading-none">
-            The <span className="text-brand-primary">Armory</span>
+            MarvelMarts <span className="text-brand-primary">Armory</span>
           </h1>
         </div>
       </div>
