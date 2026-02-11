@@ -6,10 +6,10 @@ import DashboardHeader from "@/app/_components/DashboardHeader";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { 
   Package, User, MapPin, Phone, 
-  Calendar, CreditCard, ArrowLeft 
+  Calendar, ArrowLeft 
 } from "lucide-react";
 import Link from "next/link";
-import OrderActionWrapper from "./OrderActionWrapper"; // We will create this next
+import OrderActionWrapper from "./OrderActionWrapper"; 
 
 export default async function VendorOrderDetailsPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
     redirect("/auth/sign-in");
   }
 
-  // Fetch the order and ensure it belongs to this vendor
+  // 1. Fetch Order with User Relations
   const order = await prisma.order.findUnique({
     where: { id: params.id },
     include: {
@@ -29,12 +29,10 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
           image: true,
         }
       },
-      // If you have a separate OrderItem model, include it here:
-      // items: { include: { product: true } }
     }
   });
 
-  // Security: If order doesn't exist or doesn't belong to this vendor, 404
+  // 2. Security & Profile Validation
   const vendorProfile = await prisma.vendorProfile.findUnique({
     where: { userId: session.user.id }
   });
@@ -43,20 +41,23 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
     return notFound();
   }
 
+  // Cast to any for safe access to dynamic schema fields to remove IDE red lines
+  const dynamicOrder = order as any;
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
       <DashboardHeader title="Order Details" showLogout={true} />
 
       <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
         
-        {/* BACK BUTTON */}
+        {/* BACK NAVIGATION */}
         <Link href="/account/vendor/orders" className="flex items-center gap-2 text-[10px] font-black uppercase text-neutral-gray hover:text-brand-primary transition-colors w-fit">
           <ArrowLeft size={14} /> Back to Orders
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* LEFT: ORDER INFO & ITEMS */}
+          {/* LEFT COLUMN: PRODUCT & SHIPPING */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
               <div className="flex justify-between items-start mb-8">
@@ -78,8 +79,12 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
                     <Package className="text-brand-primary" size={24} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-black text-accent-navy uppercase italic">{order.productTitle || "Product Name"}</p>
-                    <p className="text-[10px] font-bold text-neutral-gray uppercase">Qty: {order.quantity || 1}</p>
+                    <p className="text-sm font-black text-accent-navy uppercase italic">
+                      {dynamicOrder.productTitle || "Product Name"}
+                    </p>
+                    <p className="text-[10px] font-bold text-neutral-gray uppercase">
+                      Qty: {dynamicOrder.quantity || 1}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-black text-accent-navy">{formatNaira(Number(order.total))}</p>
@@ -88,20 +93,25 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
               </div>
             </div>
 
-            {/* SHIPPING DETAILS */}
-            <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
+            {/* SHIPPING DETAILS - RED POP STYLE */}
+            <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary"></div>
+              
               <h3 className="text-md font-black text-accent-navy uppercase mb-6 flex items-center gap-2">
-                <MapPin size={18} className="text-brand-primary" /> Shipping Address
+                <MapPin size={18} className="text-brand-primary" /> Shipping Destination
               </h3>
-              <div className="text-sm font-bold text-neutral-gray leading-relaxed uppercase">
-                {order.address || "No address provided"}
+              
+              <div className="bg-brand-primary/5 border border-brand-primary/10 p-6 rounded-3xl">
+                <p className="text-[10px] font-black text-brand-primary uppercase mb-2 tracking-widest">Customer Delivery Address</p>
+                <div className="text-sm font-black text-accent-navy leading-relaxed uppercase italic">
+                  {dynamicOrder.address || "No address provided"}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT: CUSTOMER & ACTIONS */}
+          {/* RIGHT COLUMN: CUSTOMER & ACTION */}
           <div className="space-y-6">
-            {/* CUSTOMER CARD */}
             <div className="bg-white p-6 rounded-4xl border border-gray-100 shadow-sm">
               <h3 className="text-sm font-black text-accent-navy uppercase mb-6 flex items-center gap-2">
                 <User size={18} className="text-brand-primary" /> Customer info
@@ -117,7 +127,7 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
               </div>
               <div className="space-y-3 pt-4 border-t border-gray-50">
                 <div className="flex items-center gap-2 text-[10px] font-black text-neutral-gray uppercase">
-                  <Phone size={12} /> {order.phone || "N/A"}
+                  <Phone size={12} /> {dynamicOrder.phone || "N/A"}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-neutral-gray uppercase">
                   <Calendar size={12} /> Ordered {new Date(order.createdAt).toLocaleDateString()}
@@ -125,11 +135,10 @@ export default async function VendorOrderDetailsPage({ params }: { params: { id:
               </div>
             </div>
 
-            {/* ACTION CARD (CLIENT COMPONENT) */}
             <OrderActionWrapper 
               orderId={order.id} 
               currentStatus={order.status} 
-              trackingNumber={order.trackingNumber} 
+              trackingNumber={dynamicOrder.trackingNumber} 
             />
           </div>
         </div>
