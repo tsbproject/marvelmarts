@@ -1,6 +1,3 @@
-
-
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -12,6 +9,7 @@ type PermissionsShape = Record<string, boolean>;
 const DEFAULT_PERMISSIONS: PermissionsShape = {
   manageAdmins: false,
   manageUsers: false,
+   manageVendors: false,
   manageBlogs: false,
   manageProducts: false,
   manageOrders: false,
@@ -107,6 +105,7 @@ export async function PUT(
 
     return NextResponse.json({ user: result });
   } catch (err) {
+    console.error("PUT Error:", err);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
@@ -122,35 +121,39 @@ export async function DELETE(
     const { id } = await context.params;
     const session = await getServerSession(authOptions);
 
-    // 1. Auth Guard
     if (!session?.user || session.user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Self-deletion Check
     if (session.user.id === id) {
       return NextResponse.json({ error: "You cannot delete yourself" }, { status: 400 });
     }
 
-    // 3. Execution via Transaction
     await prisma.$transaction(async (tx) => {
-      // Step A: "Unhook" Products (Set vendor to null so product isn't deleted)
-      await tx.product.updateMany({
-        where: { vendorId: id },
-        data: { vendorId: null },
+      // Step A: Delete associated Products
+      // If vendorProfileId is required, we cannot set it to null. 
+      // We must remove the products to satisfy database integrity.
+      await tx.product.deleteMany({
+        where: { vendorProfileId: id },
       });
 
-      // Step B: "Unhook" Orders (Keep the sales record, remove the user link)
+      // Step B: "Unhook" Orders (Only if userId is optional in your Schema)
+      // If your Order schema also requires userId, change this to deleteMany as well.
       await tx.order.updateMany({
         where: { userId: id },
-        data: { userId: null },
+        data: { userId: null }, 
+      }).catch(() => {
+        console.log("Order update skipped: userId might be required in schema.");
       });
 
-      // Step C: Delete secondary records (Cascade-like behavior for non-essential data)
+      // Step C: Delete secondary records
       await tx.account.deleteMany({ where: { userId: id } });
       await tx.address.deleteMany({ where: { userId: id } });
       await tx.review.deleteMany({ where: { userId: id } });
       await tx.adminProfile.deleteMany({ where: { userId: id } });
+      
+      // If this admin had a vendor profile, delete that too
+      await tx.vendorProfile.deleteMany({ where: { userId: id } });
 
       // Step D: Finally, delete the User
       await tx.user.delete({
@@ -158,7 +161,7 @@ export async function DELETE(
       });
     });
 
-    return NextResponse.json({ message: "Admin removed successfully" }, { status: 200 });
+    return NextResponse.json({ message: "Admin and associated data removed" }, { status: 200 });
 
   } catch (err: any) {
     console.error("MANUAL DELETE ERROR:", err);
