@@ -1,46 +1,27 @@
 "use client";
 
 import React from "react";
+import CustomerSidebar from "@/app/_components/AccountSidebar";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import MobileTopbar from "@/app/_components/MobileTopbar";
-import DashboardSidebar from "@/app/_components/DashboardSidebar";
-import { customerSections } from "@/types/dashboardSections";
 
-export default function CustomerLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
-
-  // Handle Loading & Authentication
-  if (status === "loading") return null; 
-  if (status === "unauthenticated") redirect("/auth/sign-in");
-
-  // Type Casting to bypass the Strict Index Signature error in Vercel
-  const sectionsData = customerSections as any;
+export default function CustomerDashboardLayout({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F9FAFB]">
-      
-      {/* MOBILE NAVIGATION */}
-      <div className="lg:hidden sticky top-0 z-50">
-        <MobileTopbar 
-          role="Customer" 
-          sections={sectionsData} 
-          user={session?.user}
-        />
-      </div>
+    <div className="min-h-screen bg-white">
+      {/* Simple Customer Top Nav */}
+      <nav className="h-16 border-b flex items-center px-8 sticky top-0 bg-white z-40">
+        <h2 className="font-black text-xl italic uppercase">MarvelMarts<span className="text-indigo-600">.</span></h2>
+      </nav>
 
-      {/* DESKTOP SIDEBAR */}
-      <aside className="hidden lg:flex flex-col border-r-2 border-blue-500 bg-white w-64 fixed inset-y-0 left-0 z-50 shadow-xl">
-  <DashboardSidebar 
-    sections={sectionsData} 
-    role="Customer" 
-    user={session?.user} 
-  />
-    </aside>
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
+        {/* Customer Specific Sidebar */}
+        <aside className="w-full lg:w-64 border-r border-gray-100 bg-gray-50/30">
+          <CustomerSidebar />
+        </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative">
-        <main className="flex-1 p-4 md:p-8">
+        {/* Account Content */}
+        <main className="flex-1 p-6 md:p-10">
           {children}
         </main>
       </div>

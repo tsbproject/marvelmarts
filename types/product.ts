@@ -18,6 +18,7 @@ export interface SerializedProduct {
   updatedAt?: string;
   variantId?: string;
   isTrending?: boolean;
+  isPublished: boolean;
 
 
 }

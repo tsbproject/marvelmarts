@@ -9,6 +9,7 @@ import adminReducer from "./adminSlice";
 import orderReducer from "./orderSlice"; 
 import trendingReducer from './trendingSlice';
 import notificationReducer from "./notificationSlice";
+import vendorReducer from ".//vendorSlice";
 
 
 // 1. Combine all reducers into a single appReducer
@@ -21,7 +22,8 @@ const appReducer = combineReducers({
   admin: adminReducer, 
   orders: orderReducer, 
   trending: trendingReducer,
-  adminNotifications: notificationReducer
+  adminNotifications: notificationReducer,
+  vendor: vendorReducer,
 });
 
 // 2. Create a Root Reducer to handle global state reset

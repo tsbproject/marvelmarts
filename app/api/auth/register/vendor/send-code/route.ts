@@ -1,46 +1,24 @@
-// app/api/auth/register/vendor/send-code/route.ts
+import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { VerificationType, Prisma } from "@prisma/client";
+import { VerificationType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { NextResponse } from "next/server";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+import { sendVerificationEmailWithNodemailer } from "@/app/lib/mailer";
 
 export async function POST(req: Request) {
   try {
-    const {
-      email,
-      password,
-      firstName,
-      lastName,
-      storeName,
-      storePhone,
-      storeAddress,
-      country,
-      state,
-    } = await req.json();
+    const body = await req.json();
+    const { email, password, firstName, lastName } = body;
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ error: "Email already registered" }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
+    // 1. Hash password immediately to store in verification record
     const hashedPassword = await bcrypt.hash(password, 12);
-    const code = crypto.randomBytes(3).toString("hex");
+    const code = crypto.randomBytes(3).toString("hex").toUpperCase();
 
-    const vendorData: Prisma.JsonObject = {
-      firstName,
-      lastName,
-      storeName,
-      storePhone,
-      storeAddress,
-      country,
-      state,
-    };
-
+    // 2. Save intent
     const verification = await prisma.verificationCode.create({
       data: {
         email,
@@ -48,20 +26,14 @@ export async function POST(req: Request) {
         code,
         type: VerificationType.VENDOR_REGISTRATION,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-        used: false,
-        vendorData,
       },
     });
 
-    return NextResponse.json(
-      { success: true, verificationId: verification.id },
-      { status: 201 }
-    );
+    // 3. Send Mail
+    await sendVerificationEmailWithNodemailer(email, code, verification.id, firstName, "VENDOR");
+
+    return NextResponse.json({ success: true, verificationId: verification.id });
   } catch (err: any) {
-    console.error("Vendor send-code error:", err);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

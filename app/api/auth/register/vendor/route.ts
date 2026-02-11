@@ -2,76 +2,89 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { VerificationType, UserRole } from "@prisma/client";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { getLatestVerification, validateVerification, cleanupVerification } from "@/app/lib/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// --- Zod schema ---
-const customerRegisterSchema = z.object({
-  email: z.string().email("Valid email required"),
-  name: z.string().min(1, "Name is required"),
+// Matches your frontend payload
+const vendorRegisterSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6), // The real password from Step 3
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  storeName: z.string().min(1),
+  storePhone: z.string().min(1),
+  storeAddress: z.string().min(1),
+  state: z.string().min(1),
+  country: z.string().default("Nigeria"),
 });
-
-type CustomerRegisterBody = z.infer<typeof customerRegisterSchema>;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const parsed = customerRegisterSchema.safeParse(body);
+    const parsed = vendorRegisterSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid payload", details: parsed.error.format() },
+        { error: "Missing required details", details: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    const { email, name } = parsed.data;
+    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, state, country } = parsed.data;
 
-    // --- Check if user already exists ---
+    // 1. Check if user already exists
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json({ error: "Email already registered" }, { status: 400 });
     }
 
-    // --- Verification checks ---
-    const verification = await getLatestVerification(email, VerificationType.CUSTOMER_REGISTRATION);
-    const check = validateVerification(verification);
-    if (!check.valid) {
-      return NextResponse.json({ error: check.error }, { status: 400 });
+    // 2. Fetch the verification record (marked as 'used: true' by handleVerifyCode)
+    const verification = await getLatestVerification(email, VerificationType.VENDOR_REGISTRATION);
+    
+    // We pass a custom check here because we are providing a NEW password 
+    // from the frontend, so we don't need to rely on the placeholder passwordHash.
+    if (!verification) {
+      return NextResponse.json({ error: "Email not verified" }, { status: 400 });
     }
 
-    if (!verification?.hashedPassword) {
-      return NextResponse.json({ error: "Password missing from verification record" }, { status: 400 });
-    }
+    // 3. Hash the REAL password from the final step
+    const finalPasswordHash = await bcrypt.hash(password, 12);
 
-    // --- Customer profile data ---
-    const customerProfileData = {
-      // add any customer-specific fields here if needed
-    };
-
-    // --- Create user + customer profile ---
+    // 4. Atomic Creation: User + Vendor Profile
     const user = await prisma.user.create({
       data: {
-        name,
+        name: `${firstName} ${lastName}`,
         email,
-        passwordHash: verification.hashedPassword,
-        role: UserRole.CUSTOMER,
+        passwordHash: finalPasswordHash,
+        role: UserRole.VENDOR,
         IsVerified: true,
-        customerProfile: { create: customerProfileData },
+        vendorProfile: {
+          create: {
+            firstName,
+            lastName,
+            storeName,
+            storePhone,
+            storeAddress,
+            state,
+            country,
+            isVerified: true, 
+          },
+        },
       },
       select: { id: true, email: true, role: true },
     });
 
-    // --- Cleanup verification codes ---
-    await cleanupVerification(email, VerificationType.CUSTOMER_REGISTRATION);
+    // 5. Cleanup
+    await cleanupVerification(email, VerificationType.VENDOR_REGISTRATION);
 
     return NextResponse.json({ success: true, user }, { status: 201 });
-  } catch (err) {
-    console.error("Customer registration error:", err);
+  } catch (err: any) {
+    console.error("Vendor registration error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err instanceof Error ? err.message : "Unknown error" },
+      { error: "Internal Server Error", details: err.message },
       { status: 500 }
     );
   }

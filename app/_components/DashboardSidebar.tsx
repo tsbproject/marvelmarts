@@ -1,5 +1,7 @@
 
 
+
+
 // "use client";
 
 // import Link from "next/link";
@@ -18,11 +20,13 @@
 //   Settings,
 //   ChevronDown,
 //   Menu,
+//   Store,
 //   X,
 //   Mail,
 //   Activity, 
 //   StarHalf,
-//   Flame
+//   Flame,
+//   ArrowLeftRight
 // } from "lucide-react";
 // import { SectionLink } from "@/types/dashboard";
 
@@ -47,22 +51,38 @@
 //   const { data: session } = useSession();
 //   const pathname = usePathname();
 
-//   // Use session data but fallback to props if provided
-//   const userPermissions = session?.user?.permissions ?? {};
+//   const userPermissions = (session?.user as any)?.permissions ?? {};
 //   const userRole = propRole || session?.user?.role;
 //   const isSuperAdmin = userRole === "SUPER_ADMIN";
 
 //   const [mobileOpen, setMobileOpen] = useState(false);
 //   const [supportOpen, setSupportOpen] = useState(false);
+  
+//   const [activeView, setActiveView] = useState<"ADMIN" | "VENDOR">(
+//     isSuperAdmin ? "ADMIN" : "VENDOR"
+//   );
 
 //   const computedSections = useMemo(() => {
+//     if (activeView === "VENDOR") {
+//       return {
+//         general: [
+//           { label: "Store Overview", href: "/account/vendor", icon: <LayoutDashboard size={20} />, visible: true },
+//           { label: "My Products", href: "/account/vendor/products", icon: <Package size={20} />, visible: true },
+//         ],
+//         management: [
+//           { label: "Store Orders", href: "/account/vendor/orders", icon: <ShoppingCart size={20} />, visible: true },
+//           { label: "Store Settings", href: "/account/vendor/profile", icon: <Settings size={20} />, visible: true },
+//         ]
+//       };
+//     }
+
 //     if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
 //       const general: EnhancedLink[] = [
 //         {
 //           label: "Overview",
 //           href: "/dashboard/admins/overview",
 //           icon: <LayoutDashboard size={20} />,
-//           visible: true,
+//           visible: isSuperAdmin || !!userPermissions.manageSettings || true, 
 //         },
 //       ];
 
@@ -77,15 +97,20 @@
 //           label: "Activity",
 //           href: "/dashboard/admins/activity",
 //           icon: <Activity size={20} />,
-//           visible: true,
+//           visible: isSuperAdmin || !!userPermissions.manageUsers || !!userPermissions.manageAdmins,
 //         },
 //         {
 //           label: "Reviews",
 //           href: "/dashboard/admins/reviews",
 //           icon: <StarHalf size={20} />,
-//           visible: true, 
+//           visible: isSuperAdmin || !!userPermissions.manageProducts, 
 //         },
-       
+//         {
+//           label: "Vendors",
+//           href: "/dashboard/admins/Vendors",
+//           icon: <Store size={20} />,
+//           visible: isSuperAdmin || !!userPermissions.manageUsers,
+//         },
 //         {
 //           label: "Users",
 //           href: "/dashboard/admins/users",
@@ -96,7 +121,7 @@
 //           label: "Blogs",
 //           href: "/dashboard/blogs", 
 //           icon: <Newspaper size={20} />,
-//           visible: isSuperAdmin || (userRole === "ADMIN" && !!userPermissions.manageBlogs),
+//           visible: isSuperAdmin || !!userPermissions.manageBlogs,
 //         },
 //         {
 //           label: "Products",
@@ -131,6 +156,7 @@
 //           children: [
 //             { label: "Articles", href: "/dashboard/admins/support" },
 //             { label: "Tickets", href: "/dashboard/admins/support/tickets" },
+//             { label: "Refunds", href: "/dashboard/admins/support/refunds" },
 //           ],
 //         },
 //         {
@@ -153,87 +179,106 @@
 //       };
 //     }
     
-//     // Default/Fallback logic for non-admin roles
 //     return {
 //       general: (sections?.general as EnhancedLink[]) ?? [],
 //       management: (sections?.management as EnhancedLink[]) ?? [],
 //     };
-//   }, [userRole, isSuperAdmin, userPermissions, sections]);
+//   }, [userRole, isSuperAdmin, userPermissions, sections, activeView]);
 
 //   return (
 //     <div className="flex min-h-screen bg-gray-50">
-//       {/* ================= DESKTOP SIDEBAR ================= */}
 //       <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5 h-screen sticky top-0">
 //         <div className="px-8 py-8 flex flex-col gap-1">
 //           <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
 //             MarvelMarts<span className="text-indigo-500">.</span>
 //           </h2>
-//           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Control Panel</p>
+//           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+//             {activeView === "ADMIN" ? "Control Panel" : "Vendor Suite"}
+//           </p>
 //         </div>
 
-//         <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
-//           <div>
-//             <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
-//             <div className="space-y-1">
-//               {computedSections.general.map((link) => (
-//                 <Link
-//                   key={link.href}
-//                   href={link.href}
-//                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
-//                     ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
-//                 >
-//                   {link.icon}
-//                   {link.label}
-//                 </Link>
-//               ))}
-//             </div>
+//         {isSuperAdmin && (
+//           <div className="px-4 mb-6">
+//             <button 
+//               onClick={() => setActiveView(activeView === "ADMIN" ? "VENDOR" : "ADMIN")}
+//               className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 transition-all group"
+//             >
+//               <div className="flex flex-col items-start">
+//                 <span className="text-[9px] font-black uppercase tracking-widest text-indigo-500/60">Currently Viewing</span>
+//                 <span className="text-xs font-bold text-white uppercase">{activeView}</span>
+//               </div>
+//               <ArrowLeftRight size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+//             </button>
 //           </div>
+//         )}
 
-//           <div>
-//             <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
-//             <div className="space-y-1">
-//               {computedSections.management.map((link) => (
-//                 <div key={link.label}>
-//                   {link.hasChildren ? (
-//                     <>
-//                       <button
-//                         onClick={() => setSupportOpen(!supportOpen)}
-//                         className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight hover:bg-white/5 hover:text-white"
-//                       >
-//                         <div className="flex items-center gap-3">
-//                           {link.icon}
-//                           {link.label}
-//                         </div>
-//                         <ChevronDown size={14} className={`transition-transform ${supportOpen ? "rotate-180" : ""}`} />
-//                       </button>
-//                       {supportOpen && (
-//                         <div className="mt-1 ml-9 space-y-1 border-l border-white/10 pl-4">
-//                           {link.children?.map((sub) => (
-//                             <Link
-//                               key={sub.href}
-//                               href={sub.href}
-//                               className={`block py-2 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors ${pathname === sub.href ? "text-indigo-400" : "text-gray-500"}`}
-//                             >
-//                               {sub.label}
-//                             </Link>
-//                           ))}
-//                         </div>
-//                       )}
-//                     </>
-//                   ) : (
-//                     <Link
-//                       href={link.href}
-//                       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
-//                         ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
-//                     >
-//                       {link.icon}
-//                       {link.label}
-//                     </Link>
-//                   )}
-//                 </div>
-//               ))}
+//         <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
+//           {computedSections.general.length > 0 && (
+//             <div>
+//               <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
+//               <div className="space-y-1">
+//                 {computedSections.general.map((link: any) => (
+//                   <Link
+//                     key={link.href}
+//                     href={link.href}
+//                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+//                       ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
+//                   >
+//                     {link.icon}
+//                     {link.label}
+//                   </Link>
+//                 ))}
+//               </div>
 //             </div>
-//           </div>
+//           )}
+
+//           {computedSections.management.length > 0 && (
+//             <div>
+//               <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
+//               <div className="space-y-1">
+//                 {computedSections.management.map((link: any) => (
+//                   <div key={link.label}>
+//                     {link.hasChildren ? (
+//                       <>
+//                         <button
+//                           onClick={() => setSupportOpen(!supportOpen)}
+//                           className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight hover:bg-white/5 hover:text-white"
+//                         >
+//                           <div className="flex items-center gap-3">
+//                             {link.icon}
+//                             {link.label}
+//                           </div>
+//                           <ChevronDown size={14} className={`transition-transform ${supportOpen ? "rotate-180" : ""}`} />
+//                         </button>
+//                         {supportOpen && (
+//                           <div className="mt-1 ml-9 space-y-1 border-l border-white/10 pl-4">
+//                             {link.children?.map((sub: any) => (
+//                               <Link
+//                                 key={sub.href}
+//                                 href={sub.href}
+//                                 className={`block py-2 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors ${pathname === sub.href ? "text-indigo-400" : "text-gray-500"}`}
+//                               >
+//                                 {sub.label}
+//                               </Link>
+//                             ))}
+//                           </div>
+//                         )}
+//                       </>
+//                     ) : (
+//                       <Link
+//                         href={link.href}
+//                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+//                           ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
+//                       >
+//                         {link.icon}
+//                         {link.label}
+//                       </Link>
+//                     )}
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           )}
 //         </nav>
 
 //         <div className="p-4 border-t border-white/5 bg-black/20">
@@ -249,7 +294,6 @@
 //         </div>
 //       </aside>
 
-//       {/* ================= CONTENT AREA ================= */}
 //       <div className="flex-1 flex flex-col min-w-0">
 //         <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
 //           <h2 className="font-black text-xl uppercase tracking-tighter">
@@ -261,15 +305,24 @@
 //         </header>
 
 //         {mobileOpen && (
-//           <div className="lg:hidden fixed inset-0 z-[100] bg-white p-8 animate-in fade-in slide-in-from-top-4">
-//             <div className="flex justify-between items-center mb-12">
+//           <div className="lg:hidden fixed inset-0 z-[100] bg-white p-8 animate-in fade-in slide-in-from-top-4 overflow-y-auto">
+//              <div className="flex justify-between items-center mb-12">
 //               <h2 className="font-black text-2xl tracking-tighter">MENU</h2>
 //               <button onClick={() => setMobileOpen(false)} className="p-4 bg-gray-100 rounded-full">
 //                 <X />
 //               </button>
 //             </div>
+//             {isSuperAdmin && (
+//                <button 
+//                onClick={() => setActiveView(activeView === "ADMIN" ? "VENDOR" : "ADMIN")}
+//                className="w-full mb-8 flex items-center justify-between p-6 bg-indigo-600 text-white rounded-2xl font-black italic uppercase"
+//              >
+//                Switch to {activeView === "ADMIN" ? "Vendor" : "Admin"}
+//                <ArrowLeftRight />
+//              </button>
+//             )}
 //             <div className="space-y-6">
-//               {computedSections.general.concat(computedSections.management).map((link) => (
+//               {computedSections.general.concat(computedSections.management).map((link: any) => (
 //                 <Link
 //                   key={link.href}
 //                   href={link.href}
@@ -313,11 +366,15 @@ import {
   Settings,
   ChevronDown,
   Menu,
+  Store,
   X,
   Mail,
   Activity, 
   StarHalf,
-  Flame
+  Flame,
+  ArrowLeftRight,
+  Heart,
+  MapPin
 } from "lucide-react";
 import { SectionLink } from "@/types/dashboard";
 
@@ -342,22 +399,53 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  // Use session data but fallback to props if provided
-  const userPermissions = session?.user?.permissions ?? {};
+  const userPermissions = (session?.user as any)?.permissions ?? {};
   const userRole = propRole || session?.user?.role;
   const isSuperAdmin = userRole === "SUPER_ADMIN";
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  
+  const [activeView, setActiveView] = useState<"ADMIN" | "VENDOR">(
+    isSuperAdmin ? "ADMIN" : "VENDOR"
+  );
 
   const computedSections = useMemo(() => {
+    // 1. CUSTOMER VIEW LOGIC (Standard Users)
+    if (userRole === "CUSTOMER" || userRole === "USER") {
+      return {
+        general: [
+          { label: "My Orders", href: "/account/user", icon: <ShoppingCart size={20} />, visible: true },
+          { label: "Wishlist", href: "/account/user/wishlist", icon: <Heart size={20} />, visible: true },
+        ],
+        management: [
+          { label: "Addresses", href: "/account/user/address", icon: <MapPin size={20} />, visible: true },
+          { label: "Settings", href: "/account/user/settings", icon: <Settings size={20} />, visible: true },
+        ]
+      };
+    }
+
+    // 2. VENDOR VIEW LOGIC (When activeView is VENDOR)
+    if (activeView === "VENDOR") {
+      return {
+        general: [
+          { label: "Store Overview", href: "/account/vendor", icon: <LayoutDashboard size={20} />, visible: true },
+          { label: "My Products", href: "/account/vendor/products", icon: <Package size={20} />, visible: true },
+        ],
+        management: [
+          { label: "Store Orders", href: "/account/vendor/orders", icon: <ShoppingCart size={20} />, visible: true },
+          { label: "Store Settings", href: "/account/vendor/profile", icon: <Settings size={20} />, visible: true },
+        ]
+      };
+    }
+
+    // 3. ADMIN VIEW LOGIC (Existing logic preserved)
     if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
       const general: EnhancedLink[] = [
         {
           label: "Overview",
           href: "/dashboard/admins/overview",
           icon: <LayoutDashboard size={20} />,
-          // Overview is usually visible to everyone, but can be locked to manageSettings permission
           visible: isSuperAdmin || !!userPermissions.manageSettings || true, 
         },
       ];
@@ -373,7 +461,6 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           label: "Activity",
           href: "/dashboard/admins/activity",
           icon: <Activity size={20} />,
-          // Linked to manageUsers or manageAdmins usually
           visible: isSuperAdmin || !!userPermissions.manageUsers || !!userPermissions.manageAdmins,
         },
         {
@@ -382,7 +469,12 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           icon: <StarHalf size={20} />,
           visible: isSuperAdmin || !!userPermissions.manageProducts, 
         },
-       
+        {
+          label: "Vendors",
+          href: "/dashboard/admins/Vendors",
+          icon: <Store size={20} />,
+          visible: isSuperAdmin || !!userPermissions.manageUsers,
+        },
         {
           label: "Users",
           href: "/dashboard/admins/users",
@@ -428,6 +520,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           children: [
             { label: "Articles", href: "/dashboard/admins/support" },
             { label: "Tickets", href: "/dashboard/admins/support/tickets" },
+            { label: "Refunds", href: "/dashboard/admins/support/refunds" },
           ],
         },
         {
@@ -450,30 +543,45 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
       };
     }
     
-    // Default/Fallback logic for non-admin roles
     return {
       general: (sections?.general as EnhancedLink[]) ?? [],
       management: (sections?.management as EnhancedLink[]) ?? [],
     };
-  }, [userRole, isSuperAdmin, userPermissions, sections]);
+  }, [userRole, isSuperAdmin, userPermissions, sections, activeView]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* ================= DESKTOP SIDEBAR ================= */}
       <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5 h-screen sticky top-0">
         <div className="px-8 py-8 flex flex-col gap-1">
           <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
             MarvelMarts<span className="text-indigo-500">.</span>
           </h2>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Control Panel</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+            {userRole === "CUSTOMER" || userRole === "USER" ? "My Account" : (activeView === "ADMIN" ? "Control Panel" : "Vendor Suite")}
+          </p>
         </div>
+
+        {isSuperAdmin && (
+          <div className="px-4 mb-6">
+            <button 
+              onClick={() => setActiveView(activeView === "ADMIN" ? "VENDOR" : "ADMIN")}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 transition-all group"
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-500/60">Currently Viewing</span>
+                <span className="text-xs font-bold text-white uppercase">{activeView}</span>
+              </div>
+              <ArrowLeftRight size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+            </button>
+          </div>
+        )}
 
         <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
           {computedSections.general.length > 0 && (
             <div>
               <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
               <div className="space-y-1">
-                {computedSections.general.map((link) => (
+                {computedSections.general.map((link: any) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -492,7 +600,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
             <div>
               <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
               <div className="space-y-1">
-                {computedSections.management.map((link) => (
+                {computedSections.management.map((link: any) => (
                   <div key={link.label}>
                     {link.hasChildren ? (
                       <>
@@ -508,7 +616,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
                         </button>
                         {supportOpen && (
                           <div className="mt-1 ml-9 space-y-1 border-l border-white/10 pl-4">
-                            {link.children?.map((sub) => (
+                            {link.children?.map((sub: any) => (
                               <Link
                                 key={sub.href}
                                 href={sub.href}
@@ -543,14 +651,13 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
               {(propUser?.email || session?.user?.email)?.charAt(0).toUpperCase() || "A"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black text-white uppercase truncate">{propUser?.name || session?.user?.name || "Admin"}</p>
+              <p className="text-[10px] font-black text-white uppercase truncate">{propUser?.name || session?.user?.name || "User"}</p>
               <p className="text-[9px] text-gray-500 truncate">{propUser?.email || session?.user?.email}</p>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* ================= CONTENT AREA ================= */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
           <h2 className="font-black text-xl uppercase tracking-tighter">
@@ -563,14 +670,23 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
 
         {mobileOpen && (
           <div className="lg:hidden fixed inset-0 z-[100] bg-white p-8 animate-in fade-in slide-in-from-top-4 overflow-y-auto">
-            <div className="flex justify-between items-center mb-12">
+             <div className="flex justify-between items-center mb-12">
               <h2 className="font-black text-2xl tracking-tighter">MENU</h2>
               <button onClick={() => setMobileOpen(false)} className="p-4 bg-gray-100 rounded-full">
                 <X />
               </button>
             </div>
+            {isSuperAdmin && (
+               <button 
+               onClick={() => setActiveView(activeView === "ADMIN" ? "VENDOR" : "ADMIN")}
+               className="w-full mb-8 flex items-center justify-between p-6 bg-indigo-600 text-white rounded-2xl font-black italic uppercase"
+             >
+               Switch to {activeView === "ADMIN" ? "Vendor" : "Admin"}
+               <ArrowLeftRight />
+             </button>
+            )}
             <div className="space-y-6">
-              {computedSections.general.concat(computedSections.management).map((link) => (
+              {computedSections.general.concat(computedSections.management).map((link: any) => (
                 <Link
                   key={link.href}
                   href={link.href}

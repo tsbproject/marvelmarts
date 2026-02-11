@@ -63,7 +63,7 @@ export default function RefundQueueTable({ requests }: { requests: any[] }) {
                   <span className="font-black text-sm text-gray-900 italic">₦{Number(order.total).toLocaleString()}</span>
                 </td>
                 <td className="px-8 py-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                  {format(new Date(order.updatedAt), "MMM dd, yyyy")}
+                  {format(new Date(order.createdAt), "MMM dd, yyyy")}
                 </td>
                 <td className="px-8 py-6 text-right">
                   <button 

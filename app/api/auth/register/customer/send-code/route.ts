@@ -1,16 +1,11 @@
-
-
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { VerificationType } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { sendVerificationEmailWithNodemailer } from "@/app/lib/mailer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 
 export async function POST(req: Request) {
   try {
@@ -53,9 +48,16 @@ export async function POST(req: Request) {
       },
     });
 
-    // Send email with code
+    // Send email with code - Explicitly setting type to "CUSTOMER"
     try {
-      await sendVerificationEmailWithNodemailer(normalizedEmail, code, verification.id, name);
+      await sendVerificationEmailWithNodemailer(
+        normalizedEmail, 
+        code, 
+        verification.id, 
+        name,
+        "CUSTOMER" // Ensures the link goes to /auth/verify/verify-customer
+      );
+      console.log(`🚀 Customer verification email sent to ${normalizedEmail}`);
     } catch (mailErr) {
       console.error("Failed to send verification email:", mailErr);
     }

@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -87,18 +84,35 @@ export default function VendorRegistration() {
   // API Handlers
   async function handleSendCode() {
     if (!formData.email.includes("@")) return notifyError("Enter a valid email");
+    
+    // We remove the strict password check here because the password is in Step 3.
+    // The backend will receive a temporary marker, which we replace in the final step.
     setLoading(prev => ({ ...prev, code: true }));
+
     try {
       const res = await fetch("/api/auth/register/vendor/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          // Sending a temporary valid-length string to satisfy backend hashing
+          password: formData.password || "TEMPORARY_PASS_123", 
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+        }),
       });
+
       const data = await res.json();
-      if (data.success && data.verificationId) {
+
+      if (res.ok && data.success) {
         setVerificationId(data.verificationId);
-        notifySuccess("Verification code sent to your email");
-      } else notifyError(data.error ?? "Failed to send code");
+        notifySuccess("Verification code sent to your email!");
+      } else {
+        const errorMsg = data.error || data.details || "Failed to send code";
+        notifyError(errorMsg);
+      }
+    } catch (err) {
+      notifyError("Connection error. Please check your internet.");
     } finally {
       setLoading(prev => ({ ...prev, code: false }));
     }
@@ -108,7 +122,8 @@ export default function VendorRegistration() {
     if (!formData.verificationCode || !verificationId) return notifyError("Missing details");
     setLoading(prev => ({ ...prev, verify: true }));
     try {
-      const res = await fetch("/api/auth/register/vendor/verify-vendor", {
+      // Pointing to your vendor verification route
+      const res = await fetch("/api/auth/verify/vendor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: verificationId, code: formData.verificationCode }),
@@ -118,26 +133,54 @@ export default function VendorRegistration() {
         setIsVerified(true);
         notifySuccess("Email verified successfully");
       } else notifyError(data.error ?? "Invalid code");
+    } catch (err) {
+      notifyError("Verification failed. Please check your connection.");
     } finally {
       setLoading(prev => ({ ...prev, verify: false }));
+  
     }
+    console.log("Verifying with UID:", verificationId, "and Code:", formData.verificationCode);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     if (!isVerified) return notifyError("Please verify your email first");
+    if (formData.password !== formData.confirmPassword) return notifyError("Passwords do not match");
+    if (formData.password.length < 6) return notifyError("Password must be at least 6 characters");
+    if (!formData.agree) return notifyError("You must agree to the terms");
+
     setLoading(prev => ({ ...prev, submit: true }));
+
     try {
+      const payload = {
+        email: formData.email,
+        password: formData.password, // This is the REAL password from Step 3
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        storeName: formData.storeName,
+        storePhone: formData.storePhone,
+        storeAddress: formData.storeAddress,
+        state: formData.state,
+        country: formData.country || "Nigeria",
+      };
+
       const res = await fetch("/api/auth/register/vendor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
-      if (data.success) {
-        notifySuccess("Registration successful!");
-        setTimeout(() => router.push("/auth/sign-in"), 1500);
-      } else notifyError(data.error ?? "Registration failed");
+
+      if (res.ok && data.success) {
+        notifySuccess("Store created successfully!");
+        setTimeout(() => router.push("/auth/sign-in"), 2000);
+      } else {
+        notifyError(data.error || "Registration failed.");
+      }
+    } catch (err) {
+      notifyError("A connection error occurred.");
     } finally {
       setLoading(prev => ({ ...prev, submit: false }));
     }
@@ -154,6 +197,7 @@ export default function VendorRegistration() {
           
           <div className="flex items-center justify-between mb-10 relative z-10">
             <button 
+              type="button"
               onClick={() => router.back()} 
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-[#FFFFFF]"
             >
@@ -223,7 +267,7 @@ export default function VendorRegistration() {
 
               <div className="space-y-3">
                 <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
-                   Business Email
+                    Business Email
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
@@ -255,7 +299,7 @@ export default function VendorRegistration() {
                   <div className="flex gap-3">
                     <input
                       type="text"
-                      placeholder="XXXX"
+                      placeholder="XXXXXX"
                       value={formData.verificationCode}
                       onChange={(e) => setField("verificationCode", e.target.value)}
                       className="flex-1 p-4 bg-white border-2 border-[#F7931E]/30 rounded-2xl outline-none font-black text-center tracking-[0.5em] text-xl"

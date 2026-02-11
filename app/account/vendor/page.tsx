@@ -1,156 +1,479 @@
+
+
+
 // import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
+// import { authOptions } from "@/app/lib/auth"; 
 // import DashboardHeader from "@/app/_components/DashboardHeader";
-// import MobileTopbar from "@/app/_components/MobileTopbar";
-// import DashboardSidebar from "@/app/_components/DashboardSidebar";
-// import { vendorSections } from "@/types/dashboardSections";
+// import { 
+//   Store, Rocket, ShieldCheck, AlertCircle, 
+//   CheckCircle2, Circle, TrendingUp, ArrowUpRight,
+//   ShoppingBag, Package, MessageSquare, Plus
+// } from "lucide-react";
+// import Link from "next/link";
+// import { prisma } from "@/app/lib/prisma";
+// import { redirect } from "next/navigation";
+// import { formatNaira } from "@/app/lib/FormatNaira";
 
 // export default async function VendorDashboardPage() {
 //   const session = await getServerSession(authOptions);
 
 //   if (!session || session.user.role !== "VENDOR") {
-//     return <div className="p-8">Unauthorized</div>;
+//     redirect("/auth/sign-in");
 //   }
 
+//   // 1. Initial Fetch with Roadmap Relations
+//   let vendorData = await prisma.vendorProfile.findUnique({
+//     where: { userId: session.user.id },
+//     include: {
+//       onboarding: true,
+//       store: true,
+//       score: true,
+//       boost: true,
+//       products: { take: 3, orderBy: { salesCount: 'desc' } } 
+//     }
+//   });
+
+//   if (!vendorData) redirect("/onboarding/apply");
+//   const vId = vendorData.id;
+
+//   // 2. SELF-HEALING INITIALIZATION
+//   // Ensure all necessary sub-records exist for the dashboard to function
+//   if (!vendorData.onboarding) {
+//     vendorData.onboarding = await prisma.vendorOnboarding.upsert({
+//       where: { vendorProfileId: vId },
+//       update: {},
+//       create: { vendorProfileId: vId, profileDone: true }
+//     });
+//   }
+
+//   if (!vendorData.store) {
+//     vendorData.store = await prisma.vendorStore.upsert({
+//       where: { vendorProfileId: vId },
+//       update: {},
+//       create: { 
+//         vendorProfileId: vId, 
+//         name: vendorData.storeName, 
+//         slug: `${vendorData.storeName.toLowerCase().replace(/\s+/g, '-')}-${vId.slice(-4)}`,
+//         logo: vendorData.logoUrl,
+//         banner: vendorData.coverUrl
+//       }
+//     });
+//   }
+
+//   if (!vendorData.score) {
+//     vendorData.score = await prisma.vendorScore.upsert({
+//       where: { vendorProfileId: vId },
+//       update: {},
+//       create: { vendorProfileId: vId, score: 0, tier: "BRONZE" }
+//     });
+//   }
+
+//   if (!vendorData.boost) {
+//     vendorData.boost = await prisma.vendorBoost.upsert({
+//       where: { vendorProfileId: vId },
+//       update: {},
+//       create: { vendorProfileId: vId, credits: 100 }
+//     });
+//   }
+
+//   // 3. Fetch Real-time Stats for the Specific Vendor
+//   const [liveProductsCount, newOrdersCount] = await Promise.all([
+//     prisma.product.count({ where: { vendorProfileId: vId, isPublished: true } }),
+//     prisma.order.count({ where: { vendorProfileId: vId, status: "pending" } })
+//   ]);
+
+//   const stats = [
+//     { label: "Live Products", value: liveProductsCount, icon: <Package size={20}/>, color: "bg-blue-50 text-blue-600" },
+//     { label: "New Orders", value: newOrdersCount, icon: <ShoppingBag size={20}/>, color: "bg-red-50 text-red-600" },
+//     { label: "Trust Badge", value: vendorData.score?.tier || "BRONZE", icon: <ShieldCheck size={20}/>, color: "bg-purple-50 text-purple-600" },
+//     { label: "Boost Credits", value: vendorData.boost?.credits ?? 0, icon: <Rocket size={20}/>, color: "bg-orange-50 text-orange-600" },
+//   ];
+
 //   return (
-//     <div className="min-h-screen flex flex-col lg:flex-row">
-//       {/* ================= MOBILE TOPBAR ================= */}
-//       <div className="lg:hidden">
-//         <MobileTopbar role="Vendor" sections={vendorSections} />
-//       </div>
+//     <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+//       <DashboardHeader title="Merchant Command" showLogout={true} />
 
-//       {/* ================= DESKTOP SIDEBAR ================= */}
-//       <div className="hidden lg:block">
-//         <DashboardSidebar sections={vendorSections} />
-//       </div>
-
-//       {/* ================= MAIN CONTENT ================= */}
-//       <main className="flex-1 p-8">
-//         <DashboardHeader title="Vendor Dashboard" />
-
-//         <div className="bg-white rounded shadow p-6">
-//           <h2 className="text-2xl font-semibold mb-4">
-//             Welcome, {session.user.name}
-//           </h2>
-//           <p className="text-lg text-gray-700">
-//             This is your vendor dashboard. You can manage your products, view orders,
-//             and track your sales here.
-//           </p>
-
-//           {/* Example dashboard cards */}
-//           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-//             <div className="bg-gray-100 p-4 rounded shadow">
-//               <h3 className="text-xl font-bold">Products</h3>
-//               <p className="mt-2 text-gray-600">Manage your vendor products.</p>
+//       <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        
+//         {/* TOP ROW: STATS GRID */}
+//         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+//           {stats.map((stat) => (
+//             <div key={stat.label} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+//               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${stat.color}`}>
+//                 {stat.icon}
+//               </div>
+//               <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest">{stat.label}</p>
+//               <h3 className="text-xl font-black text-accent-navy mt-1">{stat.value}</h3>
 //             </div>
-//             <div className="bg-gray-100 p-4 rounded shadow">
-//               <h3 className="text-xl font-bold">Orders</h3>
-//               <p className="mt-2 text-gray-600">Track and manage customer orders.</p>
+//           ))}
+//         </div>
+
+//         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+//           {/* LEFT COLUMN: Main Widgets */}
+//           <div className="lg:col-span-2 space-y-8">
+            
+//             {/* SALES OVERVIEW CHART */}
+//             <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm flex flex-col h-[400px]">
+//               <div className="flex justify-between items-center mb-8">
+//                 <h3 className="text-xl font-black text-accent-navy uppercase tracking-tight">Sales Overview</h3>
+//                 <TrendingUp className="text-brand-primary" />
+//               </div>
+//               <div className="flex-1 flex flex-col justify-center items-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 mb-6">
+//                 <p className="text-neutral-gray font-bold text-xs uppercase italic tracking-widest">Earnings Chart Loading...</p>
+//               </div>
+//               <div className="grid grid-cols-2 border-t border-gray-50 pt-6">
+//                 <div>
+//                   <p className="text-[10px] font-black text-neutral-gray uppercase">Today's Earnings</p>
+//                   <p className="text-lg font-black text-accent-navy">{formatNaira(0)}</p>
+//                 </div>
+//                 <div className="text-right">
+//                   <p className="text-[10px] font-black text-neutral-gray uppercase">This Month</p>
+//                   <p className="text-lg font-black text-brand-primary font-italic italic">{formatNaira(0)}</p>
+//                 </div>
+//               </div>
 //             </div>
-//             <div className="bg-gray-100 p-4 rounded shadow">
-//               <h3 className="text-xl font-bold">Sales</h3>
-//               <p className="mt-2 text-gray-600">View sales reports and analytics.</p>
+
+//             {/* TOP SELLING PRODUCTS */}
+//             <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
+//                <div className="flex justify-between items-center mb-8">
+//                   <h3 className="text-xl font-black text-accent-navy uppercase tracking-tight">Top Selling</h3>
+//                   <Link href="/account/vendor/products" className="text-[10px] font-black text-brand-primary uppercase underline">View All</Link>
+//                </div>
+//                <div className="space-y-4">
+//                   {vendorData.products.length > 0 ? vendorData.products.map(product => (
+//                     <div key={product.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl group cursor-pointer hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-brand-primary/20">
+//                       <div className="w-14 h-14 rounded-xl bg-white overflow-hidden border border-gray-100 shrink-0">
+//                         <img src={product.imageUrl || '/logo.png'} className="w-full h-full object-contain p-1" alt=""/>
+//                       </div>
+//                       <div className="flex-1">
+//                         <p className="text-sm font-black text-accent-navy uppercase truncate italic">{product.title}</p>
+//                         <p className="text-[9px] font-bold text-neutral-gray uppercase mt-1 tracking-tighter">{product.salesCount || 0} Units Sold Total</p>
+//                       </div>
+//                       <div className="text-right">
+//                         <p className="font-black text-brand-primary text-md">{formatNaira(Number(product.price))}</p>
+//                         <button className="text-[8px] font-black uppercase text-accent-navy/40 hover:text-brand-primary">Boost</button>
+//                       </div>
+//                     </div>
+//                   )) : (
+//                     <div className="py-12 text-center text-neutral-gray text-[10px] font-black uppercase border-2 border-dashed border-gray-100 rounded-3xl">No products listed yet</div>
+//                   )}
+//                </div>
+//             </div>
+//           </div>
+
+//           {/* RIGHT COLUMN: Action & Messages */}
+//           <div className="space-y-8">
+            
+//             {/* ACTION NEEDED: ONBOARDING */}
+//             {!vendorData.onboarding?.completed && (
+//               <div className="bg-white border-2 border-brand-primary/20 p-6 rounded-4xl shadow-sm">
+//                 <h3 className="text-md font-black text-accent-navy uppercase mb-4 flex items-center gap-2">
+//                   <AlertCircle size={18} className="text-brand-primary" /> Action Needed
+//                 </h3>
+//                 <div className="space-y-3">
+//                   <OnboardingStep label="Identity Verified" done={vendorData.onboarding?.profileDone} href="#" />
+//                   <OnboardingStep label="Store Identity" done={vendorData.onboarding?.storeDone} href="/account/vendor/settings/store-setup" />
+//                   <OnboardingStep label="First Product" done={vendorData.onboarding?.productDone} href="/account/vendor/products/new" />
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* RECENT MESSAGES */}
+//             <div className="bg-white p-6 rounded-4xl border border-gray-100 shadow-sm">
+//                <div className="flex justify-between items-center mb-6">
+//                   <h3 className="text-lg font-black text-accent-navy uppercase">Messages</h3>
+//                   <MessageSquare className="text-brand-primary" size={20} />
+//                </div>
+//                <div className="space-y-4">
+//                   <div className="p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-brand-primary/20 cursor-pointer transition-all">
+//                      <div className="flex justify-between mb-1">
+//                         <span className="text-[9px] font-black text-brand-primary uppercase">Customer</span>
+//                         <span className="text-[9px] font-bold text-neutral-gray">Just now</span>
+//                      </div>
+//                      <p className="text-xs font-bold text-accent-navy line-clamp-2 italic">Connect with customers to increase conversion rates.</p>
+//                   </div>
+//                   <Link href="/account/vendor/messages" className="block text-center py-3 bg-accent-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-accent-navy transition-all">
+//                     Go to Inbox
+//                   </Link>
+//                </div>
+//             </div>
+
+//             {/* TIPS SECTION */}
+//             <div className="space-y-3">
+//               <TipCard text="Price items competitively for better visibility." />
+//               <TipCard text="Keep your response time under 2 hours." />
 //             </div>
 //           </div>
 //         </div>
-//       </main>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // Optimized Sub-components
+// function OnboardingStep({ label, done, href }: { label: string; done?: boolean; href: string }) {
+//   return (
+//     <Link href={done ? "#" : href} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${done ? 'bg-green-50 border-green-100 opacity-60' : 'bg-white border-gray-100 hover:border-brand-primary hover:shadow-md group'}`}>
+//       <div className="flex items-center gap-3">
+//         {done ? <CheckCircle2 className="text-green-600" size={18} /> : <Circle className="text-gray-300 group-hover:text-brand-primary" size={18} />}
+//         <span className={`text-[10px] font-black uppercase ${done ? 'text-green-700' : 'text-accent-navy'}`}>{label}</span>
+//       </div>
+//       {!done && <ArrowUpRight className="text-gray-300 group-hover:text-brand-primary" size={14} />}
+//     </Link>
+//   );
+// }
+
+// function TipCard({ text }: { text: string }) {
+//   return (
+//     <div className="p-4 bg-brand-primary/5 rounded-2xl border border-brand-primary/10 flex items-start gap-3">
+//       <CheckCircle2 className="text-brand-primary shrink-0" size={14} />
+//       <p className="text-[9px] font-black text-accent-navy uppercase leading-relaxed">{text}</p>
 //     </div>
 //   );
 // }
 
 
 
+
+
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { authOptions } from "@/app/lib/auth"; 
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import { Package, ShoppingCart, BarChart3, ArrowUpRight, Store } from "lucide-react";
+import { 
+  Store, Rocket, ShieldCheck, AlertCircle, 
+  CheckCircle2, Circle, TrendingUp, ArrowUpRight,
+  ShoppingBag, Package, MessageSquare, Plus
+} from "lucide-react";
 import Link from "next/link";
+import { prisma } from "@/app/lib/prisma";
+import { redirect } from "next/navigation";
+import { formatNaira } from "@/app/lib/FormatNaira";
+import { startOfDay, startOfMonth } from "date-fns";
 
 export default async function VendorDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "VENDOR") {
-    return (
-      <div className="p-8 text-accent-navy font-bold">Unauthorized Access</div>
-    );
+    redirect("/auth/sign-in");
   }
 
+  // 1. Initial Fetch with Roadmap Relations
+  let vendorData = await prisma.vendorProfile.findUnique({
+    where: { userId: session.user.id },
+    include: {
+      onboarding: true,
+      store: true,
+      score: true,
+      boost: true,
+      products: { take: 3, orderBy: { salesCount: 'desc' } } 
+    }
+  });
+
+  if (!vendorData) redirect("/onboarding/apply");
+  const vId = vendorData.id;
+
+  // 2. SELF-HEALING INITIALIZATION
+  if (!vendorData.onboarding) {
+    vendorData.onboarding = await prisma.vendorOnboarding.upsert({
+      where: { vendorProfileId: vId },
+      update: {},
+      create: { vendorProfileId: vId, profileDone: true }
+    });
+  }
+
+  if (!vendorData.store) {
+    vendorData.store = await prisma.vendorStore.upsert({
+      where: { vendorProfileId: vId },
+      update: {},
+      create: { 
+        vendorProfileId: vId, 
+        name: vendorData.storeName, 
+        slug: `${vendorData.storeName.toLowerCase().replace(/\s+/g, '-')}-${vId.slice(-4)}`,
+        logo: vendorData.logoUrl,
+        banner: vendorData.coverUrl
+      }
+    });
+  }
+
+  if (!vendorData.score) {
+    vendorData.score = await prisma.vendorScore.upsert({
+      where: { vendorProfileId: vId },
+      update: {},
+      create: { vendorProfileId: vId, score: 0, tier: "BRONZE" }
+    });
+  }
+
+  if (!vendorData.boost) {
+    vendorData.boost = await prisma.vendorBoost.upsert({
+      where: { vendorProfileId: vId },
+      update: {},
+      create: { vendorProfileId: vId, credits: 100 }
+    });
+  }
+
+  // 3. Fetch Real-time Stats & Revenue
+  const today = startOfDay(new Date());
+  const monthStart = startOfMonth(new Date());
+
+  const [liveProductsCount, newOrdersCount, todayRevenue, monthRevenue] = await Promise.all([
+    prisma.product.count({ where: { vendorProfileId: vId, isPublished: true } }),
+    prisma.order.count({ where: { vendorProfileId: vId, status: "pending" } }),
+    prisma.order.aggregate({
+      where: { vendorProfileId: vId, status: "approved", createdAt: { gte: today } },
+      _sum: { total: true }
+    }),
+    prisma.order.aggregate({
+      where: { vendorProfileId: vId, status: "approved", createdAt: { gte: monthStart } },
+      _sum: { total: true }
+    })
+  ]);
+
   const stats = [
-    { label: "Total Products", value: "24", icon: <Package />, color: "bg-blue-50 text-blue-600" },
-    { label: "Active Orders", value: "12", icon: <ShoppingCart />, color: "bg-brand-light text-brand-primary" },
-    { label: "Monthly Sales", value: "$4,250", icon: <BarChart3 />, color: "bg-green-50 text-green-600" },
+    { label: "Live Products", value: liveProductsCount, icon: <Package size={20}/>, color: "bg-blue-50 text-blue-600" },
+    { label: "New Orders", value: newOrdersCount, icon: <ShoppingBag size={20}/>, color: "bg-red-50 text-red-600" },
+    { label: "Trust Badge", value: vendorData.score?.tier || "BRONZE", icon: <ShieldCheck size={20}/>, color: "bg-purple-50 text-purple-600" },
+    { label: "Boost Credits", value: vendorData.boost?.credits ?? 0, icon: <Rocket size={20}/>, color: "bg-orange-50 text-orange-600" },
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <DashboardHeader title="Vendor Dashboard" showLogout={true} />
+    <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+      <DashboardHeader title="Merchant Command" showLogout={true} />
 
-      <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-3 duration-700">
+      <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
         
-        {/* Vendor Brand Hero (Customizable Preview) */}
-        <section className="relative overflow-hidden bg-accent-navy rounded-4xl min-h-[200px] flex items-end p-8 shadow-2xl">
-          {/* Background Pattern / Cover Photo Placeholder */}
-          <div className="absolute inset-0 opacity-20 bg-[url('/grid-pattern.svg')] bg-center" />
-          <div className="absolute inset-0 bg-gradient-to-t from-accent-navy via-transparent to-transparent" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 w-full">
-            <div className="w-24 h-24 bg-neutral-white rounded-3xl p-2 shadow-xl flex items-center justify-center">
-              {/* This would be the Vendor's Logo */}
-              <Store size={48} className="text-brand-primary" />
-            </div>
-            <div className="text-center md:text-left flex-1">
-              <h2 className="text-3xl font-black text-neutral-white uppercase tracking-tight">
-                {session.user.name}&apos;s Store
-              </h2>
-              <p className="text-brand-light font-medium opacity-80">Manage your business operations and insights.</p>
-            </div>
-            <Link 
-              href="/account/vendor/profile" 
-              className="bg-brand-primary text-accent-navy px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-neutral-white transition-all shadow-lg"
-            >
-              Customize Store
-            </Link>
-          </div>
-        </section>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* TOP ROW: STATS GRID */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {stats.map((stat) => (
-            <div key={stat.label} className="bg-neutral-white p-6 rounded-[28px] border border-gray-100 shadow-sm flex items-center gap-5">
-              <div className={`p-4 rounded-2xl ${stat.color}`}>
+            <div key={stat.label} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${stat.color}`}>
                 {stat.icon}
               </div>
-              <div>
-                <p className="text-xs font-black text-neutral-gray uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-2xl font-black text-accent-navy">{stat.value}</h3>
-              </div>
+              <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-xl font-black text-accent-navy mt-1">{stat.value}</h3>
             </div>
           ))}
         </div>
 
-        {/* Action Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-neutral-white p-8 rounded-4xl border border-gray-100 shadow-sm group hover:border-brand-primary/50 transition-all">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="text-xl font-black text-accent-navy uppercase">Recent Orders</h3>
-              <Link href="/account/vendor/orders" className="text-brand-primary"><ArrowUpRight /></Link>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LEFT COLUMN: Main Widgets */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* SALES OVERVIEW CHART */}
+            <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm flex flex-col h-[400px]">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black text-accent-navy uppercase tracking-tight">Sales Overview</h3>
+                <TrendingUp className="text-brand-primary" />
+              </div>
+              <div className="flex-1 flex flex-col justify-center items-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 mb-6">
+                <p className="text-neutral-gray font-bold text-xs uppercase italic tracking-widest">Earnings Chart Loading...</p>
+              </div>
+              <div className="grid grid-cols-2 border-t border-gray-50 pt-6">
+                <div>
+                  <p className="text-[10px] font-black text-neutral-gray uppercase">Today's Earnings</p>
+                  <p className="text-lg font-black text-accent-navy">{formatNaira(Number(todayRevenue._sum.total || 0))}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-neutral-gray uppercase">This Month</p>
+                  <p className="text-lg font-black text-brand-primary font-italic italic">{formatNaira(Number(monthRevenue._sum.total || 0))}</p>
+                </div>
+              </div>
             </div>
-            <div className="text-neutral-gray text-sm font-medium py-10 text-center border-2 border-dashed border-neutral-light rounded-2xl">
-              No recent orders to display.
+
+            {/* TOP SELLING PRODUCTS */}
+            <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
+               <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-xl font-black text-accent-navy uppercase tracking-tight">Top Selling</h3>
+                  <Link href="/account/vendor/products" className="text-[10px] font-black text-brand-primary uppercase underline">View All</Link>
+               </div>
+               <div className="space-y-4">
+                  {vendorData.products.length > 0 ? vendorData.products.map(product => (
+                    <div key={product.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl group cursor-pointer hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-brand-primary/20">
+                      <div className="w-14 h-14 rounded-xl bg-white overflow-hidden border border-gray-100 shrink-0">
+                        <img src={product.imageUrl || '/logo.png'} className="w-full h-full object-contain p-1" alt=""/>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-accent-navy uppercase truncate italic">{product.title}</p>
+                        <p className="text-[9px] font-bold text-neutral-gray uppercase mt-1 tracking-tighter">{product.salesCount || 0} Units Sold Total</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-brand-primary text-md">{formatNaira(Number(product.price))}</p>
+                        <button className="text-[8px] font-black uppercase text-accent-navy/40 hover:text-brand-primary">Boost</button>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="py-12 text-center text-neutral-gray text-[10px] font-black uppercase border-2 border-dashed border-gray-100 rounded-3xl">No products listed yet</div>
+                  )}
+               </div>
             </div>
           </div>
 
-          <div className="bg-neutral-white p-8 rounded-4xl border border-gray-100 shadow-sm group hover:border-brand-primary/50 transition-all">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="text-xl font-black text-accent-navy uppercase">Inventory Alert</h3>
-              <Link href="/account/vendor/products" className="text-brand-primary"><ArrowUpRight /></Link>
+          {/* RIGHT COLUMN: Action & Messages */}
+          <div className="space-y-8">
+            
+            {/* ACTION NEEDED: ONBOARDING */}
+            {!vendorData.onboarding?.completed && (
+              <div className="bg-white border-2 border-brand-primary/20 p-6 rounded-4xl shadow-sm">
+                <h3 className="text-md font-black text-accent-navy uppercase mb-4 flex items-center gap-2">
+                  <AlertCircle size={18} className="text-brand-primary" /> Action Needed
+                </h3>
+                <div className="space-y-3">
+                  <OnboardingStep label="Identity Verified" done={vendorData.onboarding?.profileDone} href="#" />
+                  <OnboardingStep label="Store Identity" done={vendorData.onboarding?.storeDone} href="/account/vendor/settings/store-setup" />
+                  <OnboardingStep label="First Product" done={vendorData.onboarding?.productDone} href="/account/vendor/products/new" />
+                </div>
+              </div>
+            )}
+
+            {/* RECENT MESSAGES */}
+            <div className="bg-white p-6 rounded-4xl border border-gray-100 shadow-sm">
+               <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-black text-accent-navy uppercase">Messages</h3>
+                  <MessageSquare className="text-brand-primary" size={20} />
+               </div>
+               <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-brand-primary/20 cursor-pointer transition-all">
+                     <div className="flex justify-between mb-1">
+                        <span className="text-[9px] font-black text-brand-primary uppercase">Customer</span>
+                        <span className="text-[9px] font-bold text-neutral-gray">Just now</span>
+                     </div>
+                     <p className="text-xs font-bold text-accent-navy line-clamp-2 italic">Connect with customers to increase conversion rates.</p>
+                  </div>
+                  <Link href="/account/vendor/messages" className="block text-center py-3 bg-accent-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-accent-navy transition-all">
+                    Go to Inbox
+                  </Link>
+               </div>
             </div>
-            <div className="text-neutral-gray text-sm font-medium py-10 text-center border-2 border-dashed border-neutral-light rounded-2xl">
-              All products are currently in stock.
+
+            {/* TIPS SECTION */}
+            <div className="space-y-3">
+              <TipCard text="Price items competitively for better visibility." />
+              <TipCard text="Keep your response time under 2 hours." />
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Optimized Sub-components
+function OnboardingStep({ label, done, href }: { label: string; done?: boolean; href: string }) {
+  return (
+    <Link href={done ? "#" : href} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${done ? 'bg-green-50 border-green-100 opacity-60' : 'bg-white border-gray-100 hover:border-brand-primary hover:shadow-md group'}`}>
+      <div className="flex items-center gap-3">
+        {done ? <CheckCircle2 className="text-green-600" size={18} /> : <Circle className="text-gray-300 group-hover:text-brand-primary" size={18} />}
+        <span className={`text-[10px] font-black uppercase ${done ? 'text-green-700' : 'text-accent-navy'}`}>{label}</span>
+      </div>
+      {!done && <ArrowUpRight className="text-gray-300 group-hover:text-brand-primary" size={14} />}
+    </Link>
+  );
+}
+
+function TipCard({ text }: { text: string }) {
+  return (
+    <div className="p-4 bg-brand-primary/5 rounded-2xl border border-brand-primary/10 flex items-start gap-3">
+      <CheckCircle2 className="text-brand-primary shrink-0" size={14} />
+      <p className="text-[9px] font-black text-accent-navy uppercase leading-relaxed">{text}</p>
     </div>
   );
 }

@@ -1,3 +1,7 @@
+
+
+
+
 // "use client";
 
 // import React, { useState, useEffect } from "react";
@@ -20,9 +24,6 @@
 //   viewMode?: "grid" | "list";
 // }
 
-
-
-
 // export default function ProductCard({ 
 //   product, 
 //   onQuickView,
@@ -34,34 +35,33 @@
 //   const { notifySuccess } = useNotification();
 //   const { setLoading } = useLoadingOverlay();
   
-//   // 1. Redux Wishlist State
+//   // 1. Redux Wishlist State - Check against productId for reliability
 //   const wishlist = useSelector((state: RootState) => state.wishlist.items);
-//   const isWishlisted = wishlist.some((item) => item.id === product.id);
+//   const isWishlisted = wishlist.some((item) => item.productId === product.id);
 
 //   const [mounted, setMounted] = useState(false);
 //   useEffect(() => { setMounted(true); }, []);
 
-//   // 2. Wishlist Toggle Function (The missing piece!)
+//   // 2. Updated Wishlist Toggle Function with correct Type Properties
 //   const handleWishlistToggle = async (e: React.MouseEvent) => {
 //     e.preventDefault();
 //     e.stopPropagation();
 
-    
-
-//     // Instant Redux Update for snappy UI
+//     // Map properties to match the central WishlistItem interface
 //     dispatch(toggleWishlist({
 //       id: product.id,
 //       productId: product.id, 
-//       name: product.title,   
+//       title: product.title,   // Corrected from 'name'
 //       slug: typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current,
 //       price: product.discountPrice ?? product.price,
-//       image: product.imageUrl || product.images?.[0]?.url || "/logo.png" 
+//       imageUrl: product.imageUrl || product.images?.[0]?.url || "/logo.png" // Corrected from 'image'
 //     }));
 
 //     // Sync with Database in background
 //     try {
 //       const res = await fetch("/api/wishlist", {
 //         method: "POST",
+//         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ productId: product.id }),
 //       });
 //       if (res.ok) {
@@ -69,7 +69,7 @@
 //         if (data.action === "added") notifySuccess("Added to Wishlist");
 //       }
 //     } catch (error) {
-//       console.error("Wishlist sync failed");
+//       console.error("Wishlist sync failed:", error);
 //     }
 //   };
 
@@ -176,12 +176,13 @@
 
 
 
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, Eye, ShoppingCart, Heart } from "lucide-react";
+import { Star, Eye, ShoppingCart, Heart, Edit3, Rocket, MoreVertical } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
 import { useDispatch, useSelector } from "react-redux";
@@ -190,48 +191,64 @@ import { toggleWishlist } from "@/store/wishlistSlice";
 import { RootState } from "@/store";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+import { toggleProductStatus } from "@/app/lib/actions/product-actions";
+import Link from "next/link";
 
 interface ProductCardProps {
   product: SerializedProduct;
   onQuickView: (p: SerializedProduct) => void;
   onViewDetails?: () => void;
   viewMode?: "grid" | "list";
+  isOwner?: boolean; // PHASE 4 & 5: Toggle for Vendor Management
 }
 
 export default function ProductCard({ 
   product, 
   onQuickView,
   onViewDetails,
-  viewMode = "grid"
+  viewMode = "grid",
+  isOwner = false 
 }: ProductCardProps) {
   const router = useRouter();
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
   const { setLoading } = useLoadingOverlay();
   
-  // 1. Redux Wishlist State - Check against productId for reliability
   const wishlist = useSelector((state: RootState) => state.wishlist.items);
   const isWishlisted = wishlist.some((item) => item.productId === product.id);
+  
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // 2. Updated Wishlist Toggle Function with correct Type Properties
+  const handleToggleStatus = async (e: React.MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const result = await toggleProductStatus(product.id, !!product.isPublished);
+  
+  if (result.success) {
+    notifySuccess(result.newState ? "Product is now LIVE" : "Product is now HIDDEN");
+    router.refresh();
+  } else {
+    // Note: use NotifyError if that's your context's name
+    console.error(result.error);
+  }
+};
+
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Map properties to match the central WishlistItem interface
     dispatch(toggleWishlist({
       id: product.id,
       productId: product.id, 
-      title: product.title,   // Corrected from 'name'
+      title: product.title,
       slug: typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current,
       price: product.discountPrice ?? product.price,
-      imageUrl: product.imageUrl || product.images?.[0]?.url || "/logo.png" // Corrected from 'image'
+      imageUrl: product.imageUrl || product.images?.[0]?.url || "/logo.png"
     }));
 
-    // Sync with Database in background
     try {
       const res = await fetch("/api/wishlist", {
         method: "POST",
@@ -279,7 +296,7 @@ export default function ProductCard({
       }`}
     >
       {/* Sales Label */}
-      {discountPercentage && (
+      {discountPercentage && !isOwner && (
         <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-[10px] font-black w-10 h-10 flex items-center justify-center rounded-full shadow-lg uppercase">
           -{discountPercentage}%
         </div>
@@ -299,20 +316,42 @@ export default function ProductCard({
           className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
         />
         
-        {/* Actions Overlay */}
-        <div className="absolute inset-0 bg-accent-navy/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-           <button 
-            onClick={(e) => { e.stopPropagation(); onQuickView(product); }}
-            className="p-3 bg-white rounded-full text-accent-navy shadow-xl hover:bg-brand-primary hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0"
-           >
-             <Eye size={18} />
-           </button>
-           <button 
-            onClick={handleWishlistToggle}
-            className={`p-3 rounded-full shadow-xl transition-all transform translate-y-4 group-hover:translate-y-0 delay-75 ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-accent-navy'}`}
-           >
-             <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
-           </button>
+        {/* Actions Overlay - Conditional based on isOwner */}
+        <div className="absolute inset-0 bg-accent-navy/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+           {isOwner ? (
+             // VENDOR TOOLS
+             <div className="flex flex-col gap-2 w-full px-4">
+               <Link 
+                 href={`/account/vendor/products/edit/${product.id}`}
+                 onClick={(e) => e.stopPropagation()}
+                 className="flex items-center justify-center gap-2 py-3 bg-brand-primary text-accent-navy rounded-xl font-black text-[10px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+               >
+                 <Edit3 size={14} /> Edit Product
+               </Link>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); /* Handle Boost */ }}
+                 className="flex items-center justify-center gap-2 py-3 bg-white text-accent-navy rounded-xl font-black text-[10px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+               >
+                 <Rocket size={14} className="text-orange-500" /> Boost Visibility
+               </button>
+             </div>
+           ) : (
+             // CUSTOMER TOOLS
+             <>
+               <button 
+                onClick={(e) => { e.stopPropagation(); onQuickView(product); }}
+                className="p-3 bg-white rounded-full text-accent-navy shadow-xl hover:bg-brand-primary hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0"
+               >
+                 <Eye size={18} />
+               </button>
+               <button 
+                onClick={handleWishlistToggle}
+                className={`p-3 rounded-full shadow-xl transition-all transform translate-y-4 group-hover:translate-y-0 delay-75 ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-accent-navy'}`}
+               >
+                 <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+               </button>
+             </>
+           )}
         </div>
       </div>
 
@@ -336,12 +375,28 @@ export default function ProductCard({
           )}
         </div>
 
-        <button 
-          onClick={handleAddToCart}
-          className={`${isList ? "w-auto px-8" : "w-full"} bg-accent-navy hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2`}
-        >
-          <ShoppingCart size={14} /> Add to Cart
-        </button>
+        {/* Action Button - Customer only */}
+        {!isOwner && (
+          <button 
+            onClick={handleAddToCart}
+            className={`${isList ? "w-auto px-8" : "w-full"} bg-accent-navy hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2`}
+          >
+            <ShoppingCart size={14} /> Add to Cart
+          </button>
+        )}
+
+        {/* Status Badge - Vendor only */}
+        {isOwner && (
+          <button 
+            onClick={handleToggleStatus}
+            className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50 w-full justify-center hover:bg-gray-50 transition-colors group/status"
+          >
+            <span className={`w-2 h-2 rounded-full animate-pulse ${product?.isPublished ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-[9px] font-black uppercase text-neutral-gray tracking-tighter group-hover/status:text-accent-navy transition-colors">
+              {product?.isPublished ? 'Active on Store' : 'Draft / Private'}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

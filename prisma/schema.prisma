@@ -30,16 +30,12 @@ model User {
   wishlists          Wishlist[]          
   cart               Cart?               
   
-  // --- PROFILES (Already likely have Cascade in their own models) ---
+ 
   adminProfile       AdminProfile?       @relation("AdminProfileUser")
   customerProfile    CustomerProfile?    @relation("CustomerProfileUser")
   vendorProfile      VendorProfile?      @relation("VendorProfileUser")
 
-  // --- BUSINESS DATA (Decide: Cascade or SetNull?) ---
-  // keeping the products/orders even when user is gone:
-  // 1. Change the relation in the Product/Order model to 'onDelete: SetNull'
-  // 2. Make the userId in those models optional (String?)
-  products           Product[]
+  
   orders             Order[]
   reviews            Review[]
   
@@ -69,11 +65,19 @@ model AdminProfile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation("AdminProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  
 }
 
 model VendorProfile {
   id           String   @id @default(cuid())
   userId       String   @unique
+  user         User     @relation("VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+
+
+
+
+  
+  // --- Existing Identity Fields ---
   firstName    String
   lastName     String
   storeName    String
@@ -82,17 +86,101 @@ model VendorProfile {
   country      String
   state        String
   
-  // Branding & Customization
+  // Branding (Syncs with Phase 5: VendorStore)
   logoUrl      String?  // Store Business Logo
   coverUrl     String?  // Store Banner/Cover Photo
-  bio          String?  @db.Text // Store Description for customers
-  
+  bio          String?  @db.Text 
+
+  // --- Roadmap Phase Relations ---
+  // Phase 4: Onboarding Tracker
+  onboarding   VendorOnboarding? 
+
+  // Phase 5: Unique Store Identity & Slug
+  store        VendorStore?      
+
+  // Phase 6: Inventory Management
+  products     Product[]         // Crucial: Fixes the Dashboard 'products' error
+
+  // Phase 7: Order Management
+  orders       Order[]           // Needed for 'New Orders' count
+
+  // Phase 8: Visibility Boost System
+  boost        VendorBoost?      
+
+  // Phase 11: Reputation Score & Tiers
+  score        VendorScore?      
+
+  // Phase 12: Disputes & Seller Protection
+  disputes     Dispute[]
+
+  // Meta
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   isVerified   Boolean  @default(false)
-  user         User     @relation("VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// PHASE 4: ONBOARDING TRACKER
+model VendorOnboarding {
+  id              String        @id @default(cuid())
+  vendorProfileId String        @unique
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  profileDone     Boolean       @default(false)
+  storeDone       Boolean       @default(false)
+  productDone     Boolean       @default(false)
+  completed       Boolean       @default(false)
+}
+
+// PHASE 5: VENDOR STORE (Unique Slugs & Metrics)
+model VendorStore {
+  id              String        @id @default(cuid())
+  vendorProfileId String        @unique
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  slug            String        @unique // e.g., marvelmarts.com/store/tayo-shop
+  name            String
+  logo            String?
+  banner          String?
+  description     String?
+  followers       Int           @default(0)
+}
+
+// PHASE 8: VENDOR BOOST SYSTEM
+model VendorBoost {
+  id              String        @id @default(cuid())
+  vendorProfileId String        @unique
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  credits         Int           @default(0)
+}
+
+// PHASE 11: VENDOR REPUTATION SCORE
+model VendorScore {
+  id              String        @id @default(cuid())
+  vendorProfileId String        @unique
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  score           Int           @default(0)
+  tier            VendorTier    @default(BRONZE)
+}
+
+// PHASE 12: DISPUTES
+model Dispute {
+  id              String        @id @default(cuid())
+  vendorProfileId String
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+  reason          String
+  status          DisputeStatus @default(OPEN)
+  createdAt       DateTime      @default(now())
+}
+
+enum VendorTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
 model CustomerProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -119,6 +207,11 @@ model EmailVerification {
   verified  Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+enum VerificationType {
+  CUSTOMER_REGISTRATION
+  VENDOR_REGISTRATION
 }
 
 model VendorVerification {
@@ -171,8 +264,9 @@ model Product {
   brand             String?
   tags              String[]
   price             Decimal        @db.Decimal(10, 2)
-  shippingMethod String?
-  weight         Float?
+  salesCount        Int           @default(0)
+  shippingMethod    String?
+  weight            Float?
   discountPrice     Decimal?       @db.Decimal(10, 2)
   stock             Int            @default(0)
   lowStockThreshold Int?           @default(5)
@@ -201,8 +295,9 @@ model Product {
   category          Category?      @relation(fields: [categoryId], references: [id])
   
   //Multi-Vendor Link
-  vendorId          String?        // ID of the User who owns this product
-  vendor  User?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  // --- RELATION TO VENDOR ---
+  vendorProfileId  String
+  vendorProfile    VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
   cartItems         CartItem[]
   orderItems        OrderItem[]
@@ -369,6 +464,10 @@ model Order {
   paymentIntentId String?     @unique // This will store Paystack reference
   createdAt       DateTime    @default(now())
   items           OrderItem[]
+
+
+  vendorProfileId String
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 
 
@@ -442,10 +541,7 @@ enum UserRole {
   CUSTOMER
 }
 
-enum VerificationType {
-  CUSTOMER_REGISTRATION
-  VENDOR_REGISTRATION
-}
+
 
 
 model HelpArticle {
