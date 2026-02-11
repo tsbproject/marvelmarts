@@ -21,6 +21,7 @@ export default function WishlistPage() {
   /**
    * 2. Handle Move to Cart
    * Maps the WishlistItem structure to the SerializedProduct structure strictly.
+   * Includes all missing mandatory fields to satisfy TypeScript/Build constraints.
    */
   const handleMoveToCart = (item: WishlistItem) => {
     const productForCart: SerializedProduct = {
@@ -29,11 +30,13 @@ export default function WishlistPage() {
       slug: item.slug || "",
       price: item.price,
       imageUrl: item.imageUrl,
-      categoryName: item.categoryName || "Tactical Gear",
+      categoryName: (item as any).categoryName || "Tactical Gear",
       description: "", 
       discountPrice: null,
       images: [{ url: item.imageUrl }], 
       stock: 10, 
+      isPublished: true, // FIXED: Added missing mandatory field
+      isTrending: false, // Optional but good for consistency
       createdAt: new Date().toISOString(), 
       updatedAt: new Date().toISOString(),
     };
