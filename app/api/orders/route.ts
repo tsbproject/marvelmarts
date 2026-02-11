@@ -18,29 +18,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items in cart" }, { status: 400 });
     }
 
+    // 1. Resolve Vendor Relationship
+    // MarvelMarts requirement: Every order must link to a vendorProfileId.
+    // We fetch the vendorProfileId from the product associated with the first item.
+    const productData = await prisma.product.findUnique({
+      where: { id: items[0].id },
+      select: { vendorProfileId: true }
+    });
+
+    if (!productData?.vendorProfileId) {
+      return NextResponse.json({ error: "Vendor information missing for these products" }, { status: 400 });
+    }
+
     const orderCount = await prisma.order.count();
     const orderNumber = `MARVEL-${1000 + orderCount + 1}`;
 
-    // 1. Create the Order in DB
+    // 2. Create the Order in DB
     const order = await prisma.order.create({
       data: {
         orderNumber,
         userId: session.user.id,
+        vendorProfileId: productData.vendorProfileId, // FIXED: Required field now included
         email: formData.email,
         firstName: formData.firstName,
         lastName: formData.lastName,
         streetAddress: formData.streetAddress,
-        apartment: formData.apartment,
+        apartment: formData.apartment || null,
         city: formData.city,
         state: formData.state,
-        orderNotes: formData.orderNotes,
-        useDifferentShipping: formData.useDifferentShipping,
+        orderNotes: formData.orderNotes || null,
+        useDifferentShipping: formData.useDifferentShipping || false,
         shippingAddress: formData.useDifferentShipping ? formData.shippingDetails?.streetAddress : formData.streetAddress,
         shippingCity: formData.useDifferentShipping ? formData.shippingDetails?.city : formData.city,
         shippingState: formData.useDifferentShipping ? formData.shippingDetails?.state : formData.state,
         subtotal: Number(subtotal),
         shipping: Number(shipping),
         total: Number(total),
+        status: "pending",
         items: {
           create: items.map((item: any) => ({
             productId: item.id,
@@ -55,8 +69,7 @@ export async function POST(req: Request) {
       include: { items: true }
     });
 
-    // 2. INITIALIZE PAYSTACK
-    // We do this AFTER the order is created so we have the 'order.id' for metadata
+    // 3. INITIALIZE PAYSTACK
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -65,9 +78,9 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         email: formData.email,
-        amount: Math.round(Number(total) * 100), // Amount in Kobo (Naira * 100)
+        amount: Math.round(Number(total) * 100), // Kobo
         metadata: {
-          orderId: order.id, // This is the 'secret sauce' for the webhook
+          orderId: order.id,
           custom_fields: [
             {
               display_name: "Order Number",
@@ -76,7 +89,6 @@ export async function POST(req: Request) {
             }
           ]
         },
-        // Replace with your actual frontend URLs
         callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/thank-you?orderId=${order.id}`,
       }),
     });
@@ -87,10 +99,9 @@ export async function POST(req: Request) {
       throw new Error(paystackData.message || "Paystack initialization failed");
     }
 
-    // 3. Return the authorization_url to the frontend
     return NextResponse.json({ 
       orderId: order.id, 
-      url: paystackData.data.authorization_url // Frontend will redirect to this
+      url: paystackData.data.authorization_url 
     }, { status: 201 });
 
   } catch (error: any) {
@@ -102,26 +113,26 @@ export async function POST(req: Request) {
   }
 }
 
-
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    // If no session, they shouldn't see any orders
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch only orders belonging to THIS user
     const orders = await prisma.order.findMany({
       where: {
         userId: session.user.id
       },
       include: {
-        items: true // Include items so the table can show details
+        items: true,
+        vendorProfile: {
+          select: { storeName: true }
+        }
       },
       orderBy: {
-        createdAt: 'desc' // Newest orders first
+        createdAt: 'desc'
       }
     });
 
