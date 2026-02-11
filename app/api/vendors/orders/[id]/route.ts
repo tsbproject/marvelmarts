@@ -1,32 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
-import { sendShipmentNotificationEmail } from "@/app/lib/mailer";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Define params as a Promise
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const { id } = params;
-    const { status, trackingNumber } = await request.json();
-
-    // 1. Authentication Check
-    if (!session?.user) {
+    if (!session || session.user.role !== "VENDOR") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Validation
-    const normalizedStatus = status?.toUpperCase();
-    const validStatuses = ["APPROVED", "REJECTED"];
+    // 1. Await the params to get the ID
+    const { id } = await params; 
+    
+    const body = await request.json();
+    const { status, trackingNumber } = body;
 
-    if (!validStatuses.includes(normalizedStatus)) {
-      return NextResponse.json({ message: "Invalid status update" }, { status: 400 });
-    }
-
-    // 3. Authorization Check: Ensure the vendor owns this order
+    // 2. Get Vendor Profile
     const vendorProfile = await prisma.vendorProfile.findUnique({
       where: { userId: session.user.id },
     });
@@ -35,51 +28,24 @@ export async function PATCH(
       return NextResponse.json({ message: "Vendor profile not found" }, { status: 404 });
     }
 
-    const existingOrder = await prisma.order.findFirst({
-      where: {
-        id,
-        vendorProfileId: vendorProfile.id,
-      },
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json({ message: "Order not found or unauthorized" }, { status: 404 });
-    }
-
-    // 4. Execute Update
+    // 3. Update Order - Ensure it belongs to this vendor
     const updatedOrder = await prisma.order.update({
-      where: { id },
+      where: { 
+        id: id,
+        vendorProfileId: vendorProfile.id 
+      },
       data: {
-        status: normalizedStatus.toLowerCase(),
-        ...(normalizedStatus === "APPROVED" && trackingNumber && { trackingNumber }),
+        status: status.toLowerCase(),
+        trackingNumber: trackingNumber || null,
       },
     });
 
-    // 5. Trigger Shipment Email
-    if (normalizedStatus === "APPROVED" && updatedOrder.trackingNumber && !updatedOrder.emailSent) {
-      try {
-        await sendShipmentNotificationEmail(updatedOrder);
+    return NextResponse.json({ message: "Order updated successfully", order: updatedOrder });
 
-        await prisma.order.update({
-          where: { id: updatedOrder.id },
-          data: { emailSent: true },
-        });
-      } catch (mailError) {
-        console.error("SHIPMENT_EMAIL_ERROR:", mailError);
-      }
-    }
-
-    return NextResponse.json({
-      message: `Order successfully ${normalizedStatus.toLowerCase()}${
-        updatedOrder.emailSent ? " and customer notified" : ""
-      }`,
-      status: updatedOrder.status.toUpperCase(),
-      trackingNumber: updatedOrder.trackingNumber,
-    });
   } catch (error: any) {
-    console.error("PATCH_ORDER_ERROR:", error);
+    console.error("Order Update Error:", error);
     return NextResponse.json(
-      { message: error.code === "P2025" ? "Order not found" : "Update failed" },
+      { message: error.message || "Internal Server Error" }, 
       { status: 500 }
     );
   }
