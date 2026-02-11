@@ -86,6 +86,9 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
       createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : new Date().toISOString(),
       variantId: selectedVariant?.id || "", 
+      isPublished: product.isPublished,
+      
+      
     };
     
     dispatch(addToCart({ product: reduxProduct, quantity }));
