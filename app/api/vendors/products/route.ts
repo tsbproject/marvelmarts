@@ -33,7 +33,7 @@ export async function GET() {
     // Flatten data for the frontend
     const items = products.map(p => ({
       ...p,
-      name: p.name || "Untitled Product",
+      name: p.title || "Untitled Product",
       // Priority: 1. Related images array, 2. Direct imageUrl field, 3. Placeholder
       imageUrl: p.images?.[0]?.url || (p as any).imageUrl || "/placeholder-product.png"
     }));
