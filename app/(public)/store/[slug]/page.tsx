@@ -1,22 +1,31 @@
 import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import { Store, ShieldCheck, Star, Package } from "lucide-react";
-import ProductCard from "@/app/_components/ProductCard"; // Assuming you have this
+import ProductCard from "@/app/_components/ProductCard";
+import { SerializedProduct } from "@/types/product";
 
-export default async function PublicStorePage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function PublicStorePage({ 
+  params 
+}: { 
+  params: Promise<{ slug: string }> 
+}) {
+  const { slug } = await params;
 
-  // 1. Fetch Store + Products + Score in one go
+  // 1. Fetch Store + Products + Score with necessary Product Relations
   const storeData = await prisma.vendorStore.findUnique({
     where: { slug },
     include: {
       vendorProfile: {
         include: {
           products: {
-            where: { isPublished: true }, // Phase 6: Only show live items
-            orderBy: { createdAt: "desc" }
+            where: { isPublished: true },
+            orderBy: { createdAt: "desc" },
+            include: {
+              category: { select: { name: true } },
+              images: true,
+            }
           },
-          score: true // Phase 11: Display reputation
+          score: true 
         }
       }
     }
@@ -25,7 +34,27 @@ export default async function PublicStorePage({ params }: { params: { slug: stri
   if (!storeData) notFound();
 
   const vendor = storeData.vendorProfile;
-  const products = vendor.products;
+
+  // 2. Map raw Prisma products to SerializedProduct type precisely
+  const products: SerializedProduct[] = vendor.products.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    description: p.description || "",
+    price: Number(p.price),
+    discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+    categoryName: p.category?.name || "General",
+    images: p.images.map(img => ({ url: img.url })),
+    imageUrl: p.images[0]?.url || "/placeholder.png",
+    stock: p.stock ?? 0,
+    brand: (p as any).brand || null,
+    isPublished: p.isPublished,
+    isTrending: (p as any).isTrending || false,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+    rating: (p as any).rating || 0,
+    reviewCount: (p as any).reviewCount || 0,
+  }));
 
   return (
     <div className="min-h-screen bg-[#FBFBFB]">
@@ -43,7 +72,9 @@ export default async function PublicStorePage({ params }: { params: { slug: stri
               {storeData.logo ? (
                 <img src={storeData.logo} className="w-full h-full object-cover rounded-3xl" alt="logo" />
               ) : (
-                <div className="w-full h-full bg-gray-100 flex items-center justify-center"><Store size={48} className="text-brand-primary" /></div>
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <Store size={48} className="text-brand-primary" />
+                </div>
               )}
             </div>
             <div className="text-center md:text-left flex-1">
@@ -81,7 +112,11 @@ export default async function PublicStorePage({ params }: { params: { slug: stri
         {products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onQuickView={(p) => console.log("Quick view:", p.title)}
+              />
             ))}
           </div>
         ) : (

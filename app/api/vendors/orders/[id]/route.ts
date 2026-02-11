@@ -5,7 +5,7 @@ import { authOptions } from "@/app/lib/auth";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // Define params as a Promise
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const session = await getServerSession(authOptions);
