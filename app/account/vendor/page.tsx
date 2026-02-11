@@ -1,6 +1,3 @@
-
-
-
 // import { getServerSession } from "next-auth";
 // import { authOptions } from "@/app/lib/auth"; 
 // import DashboardHeader from "@/app/_components/DashboardHeader";
@@ -13,6 +10,7 @@
 // import { prisma } from "@/app/lib/prisma";
 // import { redirect } from "next/navigation";
 // import { formatNaira } from "@/app/lib/FormatNaira";
+// import { startOfDay, startOfMonth } from "date-fns";
 
 // export default async function VendorDashboardPage() {
 //   const session = await getServerSession(authOptions);
@@ -37,7 +35,6 @@
 //   const vId = vendorData.id;
 
 //   // 2. SELF-HEALING INITIALIZATION
-//   // Ensure all necessary sub-records exist for the dashboard to function
 //   if (!vendorData.onboarding) {
 //     vendorData.onboarding = await prisma.vendorOnboarding.upsert({
 //       where: { vendorProfileId: vId },
@@ -76,10 +73,21 @@
 //     });
 //   }
 
-//   // 3. Fetch Real-time Stats for the Specific Vendor
-//   const [liveProductsCount, newOrdersCount] = await Promise.all([
+//   // 3. Fetch Real-time Stats & Revenue
+//   const today = startOfDay(new Date());
+//   const monthStart = startOfMonth(new Date());
+
+//   const [liveProductsCount, newOrdersCount, todayRevenue, monthRevenue] = await Promise.all([
 //     prisma.product.count({ where: { vendorProfileId: vId, isPublished: true } }),
-//     prisma.order.count({ where: { vendorProfileId: vId, status: "pending" } })
+//     prisma.order.count({ where: { vendorProfileId: vId, status: "pending" } }),
+//     prisma.order.aggregate({
+//       where: { vendorProfileId: vId, status: "approved", createdAt: { gte: today } },
+//       _sum: { total: true }
+//     }),
+//     prisma.order.aggregate({
+//       where: { vendorProfileId: vId, status: "approved", createdAt: { gte: monthStart } },
+//       _sum: { total: true }
+//     })
 //   ]);
 
 //   const stats = [
@@ -124,11 +132,11 @@
 //               <div className="grid grid-cols-2 border-t border-gray-50 pt-6">
 //                 <div>
 //                   <p className="text-[10px] font-black text-neutral-gray uppercase">Today's Earnings</p>
-//                   <p className="text-lg font-black text-accent-navy">{formatNaira(0)}</p>
+//                   <p className="text-lg font-black text-accent-navy">{formatNaira(Number(todayRevenue._sum.total || 0))}</p>
 //                 </div>
 //                 <div className="text-right">
 //                   <p className="text-[10px] font-black text-neutral-gray uppercase">This Month</p>
-//                   <p className="text-lg font-black text-brand-primary font-italic italic">{formatNaira(0)}</p>
+//                   <p className="text-lg font-black text-brand-primary font-italic italic">{formatNaira(Number(monthRevenue._sum.total || 0))}</p>
 //                 </div>
 //               </div>
 //             </div>
@@ -236,6 +244,7 @@
 
 
 
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth"; 
 import DashboardHeader from "@/app/_components/DashboardHeader";
@@ -257,7 +266,7 @@ export default async function VendorDashboardPage() {
     redirect("/auth/sign-in");
   }
 
-  // 1. Initial Fetch with Roadmap Relations
+  // 1. Initial Fetch with Roadmap Relations + Product Images
   let vendorData = await prisma.vendorProfile.findUnique({
     where: { userId: session.user.id },
     include: {
@@ -265,7 +274,11 @@ export default async function VendorDashboardPage() {
       store: true,
       score: true,
       boost: true,
-      products: { take: 3, orderBy: { salesCount: 'desc' } } 
+      products: { 
+        take: 3, 
+        orderBy: { salesCount: 'desc' },
+        include: { images: true } // FIXED: Added images relation
+      } 
     }
   });
 
@@ -328,6 +341,12 @@ export default async function VendorDashboardPage() {
     })
   ]);
 
+  // Map products to include imageUrl for the UI
+  const mappedProducts = vendorData.products.map(p => ({
+    ...p,
+    imageUrl: p.images[0]?.url || '/logo.png'
+  }));
+
   const stats = [
     { label: "Live Products", value: liveProductsCount, icon: <Package size={20}/>, color: "bg-blue-50 text-blue-600" },
     { label: "New Orders", value: newOrdersCount, icon: <ShoppingBag size={20}/>, color: "bg-red-50 text-red-600" },
@@ -386,10 +405,10 @@ export default async function VendorDashboardPage() {
                   <Link href="/account/vendor/products" className="text-[10px] font-black text-brand-primary uppercase underline">View All</Link>
                </div>
                <div className="space-y-4">
-                  {vendorData.products.length > 0 ? vendorData.products.map(product => (
+                  {mappedProducts.length > 0 ? mappedProducts.map(product => (
                     <div key={product.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl group cursor-pointer hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-brand-primary/20">
                       <div className="w-14 h-14 rounded-xl bg-white overflow-hidden border border-gray-100 shrink-0">
-                        <img src={product.imageUrl || '/logo.png'} className="w-full h-full object-contain p-1" alt=""/>
+                        <img src={product.imageUrl} className="w-full h-full object-contain p-1" alt={product.title}/>
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-black text-accent-navy uppercase truncate italic">{product.title}</p>
