@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
-import { sendShipmentNotificationEmail } from "@/app/lib/mailer"; 
+import { sendShipmentNotificationEmail } from "@/app/lib/mailer";
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -36,10 +36,10 @@ export async function PATCH(
     }
 
     const existingOrder = await prisma.order.findFirst({
-      where: { 
-        id, 
-        vendorProfileId: vendorProfile.id 
-      }
+      where: {
+        id,
+        vendorProfileId: vendorProfile.id,
+      },
     });
 
     if (!existingOrder) {
@@ -49,36 +49,33 @@ export async function PATCH(
     // 4. Execute Update
     const updatedOrder = await prisma.order.update({
       where: { id },
-      data: { 
+      data: {
         status: normalizedStatus.toLowerCase(),
-        ...(normalizedStatus === "APPROVED" && trackingNumber && { trackingNumber })
-      }
+        ...(normalizedStatus === "APPROVED" && trackingNumber && { trackingNumber }),
+      },
     });
 
     // 5. Trigger Shipment Email
-    // Only send if Approved, has a tracking number, and email hasn't been sent yet
     if (normalizedStatus === "APPROVED" && updatedOrder.trackingNumber && !updatedOrder.emailSent) {
       try {
         await sendShipmentNotificationEmail(updatedOrder);
-        
-        // Mark as sent in DB
+
         await prisma.order.update({
           where: { id: updatedOrder.id },
-          data: { emailSent: true }
+          data: { emailSent: true },
         });
       } catch (mailError) {
         console.error("SHIPMENT_EMAIL_ERROR:", mailError);
-        // We don't crash the whole request if the email fails, 
-        // but we log it for Tayo to debug.
       }
     }
 
     return NextResponse.json({
-      message: `Order successfully ${normalizedStatus.toLowerCase()}${updatedOrder.emailSent ? ' and customer notified' : ''}`,
+      message: `Order successfully ${normalizedStatus.toLowerCase()}${
+        updatedOrder.emailSent ? " and customer notified" : ""
+      }`,
       status: updatedOrder.status.toUpperCase(),
-      trackingNumber: updatedOrder.trackingNumber
+      trackingNumber: updatedOrder.trackingNumber,
     });
-
   } catch (error: any) {
     console.error("PATCH_ORDER_ERROR:", error);
     return NextResponse.json(
