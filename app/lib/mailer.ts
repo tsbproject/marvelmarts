@@ -869,6 +869,26 @@ export async function sendOrderCancellationEmail(order: any) {
   return sendEmail({ to: order.email, subject: `Order Cancelled: #${order.orderNumber}`, html: wrapLayout(content, "Cancellation Confirmation") });
 }
 
+
+//REFUND STATUS EMAIL
+export async function sendRefundStatusEmail(order: any, status: 'approved' | 'rejected', reason?: string) {
+  const isApproved = status === 'approved';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 24px; overflow: hidden;">
+      <div style="background-color: ${COLORS.navy}; padding: 30px; text-align: center;">
+        <img src="${LOGO_URL}" width="120" />
+      </div>
+      <div style="padding: 40px; text-align: center;">
+        <h2 style="color: ${isApproved ? '#16a34a' : '#dc2626'}; text-transform: uppercase;">Refund ${status}</h2>
+        <p>Your refund request for Order <b>#${order.orderNumber}</b> has been ${status}.</p>
+        ${!isApproved && reason ? `<div style="background: ${COLORS.ghost}; padding: 15px; margin-top: 20px; border-radius: 8px; color: ${COLORS.gray};">Reason: ${reason}</div>` : ''}
+        <p style="margin-top: 30px; font-size: 13px; color: ${COLORS.gray};">Thank you for choosing MarvelMarts.</p>
+      </div>
+    </div>
+  `;
+  return sendEmail({ to: order.email, subject: `Update on your Refund: #${order.orderNumber}`, html });
+}
+
 // SUPPORT: Admin/Customer Tickets
 export async function sendAdminTicketNotification({ id, subject, email, message, articleTitle }: any) {
   const ticketUrl = `${BASE_URL}/dashboard/admins/support/tickets/${id}`;
