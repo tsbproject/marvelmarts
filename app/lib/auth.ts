@@ -1,7 +1,3 @@
-
-
-
-
 // import NextAuth, { type NextAuthOptions, type DefaultSession, type DefaultUser } from "next-auth";
 // import "next-auth/jwt";
 // import CredentialsProvider from "next-auth/providers/credentials";
@@ -9,11 +5,9 @@
 // import FacebookProvider from "next-auth/providers/facebook";
 // import { prisma } from "@/app/lib/prisma";
 // import bcrypt from "bcryptjs";
-// import { UserRole } from "@prisma/client";
+// import { UserRole, VendorStatus } from "@prisma/client";
 
 // /* --- 1. Constants & Defaults --- */
-// const DEFAULT_SOCIAL_ROLE: UserRole = "CUSTOMER";
-
 // const DEFAULT_PERMISSIONS = {
 //   manageAdmins: false,
 //   manageUsers: false,
@@ -28,6 +22,7 @@
 //   manageActivity: false,
 //   manageTrending: false,
 //   manageSubscribers: false,
+//   manageVendors: false,
 // };
 
 // /* --- 2. Module Augmentation --- */
@@ -37,6 +32,8 @@
 //       id: string;
 //       role: UserRole;
 //       permissions: Record<string, boolean>;
+//       vendorStatus?: VendorStatus;
+//       rejectionReason?: string | null;
 //     } & DefaultSession["user"];
 //   }
 
@@ -44,6 +41,8 @@
 //     id: string;
 //     role: UserRole;
 //     permissions: Record<string, boolean>;
+//     vendorStatus?: VendorStatus;
+//     rejectionReason?: string | null;
 //   }
 // }
 
@@ -52,6 +51,8 @@
 //     userId: string;    
 //     role: UserRole;     
 //     permissions: Record<string, boolean>; 
+//     vendorStatus?: VendorStatus;
+//     rejectionReason?: string | null;
 //   }
 // }
 
@@ -61,17 +62,17 @@
 //   email: string;
 //   role: UserRole;
 //   permissions: Record<string, boolean>;
+//   vendorStatus?: VendorStatus;
+//   rejectionReason?: string | null;
 // }
 
 // /* --- 3. Helper Functions --- */
 // function normalizePermissions(userPerms: any, profilePerms: any): Record<string, boolean> {
 //   const base = { ...DEFAULT_PERMISSIONS };
-//   // Prioritize AdminProfile permissions, fallback to User table permissions
 //   const merged = { 
 //     ...(typeof userPerms === "object" ? userPerms : {}),
 //     ...(typeof profilePerms === "object" ? profilePerms : {})
 //   };
-  
 //   return { ...base, ...merged };
 // }
 
@@ -81,6 +82,7 @@
 //   session: { strategy: "jwt" },
 //   pages: {
 //     signIn: "/auth/sign-in",
+//     error: "/auth/error",
 //   },
 
 //   providers: [
@@ -98,7 +100,15 @@
 
 //           const user = await prisma.user.findUnique({
 //             where: { email: identifier },
-//             include: { adminProfile: true },
+//             include: { 
+//               adminProfile: true,
+//               vendorProfile: {
+//                 select: {
+//                   status: true,
+//                   rejectionReason: true
+//                 }
+//               }
+//             },
 //           });
 
 //           if (!user?.passwordHash) return null;
@@ -106,86 +116,54 @@
 //           const isValid = await bcrypt.compare(password, user.passwordHash);
 //           if (!isValid) return null;
 
+//           // Compute permissions
+//           const permissions = normalizePermissions(
+//             user.permissions, 
+//             user.adminProfile?.permissions
+//           );
+
 //           return {
 //             id: user.id,
 //             name: user.name,
 //             email: user.email,
 //             role: user.role,
-//             permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions),
+//             permissions,
+//             vendorStatus: user.vendorProfile?.status,
+//             rejectionReason: user.vendorProfile?.rejectionReason,
 //           };
-//         } catch (err) {
-//           console.error("[Credentials authorize] error", err);
+//         } catch (error) {
+//           console.error("Auth error:", error);
 //           return null;
 //         }
 //       },
 //     }),
-
-//     GoogleProvider({
-//       clientId: process.env.GOOGLE_CLIENT_ID!,
-//       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-//     }),
-
-//     FacebookProvider({
-//       clientId: process.env.FACEBOOK_CLIENT_ID!,
-//       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-//     }),
 //   ],
 
 //   callbacks: {
-//     async jwt({ token, user, trigger }) {
-//       try {
-//         // Initial Sign In
-//         if (user) {
-//           token.userId = user.id;
-//           token.email = user.email?.toLowerCase();
-//           token.role = user.role;
-//           token.permissions = user.permissions;
-//         }
-
-//         // Always fetch fresh role/permissions on login or token refresh
-//         // This solves the 401 issue if you changed your role in the DB
-//         if (!token.role || trigger === "signIn" || trigger === "update") {
-//           const dbUser = await prisma.user.findUnique({
-//             where: { email: token.email as string },
-//             include: { adminProfile: true },
-//           });
-
-//           if (dbUser) {
-//             token.role = dbUser.role;
-//             token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
-//           }
-//         }
-
-//         return token;
-//       } catch (err) {
-//         console.error("[JWT callback] error", err);
-//         return token;
+//     async jwt({ token, user }) {
+//       if (user) {
+//         token.userId = user.id;
+//         token.role = user.role;
+//         token.permissions = user.permissions;
+//         token.vendorStatus = user.vendorStatus;
+//         token.rejectionReason = user.rejectionReason;
 //       }
+//       return token;
 //     },
-
 //     async session({ session, token }) {
-//       try {
-//         if (session.user) {
-//           session.user.id = (token.userId as string);
-//           session.user.role = (token.role as UserRole);
-//           session.user.permissions = (token.permissions as Record<string, boolean>);
-//         }
-//         return session;
-//       } catch (err) {
-//         console.error("[Session callback] error", err);
-//         return session;
+//       if (token && session.user) {
+//         session.user.id = token.userId;
+//         session.user.role = token.role;
+//         session.user.permissions = token.permissions;
+//         session.user.vendorStatus = token.vendorStatus;
+//         session.user.rejectionReason = token.rejectionReason;
 //       }
-//     },
-
-//     redirect({ url, baseUrl }) {
-//       if (url.startsWith("/")) return `${baseUrl}${url}`;
-//       return url.startsWith(baseUrl) ? url : baseUrl;
+//       return session;
 //     },
 //   },
-
-//   secret: process.env.NEXTAUTH_SECRET,
 // };
 
+// export default NextAuth(authOptions);
 
 
 
@@ -193,11 +171,9 @@
 import NextAuth, { type NextAuthOptions, type DefaultSession, type DefaultUser } from "next-auth";
 import "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
-import FacebookProvider from "next-auth/providers/facebook";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
-import { UserRole } from "@prisma/client";
+import { UserRole, VendorStatus } from "@prisma/client";
 
 /* --- 1. Constants & Defaults --- */
 const DEFAULT_PERMISSIONS = {
@@ -214,6 +190,7 @@ const DEFAULT_PERMISSIONS = {
   manageActivity: false,
   manageTrending: false,
   manageSubscribers: false,
+  manageVendors: false,
 };
 
 /* --- 2. Module Augmentation --- */
@@ -223,6 +200,8 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       permissions: Record<string, boolean>;
+      vendorStatus?: VendorStatus;
+      rejectionReason?: string | null;
     } & DefaultSession["user"];
   }
 
@@ -230,6 +209,8 @@ declare module "next-auth" {
     id: string;
     role: UserRole;
     permissions: Record<string, boolean>;
+    vendorStatus?: VendorStatus;
+    rejectionReason?: string | null;
   }
 }
 
@@ -238,6 +219,8 @@ declare module "next-auth/jwt" {
     userId: string;    
     role: UserRole;     
     permissions: Record<string, boolean>; 
+    vendorStatus?: VendorStatus;
+    rejectionReason?: string | null;
   }
 }
 
@@ -247,6 +230,8 @@ interface AuthUser {
   email: string;
   role: UserRole;
   permissions: Record<string, boolean>;
+  vendorStatus?: VendorStatus;
+  rejectionReason?: string | null;
 }
 
 /* --- 3. Helper Functions --- */
@@ -283,7 +268,15 @@ export const authOptions: NextAuthOptions = {
 
           const user = await prisma.user.findUnique({
             where: { email: identifier },
-            include: { adminProfile: true },
+            include: { 
+              adminProfile: true,
+              vendorProfile: {
+                select: {
+                  status: true,
+                  rejectionReason: true
+                }
+              }
+            },
           });
 
           if (!user?.passwordHash) return null;
@@ -291,88 +284,73 @@ export const authOptions: NextAuthOptions = {
           const isValid = await bcrypt.compare(password, user.passwordHash);
           if (!isValid) return null;
 
+          const permissions = normalizePermissions(
+            user.permissions, 
+            user.adminProfile?.permissions
+          );
+
           return {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions),
+            permissions,
+            vendorStatus: user.vendorProfile?.status,
+            rejectionReason: user.vendorProfile?.rejectionReason,
           };
-        } catch (err) {
-          console.error("[Credentials authorize] error", err);
+        } catch (error) {
+          console.error("Auth error:", error);
           return null;
         }
       },
-    }),
-
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
     }),
   ],
 
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      try {
-        // 1. Handle Initial Sign In
-        if (user) {
-          token.userId = user.id;
-          token.email = user.email?.toLowerCase();
-          token.role = user.role;
-          token.permissions = user.permissions;
-        }
-
-        // 2. Handle Manual Updates (Triggered by update() from useSession)
-        if (trigger === "update" && session) {
-          token.role = session.role || token.role;
-          token.permissions = session.permissions || token.permissions;
-        }
-
-        // 3. Ensure token is always populated with DB data if something is missing
-        if (!token.role) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: token.email as string },
-            include: { adminProfile: true },
-          });
-
-          if (dbUser) {
-            token.role = dbUser.role;
-            token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
-          }
-        }
-
-        return token;
-      } catch (err) {
-        console.error("[JWT callback] error", err);
-        return token;
+      // 1. Initial Sign In
+      if (user) {
+        token.userId = user.id;
+        token.role = user.role;
+        token.permissions = user.permissions;
+        token.vendorStatus = user.vendorStatus;
+        token.rejectionReason = user.rejectionReason;
       }
-    },
 
+      // 2. Role Sync: If a Customer becomes a Vendor, we must fetch the new role from DB
+      // We check the DB whenever a session is accessed to ensure role upgrades are instant.
+      if (!user && token.userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.userId },
+          select: { 
+            role: true, 
+            permissions: true,
+            vendorProfile: {
+              select: { status: true, rejectionReason: true }
+            }
+          }
+        });
+
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.vendorStatus = dbUser.vendorProfile?.status;
+          token.rejectionReason = dbUser.vendorProfile?.rejectionReason;
+        }
+      }
+
+      return token;
+    },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.userId;
         session.user.role = token.role;
         session.user.permissions = token.permissions;
+        session.user.vendorStatus = token.vendorStatus;
+        session.user.rejectionReason = token.rejectionReason;
       }
       return session;
     },
-
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
-    },
   },
-
-  secret: process.env.NEXTAUTH_SECRET,
 };
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export default NextAuth(authOptions);

@@ -28,7 +28,11 @@ import {
   Flame,
   ArrowLeftRight,
   Heart,
-  MapPin
+  MapPin,
+ DownloadIcon,
+ CreditCard,
+ 
+
 } from "lucide-react";
 import { SectionLink } from "@/types/dashboard";
 
@@ -75,6 +79,10 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
         management: [
           { label: "Addresses", href: "/account/customer/profile", icon: <MapPin size={20} />, visible: true },
           { label: "Settings", href: "/account/customer/profile-settings", icon: <Settings size={20} />, visible: true },
+          { label: "Downloads", href: "/account/customer/downloads", icon: <DownloadIcon size={20} />, visible: true },
+          { label: "Payment method", href: "/account/customer/payment", icon: <CreditCard size={20} />, visible: true },
+          { label: "Account details", href: "/account/customer/account-details", icon: <CreditCard size={20} />, visible: true },
+
         ]
       };
     }

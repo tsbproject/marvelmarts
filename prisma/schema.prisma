@@ -95,6 +95,9 @@ model VendorProfile {
   // Phase 4: Onboarding Tracker
   onboarding   VendorOnboarding? 
 
+  status       VendorStatus     @default(PENDING)
+  rejectionReason  String?      @db.Text
+
   // Phase 5: Unique Store Identity & Slug
   store        VendorStore?      
 
@@ -117,6 +120,7 @@ model VendorProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   isVerified   Boolean  @default(false)
+  isSuspended  Boolean   @default(false)
 }
 
 // PHASE 4: ONBOARDING TRACKER
@@ -179,6 +183,12 @@ enum VendorTier {
 enum DisputeStatus {
   OPEN
   RESOLVED
+  REJECTED
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
   REJECTED
 }
 model CustomerProfile {

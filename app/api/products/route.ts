@@ -1,8 +1,3 @@
-
-
-
-
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { Prisma, ProductStatus } from "@prisma/client";
@@ -39,6 +34,9 @@ const productSchema = z.object({
 /* ===========================
    POST: Create Product
 =========================== */
+/* ===========================
+   POST: Create Product
+=========================== */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -64,7 +62,8 @@ export async function POST(request: NextRequest) {
     }
 
     const product = await prisma.$transaction(async (tx) => {
-      return await tx.product.create({
+      // 1. Create the Product
+      const newProduct = await tx.product.create({
         data: {
           title: data.title,
           slug,
@@ -99,6 +98,15 @@ export async function POST(request: NextRequest) {
         },
         include: { images: true, category: true, variants: true },
       });
+
+      // 2. NEW: Update Onboarding Status
+      // This ensures the "First Product" step turns green on the dashboard
+      await tx.vendorOnboarding.update({
+        where: { vendorProfileId: session.user.id },
+        data: { productDone: true }
+      });
+
+      return newProduct;
     });
 
     return NextResponse.json({ success: true, product }, { status: 201 });
@@ -306,3 +314,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: false, message: "Delete failed" }, { status: 500 });
   }
 }
+
+
+
+
+

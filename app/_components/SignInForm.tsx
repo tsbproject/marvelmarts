@@ -27,7 +27,7 @@
 //     setError("");
 //     setLoading(true);
 
-//     // Get the callback URL from the query string (e.g., /checkout)
+//     // Get the callback URL from the query string
 //     const callbackUrl = searchParams.get("callbackUrl");
 
 //     const res = await signIn("credentials", {
@@ -42,14 +42,25 @@
 //       return;
 //     }
 
-//     // PRIORITY 1: Redirect back to checkout if that's where the user came from
+//     // MANDATORY SYNC: Fetch the session immediately after successful login
+//     // This ensures the client-side session is initialized before we move
+//     const session = await getSession();
+
+//     if (!session) {
+//       setError("Authorization failed. Please try again.");
+//       setLoading(false);
+//       return;
+//     }
+
+//     // PRIORITY 1: Redirect back to the specific callback path (e.g., /account/customer/orders)
 //     if (callbackUrl) {
-//       router.push(callbackUrl);
+//       // Use window.location.href to force a clean load and avoid "rejection" 
+//       // on protected routes during Redux/Session hydration
+//       window.location.href = callbackUrl;
 //       return;
 //     }
 
 //     // PRIORITY 2: Role-based dashboard redirect (Fallback)
-//     const session = await getSession();
 //     const userRole = session?.user?.role?.toUpperCase();
 
 //     const routes = {
@@ -59,7 +70,8 @@
 //       CUSTOMER: "/account/customer",
 //     };
 
-//     router.push(routes[userRole as keyof typeof routes] || "/");
+//     const targetRoute = routes[userRole as keyof typeof routes] || "/";
+//     router.push(targetRoute);
 //   };
 
 //   return (
@@ -219,7 +231,6 @@
 
 //       {/* RIGHT SIDE: Gateway */}
 //       <div className="w-full lg:w-[60%] flex items-center justify-center p-6 md:p-12 lg:p-24 bg-[#F8F8F8]">
-//         {/* Suspense is required when using useSearchParams in Next.js Client Components */}
 //         <Suspense fallback={<div className="animate-pulse text-accent-navy font-black">INITIALIZING GATEWAY...</div>}>
 //           <SignInForm />
 //         </Suspense>
@@ -227,6 +238,7 @@
 //     </div>
 //   );
 // }
+
 
 
 
@@ -241,9 +253,13 @@ import {
   Eye, EyeOff, Mail, Lock, ArrowLeft, 
   Loader2, Facebook, CheckCircle2
 } from "lucide-react";
+// REDUX IMPORT
+import { useDispatch } from "react-redux";
+import { setViewMode } from "@/store/appSlice";
 
 function SignInForm() {
   const router = useRouter();
+  const dispatch = useDispatch(); // Initialize Redux Dispatch
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -272,7 +288,6 @@ function SignInForm() {
     }
 
     // MANDATORY SYNC: Fetch the session immediately after successful login
-    // This ensures the client-side session is initialized before we move
     const session = await getSession();
 
     if (!session) {
@@ -281,10 +296,15 @@ function SignInForm() {
       return;
     }
 
-    // PRIORITY 1: Redirect back to the specific callback path (e.g., /account/customer/orders)
+    /**
+     * DUAL ACCOUNT SYNC: 
+     * Even if the user is a VENDOR, we default their view to CUSTOMER 
+     * in Redux so they land on the marketplace first.
+     */
+    dispatch(setViewMode("CUSTOMER"));
+
+    // PRIORITY 1: Redirect back to the specific callback path
     if (callbackUrl) {
-      // Use window.location.href to force a clean load and avoid "rejection" 
-      // on protected routes during Redux/Session hydration
       window.location.href = callbackUrl;
       return;
     }
@@ -292,15 +312,18 @@ function SignInForm() {
     // PRIORITY 2: Role-based dashboard redirect (Fallback)
     const userRole = session?.user?.role?.toUpperCase();
 
-    const routes = {
-      SUPER_ADMIN: "/dashboard/admins",
-      ADMIN: "/dashboard/admins",
-      VENDOR: "/account/vendor",
-      CUSTOMER: "/account/customer",
-    };
-
-    const targetRoute = routes[userRole as keyof typeof routes] || "/";
-    router.push(targetRoute);
+    /**
+     * ADJUSTED REDIRECT LOGIC:
+     * To ensure dual-account users land as customers first:
+     * - Admins go to Admin Dashboard.
+     * - Everyone else (Vendor/Customer) goes to Home (/) to browse first.
+     */
+    if (userRole === "SUPER_ADMIN" || userRole === "ADMIN") {
+      router.push("/dashboard/admins");
+    } else {
+      // Vendors and Customers land on Home page by default
+      router.push("/");
+    }
   };
 
   return (
@@ -386,7 +409,7 @@ function SignInForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <button 
-          onClick={() => signIn("google", { callbackUrl: searchParams.get("callbackUrl") || "/account/customer" })} 
+          onClick={() => signIn("google", { callbackUrl: searchParams.get("callbackUrl") || "/" })}
           className="flex items-center justify-center gap-3 py-4 border-2 border-neutral-light rounded-2xl hover:border-brand-primary hover:bg-white transition-all font-bold text-neutral-dark"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
@@ -399,7 +422,7 @@ function SignInForm() {
           Google
         </button>
         <button 
-          onClick={() => signIn("facebook", { callbackUrl: searchParams.get("callbackUrl") || "/account/customer" })}
+         onClick={() => signIn("facebook", { callbackUrl: searchParams.get("callbackUrl") || "/" })}
           className="flex items-center justify-center gap-3 py-4 border-2 border-neutral-light rounded-2xl hover:border-blue-600 hover:bg-white transition-all font-bold text-accent-navy"
         >
           <Facebook size={20} className="text-blue-600 fill-blue-600" /> Facebook

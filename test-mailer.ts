@@ -1,37 +1,28 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
+// app/api/test-email/route.ts
+import { NextResponse } from "next/server";
+import { sendVerificationEmailWithNodemailer } from "@/app/lib/mailer";
 
-dotenv.config(); // <-- this loads .env
-
-async function main() {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,      // must resolve to mail.marvelmarts.com
-    port: Number(process.env.SMTP_PORT),
-    secure: true,                     // true for port 465
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    logger: true,
-    debug: true,
-  });
-
+export async function GET() {
   try {
-    await transporter.verify();
-    console.log("SMTP connection is OK");
+    // Replace with your actual email to see the result
+    const testEmail = "bolarinwatayo@gmail.com"; 
+    
+    await sendVerificationEmailWithNodemailer(
+      testEmail,
+      "123456",
+      "test-uid-123",
+      "Tayo Bolarinwa",
+      "VENDOR"
+    );
 
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: "ajongs2004@yahoo.com",
-      subject: "Test Email from MarvelMarts",
-      text: "This is a plain text test email.",
-      html: "<p>This is a <b>test email</b> sent via Nodemailer.</p>",
+    return NextResponse.json({ 
+      success: true, 
+      message: `Test email sent to ${testEmail}. Check your inbox (and spam folder)!` 
     });
-
-    console.log("Message sent:", info.messageId);
-  } catch (err) {
-    console.error("Error sending email:", err);
+  } catch (error: any) {
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message 
+    }, { status: 500 });
   }
 }
-
-main();

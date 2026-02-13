@@ -14,17 +14,34 @@ interface Order {
   items: any[];
 }
 
+interface Onboarding {
+  profileDone: boolean;
+  storeDone: boolean;
+  productDone: boolean;
+}
+
 interface VendorState {
+  profile: any | null; // Added to track profile & onboarding
+  onboarding: Onboarding | null; // Added
   orders: Order[];
   loading: boolean;
   error: string | null;
 }
 
 const initialState: VendorState = {
+  profile: null,
+  onboarding: null,
   orders: [],
   loading: false,
   error: null,
 };
+
+interface VendorState {
+  orders: Order[];
+  loading: boolean;
+  error: string | null;
+}
+
 
 // FETCH ORDERS - Focused on VendorProfile context
 export const fetchVendorOrders = createAsyncThunk(

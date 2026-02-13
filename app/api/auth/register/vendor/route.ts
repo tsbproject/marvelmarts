@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { VerificationType, UserRole } from "@prisma/client";
+import { VerificationType, UserRole, VendorStatus } from "@prisma/client";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { getLatestVerification, validateVerification, cleanupVerification } from "@/app/lib/registration";
+import { getLatestVerification, cleanupVerification } from "@/app/lib/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Matches your frontend payload
 const vendorRegisterSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6), // The real password from Step 3
+  password: z.string().min(6),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   storeName: z.string().min(1),
@@ -19,6 +18,7 @@ const vendorRegisterSchema = z.object({
   storeAddress: z.string().min(1),
   state: z.string().min(1),
   country: z.string().default("Nigeria"),
+  isReapplication: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {
@@ -33,54 +33,119 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, password, firstName, lastName, storeName, storePhone, storeAddress, state, country } = parsed.data;
+    const { 
+      email, 
+      password, 
+      firstName, 
+      lastName, 
+      storeName, 
+      storePhone, 
+      storeAddress, 
+      state, 
+      country,
+      isReapplication 
+    } = parsed.data;
 
-    // 1. Check if user already exists
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ error: "Email already registered" }, { status: 400 });
-    }
-
-    // 2. Fetch the verification record (marked as 'used: true' by handleVerifyCode)
-    const verification = await getLatestVerification(email, VerificationType.VENDOR_REGISTRATION);
-    
-    // We pass a custom check here because we are providing a NEW password 
-    // from the frontend, so we don't need to rely on the placeholder passwordHash.
-    if (!verification) {
-      return NextResponse.json({ error: "Email not verified" }, { status: 400 });
-    }
-
-    // 3. Hash the REAL password from the final step
-    const finalPasswordHash = await bcrypt.hash(password, 12);
-
-    // 4. Atomic Creation: User + Vendor Profile
-    const user = await prisma.user.create({
-      data: {
-        name: `${firstName} ${lastName}`,
-        email,
-        passwordHash: finalPasswordHash,
-        role: UserRole.VENDOR,
-        IsVerified: true,
-        vendorProfile: {
-          create: {
-            firstName,
-            lastName,
-            storeName,
-            storePhone,
-            storeAddress,
-            state,
-            country,
-            isVerified: true, 
-          },
-        },
-      },
-      select: { id: true, email: true, role: true },
+    // 1. DYNAMIC CHECK: Is this a new user, an upgrading customer, or a re-applicant?
+    const existingUser = await prisma.user.findUnique({ 
+      where: { email },
+      include: { vendorProfile: true } 
     });
 
-    // 5. Cleanup
-    await cleanupVerification(email, VerificationType.VENDOR_REGISTRATION);
+    // If they have a vendor profile and it's NOT a re-application, they are already a vendor.
+    if (existingUser?.vendorProfile && !isReapplication) {
+      return NextResponse.json({ error: "This email is already registered as a Vendor." }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true, user }, { status: 201 });
+    // 2. Verification check: Only strictly required for brand new signups.
+    // Existing customers are already verified by virtue of their account.
+    if (!isReapplication && !existingUser) {
+      const verification = await getLatestVerification(email, VerificationType.VENDOR_REGISTRATION);
+      if (!verification) {
+        return NextResponse.json({ error: "Email not verified. Please verify your email first." }, { status: 400 });
+      }
+    }
+
+    // 3. Hash password (updates it for existing customers too)
+    const finalPasswordHash = await bcrypt.hash(password, 12);
+
+    // 4. Atomic Transaction: Upsert User + Vendor Profile
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.upsert({
+        where: { email },
+        update: {
+          name: `${firstName} ${lastName}`,
+          passwordHash: finalPasswordHash,
+          IsVerified: true, 
+          role: UserRole.VENDOR, // Upgrade role to VENDOR
+          vendorProfile: {
+            upsert: {
+              create: {
+                firstName,
+                lastName,
+                storeName,
+                storePhone,
+                storeAddress,
+                state,
+                country,
+                isVerified: false, 
+                status: VendorStatus.PENDING,
+              },
+              update: {
+                firstName,
+                lastName,
+                storeName,
+                storePhone,
+                storeAddress,
+                state,
+                country,
+                status: VendorStatus.PENDING, 
+                rejectionReason: null, 
+              },
+            },
+          },
+        },
+        create: {
+          name: `${firstName} ${lastName}`,
+          email,
+          passwordHash: finalPasswordHash,
+          role: UserRole.VENDOR,
+          IsVerified: true,
+          vendorProfile: {
+            create: {
+              firstName,
+              lastName,
+              storeName,
+              storePhone,
+              storeAddress,
+              state,
+              country,
+              isVerified: false,
+              status: VendorStatus.PENDING,
+            },
+          },
+        },
+        select: { id: true, email: true, role: true },
+      });
+
+      return user;
+    });
+
+    // 5. Cleanup Verification for new users
+    if (!isReapplication && !existingUser) {
+      await cleanupVerification(email, VerificationType.VENDOR_REGISTRATION);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: isReapplication 
+        ? "Application updated successfully" 
+        : existingUser 
+          ? "Account upgraded to Vendor successfully" 
+          : "Store created successfully",
+      user: result 
+    }, { status: 201 });
+
   } catch (err: any) {
     console.error("Vendor registration error:", err);
     return NextResponse.json(
