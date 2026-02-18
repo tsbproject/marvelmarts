@@ -728,39 +728,45 @@ export default function VendorRegistration() {
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!isVerified) return notifyError("Please verify your email first");
-    if (formData.password !== formData.confirmPassword) return notifyError("Passwords do not match");
-    
-    setLoading(prev => ({ ...prev, submit: true }));
+  // Use your global Notification helpers
+  if (!isVerified) return notifyError("Please verify your email first");
+  if (formData.password !== formData.confirmPassword) return notifyError("Passwords do not match");
+  
+  setLoading(prev => ({ ...prev, submit: true }));
 
-    try {
-      const res = await fetch("/api/auth/register/vendor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          isReapplication: isReapplying,
-        }),
-      });
+  try {
+    const res = await fetch("/api/auth/register/vendor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...formData,
+        isReapplication: isReapplying,
+      }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (res.ok && data.success) {
-        await update(); 
-        notifySuccess(isReapplying ? "Application resubmitted!" : "Store created successfully!");
-        setTimeout(() => router.push("/account/vendor"), 2000);
-      } else {
-        notifyError(data.error || "Registration failed. Check your inputs.");
-      }
-    } catch (err) {
-      notifyError("A network error occurred.");
-    } finally {
-      setLoading(prev => ({ ...prev, submit: false }));
+    if (res.ok && data.success) {
+      // 1. Notify the user
+      notifySuccess(isReapplying ? "Application resubmitted!" : "Account created! Please sign in to continue.");
+      
+      // 2. IMPORTANT: Redirect to sign-in, not the dashboard.
+      // This ensures the next time they log in, NextAuth fetches the new VENDOR role.
+      setTimeout(() => {
+        router.push("/auth/sign-in");
+      }, 2000);
+
+    } else {
+      notifyError(data.error || "Registration failed. Check your inputs.");
     }
+  } catch (err) {
+    notifyError("A network error occurred.");
+  } finally {
+    setLoading(prev => ({ ...prev, submit: false }));
   }
-
+}
   if (loading.initial) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

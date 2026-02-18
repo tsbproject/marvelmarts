@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   User as UserIcon, 
@@ -15,7 +16,9 @@ import {
   MapPin,
   Store,
   RefreshCw,
-  LayoutDashboard
+  LayoutDashboard,
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -29,7 +32,7 @@ interface MenuItem {
   label: string;
   link: string;
   icon: React.ReactNode;
-  variant?: "special" | "switcher"; 
+  variant?: "special" | "switcher" | "status"; 
 }
 
 interface UserMenuProps {
@@ -43,22 +46,50 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   const { notifySuccess } = useNotification();
   const { setLoading } = useLoadingOverlay();
   
-  const { status, data: session } = useSession();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const { status, data: session, update } = useSession();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   
   // Workspace Toggle State
   const viewMode = useSelector((state: RootState) => state.app?.viewMode || "CUSTOMER");
-  const isActualVendor = session?.user?.role === "VENDOR" || session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+  
+  
+  /**
+   * INSTANT UPDATE LOGIC:
+   * Syncs Redux with the session role immediately after login to show Vendor Switcher
+   */
+//   useEffect(() => {
+//   if (status === "authenticated" && session?.user?.role) {
+//     const sessionRole = session.user.role as "CUSTOMER" | "VENDOR";
+
+//     dispatch(setViewMode(sessionRole));
+//   }
+// }, [status, session?.user?.role, dispatch]);
+
+
+//   /**
+//    * REFRESH ON OPEN:
+//    * Triggers a silent session update whenever the menu opens to catch status changes
+//    */
+//   useEffect(() => {
+//     if (open && status === "authenticated") {
+//       update();
+//     }
+//   }, [open, status, update]);
+
+  // Checking actual permissions from the session
+  const vendorStatus = session?.user?.vendorStatus;
+  const isApprovedVendor = vendorStatus === "APPROVED";
+  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+  const hasActiveVendorAccess = isApprovedVendor || isAdmin;
 
   const isLoading = status === "loading";
 
   // Build Dynamic Menu Items
-  const menuItems: MenuItem[] = viewMode === "VENDOR" ? [
-    { label: "Vendor Dashboard", link: "/account/vendor/dashboard", icon: <LayoutDashboard size={20} /> },
+  const menuItems: MenuItem[] = (viewMode === "VENDOR" && hasActiveVendorAccess) ? [
+    { label: "Vendor Dashboard", link: "/account/vendor", icon: <LayoutDashboard size={20} /> },
     { label: "Manage Products", link: "/account/vendor/products", icon: <Store size={20} /> },
     { label: "Store Orders", link: "/account/vendor/orders", icon: <ShoppingBag size={20} /> },
-    { label: "Store Settings", link: "/account/vendor/settings", icon: <Settings size={20} /> },
+    { label: "Store Settings", link: "/account/vendor/store-settings", icon: <Settings size={20} /> },
   ] : [
     { label: "My Dashboard", link: "/account/customer", icon: <Settings size={20} /> },
     { label: "My Orders", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
@@ -68,15 +99,28 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     { label: "Account Details", link: "/account-details", icon: <UserIcon size={20} /> },
   ];
 
-  // Add the Switcher or Registration link
-  if (isActualVendor) {
+  if (hasActiveVendorAccess) {
     menuItems.push({
       label: viewMode === "CUSTOMER" ? "Switch to Vendor Mode" : "Switch to Shopping Mode",
       link: "toggle_workspace",
       icon: <RefreshCw size={20} />,
       variant: "switcher"
     });
-  } else {
+  } else if (vendorStatus === "PENDING") {
+    menuItems.push({ 
+      label: "Vendor Verification Pending", 
+      link: "/account/vendor", 
+      icon: <Clock size={20} />,
+      variant: "status" 
+    });
+  } else if (vendorStatus === "REJECTED") {
+    menuItems.push({ 
+      label: "Vendor Request Rejected", 
+      link: "/account/vendor", 
+      icon: <AlertCircle size={20} />,
+      variant: "status" 
+    });
+  } else if (isAuthenticated) {
     menuItems.push({ 
       label: "Become A Vendor", 
       link: "/auth/register/vendor-registration", 
@@ -85,34 +129,43 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     });
   }
 
-  const handleClick = (item: MenuItem | { link: string }) => {
-    if ('variant' in item && item.variant === "switcher") {
-      const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
-      
-      // Sync Redux State
-      dispatch(setViewMode(nextMode));
-      
-      notifySuccess(`Switched to ${nextMode} view`);
+  const handleClick = async (item: MenuItem) => {
+    // 1. AUTH GUARD: Intercept guests trying to access protected account routes
+    if (!isAuthenticated && item.link.startsWith("/account")) {
       onClose();
       setLoading(true);
-      
-      // Redirect based on the mode we just switched TO
-      router.push(nextMode === "VENDOR" ? "/account/vendor" : "/");
+      // We pass the intended link as a callbackUrl so they return here after login
+      router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(item.link)}`);
       return;
     }
 
     onClose();
-    setLoading(true);
 
-    const isVendorRegistration = item.link === "/auth/register/vendor-registration";
-    const isSignInPage = item.link === "/auth/sign-in";
+    // 2. WORKSPACE SWITCHER: Existing logic for Vendor/Customer toggle
+    if (item.variant === "switcher") {
+      const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+      setLoading(true);
+      
+      try {
+        dispatch(setViewMode(nextMode));
+        await update({ role: nextMode });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        notifySuccess(`Workspace: ${nextMode} Mode Active`);
+        window.location.assign(nextMode === "VENDOR" ? "/account/vendor" : "/");
+      } catch (error) {
+        console.error("Switch Error:", error);
+        setLoading(false);
+      }
+      return;
+    }
 
-    if (!isAuthenticated && !isVendorRegistration && !isSignInPage) {
-      router.push("/auth/sign-in");
-    } else {
+    // 3. NORMAL NAVIGATION: Prevent navigation to the same page
+    if (window.location.pathname !== item.link && item.link !== "toggle_workspace") {
+      setLoading(true);
       router.push(item.link);
     }
   };
+  
 
   const handleLogout = async () => {
     setLoading(true);
@@ -123,7 +176,8 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   };
 
   return (
-    <AnimatePresence>
+   <AnimatePresence mode="wait">
+
       {open && (
         <>
           <motion.div
@@ -182,7 +236,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                           {viewMode === "VENDOR" ? "Merchant Active" : "Logged in as"}
                         </p>
                         <p className="font-black text-gray-900 truncate uppercase tracking-tight">
-                          {user?.name || user?.email?.split('@')[0]}
+                          {session?.user?.name || session?.user?.email?.split('@')[0]}
                         </p>
                       </div>
                     </div>
@@ -199,7 +253,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                 ) : (
                   <motion.div 
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleClick({ link: "/auth/sign-in" })}
+                    onClick={() => handleClick({ label: "Sign In", link: "/auth/sign-in", icon: <LogIn /> })}
                     className="group cursor-pointer p-6 rounded-4xl bg-[#002B5B] text-white shadow-xl flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
@@ -225,6 +279,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                   {menuItems.map((item, index) => {
                     const isSpecial = item.variant === "special";
                     const isSwitcher = item.variant === "switcher";
+                    const isStatus = item.variant === "status";
                     
                     return (
                       <motion.div
@@ -238,16 +293,18 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
                             ? "bg-orange-50 border-orange-200 hover:bg-orange-100 shadow-sm" 
                             : isSwitcher
                             ? "bg-blue-50 border-blue-200 hover:bg-blue-100 shadow-sm mt-4"
+                            : isStatus
+                            ? "bg-gray-50 border-gray-200 opacity-80"
                             : "bg-transparent border-transparent hover:bg-gray-50 hover:border-gray-100"
                           }`}
                       >
                         <div className="flex items-center gap-4">
                           <div className={`p-2 transition-colors 
-                            ${isSpecial ? "text-orange-600" : isSwitcher ? "text-blue-600 animate-pulse" : "text-gray-400 group-hover:text-[#002B5B]"}`}>
+                            ${isSpecial ? "text-orange-600" : isSwitcher ? "text-blue-600" : isStatus ? "text-gray-500" : "text-gray-400 group-hover:text-[#002B5B]"}`}>
                             {item.icon}
                           </div>
                           <span className={`text-lg font-bold uppercase tracking-tight
-                            ${isSpecial ? "text-orange-700" : isSwitcher ? "text-accent-navy" : "text-gray-700"}`}>
+                            ${isSpecial ? "text-orange-700" : isSwitcher ? "text-[#002B5B]" : isStatus ? "text-gray-500" : "text-gray-700"}`}>
                             {item.label}
                           </span>
                         </div>
@@ -281,3 +338,9 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     </AnimatePresence>
   );
 }
+
+
+
+
+
+

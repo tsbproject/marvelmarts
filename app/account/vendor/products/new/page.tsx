@@ -124,22 +124,27 @@ export default function NewProductPage() {
   }
 
   // Handle Submit (This should call your server action or an API route)
-  const handleCreateProduct = async (formData: FormData) => {
+ const handleCreateProduct = async (formData: FormData) => {
     try {
-      // Example calling an API route:
       const res = await fetch("/api/products", {
         method: "POST",
-        body: formData,
+        body: formData, // Ensure your API route is set up for Form Data (for images)
       });
       
-      if (!res.ok) throw new Error("Failed to save");
-      router.push("/account/vendor/products");
-    } catch (err) {
-      console.error(err);
-      throw err; // Let ProductForm handle the error UI
-    }
-  };
+      if (!res.ok) {
+        // GET THE ACTUAL ERROR FROM SERVER
+        const errorData = await res.json();
+        console.error("SERVER REJECTION:", errorData);
+        throw new Error(errorData.error || "Failed to save");
+      }
 
+      router.push("/account/vendor/products");
+    } catch (err: any) {
+      console.error(err);
+      // This will now pass the REAL error message to your ProductForm
+      throw err; 
+    }
+};
   return (
     <div className="flex flex-col min-h-screen">
       <DashboardHeader 

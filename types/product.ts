@@ -19,6 +19,10 @@ export interface SerializedProduct {
   variantId?: string;
   isTrending?: boolean;
   isPublished: boolean;
+  name       : string;
+  isVerified : boolean;
+ 
+
 
 
 }

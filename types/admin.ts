@@ -8,7 +8,14 @@ export interface Permissions {
   manageOrders: boolean;
   manageMessages: boolean;
   manageSettings: boolean;
-  manageCategories: boolean; // 🔹 add this
+  manageCategories: boolean; 
+  manageVendors: boolean; 
+  manageVerifivations: boolean; 
+  manageSubscribers: boolean; 
+  manageReviews: boolean;
+  manageActivity: boolean;
+  manageTrending: boolean;
+  manageSupport: boolean;
 }
 
 

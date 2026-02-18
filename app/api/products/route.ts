@@ -34,13 +34,24 @@ const productSchema = z.object({
 /* ===========================
    POST: Create Product
 =========================== */
-/* ===========================
-   POST: Create Product
-=========================== */
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+
+    // 1. FIND THE VENDOR PROFILE FIRST
+    const vendor = await prisma.vendorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Vendor profile not found. Please log out and back in." 
+      }, { status: 404 });
+    }
 
     const formData = await request.formData();
     const fields: Record<string, any> = {};
@@ -62,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     const product = await prisma.$transaction(async (tx) => {
-      // 1. Create the Product
+      // 2. Create the Product using vendor.id (NOT session.user.id)
       const newProduct = await tx.product.create({
         data: {
           title: data.title,
@@ -81,7 +92,8 @@ export async function POST(request: NextRequest) {
           isNewArrival: data.isNewArrival ?? false,
           shippingMethod: data.shippingMethod,
           weight: data.weight,
-          vendorProfile: { connect: { id: session.user.id } },
+          // FIX HERE: Using the correct vendor ID
+          vendorProfile: { connect: { id: vendor.id } },
           category: data.categoryId ? { connect: { id: data.categoryId } } : undefined,
           images: {
             create: imageUrls.map((url, index) => ({ url, order: index, alt: data.title })),
@@ -99,10 +111,9 @@ export async function POST(request: NextRequest) {
         include: { images: true, category: true, variants: true },
       });
 
-      // 2. NEW: Update Onboarding Status
-      // This ensures the "First Product" step turns green on the dashboard
+      // 3. Update Onboarding using vendor.id
       await tx.vendorOnboarding.update({
-        where: { vendorProfileId: session.user.id },
+        where: { vendorProfileId: vendor.id },
         data: { productDone: true }
       });
 

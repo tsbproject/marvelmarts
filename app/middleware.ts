@@ -124,20 +124,23 @@ export async function middleware(request: NextRequest) {
 
   // If it's a protected route, check authorization
   if (matchedBase) {
-    if (!token) {
-      const url = new URL("/auth/sign-in", request.url);
-      url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
-    }
-
-    const userRole = token.role as UserRole;
-    const allowedRoles = PROTECTED_ROUTES[matchedBase];
-
-    // If role isn't allowed for this section, send to access-denied
-    if (!allowedRoles.includes(userRole)) {
-      return NextResponse.redirect(new URL("/auth/access-denied", request.url));
-    }
+  if (!token) {
+    const url = new URL("/auth/sign-in", request.url);
+    url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.json({ redirect: url.toString() }, { status: 302 }); // Better for client transitions
   }
+
+  const userRole = token.role as UserRole;
+  const allowedRoles = PROTECTED_ROUTES[matchedBase];
+
+  if (!allowedRoles.includes(userRole)) {
+    // BUG FIX: If we just upgraded to VENDOR but token is stale, 
+    // instead of a hard redirect to access-denied, let's try to 
+    // detect if they are in a "Switching" state.
+    
+    return NextResponse.redirect(new URL("/auth/access-denied", request.url));
+  }
+}
 
   return NextResponse.next();
 }

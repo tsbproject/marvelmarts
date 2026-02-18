@@ -72,6 +72,18 @@ model VendorProfile {
   id           String   @id @default(cuid())
   userId       String   @unique
   user         User     @relation("VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  verificationDoc String?  // To store the Cloudinary URL
+
+  // Social Media Handles
+  instagram   String?
+  twitter     String?
+  facebook    String?
+  whatsapp    String?
+
+  // Financial Details (Payouts)
+  bankName      String?
+  accountNumber String?
+  accountName   String?
 
 
 

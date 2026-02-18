@@ -66,7 +66,7 @@ const handleOrderAction = async (orderId: string, status: "APPROVED" | "REJECTED
   });
 
   return (
-    <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 lg:p-8 space-y-8 max-w-9xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

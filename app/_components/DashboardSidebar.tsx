@@ -91,12 +91,12 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
     if (activeView === "VENDOR") {
       return {
         general: [
-          { label: "Store Overview", href: "/account/vendor", icon: <LayoutDashboard size={20} />, visible: true },
+          { label: "Vendor Dashboard", href: "/account/vendor", icon: <LayoutDashboard size={20} />, visible: true },
           { label: "My Products", href: "/account/vendor/products", icon: <Package size={20} />, visible: true },
         ],
         management: [
           { label: "Store Orders", href: "/account/vendor/orders", icon: <ShoppingCart size={20} />, visible: true },
-          { label: "Store Settings", href: "/account/vendor/profile", icon: <Settings size={20} />, visible: true },
+          { label: "Store Settings", href: "/account/vendor/store-settings", icon: <Settings size={20} />, visible: true },
         ]
       };
     }
@@ -123,7 +123,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           label: "Activity",
           href: "/dashboard/admins/activity",
           icon: <Activity size={20} />,
-          visible: isSuperAdmin || !!userPermissions.manageUsers || !!userPermissions.manageAdmins,
+          visible: isSuperAdmin || !!userPermissions.manageActivity || !!userPermissions.manageAdmins,
         },
         {
           label: "Reviews",
@@ -133,9 +133,15 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
         },
         {
           label: "Vendors",
-          href: "/dashboard/admins/Vendors",
+          href: "/dashboard/admins/vendors",
           icon: <Store size={20} />,
-          visible: isSuperAdmin || !!userPermissions.manageUsers,
+          visible: isSuperAdmin || !!userPermissions.manageVendors,
+        },
+        {
+          label: "Verifications",
+          href: "/dashboard/admins/verifications",
+          icon: <Store size={20} />,
+          visible: isSuperAdmin || !!userPermissions.manageVerifications,
         },
         {
           label: "Users",
@@ -156,10 +162,10 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           visible: isSuperAdmin || !!userPermissions.manageProducts,
         },
         {
-          label: "Trending Gear",
+          label: "Trending Products",
           href: "/dashboard/admins/trending",
           icon: <Flame size={20} className="text-orange-500" />,
-          visible: isSuperAdmin || !!userPermissions.manageProducts,
+          visible: isSuperAdmin || !!userPermissions.manageTrending,
         },
         {
           label: "Orders",
@@ -195,7 +201,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           label: "Subscribers",
           href: "/dashboard/admins/subscribers",
           icon: <Mail size={20} />,
-          visible: isSuperAdmin || !!userPermissions.manageSettings,
+          visible: isSuperAdmin || !!userPermissions.manageSubscribers,
         },
       ];
 

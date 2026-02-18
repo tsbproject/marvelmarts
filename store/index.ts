@@ -10,10 +10,11 @@
 // import trendingReducer from './trendingSlice';
 // import notificationReducer from "./notificationSlice";
 // import vendorReducer from ".//vendorSlice";
+// import appReducer from "./appSlice"; // Added appSlice for viewMode management
 
 
 // // 1. Combine all reducers into a single appReducer
-// const appReducer = combineReducers({
+// const combinedReducer = combineReducers({
 //   auth: authReducer,
 //   cart: cartReducer,
 //   products: productReducer, 
@@ -24,6 +25,7 @@
 //   trending: trendingReducer,
 //   adminNotifications: notificationReducer,
 //   vendor: vendorReducer,
+//   app: appReducer, // Registered appSlice here
 // });
 
 // // 2. Create a Root Reducer to handle global state reset
@@ -32,9 +34,10 @@
 //   if (action.type === "auth/logout") {
 //     // Reset the entire state to undefined. 
 //     // This forces Redux to re-initialize every slice with its initialState.
+//     // This ensures viewMode resets to "CUSTOMER" automatically on logout.
 //     state = undefined;
 //   }
-//   return appReducer(state, action);
+//   return combinedReducer(state, action);
 // };
 
 // /**
@@ -79,9 +82,8 @@ import adminReducer from "./adminSlice";
 import orderReducer from "./orderSlice"; 
 import trendingReducer from './trendingSlice';
 import notificationReducer from "./notificationSlice";
-import vendorReducer from ".//vendorSlice";
-import appReducer from "./appSlice"; // Added appSlice for viewMode management
-
+import vendorReducer from "./vendorSlice"; // Verified single slash
+import appReducer from "./appSlice"; 
 
 // 1. Combine all reducers into a single appReducer
 const combinedReducer = combineReducers({
@@ -94,43 +96,32 @@ const combinedReducer = combineReducers({
   orders: orderReducer, 
   trending: trendingReducer,
   adminNotifications: notificationReducer,
-  vendor: vendorReducer,
-  app: appReducer, // Registered appSlice here
+  vendor: vendorReducer, // The 'vendor' key used by useSelector
+  app: appReducer,
 });
 
 // 2. Create a Root Reducer to handle global state reset
 const rootReducer = (state: any, action: any) => {
-  // Dispatched when a user logs out to wipe all sensitive data
   if (action.type === "auth/logout") {
-    // Reset the entire state to undefined. 
-    // This forces Redux to re-initialize every slice with its initialState.
-    // This ensures viewMode resets to "CUSTOMER" automatically on logout.
     state = undefined;
   }
   return combinedReducer(state, action);
 };
 
-/**
- * Global Store Configuration for MarvelMarts
- * State is strictly tied to the user session via the rootReducer reset logic.
- */
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore Date objects from Prisma to prevent console warnings
         ignoredActionPaths: ['payload.createdAt', 'payload.updatedAt', 'meta.arg'],
         ignoredPaths: ['products.items', 'orders.orders'],
       },
     }),
 });
 
-// Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-// Helpful type for Thunk actions
 export type AppThunk<ReturnType = void> = ThunkAction<
   ReturnType,
   RootState,

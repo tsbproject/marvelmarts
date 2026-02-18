@@ -1,12 +1,24 @@
-// store/slices/appSlice.ts
+
+
+
+// store/appSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AppState {
   viewMode: "CUSTOMER" | "VENDOR";
 }
 
+// Helper to get initial state safely (avoiding SSR errors)
+const getInitialViewMode = (): "CUSTOMER" | "VENDOR" => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("marvel_view_mode");
+    return (saved === "VENDOR" || saved === "CUSTOMER") ? saved : "CUSTOMER";
+  }
+  return "CUSTOMER";
+};
+
 const initialState: AppState = {
-  viewMode: "CUSTOMER", 
+  viewMode: getInitialViewMode(), 
 };
 
 export const appSlice = createSlice({
@@ -15,9 +27,17 @@ export const appSlice = createSlice({
   reducers: {
     setViewMode: (state, action: PayloadAction<"CUSTOMER" | "VENDOR">) => {
       state.viewMode = action.payload;
+      // Save to localStorage so it survives the hard redirect
+      if (typeof window !== "undefined") {
+        localStorage.setItem("marvel_view_mode", action.payload);
+      }
     },
     toggleViewMode: (state) => {
-      state.viewMode = state.viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+      const nextMode = state.viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+      state.viewMode = nextMode;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("marvel_view_mode", nextMode);
+      }
     },
   },
 });

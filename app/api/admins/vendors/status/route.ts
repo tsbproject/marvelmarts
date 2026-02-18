@@ -3,10 +3,10 @@ import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { Role, UserRole, VendorStatus } from "@prisma/client";
+import { sendVendorStatusEmail } from "@/app/lib/mailer"; // Ensure this import is correct
 
 export async function PATCH(req: NextRequest) {
   try {
-    // 1. Session & Authorization Check
     const session = await getServerSession(authOptions);
     if (!session || (session.user.role !== Role.SUPER_ADMIN && session.user.role !== Role.ADMIN)) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
@@ -18,13 +18,12 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
     }
 
-    // 2. Immediate Delete Action
     if (action === "DELETE") {
       await prisma.vendorProfile.delete({ where: { id: vendorId } });
       return NextResponse.json({ success: true, message: "Vendor deleted forever" });
     }
 
-    // 3. Transaction for Status Updates
+    // TRANSACTION
     const updated = await prisma.$transaction(async (tx) => {
       const currentVendor = await tx.vendorProfile.findUnique({
         where: { id: vendorId },
@@ -44,9 +43,8 @@ export async function PATCH(req: NextRequest) {
             isSuspended: false,
             rejectionReason: null 
           };
-          onboardingUpdate = { completed: true, profileDone: true, storeDone: true, productDone: true };
+          onboardingUpdate = { completed: true, profileDone: true, storeDone: false, productDone: false };
           
-          // Upgrade User Role to VENDOR
           await tx.user.update({ 
             where: { id: currentVendor.userId }, 
             data: { role: UserRole.VENDOR } 
@@ -60,7 +58,6 @@ export async function PATCH(req: NextRequest) {
             isSuspended: false,
             rejectionReason: reason || "No reason provided" 
           };
-          // Reset onboarding so they can fix details
           onboardingUpdate = { completed: false, profileDone: true, storeDone: false };
           break;
 
@@ -76,12 +73,11 @@ export async function PATCH(req: NextRequest) {
           throw new Error("Invalid action provided");
       }
 
-      // Final Profile Update
       return await tx.vendorProfile.update({
         where: { id: vendorId },
+        include: { user: true }, // IMPORTANT: We need this to get user.email and user.name
         data: {
           ...dataUpdate,
-          // Use 'upsert' for onboarding to prevent crashes if record doesn't exist
           onboarding: onboardingUpdate.completed !== undefined ? {
             upsert: {
               create: onboardingUpdate,
@@ -91,6 +87,23 @@ export async function PATCH(req: NextRequest) {
         }
       });
     });
+
+    // --- TRIGGER EMAIL NOTIFICATION ---
+    // Only send if it was an Approval or Rejection
+    if (action === "APPROVE" || action === "REJECT") {
+      try {
+      await sendVendorStatusEmail({
+        email: updated.user.email,
+        firstName: updated.user.name?.split(" ")[0] || "Merchant", 
+        storeName: updated.storeName || "Your Store", 
+        status: action === "APPROVE" ? "APPROVED" : "REJECTED",
+        reason: reason || undefined
+      });
+      } catch (emailErr) {
+        // We log the error but don't stop the response because the DB is already updated
+        console.error("Mailer Error:", emailErr);
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 
