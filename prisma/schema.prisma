@@ -17,6 +17,8 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   name               String?
+  balance            Float    @default(0.0) // Track earnings here
+  payouts            Payout[]
   permissions        Json?
   role               UserRole            @default(CUSTOMER)
   IsVerified         Boolean             @default(false)
@@ -84,6 +86,20 @@ model VendorProfile {
   bankName      String?
   accountNumber String?
   accountName   String?
+
+
+  profileDone     Boolean  @default(false)
+  storeDone       Boolean  @default(false)
+  productDone     Boolean  @default(false)
+
+  //Vendor Sales balance 
+  balance          Decimal      @default(0.00) @db.Decimal(10, 2)
+
+  lastSyncedAt     DateTime?
+
+  payouts          Payout[]
+
+  
 
 
 
@@ -202,6 +218,38 @@ enum VendorStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model Payout {
+  id          String   @id @default(cuid())
+  amount      Float
+  status      PayoutStatus @default(PENDING)
+  vendorId    String
+  vendor      User     @relation(fields: [vendorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  adminRemarks    String?       
+  processedAt     DateTime?     
+
+ 
+  vendorProfileId String
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+
+  // Bank snapshot (captures where the money was sent at that moment)
+  accountName     String?
+  accountNumber   String?
+  bankName        String?
+
+  @@index([vendorProfileId])
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
 }
 model CustomerProfile {
   id        String   @id @default(cuid())
@@ -449,6 +497,8 @@ model Order {
   userId          String?
   user            User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   trackingNumber String?
+
+
   
   
   refundStatus    String?     // Values: "none", "requested", "processing", "completed", "rejected"
@@ -471,8 +521,10 @@ model Order {
   state           String?
   orderNotes      String?
   
-  // Shipping (if different)
+  // Shipping Info (For "Ship to different address")
   useDifferentShipping Boolean @default(false)
+  shippingFirstName    String?
+  shippingLastName     String?
   shippingAddress      String?
   shippingCity         String?
   shippingState        String?

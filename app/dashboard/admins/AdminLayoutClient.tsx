@@ -34,6 +34,7 @@ export default function AdminLayoutClient({ user, children, todayRevenue = 0 }: 
       { label: "Support", href: "/dashboard/admins/support", visible: isSuperAdmin || permissions.manageSupport },
       { label: "Vendors", href: "/dashboard/admins/vendors", visible: isSuperAdmin || permissions.manageVendors },
       { label: "Verifications", href: "/dashboard/admins/verifications", visible: isSuperAdmin || permissions.manageVerifications },
+      { label: "Vendorspayout", href: "/dashboard/admins/vendorspayout", visible: isSuperAdmin || permissions.manageVendorspayout },
     ];
 
     const permissionsMenu = Object.entries(permissions)

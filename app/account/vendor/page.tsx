@@ -101,11 +101,11 @@ export default async function VendorDashboardPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+    <div className="flex flex-col   min-h-screen bg-[#FBFBFB]">
       <SessionUpdater /> 
       <DashboardHeader title="Merchant Command" showLogout={false} />
 
-      <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="p-4 md:p-8  space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
         
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -320,3 +320,7 @@ function TipCard({ text }: { text: string }) {
     </div>
   );
 }
+
+
+
+

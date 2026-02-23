@@ -1,7 +1,3 @@
-
-
-
-
 // import NextAuth, { type NextAuthOptions, type DefaultSession, type DefaultUser } from "next-auth";
 // import "next-auth/jwt";
 // import CredentialsProvider from "next-auth/providers/credentials";
@@ -25,6 +21,7 @@
 //   manageTrending: false,
 //   manageSubscribers: false,
 //   manageVendors: false,
+//   manageVerifications: false,
 // };
 
 // /* --- 2. Module Augmentation --- */
@@ -35,6 +32,7 @@
 //       role: UserRole;
 //       permissions: Record<string, boolean>;
 //       vendorStatus?: VendorStatus;
+//       isSuspended?: boolean; // Added
 //       rejectionReason?: string | null;
 //     } & DefaultSession["user"];
 //   }
@@ -44,6 +42,7 @@
 //     role: UserRole;
 //     permissions: Record<string, boolean>;
 //     vendorStatus?: VendorStatus;
+//     isSuspended?: boolean; // Added
 //     rejectionReason?: string | null;
 //   }
 // }
@@ -54,7 +53,9 @@
 //     role: UserRole;    
 //     permissions: Record<string, boolean>; 
 //     vendorStatus?: VendorStatus;
+//     isSuspended?: boolean; // Added
 //     rejectionReason?: string | null;
+//     lastSync?: number;
 //   }
 // }
 
@@ -65,6 +66,7 @@
 //   role: UserRole;
 //   permissions: Record<string, boolean>;
 //   vendorStatus?: VendorStatus;
+//   isSuspended?: boolean; // Added
 //   rejectionReason?: string | null;
 // }
 
@@ -78,10 +80,25 @@
 //   return { ...base, ...merged };
 // }
 
+// async function getFreshUserData(userId: string) {
+//   return await prisma.user.findUnique({
+//     where: { id: userId },
+//     select: { 
+//       role: true, 
+//       permissions: true,
+//       adminProfile: { select: { permissions: true } },
+//       vendorProfile: { select: { status: true, rejectionReason: true, isSuspended: true } } // Added isSuspended
+//     }
+//   });
+// }
+
 // /* --- 4. Auth Options --- */
 // export const authOptions: NextAuthOptions = {
 //   debug: false,
-//   session: { strategy: "jwt" },
+//   session: { 
+//     strategy: "jwt",
+//     maxAge: 30 * 24 * 60 * 60, // 30 days
+//   },
 //   pages: {
 //     signIn: "/auth/sign-in",
 //     error: "/auth/error",
@@ -107,7 +124,8 @@
 //               vendorProfile: {
 //                 select: {
 //                   status: true,
-//                   rejectionReason: true
+//                   rejectionReason: true,
+//                   isSuspended: true // Added
 //                 }
 //               }
 //             },
@@ -118,22 +136,18 @@
 //           const isValid = await bcrypt.compare(password, user.passwordHash);
 //           if (!isValid) return null;
 
-//           const permissions = normalizePermissions(
-//             user.permissions, 
-//             user.adminProfile?.permissions
-//           );
-
 //           return {
 //             id: user.id,
 //             name: user.name,
 //             email: user.email,
 //             role: user.role,
-//             permissions,
+//             permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions),
 //             vendorStatus: user.vendorProfile?.status,
+//             isSuspended: user.vendorProfile?.isSuspended || false, // Added
 //             rejectionReason: user.vendorProfile?.rejectionReason,
 //           };
 //         } catch (error) {
-//           console.error("Auth error:", error);
+//           console.error("Authorize Error:", error);
 //           return null;
 //         }
 //       },
@@ -141,54 +155,56 @@
 //   ],
 
 //   callbacks: {
-//         async jwt({ token, user, trigger, session }) {
+//     async jwt({ token, user, trigger, session }) {
 //       // 1. Initial Sign In
 //       if (user) {
 //         token.userId = user.id;
 //         token.role = user.role;
 //         token.permissions = user.permissions;
 //         token.vendorStatus = user.vendorStatus;
+//         token.isSuspended = user.isSuspended; // Added
 //         token.rejectionReason = user.rejectionReason;
-//         return token; // Return early
+//         token.lastSync = Math.floor(Date.now() / 1000);
 //       }
 
-
-//       // 2. Handle Manual Trigger (Switcher)
-//         if (trigger === "update" && session?.role) {
-//           token.role = session.role;
-//           return token; // Return early to avoid DB query below
+//       // 2. FORCE REFRESH ON UPDATE
+//       if (trigger === "update") {
+//         const dbUser = await getFreshUserData(token.userId);
+//         if (dbUser) {
+//           token.role = session?.role || dbUser.role;
+//           token.vendorStatus = dbUser.vendorProfile?.status;
+//           token.isSuspended = dbUser.vendorProfile?.isSuspended; // Added
+//           token.rejectionReason = dbUser.vendorProfile?.rejectionReason;
+//           token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
+//           token.lastSync = Math.floor(Date.now() / 1000);
 //         }
-      
-      
-//       // 3. Optimized DB Sync (Only sync once in a while or if essential)
-//   // Check if we already have the data to avoid spamming Prisma
-//   if (token.userId && !token.lastSync) { 
-//     const dbUser = await prisma.user.findUnique({
-//       where: { id: token.userId },
-//       select: { 
-//         role: true, 
-//         permissions: true,
-//         adminProfile: { select: { permissions: true } },
-//         vendorProfile: { select: { status: true, rejectionReason: true } }
+//         return token;
 //       }
-//     });
-       
-    
-//     if (dbUser) {
-//       token.role = dbUser.role;
-//       token.vendorStatus = dbUser.vendorProfile?.status;
-//       token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
-//       token.lastSync = Math.floor(Date.now() / 1000); // Timestamp the sync
-//     }
-//   }
+
+//       // 3. Periodic Background Sync (Every 1 hour)
+//       const ONE_HOUR = 3600;
+//       const now = Math.floor(Date.now() / 1000);
+//       if (token.userId && (!token.lastSync || (now - token.lastSync) > ONE_HOUR)) {
+//         const dbUser = await getFreshUserData(token.userId);
+//         if (dbUser) {
+//           token.role = dbUser.role;
+//           token.vendorStatus = dbUser.vendorProfile?.status;
+//           token.isSuspended = dbUser.vendorProfile?.isSuspended; // Added
+//           token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
+//           token.lastSync = now;
+//         }
+//       }
+
 //       return token;
 //     },
+
 //     async session({ session, token }) {
 //       if (token && session.user) {
 //         session.user.id = token.userId;
 //         session.user.role = token.role;
 //         session.user.permissions = token.permissions;
 //         session.user.vendorStatus = token.vendorStatus;
+//         session.user.isSuspended = token.isSuspended; // Added
 //         session.user.rejectionReason = token.rejectionReason;
 //       }
 //       return session;
@@ -197,7 +213,6 @@
 // };
 
 // export default NextAuth(authOptions);
-
 
 
 
@@ -225,6 +240,7 @@ const DEFAULT_PERMISSIONS = {
   manageTrending: false,
   manageSubscribers: false,
   manageVendors: false,
+  manageVerifications: false,
 };
 
 /* --- 2. Module Augmentation --- */
@@ -235,6 +251,8 @@ declare module "next-auth" {
       role: UserRole;
       permissions: Record<string, boolean>;
       vendorStatus?: VendorStatus;
+      isSuspended?: boolean;
+      balance?: number; 
       rejectionReason?: string | null;
     } & DefaultSession["user"];
   }
@@ -244,6 +262,8 @@ declare module "next-auth" {
     role: UserRole;
     permissions: Record<string, boolean>;
     vendorStatus?: VendorStatus;
+    isSuspended?: boolean;
+    balance?: number; 
     rejectionReason?: string | null;
   }
 }
@@ -254,6 +274,8 @@ declare module "next-auth/jwt" {
     role: UserRole;    
     permissions: Record<string, boolean>; 
     vendorStatus?: VendorStatus;
+    isSuspended?: boolean;
+    balance?: number; 
     rejectionReason?: string | null;
     lastSync?: number;
   }
@@ -266,6 +288,8 @@ interface AuthUser {
   role: UserRole;
   permissions: Record<string, boolean>;
   vendorStatus?: VendorStatus;
+  isSuspended?: boolean;
+  balance?: number;
   rejectionReason?: string | null;
 }
 
@@ -279,19 +303,24 @@ function normalizePermissions(userPerms: any, profilePerms: any): Record<string,
   return { ...base, ...merged };
 }
 
-/**
- * Fetches the freshest user data from Prisma to sync with the Session
- */
 async function getFreshUserData(userId: string) {
-  return await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { 
       role: true, 
       permissions: true,
       adminProfile: { select: { permissions: true } },
-      vendorProfile: { select: { status: true, rejectionReason: true } }
+      vendorProfile: { 
+        select: { 
+          status: true, 
+          rejectionReason: true, 
+          isSuspended: true,
+          balance: true 
+        } 
+      }
     }
   });
+  return user;
 }
 
 /* --- 4. Auth Options --- */
@@ -299,7 +328,7 @@ export const authOptions: NextAuthOptions = {
   debug: false,
   session: { 
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60, 
   },
   pages: {
     signIn: "/auth/sign-in",
@@ -323,12 +352,7 @@ export const authOptions: NextAuthOptions = {
             where: { email: identifier },
             include: { 
               adminProfile: true,
-              vendorProfile: {
-                select: {
-                  status: true,
-                  rejectionReason: true
-                }
-              }
+              vendorProfile: true 
             },
           });
 
@@ -337,6 +361,9 @@ export const authOptions: NextAuthOptions = {
           const isValid = await bcrypt.compare(password, user.passwordHash);
           if (!isValid) return null;
 
+          // Using type casting to access vendorProfile properties safely
+          const vendor = user.vendorProfile as any;
+
           return {
             id: user.id,
             name: user.name,
@@ -344,6 +371,8 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions),
             vendorStatus: user.vendorProfile?.status,
+            isSuspended: user.vendorProfile?.isSuspended || false,
+            balance: Number(user.vendorProfile?.balance || 0),
             rejectionReason: user.vendorProfile?.rejectionReason,
           };
         } catch (error) {
@@ -356,25 +385,24 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      // 1. Initial Sign In
       if (user) {
         token.userId = user.id;
         token.role = user.role;
         token.permissions = user.permissions;
         token.vendorStatus = user.vendorStatus;
+        token.isSuspended = user.isSuspended;
+        token.balance = user.balance; 
         token.rejectionReason = user.rejectionReason;
         token.lastSync = Math.floor(Date.now() / 1000);
       }
 
-      // 2. FORCE REFRESH ON UPDATE
-      // When SessionUpdater or Toggle calls update(), we fetch fresh data from Prisma
       if (trigger === "update") {
-        const dbUser = await getFreshUserData(token.userId);
+        const dbUser = (await getFreshUserData(token.userId)) as any;
         if (dbUser) {
-          // If the update call passed a specific role (like the Toggle does), use it
-          // otherwise, use the role stored in the database.
           token.role = session?.role || dbUser.role;
           token.vendorStatus = dbUser.vendorProfile?.status;
+          token.isSuspended = dbUser.vendorProfile?.isSuspended;
+          token.balance = Number(dbUser.vendorProfile?.balance || 0); 
           token.rejectionReason = dbUser.vendorProfile?.rejectionReason;
           token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
           token.lastSync = Math.floor(Date.now() / 1000);
@@ -382,15 +410,15 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
 
-      // 3. Periodic Background Sync (Every 1 hour)
       const ONE_HOUR = 3600;
       const now = Math.floor(Date.now() / 1000);
       if (token.userId && (!token.lastSync || (now - token.lastSync) > ONE_HOUR)) {
-        const dbUser = await getFreshUserData(token.userId);
+        const dbUser = (await getFreshUserData(token.userId)) as any;
         if (dbUser) {
           token.role = dbUser.role;
           token.vendorStatus = dbUser.vendorProfile?.status;
-          token.vendorStatus = dbUser.vendorProfile?.status;
+          token.isSuspended = dbUser.vendorProfile?.isSuspended;
+          token.balance = Number(dbUser.vendorProfile?.balance || 0); 
           token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
           token.lastSync = now;
         }
@@ -405,6 +433,8 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.permissions = token.permissions;
         session.user.vendorStatus = token.vendorStatus;
+        session.user.isSuspended = token.isSuspended;
+        session.user.balance = token.balance; 
         session.user.rejectionReason = token.rejectionReason;
       }
       return session;

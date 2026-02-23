@@ -12,9 +12,20 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { logoUrl, coverUrl, bio, storeName } = body;
+    const { 
+      logoUrl, 
+      coverUrl, 
+      bio, 
+      storeName, 
+      instagram, 
+      whatsapp, 
+      twitter, 
+      bankName, 
+      accountNumber, 
+      accountName 
+    } = body;
 
-    // 1. Update the Vendor Profile branding
+    // Update Vendor Profile with Branding, Socials, and Payouts
     const updatedProfile = await prisma.vendorProfile.update({
       where: { userId: session.user.id },
       data: {
@@ -22,18 +33,28 @@ export async function PATCH(req: Request) {
         coverUrl,
         bio,
         storeName,
-        // 2. Mark onboarding step as done
+        instagram,
+        whatsapp,
+        twitter,
+        bankName,
+        accountNumber,
+        accountName,
+        // Update onboarding status if essential branding is provided
         onboarding: {
           update: {
-            storeDone: true,
+            storeDone: !!(logoUrl && coverUrl && bio),
           }
         }
       },
     });
 
-    return NextResponse.json({ success: true, profile: updatedProfile });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Profile settings updated", 
+      profile: updatedProfile 
+    });
   } catch (error) {
-    console.error("SETTINGS_UPDATE_ERROR:", error);
-    return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
+    console.error("VENDOR_SETTINGS_PATCH_ERROR:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

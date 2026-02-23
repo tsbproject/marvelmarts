@@ -93,7 +93,7 @@ const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
       description: product.description || "",
       discountPrice: product.discountPrice || null,
       categoryName: product.category?.name || "Tactical Gear",
-      images: product.images || [{ url: "/placeholder.png" }],
+      images: product.images || [{ url: "/logo.png" }],
       stock: currentMaxStock,
       createdAt: product.createdAt 
         ? new Date(product.createdAt).toISOString() 

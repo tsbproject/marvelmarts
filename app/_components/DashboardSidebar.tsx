@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import Link from "next/link";
@@ -97,7 +93,9 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
         management: [
           { label: "Store Orders", href: "/account/vendor/orders", icon: <ShoppingCart size={20} />, visible: true },
           { label: "Store Settings", href: "/account/vendor/store-settings", icon: <Settings size={20} />, visible: true },
+          { label: "Withraw Request", href: "/account/vendor/payouts", icon: <Settings size={20} />, visible: true },
         ]
+        
       };
     }
 
@@ -125,6 +123,12 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           icon: <Activity size={20} />,
           visible: isSuperAdmin || !!userPermissions.manageActivity || !!userPermissions.manageAdmins,
         },
+         {
+          label: "Treasury History",
+          href: "/dashboard/admins/treasury",
+          icon: <Activity size={20} />,
+          visible: isSuperAdmin || !!userPermissions.manageActivity || !!userPermissions.manageTreasury,
+        },
         {
           label: "Reviews",
           href: "/dashboard/admins/reviews",
@@ -136,6 +140,12 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           href: "/dashboard/admins/vendors",
           icon: <Store size={20} />,
           visible: isSuperAdmin || !!userPermissions.manageVendors,
+        },
+        {
+          label: "Vendors Payout",
+          href: "/dashboard/admins/vendorspayout",
+          icon: <Store size={20} />,
+          visible: isSuperAdmin || !!userPermissions.manageVendorspayout,
         },
         {
           label: "Verifications",
@@ -218,8 +228,8 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
   }, [userRole, isSuperAdmin, userPermissions, sections, activeView]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5 h-screen sticky top-0">
+    <div className="flex min-h-screen bg-gray-50 ">
+      <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5 sticky top-0 ">
         <div className="px-8 py-8 flex flex-col gap-1">
           <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
             MarvelMarts<span className="text-indigo-500">.</span>
@@ -233,11 +243,11 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
           <div className="px-4 mb-6">
             <button 
               onClick={() => setActiveView(activeView === "ADMIN" ? "VENDOR" : "ADMIN")}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 transition-all group"
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 transition-all group "
             >
               <div className="flex flex-col items-start">
-                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-500/60">Currently Viewing</span>
-                <span className="text-xs font-bold text-white uppercase">{activeView}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500/60">Currently Viewing</span>
+                <span className="text-lg font-bold text-white uppercase">{activeView}</span>
               </div>
               <ArrowLeftRight size={18} className="group-hover:rotate-180 transition-transform duration-500" />
             </button>
@@ -247,13 +257,13 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
         <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
           {computedSections.general.length > 0 && (
             <div>
-              <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
+              <p className="px-4 text-[13px] font-black uppercase tracking-widest text-gray-600 mb-4">Main</p>
               <div className="space-y-1">
                 {computedSections.general.map((link: any) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-lg uppercase tracking-tight
                       ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
                   >
                     {link.icon}
@@ -266,7 +276,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
 
           {computedSections.management.length > 0 && (
             <div>
-              <p className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
+              <p className="px-4 text-[13px] font-black uppercase tracking-widest text-gray-600 mb-4">Management</p>
               <div className="space-y-1">
                 {computedSections.management.map((link: any) => (
                   <div key={link.label}>
@@ -274,7 +284,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
                       <>
                         <button
                           onClick={() => setSupportOpen(!supportOpen)}
-                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight hover:bg-white/5 hover:text-white"
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-md uppercase tracking-tight hover:bg-white/5 hover:text-white"
                         >
                           <div className="flex items-center gap-3">
                             {link.icon}
@@ -288,7 +298,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
                               <Link
                                 key={sub.href}
                                 href={sub.href}
-                                className={`block py-2 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors ${pathname === sub.href ? "text-indigo-400" : "text-gray-500"}`}
+                                className={`block py-2 text-lg font-bold uppercase tracking-widest hover:text-white transition-colors ${pathname === sub.href ? "text-indigo-400" : "text-gray-500"}`}
                               >
                                 {sub.label}
                               </Link>
@@ -299,7 +309,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
                     ) : (
                       <Link
                         href={link.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm uppercase tracking-tight
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-md uppercase tracking-tight
                           ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
                       >
                         {link.icon}
@@ -315,7 +325,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
 
         <div className="p-4 border-t border-white/5 bg-black/20">
           <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5">
-            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-xs">
+            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-lg">
               {(propUser?.email || session?.user?.email)?.charAt(0).toUpperCase() || "A"}
             </div>
             <div className="flex-1 min-w-0">
@@ -359,7 +369,7 @@ export default function DashboardSidebar({ children, sections, role: propRole, u
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="block text-2xl font-black uppercase tracking-tight border-b border-gray-100 pb-4"
+                  className="block text-xl font-black uppercase tracking-tight border-b border-gray-100 pb-4"
                 >
                   {link.label}
                 </Link>

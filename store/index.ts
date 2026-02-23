@@ -1,5 +1,7 @@
 
-// import { configureStore, combineReducers, Action, ThunkAction } from "@reduxjs/toolkit";
+
+
+// import { configureStore, combineReducers, Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 // import authReducer from "./authSlice";
 // import cartReducer from "./cartSlice"; 
 // import productReducer from "./productSlice"; 
@@ -9,11 +11,46 @@
 // import orderReducer from "./orderSlice"; 
 // import trendingReducer from './trendingSlice';
 // import notificationReducer from "./notificationSlice";
-// import vendorReducer from ".//vendorSlice";
-// import appReducer from "./appSlice"; // Added appSlice for viewMode management
+// import vendorReducer from "./vendorSlice"; 
+// import appReducer from "./appSlice"; 
 
+// /* --- 1. SUSPENSION GUARD MIDDLEWARE --- */
+// /**
+//  * Intercepts vendor actions and blocks them if the account is suspended.
+//  * This uses a CustomEvent to bridge Redux to your NotificationContext.
+//  */
+// const suspensionGuard: Middleware = (storeAPI) => (next) => (action: any) => {
+//   const state = storeAPI.getState();
+//   const isSuspended = state.auth?.user?.isSuspended;
 
-// // 1. Combine all reducers into a single appReducer
+//   // These strings match the names provided in your createAsyncThunk definitions
+//   const restrictedActions = [
+//     'products/createProduct',
+//     'products/updateProduct',
+//     'products/deleteProduct',
+//     'vendor/updateStoreSettings',
+//     'vendor/requestPayout', // Adjusted to common naming convention
+//   ];
+
+//   if (isSuspended && restrictedActions.some(type => action.type.startsWith(type))) {
+//     // We dispatch a custom browser event that NotificationContext will listen for
+//     if (typeof window !== "undefined") {
+//       const event = new CustomEvent('marvelmarts:suspension_error', {
+//         detail: {
+//           title: "Account Restricted",
+//           message: "You cannot perform this action while your account is suspended."
+//         }
+//       });
+//       window.dispatchEvent(event);
+//     }
+//     // Block the action from proceeding
+//     return;
+//   }
+
+//   return next(action);
+// };
+
+// /* --- 2. REDUCER SETUP --- */
 // const combinedReducer = combineReducers({
 //   auth: authReducer,
 //   cart: cartReducer,
@@ -25,42 +62,31 @@
 //   trending: trendingReducer,
 //   adminNotifications: notificationReducer,
 //   vendor: vendorReducer,
-//   app: appReducer, // Registered appSlice here
+//   app: appReducer,
 // });
 
-// // 2. Create a Root Reducer to handle global state reset
 // const rootReducer = (state: any, action: any) => {
-//   // Dispatched when a user logs out to wipe all sensitive data
 //   if (action.type === "auth/logout") {
-//     // Reset the entire state to undefined. 
-//     // This forces Redux to re-initialize every slice with its initialState.
-//     // This ensures viewMode resets to "CUSTOMER" automatically on logout.
 //     state = undefined;
 //   }
 //   return combinedReducer(state, action);
 // };
 
-// /**
-//  * Global Store Configuration for MarvelMarts
-//  * State is strictly tied to the user session via the rootReducer reset logic.
-//  */
+// /* --- 3. STORE EXPORT --- */
 // export const store = configureStore({
 //   reducer: rootReducer,
 //   middleware: (getDefaultMiddleware) =>
 //     getDefaultMiddleware({
 //       serializableCheck: {
-//         // Ignore Date objects from Prisma to prevent console warnings
 //         ignoredActionPaths: ['payload.createdAt', 'payload.updatedAt', 'meta.arg'],
 //         ignoredPaths: ['products.items', 'orders.orders'],
 //       },
-//     }),
+//     }).concat(suspensionGuard), // Added the guard here
 // });
 
-// // Infer the `RootState` and `AppDispatch` types from the store itself
 // export type RootState = ReturnType<typeof store.getState>;
 // export type AppDispatch = typeof store.dispatch;
 
-// // Helpful type for Thunk actions
 // export type AppThunk<ReturnType = void> = ThunkAction<
 //   ReturnType,
 //   RootState,
@@ -71,8 +97,7 @@
 
 
 
-
-import { configureStore, combineReducers, Action, ThunkAction } from "@reduxjs/toolkit";
+import { configureStore, combineReducers, Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 import authReducer from "./authSlice";
 import cartReducer from "./cartSlice"; 
 import productReducer from "./productSlice"; 
@@ -82,10 +107,44 @@ import adminReducer from "./adminSlice";
 import orderReducer from "./orderSlice"; 
 import trendingReducer from './trendingSlice';
 import notificationReducer from "./notificationSlice";
-import vendorReducer from "./vendorSlice"; // Verified single slash
+import vendorReducer from "./vendorSlice"; 
 import appReducer from "./appSlice"; 
 
-// 1. Combine all reducers into a single appReducer
+/* --- 1. SUSPENSION GUARD MIDDLEWARE --- */
+/**
+ * Intercepts vendor actions and blocks them if the account is suspended.
+ */
+const suspensionGuard: Middleware = (storeAPI) => (next) => (action: any) => {
+  const state = storeAPI.getState() as RootState;
+  const isSuspended = state.auth?.user?.isSuspended;
+
+  // Actions that should be blocked if a vendor is suspended
+  const restrictedActions = [
+    'products/createProduct',
+    'products/updateProduct',
+    'products/deleteProduct',
+    'vendor/updateStoreSettings',
+    'vendor/requestPayout', // Matches the thunk in vendorSlice
+    'vendor/updateOrderStatus', // Added to prevent status changes while suspended
+  ];
+
+  if (isSuspended && restrictedActions.some(type => action.type.startsWith(type))) {
+    if (typeof window !== "undefined") {
+      const event = new CustomEvent('marvelmarts:suspension_error', {
+        detail: {
+          title: "Account Restricted",
+          message: "You cannot perform this action while your account is suspended."
+        }
+      });
+      window.dispatchEvent(event);
+    }
+    return; // Block the action
+  }
+
+  return next(action);
+};
+
+/* --- 2. REDUCER SETUP --- */
 const combinedReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
@@ -96,18 +155,19 @@ const combinedReducer = combineReducers({
   orders: orderReducer, 
   trending: trendingReducer,
   adminNotifications: notificationReducer,
-  vendor: vendorReducer, // The 'vendor' key used by useSelector
+  vendor: vendorReducer,
   app: appReducer,
 });
 
-// 2. Create a Root Reducer to handle global state reset
 const rootReducer = (state: any, action: any) => {
+  // Clear state on logout for security
   if (action.type === "auth/logout") {
     state = undefined;
   }
   return combinedReducer(state, action);
 };
 
+/* --- 3. STORE EXPORT --- */
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
@@ -116,9 +176,10 @@ export const store = configureStore({
         ignoredActionPaths: ['payload.createdAt', 'payload.updatedAt', 'meta.arg'],
         ignoredPaths: ['products.items', 'orders.orders'],
       },
-    }),
+    }).concat(suspensionGuard),
 });
 
+// TYPES EXPORTS
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 

@@ -11,14 +11,17 @@ export default async function PublicStorePage({
 }) {
   const { slug } = await params;
 
-  // 1. Fetch Store + Products + Score + Verification Status
+  // 1. Fetch Store + Products + Score + Verification Status + Suspension Status
   const storeData = await prisma.vendorStore.findUnique({
     where: { slug },
     include: {
       vendorProfile: {
         include: {
           products: {
-            where: { isPublished: true },
+            where: { 
+              isPublished: true,
+              status: "ACTIVE" // Only show active products
+            },
             orderBy: { createdAt: "desc" },
             include: {
               category: { select: { name: true } },
@@ -31,9 +34,54 @@ export default async function PublicStorePage({
     }
   });
 
-  if (!storeData) notFound();
+  // CRITICAL: Check if store exists AND if vendor is allowed to be seen
+  if (!storeData || !storeData.vendorProfile) notFound();
 
   const vendor = storeData.vendorProfile;
+
+  // KILL SWITCH: If vendor is suspended or not approved, hide the entire store page
+  if (vendor.isSuspended || vendor.status !== "APPROVED") {
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+      <div className="max-w-xl w-full text-center">
+        <div className="mb-8 flex justify-center">
+          <div className="relative">
+            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center">
+              <Store size={48} className="text-gray-300" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-8 h-8 bg-brand-primary rounded-full border-4 border-white flex items-center justify-center">
+              <ShieldCheck size={16} className="text-accent-navy" />
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-4xl font-black text-accent-navy uppercase tracking-tighter mb-4">
+          Store Temporarily <br /> Offline
+        </h1>
+        
+        <p className="text-neutral-gray text-xl font-medium mb-8 leading-relaxed">
+          {storeData.name} is currently updating their catalog or taking a short break. 
+          Check back soon or explore other amazing merchants on MarvelMarts.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <a 
+            href="/shop" 
+            className="w-full py-4 bg-accent-navy text-white rounded-2xl font-black uppercase tracking-widest text-lg hover:bg-brand-primary transition-colors"
+          >
+            Explore Marketplace
+          </a>
+          <a 
+            href="/" 
+            className="w-full py-4 bg-gray-50 text-accent-navy rounded-2xl font-black uppercase tracking-widest text-lg hover:bg-gray-100 transition-colors"
+          >
+            Go to Homepage
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   // 2. Map raw Prisma products to SerializedProduct type precisely
   const products: SerializedProduct[] = vendor.products.map((p) => ({
@@ -45,7 +93,7 @@ export default async function PublicStorePage({
     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
     categoryName: p.category?.name || "General",
     images: p.images.map(img => ({ url: img.url })),
-    imageUrl: p.images[0]?.url || "/placeholder.png",
+    imageUrl: p.images[0]?.url || "/logo.png",
     stock: p.stock ?? 0,
     brand: p.brand || null,
     isPublished: p.isPublished,
@@ -53,7 +101,7 @@ export default async function PublicStorePage({
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     rating: p.rating || 0,
-    reviewCount: p.ratingCount || 0, // Using the correct field from your schema
+    reviewCount: p.ratingCount || 0,
   }));
 
   return (
@@ -88,13 +136,11 @@ export default async function PublicStorePage({
                   )}
                 </h1>
                 
-                {/* Dynamic Tier Badge (Phase 11) */}
                 <div className="flex items-center gap-1 bg-brand-primary text-accent-navy px-3 py-1 rounded-full text-[10px] font-black uppercase">
                   <ShieldCheck size={12} />
                   {vendor.score?.tier || "BRONZE"} MERCHANT
                 </div>
 
-                {/* Verification Badge (Phase 7) */}
                 {vendor.isVerified && (
                    <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase">
                     <ShieldCheck size={12} className="text-brand-primary" />
