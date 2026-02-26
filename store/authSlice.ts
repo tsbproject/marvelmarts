@@ -22,6 +22,7 @@ export interface UserPermissions {
   manageActivity: boolean;
   manageTrending: boolean;
   manageSubscribers: boolean;
+  managePayout: boolean;
 }
 
 /**

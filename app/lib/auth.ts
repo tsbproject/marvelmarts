@@ -241,6 +241,7 @@ const DEFAULT_PERMISSIONS = {
   manageSubscribers: false,
   manageVendors: false,
   manageVerifications: false,
+  
 };
 
 /* --- 2. Module Augmentation --- */
@@ -251,6 +252,7 @@ declare module "next-auth" {
       role: UserRole;
       permissions: Record<string, boolean>;
       vendorStatus?: VendorStatus;
+      vendorProfileId?: string; //
       isSuspended?: boolean;
       balance?: number; 
       rejectionReason?: string | null;
@@ -288,6 +290,7 @@ interface AuthUser {
   role: UserRole;
   permissions: Record<string, boolean>;
   vendorStatus?: VendorStatus;
+  vendorProfileId?: string;
   isSuspended?: boolean;
   balance?: number;
   rejectionReason?: string | null;
@@ -371,6 +374,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions),
             vendorStatus: user.vendorProfile?.status,
+            vendorProfileId: user.vendorProfile?.id,
             isSuspended: user.vendorProfile?.isSuspended || false,
             balance: Number(user.vendorProfile?.balance || 0),
             rejectionReason: user.vendorProfile?.rejectionReason,
@@ -390,6 +394,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.permissions = user.permissions;
         token.vendorStatus = user.vendorStatus;
+        token.vendorProfileId = (user as any).vendorProfileId;
         token.isSuspended = user.isSuspended;
         token.balance = user.balance; 
         token.rejectionReason = user.rejectionReason;
@@ -417,6 +422,7 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.role = dbUser.role;
           token.vendorStatus = dbUser.vendorProfile?.status;
+          token.vendorProfileId = dbUser.vendorProfile?.id;
           token.isSuspended = dbUser.vendorProfile?.isSuspended;
           token.balance = Number(dbUser.vendorProfile?.balance || 0); 
           token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);

@@ -7,7 +7,7 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       permissions: Record<string, boolean>;
-      // Added Vendor Specific Fields
+     
       vendorStatus?: VendorStatus | null;
       isSuspended?: boolean;
       rejectionReason?: string | null;

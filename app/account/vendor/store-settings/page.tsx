@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +7,7 @@ import { AppDispatch, RootState } from "@/store";
 import { updateVendorSettings } from "@/store/vendorSlice";
 import confetti from "canvas-confetti";
 import DashboardHeader from "@/app/_components/DashboardHeader";
-import { Camera, Store, Image as ImageIcon, CheckCircle2, Loader2, CreditCard, Globe } from "lucide-react";
+import { Camera, Store, CheckCircle2, Loader2, CreditCard, Globe } from "lucide-react";
 import { useNotification } from "@/app/_context/NotificationContext";
 
 // 1. Validation Helper
@@ -57,25 +54,25 @@ export default function VendorProfilePage() {
     accountName: "",
   });
 
-  // 2. Hydration Effect: Populates form when Redux data or Session loads
- useEffect(() => {
-  if (vendorProfile) {
-    setFormData(prev => ({
-      ...prev, // Keep any unsaved changes the user is currently typing
-      logoUrl: vendorProfile.logoUrl ?? prev.logoUrl,
-      coverUrl: vendorProfile.coverUrl ?? prev.coverUrl,
-      bio: vendorProfile.bio ?? prev.bio, 
-      storeName: vendorProfile.storeName ?? session?.user?.name ?? prev.storeName,
-      instagram: vendorProfile.instagram ?? prev.instagram,
-      whatsapp: vendorProfile.whatsapp ?? prev.whatsapp,
-      twitter: vendorProfile.twitter ?? prev.twitter,
-      facebook: vendorProfile.facebook ?? prev.facebook,
-      bankName: vendorProfile.bankName ?? prev.bankName,
-      accountNumber: vendorProfile.accountNumber ?? prev.accountNumber,
-      accountName: vendorProfile.accountName ?? prev.accountName,
-    }));
-  }
-}, [vendorProfile, session]);
+  // 2. Hydration Effect: Ensures data stays and is editable
+  useEffect(() => {
+    if (vendorProfile) {
+      setFormData(prev => ({
+        ...prev,
+        logoUrl: vendorProfile.logoUrl ?? prev.logoUrl,
+        coverUrl: vendorProfile.coverUrl ?? prev.coverUrl,
+        bio: vendorProfile.bio ?? prev.bio, 
+        storeName: vendorProfile.storeName ?? session?.user?.name ?? prev.storeName,
+        instagram: vendorProfile.instagram ?? prev.instagram,
+        whatsapp: vendorProfile.whatsapp ?? prev.whatsapp,
+        twitter: vendorProfile.twitter ?? prev.twitter,
+        facebook: vendorProfile.facebook ?? prev.facebook,
+        bankName: vendorProfile.bankName ?? prev.bankName,
+        accountNumber: vendorProfile.accountNumber ?? prev.accountNumber,
+        accountName: vendorProfile.accountName ?? prev.accountName,
+      }));
+    }
+  }, [vendorProfile, session]);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -101,44 +98,50 @@ export default function VendorProfilePage() {
         notifySuccess(`${type === "logo" ? "Store Logo" : "Cover Photo"} uploaded!`);
       }
     } catch (err) {
-      notifyError("Upload failed. Check Cloudinary settings.");
+      notifyError("Upload failed.");
     } finally {
       setUploading(null);
     }
   };
 
   const handleSave = async () => {
-  setLoading(true);
-  try {
-    // We only send what is actually in the form. 
-    // If a field is empty but exists in DB, 'undefined' tells Prisma to "Leave it alone"
-    const sanitizedData = {
-      storeName: formData.storeName || undefined,
-      bio: formData.bio || undefined,
-      logoUrl: formData.logoUrl || undefined,
-      coverUrl: formData.coverUrl || undefined,
-      bankName: formData.bankName || undefined,
-      accountNumber: formData.accountNumber || undefined,
-      accountName: formData.accountName || undefined,
-      instagram: formData.instagram || undefined,
-      whatsapp: formData.whatsapp || undefined,
-      twitter: formData.twitter || undefined,
-      facebook: formData.facebook || undefined,
-    };
+    setLoading(true);
+    try {
+      // Create sanitized data using 'undefined' for empty fields to prevent data loss in DB
+      const sanitizedData = {
+        storeName: formData.storeName || undefined,
+        bio: formData.bio || undefined,
+        logoUrl: formData.logoUrl || undefined,
+        coverUrl: formData.coverUrl || undefined,
+        bankName: formData.bankName || undefined,
+        accountNumber: formData.accountNumber || undefined,
+        accountName: formData.accountName || undefined,
+        instagram: formData.instagram || undefined,
+        whatsapp: formData.whatsapp || undefined,
+        twitter: formData.twitter || undefined,
+        facebook: formData.facebook || undefined,
+      };
 
-    await dispatch(updateVendorSettings(sanitizedData)).unwrap();
-    notifySuccess("Changes saved successfully!");
-  } catch (err: any) {
-    notifyError(err || "Save failed.");
-  } finally {
-    setLoading(false);
-  }
-};
-  
-const progress = (() => {
+      await dispatch(updateVendorSettings(sanitizedData)).unwrap();
+      notifySuccess("Settings permanently saved!");
+
+      if (update) {
+        await update({
+          ...session,
+          user: { ...session?.user, name: formData.storeName },
+        });
+      }
+    } catch (err: any) {
+      notifyError(err || "Failed to save changes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const progress = (() => {
     let score = 0;
     if (formData.logoUrl && formData.coverUrl) score += 25;
-    if (formData.bio && formData.bio.length > 5 && formData.storeName) score += 25;
+    if (formData.bio && formData.storeName) score += 25;
     if (formData.bankName && formData.accountNumber.length >= 10) score += 25;
     if (formData.instagram || formData.whatsapp) score += 25;
     return score;
@@ -205,7 +208,7 @@ const progress = (() => {
               </div>
 
               <div className="flex-1 space-y-6">
-                <input type="text" placeholder="Business Name" value={formData.storeName} onChange={(e) => setFormData({...formData, storeName: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none font-bold text-[#002B5B] uppercase text-sm" />
+                <input type="text" placeholder="Store Name" value={formData.storeName} onChange={(e) => setFormData({...formData, storeName: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none font-bold text-[#002B5B] uppercase text-sm" />
                 <input type="text" placeholder="Store Bio / Slogan" value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none font-bold text-[#002B5B] text-sm" />
               </div>
             </div>
@@ -218,7 +221,6 @@ const progress = (() => {
             <h3 className="text-2xl font-extrabold text-[#002B5B] uppercase italic tracking-tighter">2. Payout Details</h3>
           </div>
           <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
-            {/* Visual Merchant Card */}
             <div className="h-56 w-full bg-gradient-to-br from-[#002B5B] to-[#05438a] rounded-[2.5rem] p-8 text-white shadow-xl flex flex-col justify-between relative overflow-hidden">
               <div className="flex justify-between items-start">
                 <p className="text-[10px] font-black uppercase opacity-60 tracking-widest">Settlement Account</p>

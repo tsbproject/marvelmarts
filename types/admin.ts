@@ -16,6 +16,7 @@ export interface Permissions {
   manageActivity: boolean;
   manageTrending: boolean;
   manageSupport: boolean;
+
 }
 
 

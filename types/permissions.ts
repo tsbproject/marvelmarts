@@ -1,5 +1,5 @@
 export type AdminPermissions = {
- manageAdmins: boolean;
+  manageAdmins: boolean;
   manageUsers: boolean;
   manageBlogs: boolean;
   manageProducts: boolean;
@@ -7,11 +7,14 @@ export type AdminPermissions = {
   manageMessages: boolean;
   manageSettings: boolean;
   manageCategories: boolean; 
-  manageReviews: boolean; 
-  manageSupport: boolean; 
-  manageActivity: boolean; 
-  manageTrending: boolean, 
-  manageSubscribers: boolean,
+  manageVendors: boolean; 
+  manageVerifivations: boolean; 
+  manageSubscribers: boolean; 
+  manageReviews: boolean;
+  manageActivity: boolean;
+  manageTrending: boolean;
+  manageSupport: boolean;
+  managePayout  : boolean;
 };
 
 // Default state for new Admins
@@ -29,4 +32,8 @@ export const defaultAdminPermissions: AdminPermissions = {
   manageActivity: false, 
   manageTrending: false,
   manageSubscribers: false,
+  manageVerifivations: false,
+  manageVendors: false,
+  managePayout  : false
+  
 };

@@ -325,3 +325,153 @@ export const sendPayoutStatusEmail = async (
     html,
   });
 };
+
+
+
+//VENDOR SUSPENSION EMAIL 
+
+// 5. VENDOR ENFORCEMENT & RESTORATION EMAIL
+export async function sendVendorActionEmail({ 
+  email, 
+  name, 
+  action, 
+  reason 
+}: { 
+  email: string; 
+  name: string; 
+  action: string; 
+  reason: string; 
+}) {
+  const isRestore = action === "RESTORE";
+  const isSuspension = action === "SUSPEND";
+  
+  // Dynamic styling based on the action
+  const statusColor = isRestore ? "#10b981" : isSuspension ? "#ef4444" : COLORS.navy;
+  const heading = isRestore ? "Welcome Back to the Marketplace!" : "Account Status Update";
+  
+  const content = `
+    <h1 style="color: ${COLORS.navy}; font-size: 24px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase;">
+      ${heading}
+    </h1>
+    <p style="font-size: 16px;">Hello <strong>${name}</strong>,</p>
+    <p>
+      ${isRestore 
+        ? "We are pleased to inform you that your vendor account has been fully reinstated. You can now resume sales and manage your storefront."
+        : "This is a formal notification regarding administrative changes made to your vendor account on MarvelMarts."
+      }
+    </p>
+    
+    <div style="background-color: #F9FAFB; border-left: 4px solid ${statusColor}; padding: 25px; margin: 30px 0; border-radius: 8px;">
+      <p style="margin: 0; font-size: 11px; font-weight: bold; color: ${COLORS.gray}; text-transform: uppercase; letter-spacing: 1px;">Update Type</p>
+      <p style="margin: 5px 0 15px 0; font-size: 18px; font-weight: 900; color: ${statusColor}; text-transform: uppercase;">
+        Account ${isRestore ? "Reinstated" : action + "ed"}
+      </p>
+      
+      <p style="margin: 0; font-size: 11px; font-weight: bold; color: ${COLORS.gray}; text-transform: uppercase; letter-spacing: 1px;">Note from Admin</p>
+      <p style="margin-top: 5px; color: ${COLORS.black}; font-style: italic;">"${reason}"</p>
+    </div>
+
+    <p style="margin-bottom: 30px;">
+      ${isRestore 
+        ? "We recommend reviewing our merchant guidelines to ensure your store remains in good standing. Happy selling!"
+        : "If you wish to appeal this decision, please contact our compliance team via the Support Command Center."
+      }
+    </p>
+    
+    <a href="https://marvelmarts.vercel.app/dashboard" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+      ${isRestore ? "Access My Store" : "Open My Dashboard"}
+    </a>
+  `;
+
+  const previewText = isRestore 
+    ? "Great news! Your MarvelMarts vendor account has been restored." 
+    : `Important: Your MarvelMarts account has been ${action.toLowerCase()}ed.`;
+
+  return await sendEmail({
+    to: email,
+    subject: `MarvelMarts | Account ${isRestore ? "Restored" : action + "ed"}`,
+    html: wrapLayout(content, previewText),
+  });
+}
+
+
+
+// 6. ADMIN SYSTEM ALERT
+export async function sendAdminAlert({ 
+  type, 
+  subject, 
+  details 
+}: { 
+  type: 'DISPUTE' | 'VENDOR_SIGNUP' | 'REPORT'; 
+  subject: string; 
+  details: string; 
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@marvelmarts.com";
+  
+  const content = `
+    <h1 style="color: ${COLORS.navy}; font-size: 20px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase;">
+      System Alert: ${type}
+    </h1>
+    <p style="font-size: 16px; color: ${COLORS.black};">Hello Admin,</p>
+    <p>A new high-priority event requires your attention on the <strong>MarvelMarts Control Center</strong>.</p>
+    
+    <div style="background-color: #F1F5F9; border-left: 4px solid #F59E0B; padding: 20px; margin: 25px 0; border-radius: 8px;">
+      <p style="margin: 0; font-size: 11px; font-weight: bold; color: ${COLORS.gray}; text-transform: uppercase;">Event Details</p>
+      <p style="margin: 5px 0 10px 0; font-size: 16px; font-weight: bold; color: ${COLORS.navy};">${subject}</p>
+      <p style="margin: 0; color: ${COLORS.black}; font-size: 14px; line-height: 1.5;">${details}</p>
+    </div>
+
+    <a href="https://marvelmarts.vercel.app/dashboard/admins" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 13px; text-transform: uppercase;">
+      Review in Admin Panel
+    </a>
+  `;
+
+  return await sendEmail({
+    to: adminEmail,
+    subject: ` [ADMIN ALERT] ${type}: ${subject}`,
+    html: wrapLayout(content, `New ${type.toLowerCase()} requires review.`)
+  });
+}
+
+
+// NEW CHAT MESSAGE EMAIL NOTIFICATION
+
+export async function sendNewMessageEmail(
+  recipientEmail: string,
+  senderName: string,
+  messageContent: string,
+  conversationId: string
+) {
+  const previewText = `${senderName} sent you a new message on MarvelMarts.`;
+  
+  const content = `
+    <div style="font-family: sans-serif; color: #002B5B;">
+      <h2 style="text-transform: uppercase; font-style: italic;">New Message Received</h2>
+      <p>Hi there,</p>
+      <p><strong>${senderName}</strong> has just sent you a message regarding your inquiry:</p>
+      
+      <div style="background-color: #FBFBFB; padding: 20px; border-radius: 15px; border: 1px solid #eeeeee; margin: 20px 0; font-style: italic;">
+        "${messageContent.length > 100 ? messageContent.substring(0, 100) + '...' : messageContent}"
+      </div>
+
+      <div style="margin-top: 30px;">
+        <a href="https://marvelmarts.vercel.app/account/messages/${conversationId}" 
+           style="background-color: #F7931E; color: white; padding: 12px 25px; text-decoration: none; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 12px;">
+           View Transmission
+        </a>
+      </div>
+      
+      <p style="margin-top: 30px; font-size: 10px; color: #999999; text-transform: uppercase;">
+        Note: Please do not reply directly to this email. Use the MarvelMarts dashboard to respond.
+      </p>
+    </div>
+  `;
+
+  const html = wrapLayout(content, previewText);
+
+  return await sendEmail({
+    to: recipientEmail,
+    subject: `New Message from ${senderName} | MarvelMarts`,
+    html,
+  });
+}

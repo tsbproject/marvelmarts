@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { amount, bankName, accountNumber, accountName } = body;
+    const { amount } = body;
 
     // 1. Basic validation
     if (!amount || amount <= 0) {
@@ -20,32 +20,28 @@ export async function POST(req: Request) {
 
     // 2. Run as a Transaction to prevent money glitches
     const result = await prisma.$transaction(async (tx) => {
-      // Find the vendor profile and check balance
+      // Find the vendor profile and get the latest saved bank details
       const profile = await tx.vendorProfile.findUnique({
         where: { userId: session.user.id },
       });
 
-      if (!amount || amount <= 0) {
-  return NextResponse.json({ message: "Invalid amount" }, { status: 400 });
-        }
-
-        // Ensure bank details are present before proceeding
-        if (!bankName || !accountNumber || !accountName) {
-          return NextResponse.json({ message: "Missing settlement bank details" }, { status: 400 });
-        }
-
       if (!profile) throw new Error("Vendor profile not found");
+
+      // MANDATORY CHECK: Ensure they have saved bank details in their settings
+      if (!profile.bankName || !profile.accountNumber || !profile.accountName) {
+        throw new Error("Please complete your Payout Details in Settings before requesting a withdrawal.");
+      }
+
       if (profile.balance < amount) throw new Error("Insufficient balance");
 
-      // 3. Create the Payout with the correct relation syntax
+      // 3. Create the Payout - PULLING bank details directly from Profile for 100% accuracy
       const payout = await tx.payout.create({
         data: {
           amount,
           status: "PENDING",
-          bankName,
-          accountNumber,
-          accountName,
-          // Fixed the 'Argument vendorProfile is missing' error here
+          bankName: profile.bankName,      // Verified from DB, not from frontend body
+          accountNumber: profile.accountNumber,
+          accountName: profile.accountName,
           vendorProfile: {
             connect: { id: profile.id }
           },
@@ -56,19 +52,20 @@ export async function POST(req: Request) {
       });
 
       // 4. Deduct the amount from vendor's balance immediately
-      await tx.vendorProfile.update({
+      const updatedProfile = await tx.vendorProfile.update({
         where: { id: profile.id },
         data: {
           balance: { decrement: amount },
         },
       });
 
-      return payout;
+      return { payout, newBalance: updatedProfile.balance };
     });
 
     return NextResponse.json({
       message: "Payout request submitted successfully",
-      payout: result,
+      payout: result.payout,
+      newBalance: result.newBalance,
     });
 
   } catch (error: any) {
@@ -79,7 +76,6 @@ export async function POST(req: Request) {
     );
   }
 }
-
 
 
 export async function GET() {

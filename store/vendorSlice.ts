@@ -107,7 +107,7 @@ export const fetchVendorPayouts = createAsyncThunk(
   "vendor/fetchVendorPayouts",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/vendors/payout"); // We will create this GET route next
+      const response = await fetch("/api/vendors/payout"); 
       const data = await response.json();
       
       if (!response.ok) throw new Error(data.message || "Failed to fetch payouts");
@@ -311,16 +311,28 @@ const vendorSlice = createSlice({
 
 
     setVendorData: (
-      state,
-      action: PayloadAction<{ profile: any; onboarding: Onboarding; balance: number; lastSyncedAt?: string }>
-    ) => {
-      state.profile = action.payload.profile;
-      state.onboarding = action.payload.onboarding;
-      state.balance = Number(action.payload.balance || 0);
-      if (action.payload.lastSyncedAt) {
-        state.lastSyncedAt = action.payload.lastSyncedAt;
-      }
-    },
+  state,
+  action: PayloadAction<{ profile: any; onboarding: Onboarding; balance: number; lastSyncedAt?: string }>
+) => {
+  // FIXED: Merge existing profile with new profile data
+  state.profile = {
+    ...state.profile,
+    ...action.payload.profile
+  };
+  
+  // Merge onboarding status as well
+  state.onboarding = {
+    ...state.onboarding,
+    ...action.payload.onboarding
+  };
+
+  state.balance = Number(action.payload.balance || 0);
+  
+  if (action.payload.lastSyncedAt) {
+    state.lastSyncedAt = action.payload.lastSyncedAt;
+  }
+},
+    
     resetVendor: (state) => {
       return initialState;
     },
@@ -422,7 +434,8 @@ const vendorSlice = createSlice({
       // action.payload is now the 'payout' object returned from our API
       // We subtract the amount from the local state balance immediately
       if (action.payload && action.payload.amount) {
-        state.balance = state.balance - action.payload.amount;
+        state.balance = state.balance - action.payload.amount
+        state.balance = action.payload.newBalance; 
       }
 
       // Add the new payout request to the history log
@@ -430,7 +443,8 @@ const vendorSlice = createSlice({
         state.payouts = [action.payload, ...state.payouts];
       }
     })
-      .addCase(updateVendorSettings.pending, (state) => {
+      
+    .addCase(updateVendorSettings.pending, (state) => {
       state.loading = true;
     })
     .addCase(updateVendorSettings.fulfilled, (state, action) => {

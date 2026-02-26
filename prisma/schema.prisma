@@ -37,6 +37,8 @@ model User {
   customerProfile    CustomerProfile?    @relation("CustomerProfileUser")
   vendorProfile      VendorProfile?      @relation("VendorProfileUser")
 
+  conversations      Conversation[]      @relation("UserConversations")
+
   
   orders             Order[]
   reviews            Review[]
@@ -681,6 +683,46 @@ model SiteSettings {
   updatedAt       DateTime @updatedAt
 }
 
+
+
+model Conversation {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Participants - Can be any combination of User roles
+  participantIds String[] 
+  participants   User[]    @relation("UserConversations")
+  
+  // Metadata to help filter in the Dashboards
+  type        ConversationType @default(CUSTOMER_VENDOR)
+  subject     String?   // Useful for Admin tickets e.g. "Payout Issue"
+  
+  messages    Message[]
+}
+
+enum ConversationType {
+  CUSTOMER_VENDOR
+  VENDOR_ADMIN
+  CUSTOMER_ADMIN
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  senderName     String?      
+  content        String       @db.Text
+  
+  // New Fields for Product Context
+  productId      String?
+  productPrice   String?      // Store "price at time of inquiry"
+  productImage   String?      
+  
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
 
 
 

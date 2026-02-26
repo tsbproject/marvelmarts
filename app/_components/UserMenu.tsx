@@ -129,42 +129,51 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     });
   }
 
-  const handleClick = async (item: MenuItem) => {
-    // 1. AUTH GUARD: Intercept guests trying to access protected account routes
-    if (!isAuthenticated && item.link.startsWith("/account")) {
-      onClose();
-      setLoading(true);
-      // We pass the intended link as a callbackUrl so they return here after login
-      router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(item.link)}`);
-      return;
-    }
+  // 1. Change how you determine if the user is logged in for the logic checks
+// Replace the Redux selector or add this constant:
+const isNextAuthAuthenticated = status === "authenticated";
 
+const handleClick = async (item: MenuItem) => {
+  // Use the Session Status instead of Redux state here to prevent "Ghost Logouts"
+  if (!isNextAuthAuthenticated && item.link.startsWith("/account")) {
     onClose();
+    setLoading(true);
+    router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(item.link)}`);
+    return;
+  }
 
-    // 2. WORKSPACE SWITCHER: Existing logic for Vendor/Customer toggle
-    if (item.variant === "switcher") {
-      const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
-      setLoading(true);
+  onClose();
+
+  // 2. WORKSPACE SWITCHER
+  if (item.variant === "switcher") {
+    const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+    setLoading(true);
+    
+    try {
+      dispatch(setViewMode(nextMode));
+      // Pass the new role to the session update
+      await update({ ...session, user: { ...session?.user, role: nextMode } });
       
-      try {
-        dispatch(setViewMode(nextMode));
-        await update({ role: nextMode });
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        notifySuccess(`Workspace: ${nextMode} Mode Active`);
-        window.location.assign(nextMode === "VENDOR" ? "/account/vendor" : "/");
-      } catch (error) {
-        console.error("Switch Error:", error);
-        setLoading(false);
-      }
-      return;
+      notifySuccess(`Workspace: ${nextMode} Mode Active`);
+      
+      // Use window.location for a clean state reset when switching modes
+      window.location.assign(nextMode === "VENDOR" ? "/account/vendor" : "/account/customer");
+    } catch (error) {
+      console.error("Switch Error:", error);
+      setLoading(false);
     }
+    return;
+  }
 
-    // 3. NORMAL NAVIGATION: Prevent navigation to the same page
-    if (window.location.pathname !== item.link && item.link !== "toggle_workspace") {
+  // 3. NORMAL NAVIGATION
+  if (item.link !== "toggle_workspace") {
+    // Only push if we aren't already there
+    if (window.location.pathname !== item.link) {
       setLoading(true);
       router.push(item.link);
     }
-  };
+  }
+};
   
 
   const handleLogout = async () => {

@@ -1,17 +1,408 @@
-import { prisma } from "@/app/lib/prisma";
+// // "use client";
+
+// // import { useState, useEffect } from "react";
+// // import Link from "next/link";
+// // import { 
+// //   Search, 
+// //   ChevronRight, 
+// //   Package, 
+// //   ShieldCheck, 
+// //   CreditCard, 
+// //   User, 
+// //   LifeBuoy,
+// //   ArrowUpRight,
+// //   MessageCircle,
+// //   Zap,
+// //   Lock
+// // } from "lucide-react";
+// // import SupportDrawer from "@/app/_components/SupportDrawer";
+
+// // const categoryIcons: Record<string, any> = {
+// //   "Shipping": Package,
+// //   "Payments": CreditCard,
+// //   "Account": User,
+// //   "Security": ShieldCheck,
+// //   "Default": LifeBuoy
+// // };
+
+// // interface SupportDrawerProps {
+// //   isOpen: boolean;
+// //   onClose: () => void;
+// // }
+
+// // export default function SupportLandingPage() {
+// //   const [isOpen, setIsOpen] = useState(false);
+// //   const [loading, setLoading] = useState(true);
+  
+// //   // Initialize as empty arrays so the .map doesn't fail
+// //   const [categoryData, setCategoryData] = useState<any[]>([]);
+// //   const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
+
+// //  useEffect(() => {
+// //     const loadData = async () => {
+// //       try {
+// //         const response = await fetch('/api/support/landing-data');
+        
+// //         // This will print the exact status code in your console (404, 500, etc)
+// //         if (!response.ok) {
+// //           const errorText = await response.text();
+// //           console.error(`Protocol Error ${response.status}:`, errorText);
+// //           throw new Error(`Status ${response.status}`);
+// //         }
+
+// //         const data = await response.json();
+// //         setCategoryData(data.categoryData || []);
+// //         setFeaturedArticles(data.featuredArticles || []);
+// //       } catch (error) {
+// //         console.error("Fetch failed:", error);
+// //       } finally {
+// //         setLoading(false);
+// //       }
+// //     };
+// //     loadData();
+// //   }, []);
+  
+  
+// //   return (
+// //     <div className="min-h-screen bg-[#FBFBFB]">
+// //       <SupportDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      
+// //       {/* --- HERO SECTION --- */}
+// //       <section className="relative pt-32 pb-24 bg-[#002B5B] overflow-hidden">
+// //         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20 pointer-events-none"></div>
+// //         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#F7931E]/20 rounded-full blur-[120px]"></div>
+        
+// //         <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+// //           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md mb-8">
+// //             <Zap size={14} className="text-[#F7931E]" />
+// //             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">MarvelMarts Help Center</span>
+// //           </div>
+          
+// //           <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter text-white">
+// //             Precision <span className="text-[#F7931E]">Assistance.</span>
+// //           </h1>
+          
+// //           <div className="relative max-w-2xl mx-auto">
+// //             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40" size={22} />
+// //             <input 
+// //               type="text"
+// //               placeholder="Search secure database (e.g. 'escrow', 'API keys')..."
+// //               className="w-full h-20 pl-16 pr-8 rounded-[2rem] bg-white/10 border border-white/20 text-white text-lg backdrop-blur-xl shadow-2xl focus:ring-4 focus:ring-[#F7931E]/30 outline-none transition-all placeholder:text-white/30"
+// //             />
+// //           </div>
+// //         </div>
+// //       </section>
+
+    
+
+// //       {/* --- CATEGORIES GRID --- */}
+// //       <section className="py-24 max-w-7xl mx-auto px-6">
+// //         <div className="flex items-center gap-4 mb-12">
+// //           <div className="h-px flex-1 bg-neutral-100"></div>
+// //           <h2 className="text-[14px] font-black text-neutral-400 uppercase tracking-[0.4em]">Browse Knowledge Base</h2>
+// //           <div className="h-px flex-1 bg-neutral-100"></div>
+// //         </div>
+        
+// //         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+// //           {!loading && categoryData.map((cat) => {
+// //             const Icon = categoryIcons[cat.category] || categoryIcons.Default;
+// //             return (
+// //               <Link 
+// //                 key={cat.category}
+// //                 href={`/support/category/${encodeURIComponent(cat.category)}`}
+// //                 className="group p-10 rounded-[40px] border border-transparent bg-white hover:border-neutral-200 hover:shadow-2xl transition-all duration-500"
+// //               >
+// //                 <div className="w-16 h-16 rounded-2xl bg-[#002B5B]/5 flex items-center justify-center text-[#002B5B] mb-8 group-hover:bg-[#F7931E] group-hover:text-white transition-all duration-500">
+// //                   <Icon size={32} />
+// //                 </div>
+// //                 <h3 className="text-xl font-black text-[#002B5B] mb-2">{cat.category}</h3>
+// //                 <p className="text-sm text-neutral-400 font-bold uppercase tracking-widest">
+// //                   {cat._count?._all || 0} Modules
+// //                 </p>
+// //               </Link>
+// //             );
+// //           })}
+// //         </div>
+// //       </section>
+
+// //       {/* --- FEATURED INTEL --- */}
+// //       <section className="py-24 bg-[#002B5B]/[0.02] border-y border-neutral-100">
+// //         <div className="max-w-7xl mx-auto px-6">
+// //           <div className="flex justify-between items-end mb-12">
+// //             <div>
+// //               <h2 className="text-3xl font-black text-[#002B5B] uppercase tracking-tight">Top Help Articles</h2>
+// //               <p className="text-neutral-500 mt-2 text-xl font-medium">Critical documentation for vendors and customers.</p>
+// //             </div>
+// //           </div>
+
+// //           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+// //             {!loading && featuredArticles.map((article) => (
+// //               <Link 
+// //                 key={article.id}
+// //                 href={`/support/articles/${article.slug}`}
+// //                 className="flex items-center justify-between p-8 bg-white rounded-3xl border border-transparent hover:border-[#002B5B]/10 group transition-all duration-300 shadow-sm hover:shadow-xl"
+// //               >
+// //                 <div className="flex-1 pr-8">
+// //                   <h4 className="text-lg font-black text-[#002B5B] group-hover:text-[#F7931E] transition-colors">
+// //                     {article.title}
+// //                   </h4>
+// //                   <p className="text-sm text-neutral-400 mt-2 line-clamp-1 font-medium">{article.excerpt}</p>
+// //                 </div>
+// //                 <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-300 group-hover:bg-[#F7931E]/10 group-hover:text-[#F7931E] transition-all">
+// //                   <ArrowUpRight size={20} />
+// //                 </div>
+// //               </Link>
+// //             ))}
+// //           </div>
+// //         </div>
+// //       </section>
+
+// //       {/* --- PROTOCOL FOOTER --- */}
+// //       <section className="py-32 text-center relative overflow-hidden">
+// //         <div className="max-w-2xl mx-auto px-6 relative z-10">
+// //           <div className="inline-flex p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-2xl mb-8">
+// //             <Lock size={40} />
+// //           </div>
+// //           <h2 className="text-4xl font-black text-[#002B5B] mb-6">End-to-End Encryption</h2>
+// //           <p className="text-neutral-500 mb-12 font-medium leading-relaxed">
+// //             Every interaction on MarvelMarts is protected by industrial-grade security protocols. 
+// //             Our support officers never ask for your private keys or passwords.
+// //           </p>
+// //           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+// //             <Link href="/support/contact" className="px-12 py-5 bg-[#002B5B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+// //               Ticket Submission
+// //             </Link>
+// //             <button 
+// //               onClick={() => setIsOpen(true)}
+// //               className="px-12 py-5 border-2 border-[#002B5B] text-[#002B5B] rounded-2xl font-black uppercase tracking-widest hover:bg-[#002B5B] hover:text-white transition-all shadow-xl"
+// //             >
+// //               Open Live Chat
+// //             </button>
+// //           </div>
+// //         </div>
+// //       </section>
+// //     </div>
+// //   );
+// // }
+
+
+
+
+
+// "use client";
+
+// import { useState, useEffect } from "react";
+// import Link from "next/link";
+// import { 
+//   X, 
+//   Shield, 
+//   Send, 
+//   Headset,
+//   Search, 
+//   ChevronRight, 
+//   Package, 
+//   ShieldCheck, 
+//   CreditCard, 
+//   User, 
+//   LifeBuoy,
+//   ArrowUpRight,
+//   MessageCircle,
+//   Zap,
+//   Lock
+// } from "lucide-react";
+// import SupportDrawer from "@/app/_components/SupportDrawer";
+// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+
+// const categoryIcons: Record<string, any> = {
+//   "Shipping": Package,
+//   "Payments": CreditCard,
+//   "Account": User,
+//   "Security": ShieldCheck,
+//   "Default": LifeBuoy
+// };
+
+// interface SupportDrawerProps {
+//   isOpen: boolean;
+//   onClose: () => void;
+// }
+
+// export default function SupportDrawer({ isOpen, onClose }: SupportDrawerProps) {
+//   if (!isOpen) return null;
+  
+//   const [ setIsOpen] = useState(false);
+//   const { setLoading } = useLoadingOverlay();
+  
+//   // Initialize as empty arrays so the .map doesn't fail
+//   const [categoryData, setCategoryData] = useState<any[]>([]);
+//   const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
+
+//   useEffect(() => {
+//     const loadData = async () => {
+//       setLoading(true); // Trigger the MarvelMarts Loading Context
+//       try {
+//         const response = await fetch('/api/support/landing-data');
+        
+//         if (!response.ok) {
+//           const errorText = await response.text();
+//           console.error(`Protocol Error ${response.status}:`, errorText);
+//           throw new Error(`Status ${response.status}`);
+//         }
+
+//         const data = await response.json();
+//         setCategoryData(data.categoryData || []);
+//         setFeaturedArticles(data.featuredArticles || []);
+//       } catch (error) {
+//         console.error("Fetch failed:", error);
+//       } finally {
+//         setLoading(false); // Release the Loading Overlay
+//       }
+//     };
+//     loadData();
+//   }, [setLoading]);
+
+//   return (
+//     <div className="min-h-screen bg-[#FBFBFB]">
+//       {/* SupportDrawer triggered by isOpen state */}
+//       <SupportDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      
+//       {/* --- HERO SECTION --- */}
+//       <section className="relative pt-32 pb-24 bg-[#002B5B] overflow-hidden">
+//         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20 pointer-events-none"></div>
+//         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#F7931E]/20 rounded-full blur-[120px]"></div>
+        
+//         <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+//           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md mb-8">
+//             <Zap size={14} className="text-[#F7931E]" />
+//             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">MarvelMarts Help Center</span>
+//           </div>
+          
+//           <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter text-white">
+//             Precision <span className="text-[#F7931E]">Assistance.</span>
+//           </h1>
+          
+//           <div className="relative max-w-2xl mx-auto">
+//             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40" size={22} />
+//             <input 
+//               type="text"
+//               placeholder="Search secure database (e.g. 'escrow', 'API keys')..."
+//               className="w-full h-20 pl-16 pr-8 rounded-[2rem] bg-white/10 border border-white/20 text-white text-lg backdrop-blur-xl shadow-2xl focus:ring-4 focus:ring-[#F7931E]/30 outline-none transition-all placeholder:text-white/30"
+//             />
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- CATEGORIES GRID --- */}
+//       <section className="py-24 max-w-7xl mx-auto px-6">
+//         <div className="flex items-center gap-4 mb-12">
+//           <div className="h-px flex-1 bg-neutral-100"></div>
+//           <h2 className="text-[14px] font-black text-neutral-400 uppercase tracking-[0.4em]">Browse Knowledge Base</h2>
+//           <div className="h-px flex-1 bg-neutral-100"></div>
+//         </div>
+        
+//         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+//           {categoryData.map((cat) => {
+//             const Icon = categoryIcons[cat.category] || categoryIcons.Default;
+//             return (
+//               <Link 
+//                 key={cat.category}
+//                 href={`/support/category/${encodeURIComponent(cat.category)}`}
+//                 className="group p-10 rounded-[40px] border border-transparent bg-white hover:border-neutral-200 hover:shadow-2xl transition-all duration-500"
+//               >
+//                 <div className="w-16 h-16 rounded-2xl bg-[#002B5B]/5 flex items-center justify-center text-[#002B5B] mb-8 group-hover:bg-[#F7931E] group-hover:text-white transition-all duration-500">
+//                   <Icon size={32} />
+//                 </div>
+//                 <h3 className="text-xl font-black text-[#002B5B] mb-2">{cat.category}</h3>
+//                 <p className="text-sm text-neutral-400 font-bold uppercase tracking-widest">
+//                   {cat._count?._all || 0} Modules
+//                 </p>
+//               </Link>
+//             );
+//           })}
+//         </div>
+//       </section>
+
+//       {/* --- FEATURED INTEL --- */}
+//       <section className="py-24 bg-[#002B5B]/[0.02] border-y border-neutral-100">
+//         <div className="max-w-7xl mx-auto px-6">
+//           <div className="flex justify-between items-end mb-12">
+//             <div>
+//               <h2 className="text-3xl font-black text-[#002B5B] uppercase tracking-tight">Top Help Articles</h2>
+//               <p className="text-neutral-500 mt-2 text-xl font-medium">Critical documentation for vendors and customers.</p>
+//             </div>
+//           </div>
+
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//             {featuredArticles.map((article) => (
+//               <Link 
+//                 key={article.id}
+//                 href={`/support/articles/${article.slug}`}
+//                 className="flex items-center justify-between p-8 bg-white rounded-3xl border border-transparent hover:border-[#002B5B]/10 group transition-all duration-300 shadow-sm hover:shadow-xl"
+//               >
+//                 <div className="flex-1 pr-8">
+//                   <h4 className="text-lg font-black text-[#002B5B] group-hover:text-[#F7931E] transition-colors">
+//                     {article.title}
+//                   </h4>
+//                   <p className="text-sm text-neutral-400 mt-2 line-clamp-1 font-medium">{article.excerpt}</p>
+//                 </div>
+//                 <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-300 group-hover:bg-[#F7931E]/10 group-hover:text-[#F7931E] transition-all">
+//                   <ArrowUpRight size={20} />
+//                 </div>
+//               </Link>
+//             ))}
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- PROTOCOL FOOTER --- */}
+//       <section className="py-32 text-center relative overflow-hidden">
+//         <div className="max-w-2xl mx-auto px-6 relative z-10">
+//           <div className="inline-flex p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-2xl mb-8">
+//             <Lock size={40} />
+//           </div>
+//           <h2 className="text-4xl font-black text-[#002B5B] mb-6">End-to-End Encryption</h2>
+//           <p className="text-neutral-500 mb-12 font-medium leading-relaxed">
+//             Every interaction on MarvelMarts is protected by industrial-grade security protocols. 
+//             Our support officers never ask for your private keys or passwords.
+//           </p>
+//           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+//             <Link href="/support/contact" className="px-12 py-5 bg-[#002B5B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+//               Ticket Submission
+//             </Link>
+//             <button 
+//               onClick={() => setIsOpen(true)}
+//               className="px-12 py-5 border-2 border-[#002B5B] text-[#002B5B] rounded-2xl font-black uppercase tracking-widest hover:bg-[#002B5B] hover:text-white transition-all shadow-xl"
+//             >
+//               Open Live Chat
+//             </button>
+//           </div>
+//         </div>
+//       </section>
+//     </div>
+//   );
+// }
+
+
+
+
+
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Search, 
-  ChevronRight, 
   Package, 
   ShieldCheck, 
   CreditCard, 
   User, 
   LifeBuoy,
-  ArrowUpRight
+  ArrowUpRight,
+  Zap,
+  Lock
 } from "lucide-react";
+import SupportDrawer from "@/app/_components/SupportDrawer";
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
-// Map icons to your categories
 const categoryIcons: Record<string, any> = {
   "Shipping": Package,
   "Payments": CreditCard,
@@ -20,113 +411,135 @@ const categoryIcons: Record<string, any> = {
   "Default": LifeBuoy
 };
 
-export default async function SupportLandingPage() {
-  // Fetch all categories with article counts
-  const categoryData = await prisma.helpArticle.groupBy({
-    by: ['category'],
-    _count: { _all: true }
-  });
+export default function SupportLandingPage() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { setLoading } = useLoadingOverlay();
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
 
-  // Fetch 4 featured/recent articles
-  const featuredArticles = await prisma.helpArticle.findMany({
-    take: 4,
-    orderBy: { updatedAt: 'desc' }
-  });
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/support/landing-data');
+        if (!response.ok) throw new Error(`Status ${response.status}`);
+        const data = await response.json();
+        setCategoryData(data.categoryData || []);
+        setFeaturedArticles(data.featuredArticles || []);
+      } catch (error) {
+        console.error("Fetch failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [setLoading]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Search Section */}
-      <section className="relative py-20 bg-blue-600 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-        <div className="max-w-4xl mx-auto px-4 relative z-10 text-center text-white">
-          <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
-            How can we help?
+    <div className="min-h-screen bg-[#FBFBFB]">
+      {/* The Drawer component sitting at the top level */}
+      <SupportDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      
+      {/* --- HERO SECTION --- */}
+      <section className="relative pt-32 pb-24 bg-[#002B5B] overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20 pointer-events-none"></div>
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#F7931E]/20 rounded-full blur-[120px]"></div>
+        
+        <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md mb-8">
+            <Zap size={14} className="text-[#F7931E]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">MarvelMarts Help Center</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter text-white">
+            Precision <span className="text-[#F7931E]">Assistance.</span>
           </h1>
+          
           <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40" size={22} />
             <input 
               type="text"
-              placeholder="Search for articles (e.g. 'refunds', 'tracking')..."
-              className="w-full h-16 pl-14 pr-6 rounded-2xl text-gray-900 text-lg shadow-2xl focus:ring-4 focus:ring-blue-400 outline-none transition-all"
-              // In a real app, you'd wrap this input in a Client Component for live search
+              placeholder="Search secure database (e.g. 'escrow', 'API keys')..."
+              className="w-full h-20 pl-16 pr-8 rounded-[2rem] bg-white/10 border border-white/20 text-white text-lg backdrop-blur-xl shadow-2xl focus:ring-4 focus:ring-[#F7931E]/30 outline-none transition-all placeholder:text-white/30"
             />
           </div>
         </div>
       </section>
 
-      {/* Categories Grid */}
-      <section className="py-16 max-w-7xl mx-auto px-4">
-        <h2 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-widest">Browse by Topic</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* --- CATEGORIES GRID --- */}
+      <section className="py-24 max-w-7xl mx-auto px-6">
+        <div className="flex items-center gap-4 mb-12">
+          <div className="h-px flex-1 bg-neutral-100"></div>
+          <h2 className="text-[14px] font-black text-neutral-400 uppercase tracking-[0.4em]">Browse Knowledge Base</h2>
+          <div className="h-px flex-1 bg-neutral-100"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {categoryData.map((cat) => {
             const Icon = categoryIcons[cat.category] || categoryIcons.Default;
             return (
               <Link 
                 key={cat.category}
                 href={`/support/category/${encodeURIComponent(cat.category)}`}
-                className="group p-8 rounded-[32px] border border-gray-100 bg-gray-50/50 hover:bg-white hover:shadow-2xl hover:shadow-blue-900/10 transition-all"
+                className="group p-10 rounded-[40px] border border-transparent bg-white hover:border-neutral-200 hover:shadow-2xl transition-all duration-500"
               >
-                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
-                  <Icon size={28} />
+                <div className="w-16 h-16 rounded-2xl bg-[#002B5B]/5 flex items-center justify-center text-[#002B5B] mb-8 group-hover:bg-[#F7931E] group-hover:text-white transition-all duration-500">
+                  <Icon size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{cat.category}</h3>
-                <p className="text-sm text-gray-500 font-medium">
-                  {cat._count._all} Articles
+                <h3 className="text-xl font-black text-[#002B5B] mb-2">{cat.category}</h3>
+                <p className="text-sm text-neutral-400 font-bold uppercase tracking-widest">
+                  {cat._count?._all || 0} Modules
                 </p>
-                <div className="mt-4 flex items-center text-blue-600 text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                  View All <ChevronRight size={14} />
-                </div>
               </Link>
             );
           })}
         </div>
       </section>
 
-      {/* Featured Articles */}
-      <section className="py-16 bg-gray-50/50 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-end mb-10">
-            <div>
-              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Featured Articles</h2>
-              <p className="text-gray-500 mt-2 font-medium">Most commonly read help guides</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* --- FEATURED INTEL --- */}
+      <section className="py-24 bg-[#002B5B]/[0.02] border-y border-neutral-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-black text-[#002B5B] uppercase tracking-tight mb-12">Top Help Articles</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {featuredArticles.map((article) => (
               <Link 
                 key={article.id}
                 href={`/support/articles/${article.slug}`}
-                className="flex items-center justify-between p-6 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 group transition-all"
+                className="flex items-center justify-between p-8 bg-white rounded-3xl border border-transparent hover:border-[#002B5B]/10 group transition-all duration-300 shadow-sm hover:shadow-xl"
               >
-                <div className="flex-1 pr-4">
-                  <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    {article.title}
-                  </h4>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{article.excerpt}</p>
+                <div className="flex-1 pr-8">
+                  <h4 className="text-lg font-black text-[#002B5B] group-hover:text-[#F7931E] transition-colors">{article.title}</h4>
+                  <p className="text-sm text-neutral-400 mt-2 line-clamp-1 font-medium">{article.excerpt}</p>
                 </div>
-                <ArrowUpRight size={18} className="text-gray-300 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-300 group-hover:bg-[#F7931E]/10 group-hover:text-[#F7931E] transition-all">
+                  <ArrowUpRight size={20} />
+                </div>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Contact Support Footer */}
-      <section className="py-20 text-center">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="inline-flex p-4 rounded-3xl bg-blue-50 text-blue-600 mb-6">
-            <LifeBuoy size={32} />
+      {/* --- PROTOCOL FOOTER --- */}
+      <section className="py-32 text-center relative overflow-hidden">
+        <div className="max-w-2xl mx-auto px-6 relative z-10">
+          <div className="inline-flex p-6 rounded-[2.5rem] bg-[#002B5B] text-white shadow-2xl mb-8">
+            <Lock size={40} />
           </div>
-          <h2 className="text-3xl font-black text-gray-900 mb-4">Still need help?</h2>
-          <p className="text-gray-500 mb-10">Our team is available 24/7 to assist you with any questions.</p>
+          <h2 className="text-4xl font-black text-[#002B5B] mb-6">End-to-End Encryption</h2>
+          <p className="text-neutral-500 mb-12 font-medium leading-relaxed">
+            Every interaction on MarvelMarts is protected by industrial-grade security protocols.
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/support/contact" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all">
-              Contact Us
+            <Link href="/support/contact" className="px-12 py-5 bg-[#002B5B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+              Ticket Submission
             </Link>
-            <Link href="/support/live-chat" className="px-10 py-4 bg-white border border-gray-200 text-gray-900 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
-              Live Chat
-            </Link>
+            <button 
+              onClick={() => setIsOpen(true)}
+              className="px-12 py-5 border-2 border-[#002B5B] text-[#002B5B] rounded-2xl font-black uppercase tracking-widest hover:bg-[#002B5B] hover:text-white transition-all shadow-xl"
+            >
+              Open Live Chat
+            </button>
           </div>
         </div>
       </section>

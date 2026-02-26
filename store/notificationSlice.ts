@@ -1,11 +1,16 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface AdminNotification {
-  id: string; // Unique ID for the notification entry
-  orderId: string;
-  type: "refund" | "cancel";
-  customerName: string;
-  amount: number;
+  id: string;
+  // ALIGNMENT: Added "message" to the type union
+  type: "refund" | "cancel" | "dispute" | "vendor" | "system" | "message"; 
+  orderId?: string;
+  customerName?: string;
+  storeName?: string;
+  title?: string;
+  message?: string;
+  link?: string;
+  amount?: number;
   createdAt: string;
   isRead: boolean;
 }
@@ -22,41 +27,45 @@ const notificationSlice = createSlice({
   name: "adminNotifications",
   initialState,
   reducers: {
-    // Add a new notification to the top of the list
     addNotification: (
       state, 
       action: PayloadAction<Omit<AdminNotification, "id" | "isRead" | "createdAt">>
     ) => {
-      // Check for duplicates to prevent the same notification appearing twice
-      const isDuplicate = state.notifications.some(
-        (n) => n.orderId === action.payload.orderId && n.type === action.payload.type
-      );
+      // TACTICAL CHECK: Don't block messages as duplicates if they come from the same person
+      const isDuplicate = state.notifications.some((n) => {
+        if (action.payload.type === "message") return false; // Always allow new messages
+        
+        if (action.payload.orderId && n.orderId === action.payload.orderId) {
+          return n.type === action.payload.type;
+        }
+        return n.title === action.payload.title && n.message === action.payload.message;
+      });
 
       if (!isDuplicate) {
         const newNotification: AdminNotification = {
           ...action.payload,
-          id: `notif-${Math.random().toString(36).substring(2, 9)}`, // More robust ID
+          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`, 
           isRead: false,
           createdAt: new Date().toISOString(),
         };
-        // Unshift adds to the beginning of the array (top of the bell)
+        // Add to top of the list
         state.notifications = [newNotification, ...state.notifications];
       }
     },
-    // Mark a specific notification as read
+
     markAsRead: (state, action: PayloadAction<string>) => {
       const notification = state.notifications.find((n) => n.id === action.payload);
       if (notification) {
         notification.isRead = true;
       }
     },
-    // Mark all as read (useful when opening the bell dropdown)
+
     markAllAsRead: (state) => {
       state.notifications.forEach((n) => {
         n.isRead = true;
       });
     },
-    // Clear old notifications
+
     clearNotifications: (state) => {
       state.notifications = [];
     },

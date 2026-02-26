@@ -1,5 +1,7 @@
 
 
+
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth"; 
 import DashboardHeader from "@/app/_components/DashboardHeader";
@@ -13,8 +15,8 @@ import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { startOfDay, startOfMonth } from "date-fns";
-import SessionUpdater from "./_components/SessionUpdater";
 import BusinessToggleAction from "./_components/BusinessToggleActions"; 
+import VendorMessageBadge from "./_components/VendorMessageBadge";
 
 export default async function VendorDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -71,11 +73,11 @@ export default async function VendorDashboardPage() {
   const showOnboardingSteps = !onboarding?.storeDone || !onboarding?.productDone;
   const showPendingBanner = !isVerified;
 
-  // FETCH STATS
+  // FETCH STATS & UNREAD MESSAGES
   const today = startOfDay(new Date());
   const monthStart = startOfMonth(new Date());
 
-  const [liveProductsCount, newOrdersCount, todayRevenue, monthRevenue] = await Promise.all([
+  const [liveProductsCount, newOrdersCount, todayRevenue, monthRevenue, unreadCount] = await Promise.all([
     prisma.product.count({ where: { vendorProfileId: vId, isPublished: true } }),
     prisma.order.count({ where: { vendorProfileId: vId, status: "PENDING" } }),
     prisma.order.aggregate({
@@ -85,6 +87,14 @@ export default async function VendorDashboardPage() {
     prisma.order.aggregate({
       where: { vendorProfileId: vId, status: "APPROVED", createdAt: { gte: monthStart } },
       _sum: { total: true }
+    }),
+    // Fetch real-time count for the badge
+    prisma.message.count({
+      where: {
+        conversation: { participantIds: { has: session.user.id } },
+        isRead: false,
+        senderId: { not: session.user.id }
+      }
     })
   ]);
 
@@ -101,11 +111,11 @@ export default async function VendorDashboardPage() {
   ];
 
   return (
-    <div className="flex flex-col   min-h-screen bg-[#FBFBFB]">
-      <SessionUpdater /> 
-      <DashboardHeader title="Merchant Command" showLogout={false} />
+    <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+    
+      <DashboardHeader title="Merchant Command" showLogout={true} />
 
-      <div className="p-4 md:p-8  space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
         
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -131,7 +141,6 @@ export default async function VendorDashboardPage() {
             </div>
 
             <div className="flex items-center gap-3">
-                {/* View Live Store Link */}
                 <Link 
                     href={`/store/${vendorData.store?.slug}`} 
                     target="_blank"
@@ -266,7 +275,8 @@ export default async function VendorDashboardPage() {
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-8">
                    <h3 className="text-lg font-black text-accent-navy uppercase italic">Comm Center</h3>
-                   <MessageSquare className="text-brand-primary" size={20} />
+                   {/* REAL-TIME BADGE INTEGRATION */}
+                   <VendorMessageBadge vendorProfileId={vId} initialUnreadCount={unreadCount} />
                 </div>
                 <div className="space-y-4">
                   <div className="p-5 bg-gray-50/50 rounded-2xl border border-transparent italic">
@@ -320,7 +330,3 @@ function TipCard({ text }: { text: string }) {
     </div>
   );
 }
-
-
-
-

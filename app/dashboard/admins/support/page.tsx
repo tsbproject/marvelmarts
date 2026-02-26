@@ -1,6 +1,3 @@
-
-
-
 import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
 import { Plus, Edit, FileText, ExternalLink, ThumbsUp, AlertTriangle } from "lucide-react";

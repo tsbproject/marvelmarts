@@ -148,18 +148,18 @@ export default function Footer({ settings }: FooterProps) {
             <ul className="space-y-6 text-lg font-bold text-blue-100/90">
               <li><Link href="/shop" className="hover:text-[#F7931E] transition-all">All Products</Link></li>
               <li><Link href="/vendors" className="hover:text-[#F7931E] transition-all">Top Vendors</Link></li>
-              <li><Link href="/sell" className="hover:text-[#F7931E] transition-all">Sell on Marvel</Link></li>
-              <li><Link href="/track-order" className="hover:text-[#F7931E] transition-all">Tracking</Link></li>
+              <li><Link href="/auth/register/vendor-registration" className="hover:text-[#F7931E] transition-all">Sell on MarvelMarts</Link></li>
+              <li><Link href="/orders/track-order" className="hover:text-[#F7931E] transition-all">Tracking Your Order</Link></li>
             </ul>
           </div>
 
           <div className="text-center sm:text-left">
             <h4 className="font-black uppercase text-sm tracking-[0.4em] mb-10 text-[#F7931E]">Assistance</h4>
             <ul className="space-y-6 text-lg font-bold text-blue-100/90">
-              <li><Link href="/faq" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
+              <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
               <li><Link href="/returns" className="hover:text-[#F7931E] transition-all">Refunds</Link></li>
               <li><Link href="/privacy" className="hover:text-[#F7931E] transition-all">Security</Link></li>
-              <li><Link href="/contact" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
+              <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
             </ul>
           </div>
 
