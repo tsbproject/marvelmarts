@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { pusherServer } from "@/app/lib/pusherServer";
@@ -8,11 +8,14 @@ import { pusherServer } from "@/app/lib/pusherServer";
  * Triggered by the frontend when a user focuses/types in the message input.
  */
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // Params is a Promise in Next.js 15
 ) {
   try {
     const session = await getServerSession(authOptions);
+
+    // 1. Await params to get the conversationId
+    const { id: conversationId } = await context.params;
 
     // Guard: Only authenticated users can trigger signals
     if (!session?.user) {
@@ -20,20 +23,24 @@ export async function POST(
     }
 
     const { typing } = await req.json();
-    const conversationId = params.id;
+    const userId = (session.user as any).id;
 
-    // Broadcast the typing status to the specific chat channel
-    // The frontend listens for this to show/hide the three-dot animation
+    if (!userId) {
+      return NextResponse.json({ error: "User ID not found in session" }, { status: 500 });
+    }
+
+    // 2. Broadcast the typing status to the specific chat channel
+    // Using the channel naming convention 'chat-[id]' as per your code
     await pusherServer.trigger(`chat-${conversationId}`, "typing", {
-      userId: session.user.id,
+      userId: userId,
       typing: !!typing, // Ensure boolean
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("TYPING_SIGNAL_ERROR:", error);
     return NextResponse.json(
-      { error: "Failed to transmit signal" },
+      { error: "Failed to transmit signal", details: error.message },
       { status: 500 }
     );
   }
