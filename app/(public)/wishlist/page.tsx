@@ -27,6 +27,7 @@ export default function WishlistPage() {
     const productForCart: SerializedProduct = {
       id: item.productId, // Use the product reference ID
       title: item.title,
+      name: item.title,
       slug: item.slug || "",
       price: item.price,
       imageUrl: item.imageUrl,
@@ -35,8 +36,9 @@ export default function WishlistPage() {
       discountPrice: null,
       images: [{ url: item.imageUrl }], 
       stock: 10, 
-      isPublished: true, // FIXED: Added missing mandatory field
-      isTrending: false, // Optional but good for consistency
+      isPublished: true, 
+      isTrending: false, 
+      isVerified: false,
       createdAt: new Date().toISOString(), 
       updatedAt: new Date().toISOString(),
     };
