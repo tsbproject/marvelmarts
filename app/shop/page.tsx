@@ -45,7 +45,8 @@ export default async function ShopPage({
     orderBy: { createdAt: 'desc' }
   });
 
-  // 3. SINGLE SOURCE OF TRUTH: Map raw DB data to SerializedProduct interface
+
+  // SINGLE SOURCE OF TRUTH: Map raw DB data to SerializedProduct interface
   const serializedProducts: SerializedProduct[] = rawProducts.map((p: any) => ({
     // ID, title, slug, and other basic strings
     id: p.id,
@@ -53,36 +54,42 @@ export default async function ShopPage({
     slug: p.slug,
     description: p.description || "",
     stock: p.stock || 0,
-    
-    // Numeric conversions for Decimals (Critical for Redux)
+
+    // FIX 1: Add 'name' (Required by interface)
+    name: p.title || p.name || "", 
+
+    // FIX 2: Add 'isVerified' (Required by interface)
+    isVerified: !!p.isVerified,
+
+    // FIX 3: Add 'vendorProfileId' (Required by interface)
+    vendorProfileId: p.vendorProfileId || p.vendorId || "",
+
+    // Numeric conversions for Decimals
     price: Number(p.price || 0),
     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
     
     // UI-specific flattened fields
-    categoryName: p.category?.name || "Tactical Gear",
-    imageUrl: p.images?.[0]?.url || "/placeholder.png",
+    categoryName: p.category?.name || "General",
+    imageUrl: p.images?.[0]?.url || "/logo.png",
     
     // Array properties
-    images: p.images && p.images.length > 0 ? p.images : [{ url: "/placeholder.png" }],
+    images: p.images && p.images.length > 0 ? p.images : [{ url: "/logo.png" }],
     variants: p.variants ? p.variants.map((v: any) => ({
       ...v,
-      price: Number(v.price)
+      price: Number(v.price),
     })) : [],
 
-    // Date to String serialization (Prevents Redux non-serializable errors)
+    // Date to String serialization
     createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
     updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : new Date(p.updatedAt).toISOString(),
     
-    // Additional properties
+    // Additional optional fields
     brand: p.brand || null,
-    vendorProfileId: p.vendorProfileId || null,
-    
-    // FIXED: Added missing required field to satisfy SerializedProduct type
     isPublished: p.isPublished ?? true,
-    isTrending: p.isTrending || false,
-    isFeatured: p.isFeatured || false,
+    isTrending: !!p.isTrending,
+    isFeatured: !!p.isFeatured,
   }));
-
+  
   return (
     <div className="bg-neutral-white min-h-screen">
       {/* Hero Section */}
