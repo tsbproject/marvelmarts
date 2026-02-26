@@ -10,13 +10,12 @@
 //   Instagram,
 //   Facebook,
 //   Twitter,
-//   Share2,
-//   Copy,
-//   Check
+//   AlertTriangle
 // } from "lucide-react";
 // import ProductCard from "@/app/_components/ProductCard";
 // import { SerializedProduct } from "@/types/product";
 // import ShareActions from "./_components/ShareActions"; 
+// import ReportButton from "./_components/ReportButton"; // Added Import
 
 // export default async function PublicStorePage({ 
 //   params 
@@ -58,6 +57,7 @@
 //   const storeUrl = `${baseUrl}/store/${slug}`;
 //   const shareText = encodeURIComponent(`Check out ${displayStoreName} on MarvelMarts!`);
 
+//   // KILL SWITCH: If vendor is suspended or not approved, hide the entire store page
 //   if (vendor.isSuspended || vendor.status !== "APPROVED") {
 //     return (
 //       <div className="min-h-screen bg-white flex items-center justify-center px-6">
@@ -115,7 +115,7 @@
 //   return (
 //     <div className="min-h-screen bg-[#FBFBFB]">
 //       {/* STORE HERO */}
-//       <section className="relative h-[400px] md:h-[480px] bg-accent-navy overflow-hidden">
+//       <section className="relative h-[450px] md:h-[520px] bg-accent-navy overflow-hidden">
 //         {storeData.banner ? (
 //           <img src={storeData.banner} className="w-full h-full object-cover opacity-60" alt="banner" />
 //         ) : (
@@ -123,7 +123,8 @@
 //         )}
         
 //         <div className="absolute inset-0 flex items-end">
-//           <div className="container mx-auto px-6 pb-12 flex flex-col md:flex-row items-center gap-6">
+//           <div className="container mx-auto px-6 pb-12 flex flex-col md:flex-row items-center gap-8">
+//             {/* Logo */}
 //             <div className={`w-32 h-32 bg-white rounded-4xl p-2 shadow-2xl overflow-hidden border-4 ${vendor.isVerified ? 'border-brand-primary' : 'border-white'}`}>
 //               {storeData.logo ? (
 //                 <img src={storeData.logo} className="w-full h-full object-cover rounded-3xl" alt="logo" />
@@ -160,7 +161,7 @@
 //                 {storeData.description || "Welcome to our MarvelMarts store!"}
 //               </p>
 
-//               {/* SOCIALS & SHARING SECTION */}
+//               {/* SOCIALS, SHARING & REPORT SECTION */}
 //               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-8">
 //                 {/* VENDOR CONTACT SOCIALS */}
 //                 <div className="flex items-center gap-3 pr-5 border-r border-white/10">
@@ -182,15 +183,22 @@
 //                 </div>
 
 //                 {/* PUBLIC SHARING ACTION */}
-//                 <div className="flex items-center gap-3">
+//                 <div className="flex items-center gap-3 pr-5 border-r border-white/10">
 //                   <a href={`https://wa.me/?text=${shareText}%20${storeUrl}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-[10px] font-bold uppercase transition-all">
 //                     <MessageCircle size={14} className="text-green-400" /> WhatsApp
 //                   </a>
 //                   <a href={`https://twitter.com/intent/tweet?text=${shareText}&url=${storeUrl}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-[10px] font-bold uppercase transition-all">
 //                     <Twitter size={14} className="text-blue-400" /> Twitter
 //                   </a>
-//                   {/* CLIENT COMPONENT FOR COPY LINK */}
 //                   <ShareActions storeUrl={storeUrl} />
+//                 </div>
+
+//                 {/* REPORT VENDOR ACTION */}
+//                 <div className="ml-[45rem]">
+//                      <ReportButton 
+//                   vendorId={vendor.userId} 
+//                   storeName={displayStoreName} 
+//                 />
 //                 </div>
 //               </div>
 //             </div>
@@ -251,6 +259,9 @@
 
 
 
+
+
+
 import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import { 
@@ -263,12 +274,11 @@ import {
   Instagram,
   Facebook,
   Twitter,
-  AlertTriangle
 } from "lucide-react";
 import ProductCard from "@/app/_components/ProductCard";
 import { SerializedProduct } from "@/types/product";
 import ShareActions from "./_components/ShareActions"; 
-import ReportButton from "./_components/ReportButton"; // Added Import
+import ReportButton from "./_components/ReportButton";
 
 export default async function PublicStorePage({ 
   params 
@@ -305,12 +315,11 @@ export default async function PublicStorePage({
   const vendor = storeData.vendorProfile;
   const displayStoreName = storeData.name || vendor.storeName || "Official Store";
   
-  // SHARE LOGIC CONSTANTS
   const baseUrl = "https://marvelmarts.vercel.app";
   const storeUrl = `${baseUrl}/store/${slug}`;
   const shareText = encodeURIComponent(`Check out ${displayStoreName} on MarvelMarts!`);
 
-  // KILL SWITCH: If vendor is suspended or not approved, hide the entire store page
+  // KILL SWITCH: If vendor is suspended or not approved
   if (vendor.isSuspended || vendor.status !== "APPROVED") {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-6">
@@ -345,10 +354,12 @@ export default async function PublicStorePage({
     );
   }
 
+  // FIXED MAPPING: Included 'name' and 'isVerified' to satisfy SerializedProduct type
   const products: SerializedProduct[] = vendor.products.map((p) => ({
     id: p.id,
     slug: p.slug,
     title: p.title,
+    name: p.title, // Map title to name
     description: p.description || "",
     price: Number(p.price),
     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
@@ -359,6 +370,7 @@ export default async function PublicStorePage({
     brand: p.brand || null,
     isPublished: p.isPublished,
     isTrending: p.isTrending || false,
+    isVerified: vendor.isVerified, // Map vendor verification status to product
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     rating: p.rating || 0,
@@ -414,9 +426,7 @@ export default async function PublicStorePage({
                 {storeData.description || "Welcome to our MarvelMarts store!"}
               </p>
 
-              {/* SOCIALS, SHARING & REPORT SECTION */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-8">
-                {/* VENDOR CONTACT SOCIALS */}
                 <div className="flex items-center gap-3 pr-5 border-r border-white/10">
                   {vendor.whatsapp && (
                     <a href={`https://wa.me/${vendor.whatsapp.replace(/\D/g, '')}`} target="_blank" className="p-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl text-white hover:bg-green-500 transition-all group">
@@ -435,7 +445,6 @@ export default async function PublicStorePage({
                   )}
                 </div>
 
-                {/* PUBLIC SHARING ACTION */}
                 <div className="flex items-center gap-3 pr-5 border-r border-white/10">
                   <a href={`https://wa.me/?text=${shareText}%20${storeUrl}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-[10px] font-bold uppercase transition-all">
                     <MessageCircle size={14} className="text-green-400" /> WhatsApp
@@ -446,12 +455,11 @@ export default async function PublicStorePage({
                   <ShareActions storeUrl={storeUrl} />
                 </div>
 
-                {/* REPORT VENDOR ACTION */}
-                <div className="ml-[45rem]">
-                     <ReportButton 
-                  vendorId={vendor.userId} 
-                  storeName={displayStoreName} 
-                />
+                <div className="ml-4 md:ml-10">
+                  <ReportButton 
+                    vendorId={vendor.userId} 
+                    storeName={displayStoreName} 
+                  />
                 </div>
               </div>
             </div>
