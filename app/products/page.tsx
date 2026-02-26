@@ -46,10 +46,13 @@ export default async function ShopPage({
     // ID, title, slug, and other basic strings
     id: p.id,
     title: p.title,
+    name: p.title || "",
     slug: p.slug,
     description: p.description || "",
     stock: p.stock || 0,
     isPublished: p.isPublished ?? true,
+    isVerified: !!p.isVerified,
+   
     
     
     // Numeric conversions for Decimals
