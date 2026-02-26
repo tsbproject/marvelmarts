@@ -89,6 +89,7 @@ const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
         ? `${product.title} (${selectedVariant.name})` 
         : product.title,
       price: currentPrice,
+      name: product.title || "",
       imageUrl: resolvedImageUrl, // Use the resolved constant here
       description: product.description || "",
       discountPrice: product.discountPrice || null,
@@ -103,6 +104,8 @@ const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
         : new Date().toISOString(),
       variantId: selectedVariant?.id || null,
       isPublished: product.isPublished,
+      isVerified: !!product.isVerified,
+      vendorProfileId: product.vendorProfileId || product.vendorId || "",
     }, 
     quantity: quantity 
   }));
