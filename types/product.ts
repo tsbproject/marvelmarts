@@ -21,6 +21,7 @@ export interface SerializedProduct {
   isPublished: boolean;
   name       : string;
   isVerified : boolean;
+  vendorProfileId: string;
  
 
 

@@ -51,6 +51,7 @@ export default async function ShopPage({
     stock: p.stock || 0,
     isPublished: p.isPublished ?? true,
     
+    
     // Numeric conversions for Decimals
     price: Number(p.price || 0),
     discountPrice: p.discountPrice ? Number(p.discountPrice) : null,

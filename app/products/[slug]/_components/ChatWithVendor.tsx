@@ -9,9 +9,9 @@ import ChatDrawer from "@/app/_components/ChatDrawer";
 export default function ChatWithVendor({ 
   vendorProfileId, 
   productName,
-  productId,    // Added
-  productPrice,  // Added
-  productImage   // Added
+  productId,    
+  productPrice,  
+  productImage   
 }: { 
   vendorProfileId: string; 
   productName: string; 
@@ -92,7 +92,8 @@ export default function ChatWithVendor({
             id: productId,
             name: productName,
             price: productPrice,
-            image: productImage
+            image: productImage,
+            vendorProfileId: vendorProfileId,
           }}
         />
       )}
