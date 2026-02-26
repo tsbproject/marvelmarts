@@ -73,6 +73,7 @@ export default async function HomePage() {
     return items.map(item => ({
       id: item.id,
       slug: item.slug,
+      name: item.title || item.name || "",
       title: item.name || item.title || "Untitled Gear",
       description: item.description || "",
       price: Number(item.price),
@@ -83,6 +84,7 @@ export default async function HomePage() {
       images: item.images?.map((img: any) => ({ url: img.url })) || [],
       isTrending: !!item.isTrending,
       isPublished: item.isPublished ?? true, 
+      isVerified: item.isVerified ?? false,
     }));
   };
 
