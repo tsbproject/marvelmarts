@@ -7,12 +7,15 @@ interface ChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   conversationId: string;
+ 
   // NEW: Product Context
+  
   productContext?: {
     id: string;
     name: string;
     price: string;
     image: string;
+    vendorProfileId: string;
     
   };
 }
