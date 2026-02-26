@@ -355,7 +355,7 @@ export default async function PublicStorePage({
   }
 
   // FIXED MAPPING: Included 'name' and 'isVerified' to satisfy SerializedProduct type
-  const products: SerializedProduct[] = vendor.products.map((p) => ({
+    const products: SerializedProduct[] = vendor.products.map((p) => ({
     id: p.id,
     slug: p.slug,
     title: p.title,
@@ -375,6 +375,9 @@ export default async function PublicStorePage({
     updatedAt: p.updatedAt.toISOString(),
     rating: p.rating || 0,
     reviewCount: p.ratingCount || 0,
+
+    // FIX: Add the missing vendorProfileId required by your interface
+    vendorProfileId: vendor.id || "", 
   }));
 
   return (
