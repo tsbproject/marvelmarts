@@ -36,6 +36,7 @@ interface VendorState {
   orders: any[];
   allPayouts: any[]; 
   payouts: any[]
+  selectedOrder: null,
 
   // Admin Management Fields
   vendors: any[]; 
@@ -86,6 +87,7 @@ const initialState: VendorState = {
   searchQuery: "",
   statusFilter: "ALL",
   currentPage: 1,
+ 
   
   balance: 0,
   lastSyncedAt: null,
@@ -93,15 +95,37 @@ const initialState: VendorState = {
   allPayouts: [],
   //  payouts: Payout[];
   payouts: [],
+   selectedOrder: null,
   loading: false,
   error: null,
 };
+
+interface Order {
+  id: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+
+}
 
 // --- Thunks ---
 
 /**
  * Admin Action: Fetches all payout requests across MarvelMarts.
  */
+
+export const fetchOrderById = createAsyncThunk(
+  "vendor/fetchOrderById",
+  async (orderId: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (!response.ok) throw new Error("Failed to fetch order");
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
 
 export const fetchVendorPayouts = createAsyncThunk(
   "vendor/fetchVendorPayouts",
@@ -424,6 +448,18 @@ const vendorSlice = createSlice({
         if (index !== -1) {
           state.orders[index].status = action.payload.status;
         }
+      })
+
+      .addCase(fetchOrderById.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchOrderById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedOrder = action.payload;
+      })
+      .addCase(fetchOrderById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       })
 
       
