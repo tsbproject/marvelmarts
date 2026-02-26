@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { notifySuccess, notifyError } from "@/app/utils/notifications"; // Per your saved info
 
 export default function BalanceUpdate() {
   const { data: session, update } = useSession();
@@ -19,9 +18,9 @@ export default function BalanceUpdate() {
         }
       });
 
-      notifySuccess("Session synchronized with server.");
+      ("Session synchronized with server.");
     } catch (error) {
-      notifyError("Failed to refresh session data.");
+    ("Failed to refresh session data.");
     }
   };
 
