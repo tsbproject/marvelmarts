@@ -161,6 +161,7 @@ export default function AdminVendorManager() {
           reason: enforcementReason 
         }),
       });
+    }
 
       if (res.ok) {
        dispatch(updateVendorStatusInStore({ 
@@ -515,4 +516,3 @@ function ActionButton({ onClick, loading, icon, variant, title }: any) {
     </button>
   );
  }
-}
