@@ -25,9 +25,11 @@ export async function POST(req: Request) {
     const payout = await prisma.payout.create({
       data: {
         amount,
-        vendorProfileId,
         status: "PENDING",
-        reference: `PAY-${Date.now()}`
+        reference: `PAY-${Date.now()}`,
+        // connect the required relations instead of the raw id field
+        vendor: { connect: { id: vendorProfileId } },
+        vendorProfile: { connect: { id: vendorProfileId } },
       }
     });
 
