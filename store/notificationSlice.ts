@@ -27,9 +27,12 @@ const notificationSlice = createSlice({
   name: "adminNotifications",
   initialState,
   reducers: {
-    addNotification: (
+  
+  addNotification: (
       state, 
       action: PayloadAction<Omit<AdminNotification, "id" | "isRead" | "createdAt">>
+
+     
     ) => {
       // TACTICAL CHECK: Don't block messages as duplicates if they come from the same person
       const isDuplicate = state.notifications.some((n) => {
