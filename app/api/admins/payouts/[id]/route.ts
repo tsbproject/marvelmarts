@@ -1,21 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { pusherServer } from "@/app/lib/pusherServer"; 
+import { pusherServer } from "@/app/lib/pusherServer";
+
+/**
+ * PATCH: Handle Payout Approval and Rejection
+ * Merged logic as per user instructions
+ */
 export async function PATCH(
-  req: Request, 
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // Awaitable params for Next.js 15
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+    const { id: requestId } = await params; // Await the promise
+
     // 1. Authorization Guard
-    if (session?.user?.role !== "ADMIN") {
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const requestId = params.id;
     const { status, remarks } = await req.json(); // status: "APPROVED" | "REJECTED"
 
     if (!requestId || !status) {
@@ -26,7 +31,6 @@ export async function PATCH(
     const result = await prisma.$transaction(async (tx) => {
       const payout = await tx.payout.findUnique({
         where: { id: requestId },
-        include: { vendor: true } // Fetch vendor for Pusher channel ID
       });
 
       if (!payout) throw new Error("Payout record not found");
@@ -42,7 +46,7 @@ export async function PATCH(
         }
       });
 
-      // Refund logic if rejected
+      // Refund logic if rejected - Using 'vendorProfileId' as per instructions
       if (status === "REJECTED") {
         await tx.vendorProfile.update({
           where: { id: payout.vendorProfileId },
@@ -54,10 +58,9 @@ export async function PATCH(
     });
 
     // 3. Real-time Notification (Pusher)
-    // We trigger this AFTER the transaction is successful
     try {
       await pusherServer.trigger(
-        `vendor-${result.vendorId}`, // Unique channel for Tayo
+        `vendor-${result.vendorId}`,
         "payout-updated", 
         {
           status: status,
@@ -67,7 +70,6 @@ export async function PATCH(
       );
     } catch (pusherError) {
       console.error("Pusher Trigger Error:", pusherError);
-      // We don't return error here because the DB update already succeeded
     }
 
     return NextResponse.json({ 
@@ -82,10 +84,13 @@ export async function PATCH(
   }
 }
 
+/**
+ * GET: Fetch all payout requests for Admin Dashboard
+ */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (session?.user?.role !== "ADMIN") {
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -106,6 +111,7 @@ export async function GET() {
 
     return NextResponse.json({ payouts: formattedPayouts });
   } catch (error: any) {
+    console.error("ADMIN_PAYOUT_GET_ERROR:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
