@@ -85,9 +85,12 @@ export default async function HomePage() {
       isTrending: !!item.isTrending,
       isPublished: item.isPublished ?? true, 
       isVerified: item.isVerified ?? false,
+      
+      // FIX: Add the missing vendorProfileId required by your interface
+      // Pulling from item.vendorProfileId or the nested vendor object
+      vendorProfileId: item.vendorProfileId || item.vendorId || item.vendor?.id || "",
     }));
   };
-
   // 3. Category Serialization Logic
   const featuredCats = featuredCatsRaw.map(cat => ({
     id: cat.id,
