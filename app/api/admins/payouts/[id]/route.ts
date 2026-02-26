@@ -124,20 +124,21 @@ import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { pusherServer } from "@/app/lib/pusherServer";
+import { sendPayoutStatusEmail } from "@/app/lib/mailer";
 
 /**
  * PATCH: Process a specific payout request (Approve/Reject)
- * Merged logic as per Tayo's instructions
+ * Requirement: Next.js 15 requires awaiting params
  */
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> } // Next.js 15 Requirement
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    // 1. Await params for Next.js 15
-    const { id } = await context.params;
+    // 1. Await params for Next.js 15 compliance
+    const { id: requestId } = await context.params;
 
     // 2. Authorization Guard
     if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
@@ -147,14 +148,17 @@ export async function PATCH(
     const body = await req.json();
     const { status, remarks } = body; // status: "APPROVED" | "REJECTED"
 
-    if (!id || !status) {
+    if (!requestId || !status) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // 3. Database Transaction (Financial Integrity)
     const result = await prisma.$transaction(async (tx) => {
       const payout = await tx.payout.findUnique({
-        where: { id },
+        where: { id: requestId },
+        include: {
+          vendor: { select: { id: true, name: true, email: true } }
+        }
       });
 
       if (!payout) throw new Error("Payout record not found");
@@ -162,24 +166,31 @@ export async function PATCH(
 
       // Update Payout Status
       const updatedPayout = await tx.payout.update({
-        where: { id },
+        where: { id: requestId },
         data: { 
           status: status,
           adminRemarks: remarks || (status === "APPROVED" ? "Processed by Admin" : "Rejected by Admin"),
           processedAt: new Date()
+        },
+        include: {
+          vendor: { select: { id: true, name: true, email: true } }
         }
       });
 
-      // Refund logic if rejected - Using 'vendorProfileId' as per instructions
+      // Refund logic if rejected - Using 'vendorProfileId' as per saved instructions
+      let newBalance = null;
       if (status === "REJECTED") {
-        await tx.vendorProfile.update({
+        const updatedProfile = await tx.vendorProfile.update({
           where: { id: payout.vendorProfileId },
           data: { balance: { increment: payout.amount } }
         });
+        newBalance = updatedProfile.balance;
       }
 
-      return { updatedPayout, vendorId: payout.vendorId };
+      return { updatedPayout, newBalance, vendorId: payout.vendorId };
     });
+
+    const { updatedPayout, newBalance } = result;
 
     // 4. Real-time Notification via Pusher
     try {
@@ -188,7 +199,9 @@ export async function PATCH(
         "payout-updated", 
         {
           status: status,
-          amount: result.updatedPayout.amount,
+          amount: updatedPayout.amount,
+          newBalance: newBalance,
+          requestId: updatedPayout.id,
           remarks: remarks || "Processed"
         }
       );
@@ -196,14 +209,32 @@ export async function PATCH(
       console.error("Pusher Trigger Error:", pusherError);
     }
 
+    // 5. Email Notification using central mailer
+    if (updatedPayout.vendor?.email) {
+      try {
+        await sendPayoutStatusEmail(
+          updatedPayout.vendor.email,
+          updatedPayout.vendor.name || "Vendor",
+          updatedPayout.amount,
+          status,
+          remarks
+        );
+      } catch (emailErr) {
+        console.error("Email Notification Failed:", emailErr);
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: `Payout request has been ${status.toLowerCase()}.`,
-      payout: result.updatedPayout
+      payout: updatedPayout
     });
 
   } catch (error: any) {
     console.error("ADMIN_PAYOUT_PATCH_ERROR:", error);
-    return NextResponse.json({ error: error.message || "Failed to process payout" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to process payout" }, 
+      { status: 500 }
+    );
   }
 }
