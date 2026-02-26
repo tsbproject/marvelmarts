@@ -81,20 +81,25 @@ if (hasVariants && !selectedVariant) {
 const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
 
   // 2. Dispatch the full object
-  dispatch(addToCart({ 
+ dispatch(addToCart({ 
     product: {
       id: product.id,
       slug: product.slug,
       title: selectedVariant 
         ? `${product.title} (${selectedVariant.name})` 
         : product.title,
-      price: currentPrice,
       name: product.title || "",
-      imageUrl: resolvedImageUrl, // Use the resolved constant here
+      // FIX 1: Ensure price is a Number
+      price: Number(currentPrice), 
+      imageUrl: resolvedImageUrl, 
       description: product.description || "",
-      discountPrice: product.discountPrice || null,
+      // FIX 2: Ensure discountPrice is a Number or null
+      discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
       categoryName: product.category?.name || "Tactical Gear",
-      images: product.images || [{ url: "/logo.png" }],
+      // FIX 3: Ensure images strictly follows { url: string }[]
+      images: product.images && product.images.length > 0 
+        ? product.images.map((img: any) => ({ url: img.url })) 
+        : [{ url: "/logo.png" }],
       stock: currentMaxStock,
       createdAt: product.createdAt 
         ? new Date(product.createdAt).toISOString() 
@@ -105,7 +110,9 @@ const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
       variantId: selectedVariant?.id || null,
       isPublished: product.isPublished,
       isVerified: !!product.isVerified,
-      vendorProfileId: product.vendorProfileId || product.vendorId || "",
+      // ADD THIS: From your interface
+      isTrending: !!(product as any).isTrending, 
+      vendorProfileId: (product as any).vendorProfileId || (product as any).vendorId || "",
     }, 
     quantity: quantity 
   }));
