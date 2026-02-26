@@ -72,7 +72,7 @@ export async function GET(
       where: { id: vendorProfileId },
       include: {
         // Including the base user/vendor data if needed
-        vendor: {
+        user: {
           select: {
             name: true,
             email: true,
