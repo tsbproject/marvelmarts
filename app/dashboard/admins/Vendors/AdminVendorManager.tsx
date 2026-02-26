@@ -514,4 +514,5 @@ function ActionButton({ onClick, loading, icon, variant, title }: any) {
       {loading ? <Loader2 size={18} className="animate-spin" /> : icon}
     </button>
   );
+ }
 }
