@@ -71,12 +71,11 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
       notifyError("Please select a variant first!");
       return;
     }
-
     const reduxProduct: SerializedProduct = {
       id: product.id,
       name: product.title,
       title: selectedVariant
-    ? `${product.title} (${selectedVariant.name})` 
+        ? `${product.title} (${selectedVariant.name})` 
         : product.title,
       slug: product.slug,
       price: Number(currentPrice),
@@ -84,13 +83,21 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
       categoryName: product.category?.name || "Tactical Gear",
       description: product.description || "",
       discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-      images: product.images || [{ url: "/logo.png" }],
+      
+      // Ensure images matches the interface { url: string }[]
+      images: product.images && product.images.length > 0 
+        ? product.images.map((img: any) => ({ url: img.url })) 
+        : [{ url: "/logo.png" }],
+        
       stock: currentMaxStock,
       createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : new Date().toISOString(),
       variantId: selectedVariant?.id || "", 
       isPublished: product.isPublished,
       isVerified: (product as any).isVerified ?? false,
+
+      // FIX: Add the missing vendorProfileId required by your interface
+      vendorProfileId: (product as any).vendorProfileId || (product as any).vendorId || "",
     };
     
     dispatch(addToCart({ product: reduxProduct, quantity }));
