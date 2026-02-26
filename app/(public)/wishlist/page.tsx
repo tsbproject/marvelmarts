@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
-import { toggleWishlist, WishlistItem } from "@/store/wishlistSlice"; // Use ONLY the shared type
+import { toggleWishlist, WishlistItem } from "@/store/wishlistSlice"; 
 import { addToCart } from "@/store/cartSlice";
 import { useNotification } from "@/app/_context/NotificationContext";
 import Image from "next/image";
@@ -24,7 +24,7 @@ export default function WishlistPage() {
    * Includes all missing mandatory fields to satisfy TypeScript/Build constraints.
    */
   const handleMoveToCart = (item: WishlistItem) => {
-    const productForCart: SerializedProduct = {
+ const productForCart: SerializedProduct = {
       id: item.productId, // Use the product reference ID
       title: item.title,
       name: item.title,
@@ -41,8 +41,8 @@ export default function WishlistPage() {
       isVerified: false,
       createdAt: new Date().toISOString(), 
       updatedAt: new Date().toISOString(),
+      vendorProfileId: (item as any).vendorProfileId || (item as any).vendorId || "",
     };
-
     dispatch(addToCart({ 
       product: productForCart, 
       quantity: 1 
