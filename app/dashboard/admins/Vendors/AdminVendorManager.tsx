@@ -161,7 +161,8 @@ export default function AdminVendorManager() {
           reason: enforcementReason 
         }),
       });
-    }
+    
+    
 
       if (res.ok) {
        dispatch(updateVendorStatusInStore({ 
@@ -181,6 +182,7 @@ export default function AdminVendorManager() {
         } finally {
           setActionId(null);
         }
+  }
 
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
