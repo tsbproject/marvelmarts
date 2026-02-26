@@ -10,11 +10,12 @@ export async function POST(req: Request) {
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
   try {
-    const { orderId, reason, description, vendorName } = await req.json();
+    const { orderId, reason, description, vendorName, vendorProfileId } = await req.json();
 
     // 1. Create the Dispute record in Prisma
     const dispute = await prisma.dispute.create({
       data: {
+        vendorProfileId: vendorProfileId,
         orderId,
         reason,
         description,
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     // 3. Save to DB for the NotificationBell & Trigger Pusher
     // We map through admins if you have multiple, or just target the main one
     await Promise.all(admins.map(async (admin) => {
-      await prisma.notifications.create({
+      await prisma.notification.create({
         data: {
           userId: admin.id,
           type: "DISPUTE",

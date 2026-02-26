@@ -42,6 +42,10 @@ model User {
   
   orders             Order[]
   reviews            Review[]
+
+  notifications       Notification[]
+
+  disputes           Dispute[]            @relation("UserDisputes")
   
   passwordResetToken PasswordResetToken?
 }
@@ -197,11 +201,18 @@ model VendorScore {
 // PHASE 12: DISPUTES
 model Dispute {
   id              String        @id @default(cuid())
+  orderId         String
   vendorProfileId String
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
   reason          String
   status          DisputeStatus @default(OPEN)
+  description     String?
   createdAt       DateTime      @default(now())
+
+  // The actual ID field
+  raisedById      String
+  // Optional: Define the relation so you can fetch the user's name later
+  raisedBy        User          @relation("UserDisputes", fields: [raisedById], references: [id])
 }
 
 enum VendorTier {
@@ -722,6 +733,21 @@ model Message {
   
   isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
+}
+
+
+
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // e.g., "DISPUTE", "ORDER", "PAYOUT"
+  title     String
+  message   String
+  link      String?  
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 
