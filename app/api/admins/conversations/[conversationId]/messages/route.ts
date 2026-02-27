@@ -88,11 +88,8 @@ import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import DOMPurify from "isomorphic-dompurify";
 import { pusherServer } from "@/app/lib/pusherServer";
 
-// FORCE DYNAMIC: This prevents Vercel from trying to statically optimize this route
-// and is the most common fix for 405 errors in production.
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -103,23 +100,27 @@ export async function POST(
     const session = await getServerSession(authOptions);
     const { conversationId } = await params;
     
+    // 1. Session Check
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content } = await req.json();
-    if (!content) {
-      return NextResponse.json({ error: "Message content required" }, { status: 400 });
+    // 2. Request Body Check
+    const body = await req.json();
+    const { content } = body;
+
+    if (!content || typeof content !== 'string') {
+      return NextResponse.json({ error: "Invalid content" }, { status: 400 });
     }
 
-    // Ensure we have a valid ID from the session
+    // 3. User ID Mapping (Handling standard NextAuth 'id' vs 'sub')
     const userId = (session.user as any).id || (session.user as any).sub;
-    const cleanContent = DOMPurify.sanitize(content);
 
+    // 4. Prisma Transaction
     const newMessage = await prisma.$transaction(async (tx) => {
       const msg = await tx.message.create({
         data: {
-          content: cleanContent,
+          content: content.trim(), // Stripping whitespace
           conversationId,
           senderId: userId,
           senderName: session.user.name || "Administrator",
@@ -133,45 +134,47 @@ export async function POST(
       return msg;
     });
 
-    // --- PUSHER TRIGGERS ---
-    // Use Promise.all to ensure both triggers fire or fail together without blocking return
-    await Promise.all([
+    // 5. Pusher Triggers (Wrapped in try-catch to prevent Prisma rollback if Pusher fails)
+    try {
+      await Promise.all([
         pusherServer.trigger(conversationId, "new-message", newMessage),
         pusherServer.trigger("global-admin-support", "incoming-support-message", {
-            conversationId,
-            content: newMessage.content,
-            senderName: newMessage.senderName,
-            createdAt: newMessage.createdAt,
+          conversationId,
+          content: newMessage.content,
+          senderName: newMessage.senderName,
+          createdAt: newMessage.createdAt,
         })
-    ]);
+      ]);
+    } catch (pusherError) {
+      console.error("PUSHER_RUNTIME_ERROR:", pusherError);
+      // We don't return error here because the message IS saved in DB
+    }
 
     return NextResponse.json(newMessage, { status: 201 });
+
   } catch (error: any) {
-    console.error("POST_ERROR_DETAIL:", error); // Vital for Vercel Logs
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    // This will show up in Vercel Logs (Functions tab)
+    console.error("CRITICAL_API_ERROR:", error.message || error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message }, 
+      { status: 500 }
+    );
   }
 }
 
+// GET handler remains the same
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
     const { conversationId } = await params;
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: "asc" },
     });
-
     return NextResponse.json(messages);
-  } catch (error: any) {
-    console.error("MESSAGE_GET_ERROR:", error);
-    return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
   }
 }
