@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck, Package, AlertTriangle, ExternalLink, Star } from "lucide-react";
+import { ShieldCheck, Package, ExternalLink, Star, Octagon } from "lucide-react";
+import DisputeModal from "./DisputeModal";
 
 export default function VendorIdentityCard({ vendorProfileId }: { vendorProfileId: string }) {
   const [vendor, setVendor] = useState<any>(null);
@@ -18,7 +19,7 @@ export default function VendorIdentityCard({ vendorProfileId }: { vendorProfileI
   }, [vendorProfileId]);
 
   if (!vendor) return (
-    <div className="w-80 bg-neutral-50 rounded-[2.5rem] animate-pulse p-8 border border-neutral-100" />
+    <div className="w-80 bg-neutral-50 rounded-[2.5rem] animate-pulse p-8 border border-neutral-100 h-[400px]" />
   );
 
   return (
@@ -58,10 +59,18 @@ export default function VendorIdentityCard({ vendorProfileId }: { vendorProfileI
         <p className="text-[10px] font-black text-[#002B5B] uppercase tracking-widest mb-4">Security Profile</p>
         
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-2xl border border-green-100">
-             <span className="text-[10px] font-black text-green-700 uppercase">KYC Verified</span>
-             <ShieldCheck size={14} className="text-green-600" />
-          </div>
+          {/* Dynamic Account Status Tag */}
+          {vendor.isSuspended ? (
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-2xl border border-red-100">
+              <span className="text-[10px] font-black text-red-700 uppercase">Suspended</span>
+              <Octagon size={14} className="text-red-600" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-2xl border border-green-100">
+              <span className="text-[10px] font-black text-green-700 uppercase">KYC Verified</span>
+              <ShieldCheck size={14} className="text-green-600" />
+            </div>
+          )}
 
           <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-2xl border border-neutral-100 opacity-50">
              <span className="text-[10px] font-black text-neutral-400 uppercase">Open Disputes</span>
@@ -72,6 +81,17 @@ export default function VendorIdentityCard({ vendorProfileId }: { vendorProfileI
         <button className="w-full mt-6 py-4 bg-neutral-100 hover:bg-[#002B5B] hover:text-white transition-all rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 group">
           View Storefront <ExternalLink size={12} className="group-hover:translate-x-1 transition-transform" />
         </button>
+      </div>
+
+      {/* Enforcement Tool Integration */}
+      <div className="px-2">
+        <DisputeModal 
+          vendorProfileId={vendorProfileId} 
+          vendorName={vendor.storeName} 
+        />
+        <p className="text-[7px] text-neutral-400 font-bold uppercase text-center mt-3 tracking-widest">
+          MarvelMarts Administrative Access
+        </p>
       </div>
     </div>
   );
