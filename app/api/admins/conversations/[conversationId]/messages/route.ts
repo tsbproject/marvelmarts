@@ -5,78 +5,56 @@ import { NextRequest, NextResponse } from "next/server";
 import DOMPurify from "isomorphic-dompurify";
 import { pusherServer } from "@/app/lib/pusherServer";
 
-/**
- * POST: Create a new message and trigger Pusher
- */
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const { conversationId } = await params; // Await params for Next.js 15
-    const body = await req.json();
-    const { content } = body;
+    const { conversationId } = await params;
+    const { content } = await req.json();
 
-    // 1. Authentication & Validation
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userId = (session.user as any).id;
-    if (!userId) {
-      return NextResponse.json({ error: "User ID missing from session" }, { status: 500 });
-    }
-
-    if (!content || typeof content !== "string" || content.trim() === "") {
-      return NextResponse.json({ error: "Message content is required" }, { status: 400 });
-    }
-
     const cleanContent = DOMPurify.sanitize(content);
 
-    // 2. Database Operation (Transaction)
     const newMessage = await prisma.$transaction(async (tx) => {
       const msg = await tx.message.create({
         data: {
           content: cleanContent,
-          conversationId: conversationId,
+          conversationId,
           senderId: userId,
           senderName: session.user.name || "Administrator",
-          isRead: false,
         },
       });
 
-      // Update the parent conversation's timestamp for sorting
       await tx.conversation.update({
         where: { id: conversationId },
         data: { updatedAt: new Date() },
       });
-
       return msg;
     });
 
-    // 3. Pusher Trigger (Real-time update)
-    try {
-      await pusherServer.trigger(conversationId, "new-message", {
-        ...newMessage,
-        createdAt: newMessage.createdAt.toISOString(),
-      });
-    } catch (pusherError) {
-      console.error("PUSHER_TRIGGER_ERROR:", pusherError);
-      // Non-fatal: Message is already saved in DB
-    }
+    // --- PUSHER TRIGGERS ---
+    
+    // 1. Notify the specific chat room (updates the bubble for whoever is looking at it)
+    await pusherServer.trigger(conversationId, "new-message", newMessage);
+
+    // 2. Notify the GLOBAL Admin Support Channel (updates the sidebar list)
+    await pusherServer.trigger("global-admin-support", "incoming-support-message", {
+      conversationId,
+      content: newMessage.content,
+      senderName: newMessage.senderName,
+      createdAt: newMessage.createdAt,
+    });
 
     return NextResponse.json(newMessage, { status: 201 });
-
   } catch (error: any) {
-    console.error("MESSAGE_POST_ERROR:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: error.message }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
 /**
  * GET: Fetch messages for a specific conversation
  */

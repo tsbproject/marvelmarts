@@ -6,7 +6,8 @@ import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import ChatList from "./_components/ChatLists"; 
 import AdminChatThread from "./_components/AdminChatThred"; 
-import { ShieldCheck, Users, AlertCircle } from "lucide-react";
+import VendorIdentityCard from "./_components/VendorIdentityCard";
+import { ShieldCheck, Users, AlertCircle, Info } from "lucide-react";
 import { UserRole, ConversationType } from "@prisma/client";
 import Link from "next/link";
 
@@ -35,23 +36,34 @@ export default async function AdminLiveSupportPage({
 
   // 3. Fetch Sidebar Conversations
   const conversations = await prisma.conversation.findMany({
-    where: {
-      type: activeType,
-    },
-    include: {
-      participants: {
-        select: { id: true, name: true, role: true },
+  where: {
+    type: activeType,
+  },
+  include: {
+    participants: {
+      select: { 
+        id: true, 
+        name: true, 
+        role: true,
+        // ADD THIS: Fetch the linked vendor record
+        vendorProfile: {
+          select: { id: true }
+        }
       },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
     },
-    orderBy: { updatedAt: "desc" },
-  });
+    messages: {
+      orderBy: { createdAt: "desc" },
+      take: 1,
+    },
+  },
+  orderBy: { updatedAt: "desc" },
+});
+  // Find target vendor if chat is selected and it's a vendor support type
+  const activeConversation = conversations.find(c => c.id === selectedConversationId);
+  const targetVendor = activeConversation?.participants?.find(p => p.role === "VENDOR");
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-[1600px] mx-auto p-6">
       <div className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black text-[#002B5B] uppercase tracking-tighter leading-none">
@@ -66,7 +78,7 @@ export default async function AdminLiveSupportPage({
         </div>
       </div>
 
-      {/* Admin Quick Filters - Updated to point to /live */}
+      {/* Admin Quick Filters */}
       <div className="flex flex-wrap gap-4 mb-8">
         <FilterButton 
           label="Vendor Support" 
@@ -88,14 +100,15 @@ export default async function AdminLiveSupportPage({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-[calc(100vh-300px)] min-h-[600px]">
-        {/* Chat List Sidebar */}
-        <div className="md:col-span-4 overflow-y-auto pr-2 no-scrollbar border-r border-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-300px)] min-h-[600px]">
+        
+        {/* Chat List Sidebar (3 Columns) */}
+        <div className="lg:col-span-3 overflow-y-auto pr-2 no-scrollbar border-r border-gray-50">
           <ChatList conversations={conversations} />
         </div>
         
-        {/* Chat Window / Thread */}
-        <div className="md:col-span-8 bg-white rounded-[2.5rem] border border-gray-100 flex flex-col overflow-hidden shadow-sm relative">
+        {/* Main Chat Thread (Adjusts based on Intel Card visibility) */}
+        <div className={`${selectedConversationId && targetVendor ? 'lg:col-span-6' : 'lg:col-span-9'} bg-white rounded-[2.5rem] border border-gray-100 flex flex-col overflow-hidden shadow-sm relative transition-all duration-500`}>
           {selectedConversationId ? (
             <AdminChatThread conversationId={selectedConversationId} />
           ) : (
@@ -112,16 +125,29 @@ export default async function AdminLiveSupportPage({
             </div>
           )}
         </div>
+
+        {/* Vendor Identity Card Sidebar (Only shows if vendor chat is active) */}
+        {selectedConversationId && targetVendor && (
+          <div className="lg:col-span-3 space-y-4 animate-in fade-in slide-in-from-right-10 duration-700 overflow-y-auto no-scrollbar">
+            <div className="flex items-center gap-2 px-6 mb-2">
+              <Info size={14} className="text-[#002B5B]" />
+              <h3 className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">
+                Source Intelligence
+              </h3>
+            </div>
+            <VendorIdentityCard vendorProfileId={targetVendor.id} />
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
 
-// Sub-component for Filters - Updated href with /live
+// Filter Button Sub-component
 function FilterButton({ label, type, active, icon }: { label: string, type: string, active: boolean, icon: React.ReactNode }) {
   return (
     <Link 
-      // This fix ensures that clicking a filter stays within the Live Chat view
       href={`/dashboard/admins/support/messages?type=${type}`}
       className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all
         ${active 

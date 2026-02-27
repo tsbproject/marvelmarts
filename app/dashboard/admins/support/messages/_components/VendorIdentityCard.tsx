@@ -3,19 +3,19 @@
 import { useEffect, useState } from "react";
 import { ShieldCheck, Package, AlertTriangle, ExternalLink, Star } from "lucide-react";
 
-export default function VendorIdentityCard({ vendorId }: { vendorId: string }) {
+export default function VendorIdentityCard({ vendorProfileId }: { vendorProfileId: string }) {
   const [vendor, setVendor] = useState<any>(null);
 
   useEffect(() => {
     async function fetchVendor() {
-      const res = await fetch(`/api/admins/vendors/${vendorId}`);
+      const res = await fetch(`/api/admins/vendors/${vendorProfileId}`);
       if (res.ok) {
         const data = await res.json();
         setVendor(data);
       }
     }
-    if (vendorId) fetchVendor();
-  }, [vendorId]);
+    if (vendorProfileId) fetchVendor();
+  }, [vendorProfileId]);
 
   if (!vendor) return (
     <div className="w-80 bg-neutral-50 rounded-[2.5rem] animate-pulse p-8 border border-neutral-100" />
