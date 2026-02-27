@@ -812,3 +812,11 @@ model Notification {
 
 
 
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid()) // or uuid()
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+
