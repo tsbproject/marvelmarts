@@ -690,23 +690,70 @@ model Blog {
 
 
 
-model NewsletterSubscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  active    Boolean  @default(true)
-}
-
-
 model SiteSettings {
   id              Int      @id @default(1)
+  
+  // --- Brand Identity ---
+  siteName        String   @default("MarvelMarts")
+  siteLogo        String?
+  siteFavicon     String?
+  
+  // --- Global Typography & Scaling ---
+  baseFontSize    Int      @default(16) 
+  fontFamily      String   @default("Inter")
+  headingFont     String   @default("Outfit")
+  headingFontSize     Float    @default(1.0) // Multiplier scale
+  bodyFontSize        Float    @default(1.0) // Multiplier scale
+  
+  // --- Expanded Enterprise Color System ---
+  // Brand
+  primaryColor    String   @default("#002B5B") // Navy
+  secondaryColor  String   @default("#F7931E") // Orange
+  accentColor     String   @default("#1E1E1E") // Contrast
+  
+  // Surfaces (Backgrounds)
+  bodyBg          String   @default("#F8F8F8") // The main site background
+  cardBg          String   @default("#FFFFFF") // Card/Section backgrounds
+  sidebarBg       String   @default("#002B5B") // For Admin/Vendor sidebars
+  
+  // States
+  successColor    String   @default("#10B981") 
+  errorColor      String   @default("#EF4444")
+  warningColor    String   @default("#FBBF24")
+  infoColor       String   @default("#3B82F6")
+
+  // Borders & Text
+  borderDefault   String   @default("#E5E7EB")
+  textPrimary     String   @default("#1E1E1E")
+  textSecondary   String   @default("#4B4B4B")
+  
+  // --- Contact & States ---
   footerDesc      String   @default("Africa's most trusted marketplace.")
   supportPhone    String   @default("+234 800-MARVEL")
   supportEmail    String   @default("help@marvelmarts.com")
   flashSaleActive Boolean  @default(true)
+  maintenanceMode Boolean  @default(false)
+
+  // --- Home Page Section Toggles ---
+  showHeroCarousel      Boolean  @default(true)
+  showFlashSales        Boolean  @default(true)
+  showFeaturedCategories Boolean  @default(true)
+  showTrendingCarousel  Boolean  @default(true)
+  showFeaturedProducts  Boolean  @default(true)
+  showNewArrivals       Boolean  @default(true)
+
+  // --- Header Settings ---
+  stickyHeader          Boolean  @default(true)
+  showCategoryMenu      Boolean  @default(true)
+  showHelpMenu          Boolean  @default(true)
+  showCartDrawer        Boolean  @default(true)
+  showSearchBar         Boolean  @default(true)
+  headerHeightDesktop   Int      @default(55)
+  headerHeightMobile    Int      @default(35)
+
+
   updatedAt       DateTime @updatedAt
 }
-
 
 
 model Conversation {

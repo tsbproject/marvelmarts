@@ -9,7 +9,6 @@
 // import ProductQuickViewDrawer from "./ProductQuickViewDrawer";
 // import { SerializedProduct } from "@/types/product"; 
 
-
 // interface FlashSalesProps {
 //   products: SerializedProduct[];
 //   endTime: string;
@@ -24,13 +23,10 @@
 
 //   useEffect(() => {
 //     if (!endTime) return;
-
 //     const target = new Date(endTime).getTime();
-
 //     const timer = setInterval(() => {
 //       const now = new Date().getTime();
 //       const distance = target - now;
-
 //       if (distance <= 0) {
 //         clearInterval(timer);
 //         setTimeLeft({ hrs: 0, mins: 0, secs: 0 });
@@ -42,22 +38,21 @@
 //         });
 //       }
 //     }, 1000);
-
 //     return () => clearInterval(timer);
 //   }, [endTime]);
 
-//   const handleViewDetails = (slug: string) => {
-//     router.push(`/products/${slug}`);
-//   };
+//   // Unified grid class for Loading and Data states
+//   // Mobile: 2 cols | Tablet: 3 cols | Desktop: 4 cols | Large Desktop: 6 cols
+//   const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6";
 
 //   return (
-//     <section className="bg-white p-6 rounded-3xl shadow-sm border border-red-50">
+//     <section className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-red-50">
 //       {/* Header & Timer UI */}
 //       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
 //         <div className="flex items-center gap-2 text-red-600">
 //           <Zap size={24} fill="currentColor" />
-//           <h2 className="text-2xl font-black uppercase tracking-tighter italic">
-//             Flash Sales
+//           <h2 className="text-4xl font-black uppercase tracking-tighter italic">
+//              Flash <span className="text-brand-primary">Sales</span>
 //           </h2>
 //         </div>
 
@@ -85,14 +80,14 @@
 
 //       {/* Grid with Loading/Empty State logic */}
 //       {loading ? (
-//         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+//         <div className={gridLayoutClass}>
 //           {[...Array(6)].map((_, i) => (
 //             <ProductSkeleton key={i} />
 //           ))}
 //         </div>
 //       ) : products && products.length > 0 ? (
-//         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-//           {products.map((product) => (
+//         <div className={gridLayoutClass}>
+//           {products.slice(0, 6).map((product) => ( // Using slice(0,6) ensures exactly one row
 //             <ProductCard
 //               key={product.id}
 //               product={product}
@@ -100,7 +95,6 @@
 //                 setSelectedProduct(p);
 //                 setIsQuickViewOpen(true);
 //               }}
-//               // onViewDetails={() => handleViewDetails(product.slug)}
 //             />
 //           ))}
 //         </div>
@@ -113,7 +107,6 @@
 //         </div>
 //       )}
 
-//       {/* Updated to Drawer for better phone experience */}
 //       {selectedProduct && (
 //         <ProductQuickViewDrawer
 //           product={selectedProduct}
@@ -172,24 +165,22 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  // Unified grid class for Loading and Data states
-  // Mobile: 2 cols | Tablet: 3 cols | Desktop: 4 cols | Large Desktop: 6 cols
   const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6";
 
   return (
-    <section className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-red-50">
+    <section className="bg-white p-4 md:p-6 rounded-[2.5rem] shadow-sm border border-red-50">
       {/* Header & Timer UI */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 px-2">
         <div className="flex items-center gap-2 text-red-600">
-          <Zap size={24} fill="currentColor" />
+          <Zap size={24} fill="currentColor" className="animate-pulse" />
           <h2 className="text-4xl font-black uppercase tracking-tighter italic">
-             Flash <span className="text-brand-primary">Sales</span>
+             Flash <span className="text-[var(--brand-primary)]">Sales</span>
           </h2>
         </div>
 
         {/* Timer UI */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
             Ends In:
           </span>
           <div className="flex gap-2 font-mono font-bold text-lg">
@@ -199,17 +190,17 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
               { label: "secs", value: timeLeft.secs },
             ].map((unit, i) => (
               <div key={unit.label} className="flex items-center">
-                <div className="bg-gray-900 text-white px-2 py-1 rounded-lg min-w-[38px] text-center shadow-lg">
+                <div className="bg-[var(--accent-navy)] text-white px-2 py-1 rounded-xl min-w-[42px] text-center shadow-lg shadow-blue-900/20">
                   {unit.value.toString().padStart(2, "0")}
                 </div>
-                {i < 2 && <span className="mx-1 text-gray-900 animate-pulse">:</span>}
+                {i < 2 && <span className="mx-1 text-[var(--accent-navy)] font-black animate-pulse">:</span>}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Grid with Loading/Empty State logic */}
+      {/* Grid */}
       {loading ? (
         <div className={gridLayoutClass}>
           {[...Array(6)].map((_, i) => (
@@ -218,7 +209,7 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
         </div>
       ) : products && products.length > 0 ? (
         <div className={gridLayoutClass}>
-          {products.slice(0, 6).map((product) => ( // Using slice(0,6) ensures exactly one row
+          {products.slice(0, 6).map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -230,7 +221,7 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
           ))}
         </div>
       ) : (
-        <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50/50">
+        <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem] bg-gray-50/50">
           <ShoppingBag className="mx-auto h-12 w-12 text-gray-200 mb-4" />
           <p className="text-gray-400 font-medium italic">
             No Flash Sale products available right now.

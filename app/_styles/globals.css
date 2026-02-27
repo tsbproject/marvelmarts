@@ -1,4 +1,4 @@
-@import "tailwindcss";
+/* @import "tailwindcss";
 
 @plugin "@tailwindcss/typography";
 
@@ -6,7 +6,7 @@
 
 
 @theme {
-  /* Mapping the variables to Tailwind utility classes */
+
   --color-accent-navy: var(--accent-navy);
   --color-brand-primary: var(--brand-primary);
   --color-brand-light: var(--brand-orange-light);
@@ -17,7 +17,7 @@
 }
 
 :root {
-  /* Defining the actual hex values */
+
   --accent-navy: #002B5B;
  --brand-primary: #F7931E;
   --brand-orange-light: #FFE8CC;
@@ -43,7 +43,7 @@
   html {
     font-size: 62.5%;
     font-size: 10px;
-    /* box-sizing: border-box; */
+  
     overflow-x: hidden;
 
   }
@@ -56,9 +56,111 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+} */
+
+
+
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* --- CUSTOM BREAKPOINTS --- */
+  --breakpoint-xs: 400px; 
+  --breakpoint-sm: 500px; 
+  --breakpoint-md: 600px; 
+  --breakpoint-lg: 900px;
+  --breakpoint-xl: 1100px;
+  --breakpoint-2xl: 1200px;
+
+  /* --- BRAND COLORS --- */
+  --color-accent-navy: var(--accent-navy);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-light: var(--brand-orange-light);
+  --color-neutral-white: var(--brand-white);
+  --color-neutral-light: var(--brand-ghost);
+  --color-neutral-gray: var(--brand-gray);
+  --color-neutral-dark: var(--brand-black);
+
+  /* --- DYNAMIC FONT SIZES (V4 mapping) --- */
+  /* These ensure standard Tailwind classes like text-sm or text-lg 
+     automatically scale globally based on your DB variables. */
+  --font-size-xs: calc(0.75rem * var(--body-font-scale));
+  --font-size-sm: calc(0.875rem * var(--body-font-scale));
+  --font-size-base: calc(1rem * var(--body-font-scale));
+  --font-size-lg: calc(1.125rem * var(--body-font-scale));
+  --font-size-xl: calc(1.25rem * var(--heading-font-scale));
+  --font-size-2xl: calc(1.5rem * var(--heading-font-scale));
+  --font-size-3xl: calc(1.875rem * var(--heading-font-scale));
+  --font-size-4xl: calc(2.25rem * var(--heading-font-scale));
 }
 
+:root {
+  --accent-navy: #002B5B;
+  --brand-primary: #F7931E;
+  --brand-orange-light: #FFE8CC;
+  --brand-white: #FFFFFF;
+  --brand-ghost: #F8F8F8;
+  --brand-gray: #4B4B4B;
+  --brand-black: #1E1E1E;
+  
+  /* Dynamic Typography Engine Variables */
+  --heading-font-scale: 1.0; 
+  --body-font-scale: 1.0;
+  --base-font-size: 10px; /* 16px keeps spacing (p-4, m-2) consistent */
+}
 
+@layer base {
+  html {
+    /* Stabilize root: 1rem = 16px. This prevents the "blown out" layout. */
+    font-size: var(--base-font-size);
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-neutral-light text-neutral-dark;
+    /* Sets the default text size for anything without a class */
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+  }
+
+  /* Target raw elements for global scaling */
+  h1, h2, h3, h4, h5, h6 {
+    font-size: calc(1em * var(--heading-font-scale));
+    line-height: 1.2;
+    font-weight: 900;
+  }
+
+  input, textarea, select, button, label {
+    font-size: var(--font-size-base);
+    font-family: inherit;
+  }
+
+  /* --- STANDALONE ISOLATION LAYER --- */
+  /* This prevents the Admin Settings page from scaling itself into oblivion.
+     Wrap your SettingsForm in a div with this class. */
+  .design-system-isolated {
+    /* Force local scale to 1.0 regardless of global variables */
+    --body-font-scale: 1.0 !important;
+    --heading-font-scale: 1.0 !important;
+    font-size: 12px !important;
+  }
+
+  /* Reset all text inside the isolated container to standard browser/tailwind defaults */
+  .design-system-isolated :where(h1, h2, h3, h4, p, span, label, input, select, button, textarea) {
+    font-size: revert !important; 
+    line-height: revert !important;
+  }
+
+  /* Hard-reset Tailwind utility classes within the Isolation Layer only */
+  .design-system-isolated .text-xs { font-size: 0.75rem !important; }
+  .design-system-isolated .text-sm { font-size: 0.875rem !important; }
+  .design-system-isolated .text-base { font-size: 1rem !important; }
+  .design-system-isolated .text-lg { font-size: 1.125rem !important; }
+  .design-system-isolated .text-xl { font-size: 1.25rem !important; }
+  .design-system-isolated .text-2xl { font-size: 1.5rem !important; }
+}
 
 @layer utilities {
   @keyframes fadeIn {
