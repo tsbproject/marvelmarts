@@ -378,6 +378,11 @@ export default async function PublicStorePage({
 
     // FIX: Add the missing vendorProfileId required by your interface
     vendorProfileId: vendor.id || "", 
+
+    vendorProfile: {
+    storeName: vendor.storeName,
+    isVerified: vendor.isVerified,
+  }
   }));
 
   return (

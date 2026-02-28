@@ -195,16 +195,16 @@ export default function ProductCard({
           )}
         </div>
 
-        <h3 className={`font-black italic uppercase text-slate-900 leading-tight line-clamp-2 mb-2 ${isList ? "text-lg" : "text-[12px] h-8 px-1"}`}>
+        <h3 className={`font-black italic uppercase text-accent-navy leading-tight line-clamp-2 mb-2 ${isList ? "text-lg" : "text-[12px] h-8 px-1"}`}>
           {product.title}
         </h3>
         
         <div className="flex items-center gap-2 mb-3">
-          <p className="text-xl font-black text-slate-900 italic tracking-tighter">
+          <p className="text-xl font-black text-accent-navy italic tracking-tighter">
             {formatNaira(displayPrice)}
           </p>
           {product.discountPrice && (
-            <p className="text-[10px] text-gray-400 line-through font-bold">
+            <p className="text-[10px] text-accent-navy line-through font-bold">
               {formatNaira(product.price)}
             </p>
           )}
@@ -214,7 +214,7 @@ export default function ProductCard({
         {!isOwner ? (
           <button 
             onClick={handleAddToCart}
-            className={`${isList ? "w-auto px-8" : "w-full"} bg-slate-900 hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 active:scale-95`}
+            className={`${isList ? "w-auto px-8" : "w-full"} bg-accent-navy hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 active:scale-95`}
           >
             <ShoppingCart size={14} /> Add to Cart
           </button>
