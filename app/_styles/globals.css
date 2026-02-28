@@ -20,8 +20,11 @@
   --color-neutral-gray: var(--brand-gray);
   --color-neutral-dark: var(--brand-black);
 
+  /* --- THE LAYOUT CONTROLLER --- */
+  /* This scales every w-xx, h-xx, p-xx, m-xx, and gap-xx utility site-wide */
+  --spacing: calc(0.25rem * var(--layout-scale, 1));
+
   /* --- DYNAMIC FONT SIZES --- */
-  /* These now respond correctly to the body-font-scale */
   --font-size-xs: calc(0.75rem * var(--body-font-scale, 1));
   --font-size-sm: calc(0.875rem * var(--body-font-scale, 1));
   --font-size-base: calc(1rem * var(--body-font-scale, 1));
@@ -41,7 +44,8 @@
   --brand-gray: #4B4B4B;
   --brand-black: #1E1E1E;
   
-  /* Fallbacks */
+  /* Defaults */
+  --layout-scale: 1.0;
   --base-font-size: 16px;
   --heading-font-scale: 1.0; 
   --body-font-scale: 1.0;
@@ -52,8 +56,7 @@
 
 @layer base {
   html {
-    /* REMOVED: font-size: 16px !important; */
-    /* FIXED: Link the actual root to your variable */
+    /* The master root control for rem-based proportions */
     font-size: var(--base-font-size, 16px) !important;
     overflow-x: hidden;
     scroll-behavior: smooth;
@@ -62,7 +65,6 @@
 
   body {
     @apply bg-neutral-light text-neutral-dark;
-    /* Simplified: Just use the body scale. base-font-size on HTML handles the rest */
     font-size: calc(1rem * var(--body-font-scale, 1));
     line-height: 1.5;
   }
@@ -84,18 +86,26 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    /* Fixed: No more missing text-scale-factor */
     font-size: calc(1em * var(--heading-font-scale, 1));
     line-height: 1.2;
     font-weight: 900;
   }
 
-  /* --- ISOLATION LAYER --- */
-  .design-system-isolated, 
-  [data-admin-panel="true"] {
+  /* --- THE EXCLUSION ZONE (Settings Page Only) --- */
+  /* This prevents the controls from becoming unusable */
+  .settings-safe-zone {
     --base-font-size: 16px !important;
+    --layout-scale: 1.0 !important;
     --body-font-scale: 1.0 !important;
     --heading-font-scale: 1.0 !important;
+    --header-font-scale: 1.0 !important;
+    --footer-font-scale: 1.0 !important;
+  }
+
+  /* Force standard sizing for common elements inside the safe zone */
+  .settings-safe-zone :where(h1, h2, h3, p, span, label, input, button, select) {
+    font-size: revert !important;
+    line-height: revert !important;
   }
 }
 

@@ -128,23 +128,26 @@
 import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
-import ClientLayout from "./_components/ClientLayout"; 
+import ClientLayout from "./_components/ClientLayout";
 import prisma from "@/app/lib/prisma";
 import type { Category } from "@prisma/client";
+import { GlobalSettings } from "@/app/lib/actions/settings";
 
-// Define the recursive type to match your nested children include
-export type CategoryTree = Category & { 
-  children?: CategoryTree[] 
+// Define recursive types for nested categories
+export type CategoryTree = Category & {
+  children?: CategoryTree[];
 };
 export type CategoryWithChildren = Category & {
-  children?: CategoryWithChildren[]; 
+  children?: CategoryWithChildren[];
 };
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Marvelmarts – Nigeria’s Trusted Online Store for Deals & Quality Products",
-  description: "Marvelmarts is your one‑stop online shopping destination in Nigeria. Discover affordable fashion, electronics, beauty, and home essentials with fast delivery and secure checkout."
+  title:
+    "Marvelmarts – Nigeria’s Trusted Online Store for Deals & Quality Products",
+  description:
+    "Marvelmarts is your one‑stop online shopping destination in Nigeria. Discover affordable fashion, electronics, beauty, and home essentials with fast delivery and secure checkout.",
 };
 
 const inter = Inter({
@@ -153,8 +156,12 @@ const inter = Inter({
   display: "swap",
 });
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  let settings: any = null;
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  let settings: GlobalSettings | null = null;
   let categories: CategoryWithChildren[] = [];
 
   try {
@@ -162,112 +169,79 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const [dbSettings, dbCategories] = await Promise.all([
       prisma.siteSettings.findFirst(),
       prisma.category.findMany({
-        where: { 
-          OR: [
-            { parentId: null },
-            { parentId: "" } 
-          ]
+        where: {
+          OR: [{ parentId: null }, { parentId: "" }],
         },
         include: {
           children: {
-            include: { children: true }
-          }
+            include: { children: true },
+          },
         },
-        orderBy: { position: 'asc' }
-      })
+        orderBy: { position: "asc" },
+      }),
     ]);
 
-    settings = dbSettings;
+    settings = dbSettings as GlobalSettings | null;
     categories = dbCategories as CategoryWithChildren[];
 
     if (categories.length === 0) {
-       console.warn("Database connected but returned 0 categories.");
+      console.warn("Database connected but returned 0 categories.");
     }
-
   } catch (error) {
     console.error("Database fetch failed in RootLayout:", error);
-    
-    // FALLBACK: Robust default settings to prevent UI breakage
-    settings = {
-      siteName: "MarvelMarts",
-      primaryColor: "#002B5B",
-      secondaryColor: "#F7931E",
-      accentColor: "#1E1E1E",
-      bodyBg: "#F8F8F8",
-      cardBg: "#FFFFFF",
-      textPrimary: "#1E1E1E",
-      baseFontSize: 16, // Defaulting to 16px stabilized root
-      headingFontSize: 1.0, 
-      bodyFontSize: 1.0, 
-      footerDesc: "The Ultimate Armory for Gadgets & Tech.",
-      supportPhone: "Contact Support",
-      supportEmail: "support@marvelmarts.com"
-    };
-  
+
+    // Fallback category if DB fails
     categories = [
-      { 
-        id: "emergency-all", 
-        name: "Browse Armory", 
-        slug: "all", 
-        parentId: null, 
+      {
+        id: "emergency-all",
+        name: "Browse Armory",
+        slug: "all",
+        parentId: null,
         children: [],
         createdAt: new Date(),
         updatedAt: new Date(),
         image: null,
         description: null,
-        position: 0
-      }
+        position: 0,
+      },
     ] as any;
   }
 
-  // --- ENTERPRISE DESIGN SYSTEM INJECTION ---
-  const dynamicStyles = {
-   
-    "--accent-navy": settings?.primaryColor || "#002B5B",
-    "--brand-primary": settings?.secondaryColor || "#F7931E",
-    "--brand-black": settings?.accentColor || "#1E1E1E",
-    
-    "--brand-ghost": settings?.bodyBg || "#F8F8F8",
-    "--brand-white": settings?.cardBg || "#FFFFFF",
-    "--sidebar-bg": settings?.sidebarBg || "#002B5B",
-    
-    "--success-color": settings?.successColor || "#10B981",
-    "--error-color": settings?.errorColor || "#EF4444",
-    "--warning-color": settings?.warningColor || "#FBBF24",
-    "--border-main": settings?.borderDefault || "#E5E7EB",
-
-        "--root-stabilizer": "16px", 
-
-      // DYNAMIC TEXT: This is what the slider actually controls
-      // We calculate a ratio: (Target Size / 16)
-      "--text-scale-factor": (Number(settings?.baseFontSize) || 16) / 16,
-
-    // TYPOGRAPHY - Added strict Number conversion to prevent string errors
-    "--base-font-size": "16px",
-    // "--base-font-size": `${Number(settings?.baseFontSize) || 16}px`, 
-    "--heading-font-scale": Number(settings?.headingFontSize) || 1.0, 
-    "--body-font-scale": (Number(settings?.baseFontSize) / 16) * (Number(settings?.bodyFontSize) || 1.0),
-    // "--body-font-scale": Number(settings?.bodyFontSize) || 1.0,
-    
-    "--font-main": settings?.fontFamily || "Inter",
-    "--font-heading": settings?.headingFont || "Outfit",
-
-    // ZONE SCALES - Ensure these match your new Prisma fields exactly
-    "--header-font-scale": Number(settings?.headerFontScale) || 1.0,
-    "--footer-font-scale": Number(settings?.footerFontScale) || 1.0,
-    "--carousel-font-scale": Number(settings?.carouselFontScale) || 1.0,
-  } as React.CSSProperties;
   return (
-    <html lang="en" className={inter.variable}>
-      <body 
-        className={`${inter.className} bg-brand-ghost text-brand-black antialiased`} 
-        style={dynamicStyles} 
+    <html
+      lang="en"
+      className={inter.variable}
+      style={{
+        // Hydrate CSS variables from settings
+        ["--header-font-scale" as any]: settings?.headerFontScale ?? 1,
+        ["--footer-font-scale" as any]: settings?.footerFontScale ?? 1,
+        ["--body-font-scale" as any]: settings?.bodyFontScale ?? 1,
+        ["--heading-font-scale" as any]: settings?.headingFontScale ?? 1,
+        ["--carousel-font-scale" as any]: settings?.carouselFontScale ?? 1,
+        ["--frontpage-scale" as any]: settings?.frontpageScale ?? 1,
+        ["--dashboard-scale" as any]: settings?.dashboardScale ?? 1,
+
+        ["--show-ecommerce-carousel" as any]: settings?.showEcommerceCarousel
+          ? 1
+          : 0,
+        ["--show-featured-products" as any]: settings?.showFeaturedProducts
+          ? 1
+          : 0,
+        ["--show-new-arrivals" as any]: settings?.showNewArrivals ? 1 : 0,
+        ["--show-trending-products" as any]: settings?.showTrendingProducts
+          ? 1
+          : 0,
+        ["--show-featured-categories" as any]: settings?.showFeaturedCategories
+          ? 1
+          : 0,
+        ["--show-flash-sales" as any]: settings?.showFlashSales ? 1 : 0,
+      }}
+    >
+      <body
+        className={`${inter.className} bg-brand-ghost text-brand-black antialiased`}
         suppressHydrationWarning
       >
-        <ClientLayout 
-          settings={settings as any} 
-          initialCategories={categories}
-        >
+        <ClientLayout settings={settings as any} initialCategories={categories}>
           {children}
         </ClientLayout>
       </body>

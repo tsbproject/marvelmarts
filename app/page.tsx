@@ -189,7 +189,7 @@ const serialize = (obj: any): any => {
 
 export default async function HomePage() {
   // 1. Fetch Data in parallel
-  // Note: I removed the extra .findFirst() at the end to match the destructuring array length.
+  
   const [
     dbSettings,
     flashRaw,
@@ -204,7 +204,7 @@ export default async function HomePage() {
     where: { isFlashSale: true }, 
     take: 8,
     include: {
-      images: true, // MUST include this if images are in a separate table
+      images: true, 
       vendorProfile: true // For store name/verification
     }
   }),

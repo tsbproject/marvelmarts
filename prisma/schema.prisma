@@ -747,6 +747,21 @@ model SiteSettings {
   showFeaturedProducts  Boolean  @default(true)
   showNewArrivals       Boolean  @default(true)
 
+
+
+
+  bodyFontScale       Float   @default(1.0)
+  headingFontScale    Float   @default(1.0)
+
+  frontpageScale      Float   @default(1.0)
+  dashboardScale      Float   @default(1.0)
+
+  showEcommerceCarousel Boolean @default(true)
+
+
+
+
+
   // --- Header Settings ---
   stickyHeader          Boolean  @default(true)
   showCategoryMenu      Boolean  @default(true)

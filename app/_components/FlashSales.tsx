@@ -165,7 +165,7 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6";
+  const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 gap-4 md:gap-6";
 
   return (
     <section className="bg-white p-4 md:p-6 rounded-[2.5rem] shadow-sm border border-red-50">

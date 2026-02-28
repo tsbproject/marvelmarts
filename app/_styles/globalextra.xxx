@@ -3,6 +3,7 @@
 
 @theme {
   /* --- CUSTOM BREAKPOINTS --- */
+  --breakpoint-xxs: 350px;
   --breakpoint-xs: 400px; 
   --breakpoint-sm: 500px; 
   --breakpoint-md: 600px; 
@@ -19,9 +20,8 @@
   --color-neutral-gray: var(--brand-gray);
   --color-neutral-dark: var(--brand-black);
 
-  /* --- DYNAMIC FONT SIZES (V4 mapping) --- */
-  /* FIXED: We only scale these specific utilities. 
-     We use 'rem' so they respond to the 'html' font-size. */
+  /* --- DYNAMIC FONT SIZES --- */
+  /* These now respond correctly to the body-font-scale */
   --font-size-xs: calc(0.75rem * var(--body-font-scale, 1));
   --font-size-sm: calc(0.875rem * var(--body-font-scale, 1));
   --font-size-base: calc(1rem * var(--body-font-scale, 1));
@@ -41,7 +41,7 @@
   --brand-gray: #4B4B4B;
   --brand-black: #1E1E1E;
   
-  /* Defaults: Always use 16px to keep Tailwind's rem math consistent */
+  /* Fallbacks */
   --base-font-size: 16px;
   --heading-font-scale: 1.0; 
   --body-font-scale: 1.0;
@@ -51,23 +51,10 @@
 }
 
 @layer base {
-  #design-system-root {
-    /* This makes every 'rem' unit inside this div calculate 
-       based on the slider value (e.g., 10px) */
-    font-size: var(--base-font-size, 10px);
-  }
-
-  /* Ensure body text behaves relative to the wrapper */
-  #design-system-root body {
-    font-size: calc(1rem * var(--body-font-scale, 1));
-  }
-}
-
-@layer base {
   html {
-    /* This is the master control. Setting this to 16px fixes the layout. */
-    /* font-size: var(--base-font-size, 16px)!important;; */
-    font-size: 16px !important;
+    /* REMOVED: font-size: 16px !important; */
+    /* FIXED: Link the actual root to your variable */
+    font-size: var(--base-font-size, 16px) !important;
     overflow-x: hidden;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -75,61 +62,40 @@
 
   body {
     @apply bg-neutral-light text-neutral-dark;
-    /* REMOVED calc from here to prevent double-scaling with @theme variables */
-    /* font-size: calc(1rem * var(--body-font-scale, 1)); */
-    font-size: calc(1rem * var(--text-scale-factor, 1) * var(--body-font-scale, 1));
+    /* Simplified: Just use the body scale. base-font-size on HTML handles the rest */
+    font-size: calc(1rem * var(--body-font-scale, 1));
     line-height: 1.5;
-    
   }
 
-  /* --- ZONE OVERRIDES (The Enterprise Controller) --- */
-  
-  /* 1. Header Logic */
+  /* --- ZONE OVERRIDES --- */
   header {
-    /* Shadowing the variables locally so utilities inside react to the zone scale */
     --body-font-scale: var(--header-font-scale) !important;
     --heading-font-scale: var(--header-font-scale) !important;
   }
 
-  /* 2. EcommerceCarousel Logic */
   #EcommerceCarousel, .ecommerce-carousel {
     --body-font-scale: var(--carousel-font-scale) !important;
     --heading-font-scale: var(--carousel-font-scale) !important;
   }
 
-  /* 3. Footer Logic */
   footer {
     --body-font-scale: var(--footer-font-scale) !important;
     --heading-font-scale: var(--footer-font-scale) !important;
   }
 
-  /* Global Tag Scaling - Uses 'em' to multiply against the utility size */
   h1, h2, h3, h4, h5, h6 {
-    font-size: calc(1em * var(--text-scale-factor, 1) * var(--heading-font-scale, 1));
+    /* Fixed: No more missing text-scale-factor */
+    font-size: calc(1em * var(--heading-font-scale, 1));
     line-height: 1.2;
     font-weight: 900;
   }
 
-  input, textarea, select, button, label {
-    font-size: inherit;
-    font-family: inherit;
-  }
-
-  /* --- ISOLATION LAYER (Dashboard Fix) --- */
-  /* This prevents the Admin pages from breaking when you play with sliders */
+  /* --- ISOLATION LAYER --- */
   .design-system-isolated, 
   [data-admin-panel="true"] {
+    --base-font-size: 16px !important;
     --body-font-scale: 1.0 !important;
     --heading-font-scale: 1.0 !important;
-    --header-font-scale: 1.0 !important;
-    --footer-font-scale: 1.0 !important;
-    --carousel-font-scale: 1.0 !important;
-    --base-font-size: 16px !important;
-  }
-
-  .design-system-isolated :where(h1, h2, h3, h4, p, span, label, input, select, button, textarea) {
-    font-size: revert !important; 
-    line-height: revert !important;
   }
 }
 

@@ -20,8 +20,11 @@ export interface SerializedProduct {
   isTrending?: boolean;
   isPublished: boolean;
   name       : string;
+  storeName  : string;
   isVerified : boolean;
   vendorProfileId: string;
+  vendorProfile:string;
+
  
 
 
