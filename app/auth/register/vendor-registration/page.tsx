@@ -244,7 +244,7 @@ export default function VendorRegistration() {
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full bg-[#FFFFFF] rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500">
+      <div className="max-w-2xl w-full bg-[#FFFFFF] rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500">
         
         {/* Progress Header */}
         <div className="bg-[#002B5B] p-10 text-[#FFFFFF] relative overflow-hidden">

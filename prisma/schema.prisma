@@ -704,6 +704,11 @@ model SiteSettings {
   headingFont     String   @default("Outfit")
   headingFontSize     Float    @default(1.0) // Multiplier scale
   bodyFontSize        Float    @default(1.0) // Multiplier scale
+
+  // New Zone-Specific Scales
+  headerFontScale   Float    @default(1.0)
+  footerFontScale   Float    @default(1.0)
+  carouselFontScale Float    @default(1.0)
   
   // --- Expanded Enterprise Color System ---
   // Brand

@@ -80,7 +80,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
         className="group flex flex-col items-center gap-1 focus:outline-none"
       >
         <div className="flex items-center gap-3 bg-neutral-white/10 hover:bg-neutral-white/20 p-2 rounded-xl transition-all text-brand-primary">
-          <Menu className="w-10 h-10" />
+          <Menu className="w-7 h-7" />
           <span className="hidden sm:block text-sm font-bold uppercase tracking-tighter">
             Menu
           </span>

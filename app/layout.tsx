@@ -222,31 +222,41 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   // --- ENTERPRISE DESIGN SYSTEM INJECTION ---
   const dynamicStyles = {
+   
     "--accent-navy": settings?.primaryColor || "#002B5B",
     "--brand-primary": settings?.secondaryColor || "#F7931E",
     "--brand-black": settings?.accentColor || "#1E1E1E",
     
-    // Surface & Backgrounds
     "--brand-ghost": settings?.bodyBg || "#F8F8F8",
     "--brand-white": settings?.cardBg || "#FFFFFF",
     "--sidebar-bg": settings?.sidebarBg || "#002B5B",
     
-    // Semantic Colors
     "--success-color": settings?.successColor || "#10B981",
     "--error-color": settings?.errorColor || "#EF4444",
     "--warning-color": settings?.warningColor || "#FBBF24",
     "--border-main": settings?.borderDefault || "#E5E7EB",
 
-    // Typography - Decoupled Heading and Body
-    // CALIBRATED: 16px base prevents layout spacing blowouts
-    "--base-font-size": `${settings?.baseFontSize || 16}px`, 
-    "--heading-font-scale": settings?.headingFontSize || 1.0, 
-    "--body-font-scale": settings?.bodyFontSize || 1.0,
+        "--root-stabilizer": "16px", 
+
+      // DYNAMIC TEXT: This is what the slider actually controls
+      // We calculate a ratio: (Target Size / 16)
+      "--text-scale-factor": (Number(settings?.baseFontSize) || 16) / 16,
+
+    // TYPOGRAPHY - Added strict Number conversion to prevent string errors
+    "--base-font-size": "16px",
+    // "--base-font-size": `${Number(settings?.baseFontSize) || 16}px`, 
+    "--heading-font-scale": Number(settings?.headingFontSize) || 1.0, 
+    "--body-font-scale": (Number(settings?.baseFontSize) / 16) * (Number(settings?.bodyFontSize) || 1.0),
+    // "--body-font-scale": Number(settings?.bodyFontSize) || 1.0,
     
     "--font-main": settings?.fontFamily || "Inter",
     "--font-heading": settings?.headingFont || "Outfit",
-  } as React.CSSProperties;
 
+    // ZONE SCALES - Ensure these match your new Prisma fields exactly
+    "--header-font-scale": Number(settings?.headerFontScale) || 1.0,
+    "--footer-font-scale": Number(settings?.footerFontScale) || 1.0,
+    "--carousel-font-scale": Number(settings?.carouselFontScale) || 1.0,
+  } as React.CSSProperties;
   return (
     <html lang="en" className={inter.variable}>
       <body 

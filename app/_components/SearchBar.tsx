@@ -76,13 +76,13 @@ export default function SearchBar() {
 
   return (
     <div className="flex items-center justify-center px-4 w-full relative z-20" ref={dropdownRef}>
-      <div className="relative 2xl:left-35 bottom-5 w-full xl:w-[800px] 2xl:w-[1600px] lg:max-w-3xl xl:max-w-3xl 2xl:max-w-4xl 2xl:-ml-10 group">
+      <div className="relative 2xl:left-35 bottom-5 w-full xl:w-[500px] 2xl:w-[1500px] lg:max-w-xl xl:max-w-xl 2xl:max-w-xl 2xl:-ml-10 group">
         
         {/* --- INPUT FIELD --- */}
         <form onSubmit={handleSearchSubmit} className="relative">
           {/* Magnifier Icon: Visible on all versions, changes color on focus */}
           <Search 
-            className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-primary/60 lg:text-white/40 group-focus-within:text-blue-500 transition-colors z-10" 
+            className="absolute left-8 top-1/2 -translate-y-1/2 text-brand-primary/60 lg:text-white/40 group-focus-within:text-blue-500 transition-colors z-10" 
             size={22} 
           />
           
@@ -103,7 +103,7 @@ export default function SearchBar() {
                        /* DESKTOP PLACEHOLDER: Lighter for blue bg */
                        lg:placeholder:text-white/30 
                        
-                       text-xl xl:text-3xl 2xl:text-3xl 
+                       text-md xl:text-lg 2xl:text-lg 
                        
                        /* BORDERS */
                        border border-brand-primary

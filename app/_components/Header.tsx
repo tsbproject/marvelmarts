@@ -1,3 +1,126 @@
+// "use client";
+
+// import { useState } from "react";
+// import { User } from "lucide-react";
+// import Logo from "./Logo";
+// import NavigationRight from "./NavigationRight";
+// import UserMenu from "@/app/_components/UserMenu";
+// import SearchBar from "@/app/_components/SearchBar";
+// import HamburgerMenu from "@/app/_components/HamburgerMenu";
+// import CartDrawer from "./CartDrawer";
+// import HelpMenu from "./HelpMenu"; 
+// import CategoryMenu from "./CategoryMenu"; 
+// import { CategoryWithChildren as CategoryTree } from "../layout"; 
+
+// interface HeaderProps {
+//   initialCategories: CategoryTree[]; 
+// }
+
+// export default function Header({ initialCategories = [] }: HeaderProps) {
+//   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+//   return (
+//     <header className="bg-accent-navy h-35 md:h-55 shadow p-4 md:p-4 relative z-1001">
+//       {/* Logo */}
+//       <div
+//         className="
+//           absolute
+//           [@media(min-width:300px)]:left-30 [@media(min-width:300px)]:top-13
+//           [@media(min-width:400px)]:left-30 [@media(min-width:400px)]:top-15
+//           [@media(min-width:500px)]:left-[110px] [@media(min-width:500px)]:top-12
+//           [@media(min-width:600px)]:left-[110px] [@media(min-width:600px)]:top-13
+//           [@media(min-width:900px)]:left-[85px]  [@media(min-width:900px)]:top-8
+//           [@media(min-width:1100px)]:left-[85px] [@media(min-width:1100px)]:top-16
+//           [@media(min-width:1200px)]:left-[100px] [@media(min-width:1200px)]:top-20
+//         "
+//       >
+//         <Logo />
+//       </div>
+
+//       {/* Search Bar - Desktop */}
+//       <div className="absolute top-20 left-100 hidden lg:block">
+//         <SearchBar />
+//       </div>
+
+//       {/* Category Menu - Desktop Topbar 
+//           This will now only show on Desktop (lg and up) 
+//           and handles its own visibility.
+//       */}
+//       <div className="absolute bottom-0 left-0 w-full hidden lg:block">
+//         <CategoryMenu initialCategories={initialCategories} />
+//       </div>
+
+//       {/* Mobile Hamburger - Now passing categories */}
+//       <div
+//         className="
+//           absolute -top-6 visible md:invisible
+//           [@media(min-width:300px)]:right-[250px]
+//           [@media(min-width:300px)]:top-12
+//           [@media(min-width:350px)]:right-[300px]
+//           [@media(min-width:400px)]:right-[350px] [@media(min-width:400px)]:top-12
+//           [@media(min-width:500px)]:left-10
+//           [@media(max-width:600px)]:-right-[230px]
+//           [@media(min-width:900px)]:right-[85px]
+//           [@media(min-width:900px)]:top-15
+//         "
+//       >
+//         {/*Passing categories to the Hamburger drawer */}
+//         <HamburgerMenu categories={initialCategories} />
+//       </div>
+
+//       {/* HelpMenu - Mobile */}
+//       <div
+//         className="
+//           absolute visible lg:invisible
+//           [@media(min-width:300px)]:left-90 [@media(min-width:300px)]:top-17
+//           [@media(min-width:350px)]:left-108 [@media(min-width:350px)]:top-21
+//           [@media(min-width:400px)]:left-123 [@media(min-width:400px)]:top-21
+//           [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
+//           [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
+//           [@media(min-width:900px)]:left-280 [@media(min-width:900px)]:top-21
+//           [@media(min-width:1100px)]:left-280 [@media(min-width:1100px)]:top-21
+//           [@media(min-width:1200px)]:left-280 [@media(min-width:1200px)]:top-0
+//         "
+//       >
+//         <HelpMenu />
+//       </div>
+
+//       {/* CartDrawer - Mobile */}
+//       <div
+//         className="
+//           absolute visible lg:invisible
+//           [@media(min-width:300px)]:left-103 [@media(min-width:300px)]:top-17
+//           [@media(min-width:350px)]:left-125 [@media(min-width:350px)]:top-21
+//           [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
+//           [@media(min-width:500px)]:left-170 [@media(min-width:500px)]:top-20
+//           [@media(min-width:600px)]:left-210 [@media(min-width:600px)]:top-20
+//           [@media(min-width:900px)]:left-320 [@media(min-width:900px)]:top-21
+//         "
+//       >
+//         <CartDrawer />
+//       </div>
+
+//       {/* RIGHT CORNER AREA FOR ALL ICONS */}
+//       <div className="absolute right-30 -top-5 flex items-center gap-6 z-20 invisible lg:visible">
+//         <NavigationRight />
+//       </div>
+
+//       <div className="absolute right-100 top-20 flex items-center invisible lg:visible">
+//         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
+//         <button
+//           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
+//           onClick={() => setUserMenuOpen(true)}
+//         >
+//           <User className="w-10 h-10 border-2 rounded-3xl p-2 text-brand-primary" />
+//           <span className="text-white text-md mt-4">Account</span>
+//         </button>
+//       </div>
+
+     
+//     </header>
+//   );
+// }
+
 "use client";
 
 import { useState } from "react";
@@ -20,51 +143,43 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <header className="bg-accent-navy h-35 md:h-55 shadow p-4 md:p-4 relative z-1001">
+    <header className="bg-accent-navy h-36 md:h-56 shadow p-4 relative z-[1001]">
       {/* Logo */}
       <div
         className="
           absolute
-          [@media(min-width:300px)]:left-30 [@media(min-width:300px)]:top-13
-          [@media(min-width:400px)]:left-30 [@media(min-width:400px)]:top-15
-          [@media(min-width:500px)]:left-[110px] [@media(min-width:500px)]:top-12
-          [@media(min-width:600px)]:left-[110px] [@media(min-width:600px)]:top-13
-          [@media(min-width:900px)]:left-[85px]  [@media(min-width:900px)]:top-8
-          [@media(min-width:1100px)]:left-[85px] [@media(min-width:1100px)]:top-16
-          [@media(min-width:1200px)]:left-[100px] [@media(min-width:1200px)]:top-20
+          xs:left-10
+          sm:left-8 sm:top-3
+          md:left-28 md:top-3
+          lg:left-20 lg:top-2
+          xl:left-20 xl:top-4
+          2xl:left-8 2xl:top-8
         "
       >
         <Logo />
       </div>
 
       {/* Search Bar - Desktop */}
-      <div className="absolute top-20 left-100 hidden lg:block">
+      <div className="absolute top-15 left-30 hidden lg:block">
         <SearchBar />
       </div>
 
-      {/* Category Menu - Desktop Topbar 
-          This will now only show on Desktop (lg and up) 
-          and handles its own visibility.
-      */}
+      {/* Category Menu - Desktop Topbar */}
       <div className="absolute bottom-0 left-0 w-full hidden lg:block">
         <CategoryMenu initialCategories={initialCategories} />
       </div>
 
-      {/* Mobile Hamburger - Now passing categories */}
+      {/* Mobile Hamburger */}
       <div
         className="
-          absolute -top-6 visible md:invisible
-          [@media(min-width:300px)]:right-[250px]
-          [@media(min-width:300px)]:top-12
-          [@media(min-width:350px)]:right-[300px]
-          [@media(min-width:400px)]:right-[350px] [@media(min-width:400px)]:top-12
-          [@media(min-width:500px)]:left-10
-          [@media(max-width:600px)]:-right-[230px]
-          [@media(min-width:900px)]:right-[85px]
-          [@media(min-width:900px)]:top-15
+          absolute -top-1  visible md:invisible
+          xxs:top-12
+          xs:top-12
+          sm:right-64 sm:top-3
+          md:left-2
+          lg:right-20 lg:top-4
         "
       >
-        {/*Passing categories to the Hamburger drawer */}
         <HamburgerMenu categories={initialCategories} />
       </div>
 
@@ -72,14 +187,12 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       <div
         className="
           absolute visible lg:invisible
-          [@media(min-width:300px)]:left-90 [@media(min-width:300px)]:top-17
-          [@media(min-width:350px)]:left-108 [@media(min-width:350px)]:top-21
-          [@media(min-width:400px)]:left-123 [@media(min-width:400px)]:top-21
-          [@media(min-width:500px)]:left-140 [@media(min-width:500px)]:top-20
-          [@media(min-width:600px)]:left-170 [@media(min-width:600px)]:top-20
-          [@media(min-width:900px)]:left-280 [@media(min-width:900px)]:top-21
-          [@media(min-width:1100px)]:left-280 [@media(min-width:1100px)]:top-21
-          [@media(min-width:1200px)]:left-280 [@media(min-width:1200px)]:top-0
+          xxs:left-60 xxs:top-20
+          xs:left-72 xs:top-20
+          sm:left-24 sm:top-4
+          md:left-28 md:top-5
+          lg:left-72 lg:top-5
+          xl:left-72 xl:top-0
         "
       >
         <HelpMenu />
@@ -89,39 +202,32 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       <div
         className="
           absolute visible lg:invisible
-          [@media(min-width:300px)]:left-103 [@media(min-width:300px)]:top-17
-          [@media(min-width:350px)]:left-125 [@media(min-width:350px)]:top-21
-          [@media(min-width:400px)]:left-140 [@media(min-width:400px)]:top-21
-          [@media(min-width:500px)]:left-170 [@media(min-width:500px)]:top-20
-          [@media(min-width:600px)]:left-210 [@media(min-width:600px)]:top-20
-          [@media(min-width:900px)]:left-320 [@media(min-width:900px)]:top-21
+          xxs:left-72 xxs:top-20
+          xs:left-87 xs:top-20
+          sm:left-28 sm:top-4
+          md:left-40 md:top-5
+          lg:left-80 lg:top-5
+          
         "
       >
         <CartDrawer />
       </div>
 
       {/* RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-30 -top-5 flex items-center gap-6 z-20 invisible lg:visible">
+      <div className="absolute right-8 -top-1 2xl:-top-4 2xl:right-11 flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>
 
-      <div className="absolute right-100 top-20 flex items-center invisible lg:visible">
+      <div className="absolute right-60 top-24 flex items-center invisible lg:visible">
         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
         <button
           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
           onClick={() => setUserMenuOpen(true)}
         >
-          <User className="w-10 h-10 border-2 rounded-3xl p-2 text-brand-primary" />
-          <span className="text-white text-md mt-4">Account</span>
+          <User className="w-8 h-8 2xl:w-5 2xl:h-5  rounded-full  text-brand-primary" />
+          <span className="text-white text-base 2xl:text-[13px] mt-1">Account</span>
         </button>
       </div>
-
-     
     </header>
   );
 }
-
-
-
-
-

@@ -88,8 +88,8 @@ export default function HelpMenu() {
     >
       {/* Trigger Icon */}
       <div className="relative p-2 cursor-pointer transition-transform duration-300 group-hover:scale-110 ">
-        <HelpCircle className="w-7 h-7 md:w-8 md:h-8 text-brand-primary group-hover:text-blue-600 transition-colors" />
-          <span className=" absolute text-xl font-medium top-3 -right-12 text-gray-50 hidden lg:block ">Help</span>
+        <HelpCircle className="w-7 h-7 xxs:w-5 xxs:h-5 md:w-8 md:h-8 2xl:w-5 2xl:5 text-brand-primary group-hover:text-blue-600 transition-colors" />
+          <span className=" absolute text-md 2xl:text-[13px] font-medium top-3 -right-6 text-gray-50 hidden lg:block ">Help</span>
         <span className="absolute -top-1 -right-1 flex h-3 w-3"> 
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
