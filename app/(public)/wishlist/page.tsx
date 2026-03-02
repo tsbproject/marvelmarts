@@ -38,15 +38,21 @@ export default function WishlistPage() {
       stock: 10, 
       isPublished: true, 
       isTrending: false, 
-      isVerified: false,
       createdAt: new Date().toISOString(), 
       updatedAt: new Date().toISOString(),
       vendorProfileId: (item as any).vendorProfileId || (item as any).vendorId || "",
+
+    vendorProfile: {
+    storeName: "Vendor",
+    isVerified: false, // Move it here
+  }
     };
     dispatch(addToCart({ 
       product: productForCart, 
       quantity: 1 
     }));
+
+    
     
     notifySuccess(`${item.title} moved to stash!`);
   };
