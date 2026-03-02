@@ -796,14 +796,14 @@ export default function AdminSettingsPage() {
       await refreshSettings();
       console.log("Settings refreshed.");
 
-      notifySuccess("Settings saved successfully!", {
+      notifySuccess("Settings saved successfully!"), {
         description: "All changes are now applied site-wide.",
-      });
+      };
     } catch (error: any) {
       console.error("onSubmit error:", error);
-      notifyError("Failed to save settings", {
+      notifyError("Failed to save settings"), {
         description: error.message || "An unexpected error occurred. Check console for details.",
-      });
+      };
     } finally {
       setIsSaving(false);
       console.log("=== onSubmit FINISHED ===");
