@@ -27,7 +27,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
         className="
           absolute
           xs:left-10
-          sm:left-8 sm:top-3
+          sm:left-20 sm:top-7
           md:left-28 md:top-3
           lg:left-20 lg:top-2
           xl:left-20 xl:top-4
@@ -56,10 +56,10 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       {/* Mobile Hamburger */}
       <div
         className="
-          absolute -top-1  visible md:invisible
+          absolute -top-1  visible lg:invisible
           xxs:top-12
           xs:top-12
-          sm:right-64 sm:top-3
+          sm:right-100 sm:top-15
           md:left-2
           lg:right-20 lg:top-4
         "
@@ -73,8 +73,8 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           absolute visible lg:invisible
           xxs:left-60 xxs:top-20
           xs:left-72 xs:top-20
-          sm:left-24 sm:top-4
-          md:left-28 md:top-5
+          sm:left-85 sm:top-20
+          md:left-110 md:top-25
           lg:left-72 lg:top-5
           xl:left-72 xl:top-0
         "
@@ -88,8 +88,8 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           absolute visible lg:invisible
           xxs:left-72 xxs:top-20
           xs:left-87 xs:top-20
-          sm:left-28 sm:top-4
-          md:left-40 md:top-5
+          sm:left-107 sm:top-20
+          md:left-130 md:top-25
           lg:left-80 lg:top-5
           
         "
