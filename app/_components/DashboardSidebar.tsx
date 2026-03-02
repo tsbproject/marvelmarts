@@ -590,7 +590,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
   }, [userRole, isSuperAdmin, userPermissions, sections, activeView]);
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-72 bg-gray-950 text-gray-300 border-r border-white/5 sticky top-0 h-screen">
+    <aside className="hidden lg:flex lg:flex-col lg:w-72 2xl:w-60 bg-gray-950 text-gray-300 border-r border-white/5 sticky top-0 h-screen">
       <div className="px-8 py-8 flex flex-col gap-1">
         <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
           MarvelMarts<span className="text-indigo-500">.</span>
@@ -696,7 +696,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
 
       <div className="p-4 border-t border-white/5 bg-black/20">
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5">
-          <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-lg">
+          <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-lg ">
             {propUser?.email?.charAt(0).toUpperCase() || "A"}
           </div>
           <div className="flex-1 min-w-0">

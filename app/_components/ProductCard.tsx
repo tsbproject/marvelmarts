@@ -431,7 +431,7 @@ export default function ProductCard({
             <>
               <span className="w-1 h-1 bg-gray-300 rounded-full" />
               <Link
-                // FIXED: Drill into the store relation to get the slug from Phase 5 model
+               
                 href={`/store/${product.vendorProfile?.store?.slug || product.vendorProfileId}`} 
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1 group/store"
@@ -448,13 +448,13 @@ export default function ProductCard({
           )}
         </div>
 
-        <h3 className={`font-black italic uppercase text-accent-navy leading-tight line-clamp-2 mb-2 ${isList ? "text-lg" : "text-[12px] h-8 px-1"}`}>
+        <h3 className={`font-black  italic uppercase text-brand-primary leading-tight line-clamp-2 mb-2 ${isList ? "text-xs" : "text-[12px] h-10 px-1"}`}>
           {product.title}
         </h3>
 
         {/* PRICE DISPLAY SECTION */}
         <div className="flex items-center gap-2 mb-3 min-h-[24px]">
-          <p className="text-xl font-black text-accent-navy italic tracking-tighter whitespace-nowrap">
+          <p className="text-xs font-black text-accent-navy italic tracking-tighter whitespace-nowrap">
             {formatNaira(displayPrice)}
           </p>
 

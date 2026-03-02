@@ -129,8 +129,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     });
   }
 
-  // 1. Change how you determine if the user is logged in for the logic checks
-// Replace the Redux selector or add this constant:
+
 const isNextAuthAuthenticated = status === "authenticated";
 
 const handleClick = async (item: MenuItem) => {
@@ -202,7 +201,7 @@ const handleClick = async (item: MenuItem) => {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-[90%] max-w-md bg-white shadow-2xl z-[101] flex flex-col"
+            className="fixed top-0 right-0 h-full w-[50%] max-w-xs bg-white shadow-2xl z-[101] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-8">
@@ -312,7 +311,7 @@ const handleClick = async (item: MenuItem) => {
                             ${isSpecial ? "text-orange-600" : isSwitcher ? "text-blue-600" : isStatus ? "text-gray-500" : "text-gray-400 group-hover:text-[#002B5B]"}`}>
                             {item.icon}
                           </div>
-                          <span className={`text-lg font-bold uppercase tracking-tight
+                          <span className={`text-xs font-bold uppercase tracking-tight
                             ${isSpecial ? "text-orange-700" : isSwitcher ? "text-[#002B5B]" : isStatus ? "text-gray-500" : "text-gray-700"}`}>
                             {item.label}
                           </span>
@@ -322,7 +321,7 @@ const handleClick = async (item: MenuItem) => {
                             New
                           </span>
                         )}
-                        <ChevronRight size={14} className={`transition-all
+                        <ChevronRight size={2} className={`transition-all
                           ${(isSpecial || isSwitcher) ? "text-orange-400" : "text-gray-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-1"}`} 
                         />
                       </motion.div>

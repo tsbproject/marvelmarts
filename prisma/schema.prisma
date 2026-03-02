@@ -693,64 +693,62 @@ model Blog {
 
 
 model SiteSettings {
-  id        Int      @id @default(autoincrement())   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    Int       @id @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  // ── Colors (override your :root vars) ────────────────────────────────
-  accentNavy        String?   @default("#002B5B")
-  brandPrimary      String?   @default("#F7931E")
-  brandOrangeLight  String?   @default("#FFE8CC")
-  neutralWhite      String?   @default("#FFFFFF")
-  neutralLight      String?   @default("#F8F8F8")
-  neutralGray       String?   @default("#4B4B4B")
-  neutralDark       String?   @default("#1E1E1E")
+  accentNavy            String?
+  brandPrimary          String?
+  brandOrangeLight      String?
+  neutralWhite          String?
+  neutralLight          String?
+  neutralGray           String?
+  neutralDark           String?
 
-  // ── Scales & Typography ──────────────────────────────────────────────
-  layoutScale       Float?    @default(1.0)
-  baseFontSize      Int?      @default(16)     // px
-  bodyFontScale     Float?    @default(1.0)
-  headingFontScale  Float?    @default(1.0)
-  headerFontScale   Float?    @default(1.0)
-  footerFontScale   Float?    @default(1.0)
-  carouselFontScale Float?    @default(1.0)
+  layoutScale           Float?
+  baseFontSize          Int?
+  bodyFontScale         Float?
+  headingFontScale      Float?
+  headerFontScale       Float?
+  footerFontScale       Float?
+  carouselFontScale     Float?
 
-  // ── Header ───────────────────────────────────────────────────────────
-  headerBg          String?   @default("#FFFFFF")
-  headerText        String?   @default("#000000")
-  headerBorder      String?   @default("transparent")
-  showSearchBar     Boolean   @default(true)
+  headerBg              String?
+  headerText            String?
+  headerBorder          String?
+  showSearchBar         Boolean   @default(true)
 
-  // ── Footer ───────────────────────────────────────────────────────────
-  footerBg          String?   @default("#F8F8F8")
-  footerText        String?   @default("#333333")
-  showSocialIcons   Boolean   @default(true)
+  footerBg              String?
+  footerText            String?
+  footerLogo            String?   // NEW
+  footerBodyFontSize    Int?      @default(16)   // NEW
+  footerHeadingFontSize Int?      @default(20)   // NEW
+  showSocialIcons       Boolean   @default(true)
+  facebookUrl           String?   // NEW
+  instagramUrl          String?   // NEW
+  twitterUrl            String?   // NEW
+  whatsappUrl           String?   // NEW
 
-  // ── ProductCard overrides ────────────────────────────────────────────
-  productCardRadius String?   @default("2rem")
-  productCardShadow String?   @default("sm")     // or full shadow value
-  productPriceColor String?   @default("#002B5B") // accent-navy
-  addToCartBg       String?   @default("#002B5B")
-  addToCartText     String?   @default("#FFFFFF")
+  productCardRadius     String?
+  productCardShadow     String?
+  productPriceColor     String?
+  addToCartBg           String?
+  addToCartText         String?
 
-  // ── Frontpage visibility toggles ─────────────────────────────────────
-  showFeaturedProducts  Boolean @default(true)
-  showEcommerceCarousel      Boolean  @default(true)
-  showFlashSales        Boolean  @default(true)
+  showFeaturedProducts  Boolean   @default(true)
+  showEcommerceCarousel Boolean   @default(true)
+  showFlashSales        Boolean   @default(true)
   showFeaturedCategories Boolean  @default(true)
-  showTrendingProducts  Boolean  @default(true)
-  showNewArrivals       Boolean  @default(true)
-  showTestimonials      Boolean @default(true)
-  // Add more sections as needed
+  showTrendingProducts  Boolean   @default(true)
+  showNewArrivals       Boolean   @default(true)
+  showTestimonials      Boolean   @default(true)
 
-  // ── Other components (expand as you go) ──────────────────────────────
-  cartDrawerPosition    String?   @default("right")  // "left" | "right"
+  cartDrawerPosition    String?   @default("right")
   cartDrawerWidth       String?   @default("400px")
   helpMenuPosition      String?   @default("bottom-right")
 
-  @@map("site_settings")  // Optional: nicer table name
+    @@map("site_settings")  
 }
-
 model Conversation {
   id          String    @id @default(cuid())
   createdAt   DateTime  @default(now())
