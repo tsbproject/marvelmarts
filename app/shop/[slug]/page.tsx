@@ -81,42 +81,48 @@ if (hasVariants && !selectedVariant) {
 const resolvedImageUrl = images[activeImage]?.url || "/logo.png";
 
   // 2. Dispatch the full object
- dispatch(addToCart({ 
-    product: {
-      id: product.id,
-      slug: product.slug,
-      title: selectedVariant 
-        ? `${product.title} (${selectedVariant.name})` 
-        : product.title,
-      name: product.title || "",
-      // FIX 1: Ensure price is a Number
-      price: Number(currentPrice), 
-      imageUrl: resolvedImageUrl, 
-      description: product.description || "",
-      // FIX 2: Ensure discountPrice is a Number or null
-      discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-      categoryName: product.category?.name || "Tactical Gear",
-      // FIX 3: Ensure images strictly follows { url: string }[]
-      images: product.images && product.images.length > 0 
-        ? product.images.map((img: any) => ({ url: img.url })) 
-        : [{ url: "/logo.png" }],
-      stock: currentMaxStock,
-      createdAt: product.createdAt 
-        ? new Date(product.createdAt).toISOString() 
-        : new Date().toISOString(),
-      updatedAt: product.updatedAt 
-        ? new Date(product.updatedAt).toISOString() 
-        : new Date().toISOString(),
-      variantId: selectedVariant?.id || null,
-      isPublished: product.isPublished,
-      isVerified: !!product.isVerified,
-      // ADD THIS: From your interface
-      isTrending: !!(product as any).isTrending, 
-      vendorProfileId: (product as any).vendorProfileId || (product as any).vendorId || "",
-    }, 
-    quantity: quantity 
-  }));
+dispatch(addToCart({ 
+  product: {
+    id: product.id,
+    slug: product.slug,
+    title: selectedVariant 
+      ? `${product.title} (${selectedVariant.name})` 
+      : product.title,
+    name: product.title || "",
+    // FIX 1: Ensure price is a Number
+    price: Number(currentPrice), 
+    imageUrl: resolvedImageUrl, 
+    description: product.description || "",
+    // FIX 2: Ensure discountPrice is a Number or null
+    discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+    categoryName: product.category?.name || "Tactical Gear",
+    // FIX 3: Ensure images strictly follows { url: string }[]
+    images: product.images && product.images.length > 0 
+      ? product.images.map((img: any) => ({ url: img.url })) 
+      : [{ url: "/logo.png" }],
+    stock: currentMaxStock,
+    createdAt: product.createdAt 
+      ? new Date(product.createdAt).toISOString() 
+      : new Date().toISOString(),
+    updatedAt: product.updatedAt 
+      ? new Date(product.updatedAt).toISOString() 
+      : new Date().toISOString(),
+    variantId: selectedVariant?.id || null,
+    isPublished: product.isPublished,
+    isTrending: !!(product as any).isTrending, 
+    vendorProfileId: (product as any).vendorProfileId || (product as any).vendorId || "",
 
+    // FIX 4: Nest the vendor info to match SerializedProduct interface
+    vendorProfile: {
+      storeName: (product as any).vendorProfile?.storeName || "MarvelMarts Vendor",
+      isVerified: !!(product as any).vendorProfile?.isVerified || !!(product as any).isVerified,
+      store: (product as any).vendorProfile?.store ? {
+        slug: (product as any).vendorProfile.store.slug
+      } : undefined
+    }
+  }, 
+  quantity: quantity 
+}));
   notifySuccess(`${product.title} added to your stash!`);
 };
 
