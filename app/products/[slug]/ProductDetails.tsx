@@ -379,9 +379,12 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
       updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : new Date().toISOString(),
       variantId: selectedVariant?.id || "", 
       isPublished: product.isPublished,
-      isVerified: product.vendorProfile?.isVerified ?? false,
+      
+      // REMOVED: isVerified (It no longer exists at this level in the interface)
+      
       vendorProfileId: product.vendorProfileId,
-      // Mapping the nested vendorProfile for the Cart/Wishlist UI
+
+      // CORRECT: Nested mapping for the Cart/Wishlist UI
       vendorProfile: product.vendorProfile ? {
         storeName: product.vendorProfile.storeName,
         isVerified: product.vendorProfile.isVerified,
