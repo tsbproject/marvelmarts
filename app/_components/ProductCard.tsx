@@ -1,11 +1,14 @@
-// "use client";
 
+
+
+
+// "use client";
 // import React, { useState, useEffect } from "react";
 // import Image from "next/image";
 // import { useRouter } from "next/navigation";
-// import { 
-//   Eye, ShoppingCart, Heart, Edit3, 
-//   Rocket, Store, CheckCircle2 
+// import {
+//   Eye, ShoppingCart, Heart, Edit3,
+//   Rocket, Store, CheckCircle2
 // } from "lucide-react";
 // import { formatNaira } from "@/app/lib/FormatNaira";
 // import { SerializedProduct } from "@/types/product";
@@ -23,23 +26,23 @@
 //   onQuickView?: (p: SerializedProduct) => void;
 //   onViewDetails?: () => void;
 //   viewMode?: "grid" | "list";
-//   isOwner?: boolean; 
+//   isOwner?: boolean;
 // }
 
-// export default function ProductCard({ 
-//   product, 
+// export default function ProductCard({
+//   product,
 //   onQuickView,
 //   viewMode = "grid",
-//   isOwner = false 
+//   isOwner = false
 // }: ProductCardProps) {
 //   const router = useRouter();
 //   const dispatch = useDispatch();
 //   const { notifySuccess, notifyError } = useNotification();
 //   const { setLoading } = useLoadingOverlay();
-  
+
 //   const wishlist = useSelector((state: RootState) => state.wishlist.items);
 //   const isWishlisted = wishlist.some((item) => item.productId === product.id);
-  
+
 //   const [mounted, setMounted] = useState(false);
 //   useEffect(() => { setMounted(true); }, []);
 
@@ -61,12 +64,14 @@
 //     }
 //   };
 
+  
+
 //   const handleWishlistToggle = async (e: React.MouseEvent) => {
 //     e.preventDefault();
 //     e.stopPropagation();
 //     dispatch(toggleWishlist({
 //       id: product.id,
-//       productId: product.id, 
+//       productId: product.id,
 //       title: product.title,
 //       slug: typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current,
 //       price: product.discountPrice ?? product.price,
@@ -75,8 +80,8 @@
 //   };
 
 //   const handleAddToCart = (e: React.MouseEvent) => {
-//     e.preventDefault(); 
-//     e.stopPropagation(); 
+//     e.preventDefault();
+//     e.stopPropagation();
 //     dispatch(addToCart({ product, quantity: 1 }));
 //     notifySuccess(`${product.title} added to your stash!`);
 //   };
@@ -85,19 +90,23 @@
 //     return <div className={`bg-white border border-gray-100 rounded-[2rem] p-4 animate-pulse ${viewMode === 'list' ? 'h-32 w-full' : 'h-80 w-full'}`} />;
 //   }
 
-//   // Calculation for safe price fallback
-//   const displayPrice = product.discountPrice && product.discountPrice > 0 
-//     ? product.discountPrice 
-//     : product.price;
+//   // ── Safe price handling ──────────────────────────────────────────────
+//   const rawPrice = Number(product.price) || 0;
+//   const rawDiscountPrice = Number(product.discountPrice) || 0;
 
-//   const discountPercentage = product.discountPrice && product.discountPrice < product.price
-//     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+//   const displayPrice = rawDiscountPrice > 0 ? rawDiscountPrice : rawPrice;
+
+//   const hasRealDiscount = rawDiscountPrice > 0 && rawDiscountPrice < rawPrice;
+//   const discountPercentage = hasRealDiscount
+//     ? Math.round(((rawPrice - rawDiscountPrice) / rawPrice) * 100)
 //     : null;
 
 //   const isList = viewMode === "list";
 
+  
+
 //   return (
-//     <div 
+//     <div
 //       onClick={() => {
 //         const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
 //         if (slug) {
@@ -120,51 +129,51 @@
 //       <div className={`relative overflow-hidden rounded-[1.4rem] bg-[#F8FAFC] shrink-0 transition-all ${
 //         isList ? "w-32 h-32" : "w-full h-56"
 //       }`}>
-//         <Image 
-//           src={getValidImage()} 
+//         <Image
+//           src={getValidImage()}
 //           alt={product.title}
-//           fill 
+//           fill
 //           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
 //           className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
 //         />
-        
+
 //         {/* Actions Overlay */}
 //         <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-//            {isOwner ? (
-//              <div className="flex flex-col gap-2 w-full px-4">
-//                <Link 
-//                  href={`/account/vendor/products/edit/${product.id}`}
-//                  onClick={(e) => e.stopPropagation()}
-//                  className="flex items-center justify-center gap-2 py-2 bg-brand-primary text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-//                >
-//                  <Edit3 size={12} /> Edit
-//                </Link>
-//                <button 
-//                  onClick={(e) => { e.stopPropagation(); }}
-//                  className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-//                >
-//                  <Rocket size={12} className="text-orange-500" /> Boost
-//                </button>
-//              </div>
-//            ) : (
-//              <>
-//                <button 
-//                 onClick={(e) => { 
-//                     e.stopPropagation(); 
-//                     if (onQuickView) onQuickView(product); 
-//                   }}
+//           {isOwner ? (
+//             <div className="flex flex-col gap-2 w-full px-4">
+//               <Link
+//                 href={`/account/vendor/products/edit/${product.id}`}
+//                 onClick={(e) => e.stopPropagation()}
+//                 className="flex items-center justify-center gap-2 py-2 bg-brand-primary text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+//               >
+//                 <Edit3 size={12} /> Edit
+//               </Link>
+//               <button
+//                 onClick={(e) => { e.stopPropagation(); }}
+//                 className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+//               >
+//                 <Rocket size={12} className="text-orange-500" /> Boost
+//               </button>
+//             </div>
+//           ) : (
+//             <>
+//               <button
+//                 onClick={(e) => {
+//                   e.stopPropagation();
+//                   if (onQuickView) onQuickView(product);
+//                 }}
 //                 className="p-3 bg-white rounded-full text-slate-900 shadow-xl hover:bg-brand-primary hover:scale-110 transition-all"
-//                >
-//                  <Eye size={18} />
-//                </button>
-//                <button 
+//               >
+//                 <Eye size={18} />
+//               </button>
+//               <button
 //                 onClick={handleWishlistToggle}
 //                 className={`p-3 rounded-full shadow-xl transition-all hover:scale-110 ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}
-//                >
-//                  <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
-//                </button>
-//              </>
-//            )}
+//               >
+//                 <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+//               </button>
+//             </>
+//           )}
 //         </div>
 //       </div>
 
@@ -172,56 +181,55 @@
 //       <div className={`flex-1 flex flex-col w-full ${isList ? "text-left items-start py-1" : "text-center items-center mt-3 px-1"}`}>
         
 //         {/* STORE & BRAND LINE */}
-//         <div className="flex items-center justify-center gap-2 mb-1 overflow-hidden w-full">
-//           <p className="text-[9px] font-black text-brand-primary uppercase tracking-widest truncate">
-//             {product.brand || "Premium"}
-//           </p>
-//           {!isOwner && product.vendorProfile?.storeName && (
-//             <>
-//               <span className="w-1 h-1 bg-gray-300 rounded-full" />
-//               <Link 
-//                 href={`/store/${product.vendorProfileId}`}
-//                 onClick={(e) => e.stopPropagation()}
-//                 className="flex items-center gap-1 group/store"
-//               >
-//                 <Store size={10} className="text-gray-400 group-hover/store:text-slate-900" />
-//                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter group-hover/store:text-slate-900 truncate">
-//                   {product.vendorProfile.storeName}
-//                 </span>
-//                 {product.vendorProfile.isVerified && (
-//                   <CheckCircle2 size={10} className="text-blue-500 fill-blue-50" />
-//                 )}
-//               </Link>
-//             </>
-//           )}
-//         </div>
+//        <div className="flex items-center justify-center gap-2 mb-1 overflow-hidden w-full">
+//    <p className="text-[9px] font-black text-brand-primary uppercase tracking-widest truncate">
+//     {product.brand || "Premium"}
+//   </p>
+//   {!isOwner && product.vendorProfile?.storeName && (
+//     <>
+//       <span className="w-1 h-1 bg-gray-300 rounded-full" />
+//                 <Link
+//             // Prioritize the slug, only use ID if slug is absolutely missing
+//             href={`/store/${product.vendorProfile?.slug || product.vendorProfileId}`} 
+//             onClick={(e) => e.stopPropagation()}
+//             className="flex items-center gap-1 group/store"
+//           >
+//             <Store size={10} className="text-gray-400 group-hover/store:text-slate-900" />
+//             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter group-hover/store:text-slate-900 truncate">
+//               {product.vendorProfile?.storeName}
+//             </span>
+//           </Link>
+//               </>
+//             )}
+//           </div>
 
 //         <h3 className={`font-black italic uppercase text-accent-navy leading-tight line-clamp-2 mb-2 ${isList ? "text-lg" : "text-[12px] h-8 px-1"}`}>
 //           {product.title}
 //         </h3>
-        
-//         {/* PRICE DISPLAY SECTION - ENSURING VISIBILITY */}
-//         <div className="flex items-center gap-2 mb-3 h-6">
+
+//         {/* PRICE DISPLAY SECTION – now safe & always visible */}
+//         <div className="flex items-center gap-2 mb-3 min-h-[24px]">
 //           <p className="text-xl font-black text-accent-navy italic tracking-tighter whitespace-nowrap">
-//             {formatNaira(displayPrice)}
+//             {formatNaira(displayPrice) || "₦0"}
 //           </p>
-//           {product.discountPrice && product.discountPrice < product.price && (
+
+//           {hasRealDiscount && (
 //             <p className="text-[10px] text-gray-400 line-through font-bold whitespace-nowrap">
-//               {formatNaira(product.price)}
+//               {formatNaira(rawPrice)}
 //             </p>
 //           )}
 //         </div>
 
 //         {/* FOOTER ACTIONS */}
 //         {!isOwner ? (
-//           <button 
+//           <button
 //             onClick={handleAddToCart}
 //             className={`${isList ? "w-auto px-8" : "w-full"} bg-accent-navy hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 active:scale-95`}
 //           >
 //             <ShoppingCart size={14} /> Add to Cart
 //           </button>
 //         ) : (
-//           <button 
+//           <button
 //             onClick={handleToggleStatus}
 //             className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50 w-full justify-center hover:bg-gray-50 rounded-lg transition-colors group/status"
 //           >
@@ -235,6 +243,8 @@
 //     </div>
 //   );
 // }
+
+
 
 
 
@@ -421,15 +431,16 @@ export default function ProductCard({
             <>
               <span className="w-1 h-1 bg-gray-300 rounded-full" />
               <Link
-                href={`/store/${product.vendorProfileId}`}
+                // FIXED: Drill into the store relation to get the slug from Phase 5 model
+                href={`/store/${product.vendorProfile?.store?.slug || product.vendorProfileId}`} 
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1 group/store"
               >
                 <Store size={10} className="text-gray-400 group-hover/store:text-slate-900" />
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter group-hover/store:text-slate-900 truncate">
-                  {product.vendorProfile.storeName}
+                  {product.vendorProfile?.storeName}
                 </span>
-                {product.vendorProfile.isVerified && (
+                {product.vendorProfile?.isVerified && (
                   <CheckCircle2 size={10} className="text-blue-500 fill-blue-50" />
                 )}
               </Link>
@@ -441,10 +452,10 @@ export default function ProductCard({
           {product.title}
         </h3>
 
-        {/* PRICE DISPLAY SECTION – now safe & always visible */}
+        {/* PRICE DISPLAY SECTION */}
         <div className="flex items-center gap-2 mb-3 min-h-[24px]">
           <p className="text-xl font-black text-accent-navy italic tracking-tighter whitespace-nowrap">
-            {formatNaira(displayPrice) || "₦0"}
+            {formatNaira(displayPrice)}
           </p>
 
           {hasRealDiscount && (

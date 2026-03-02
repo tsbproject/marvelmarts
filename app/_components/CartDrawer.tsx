@@ -44,7 +44,7 @@ export default function CartDrawer() {
       {/* Trigger Button */}
       <button onClick={() => setOpen(true)} className="group relative p-2 transition-transform active:scale-90">
         <ShoppingCart className="w-7 h-7 xxs:w-5 xxs:h-5 2xl:w-5 2xl:h-5 text-brand-primary group-hover:text-blue-600 transition-colors" />
-        <span className=" absolute text-md 2xl:text-[13px] font-medium top-3 -right-7 text-gray-50 hidden lg:block ">Cart</span>
+        <span className=" absolute text-md 2xl:text-[13px]  font-medium top-2 -right-5 text-gray-50 hidden lg:block ">Cart</span>
         
         {/* Only show badge once mounted to prevent SSR mismatch */}
         {mounted && cartItems.length > 0 && (

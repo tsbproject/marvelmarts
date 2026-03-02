@@ -20,3 +20,24 @@ if (process.env.NODE_ENV !== "production") {
 
 export default prisma;
 
+
+
+
+
+export async function getSiteSettings() {
+  return prisma.siteSettings.findFirst() ?? {
+ 
+  accentNavy: '#002B5B',
+  brandPrimary:' #F7931E',
+  brandGhost: '#1f2937',
+  neutralWhite : '#d1d5db',
+  neutralLight: '#f3f4f6',
+  neutralDark: '#1f2937',
+  brandOrangeLight: '#FFE8CC', 
+  neutralGray : '#4B4B4B'      
+ 
+  
+ 
+   
+  };
+}

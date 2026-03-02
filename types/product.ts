@@ -1,5 +1,42 @@
 // types/product.ts
 // 1. Define exactly what the Client Component expects
+
+
+// export interface SerializedProduct {
+//   id: string;
+//   slug: string;
+//   title: string;
+//   description: string;
+//   price: number;
+//   discountPrice: number | null;
+//   categoryName: string;
+//   images: { url: string }[];
+//   imageUrl: string;
+//   rating?: number;
+//   reviewCount?: number;
+//   stock: number;
+//   brand?: string | null;
+//   createdAt?: string; 
+//   updatedAt?: string;
+//   variantId?: string;
+//   isTrending?: boolean;
+//   isPublished: boolean;
+//   name       : string;
+//   storeName  : string;
+//   isVerified : boolean;
+//   vendorProfileId: string;
+//   vendorProfile:string;
+
+ 
+
+
+
+// }
+
+
+
+// types/product.ts
+
 export interface SerializedProduct {
   id: string;
   slug: string;
@@ -19,14 +56,20 @@ export interface SerializedProduct {
   variantId?: string;
   isTrending?: boolean;
   isPublished: boolean;
-  name       : string;
-  storeName  : string;
-  isVerified : boolean;
+  
+  // Vendor-related data
   vendorProfileId: string;
-  vendorProfile:string;
+  
+  // This object represents the relation to the VendorProfile model
+  vendorProfile?: {
+    storeName: string;
+    isVerified: boolean;
+    // Phase 5 Store relation where the actual store slug is stored
+    store?: {
+      slug: string;
+    };
+  };
 
- 
-
-
-
+  // Keep these if you flatten them during serialization on the server
+  name: string; 
 }

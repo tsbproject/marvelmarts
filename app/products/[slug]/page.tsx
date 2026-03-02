@@ -1,12 +1,17 @@
 
 
 
+
+
+
+
 // export const dynamic = "force-dynamic";
 
 // import { notFound } from "next/navigation";
 // import { prisma } from "@/app/lib/prisma";
 // import ProductDetails from "./ProductDetails";
 // import type { Product, Category, ProductImage } from "@prisma/client";
+// import ChatWithVendor from "./_components/ChatWithVendor"
 
 // interface Props {
 //   params: Promise<{ slug: string }>;
@@ -23,6 +28,8 @@
 //   category: Category | null;
 //   images: ProductImage[];
 //   imageUrl: string;
+//   // This connects the product to the Merchant for the Chat component
+//   vendorProfileId: string; 
 //   variants: {
 //     id: string;
 //     name: string;
@@ -34,9 +41,9 @@
 //   reviews: {
 //     id: string;
 //     rating: number;
-//     body: string | null; // SCHEMA FIX: comment -> body
+//     body: string | null;
 //     createdAt: string;
-//     isVerified: boolean; // TACTICAL UPGRADE
+//     isVerified: boolean;
 //     user: { name: string | null };
 //   }[];
 // };
@@ -47,41 +54,39 @@
 //   if (!slug) return notFound();
 
 //   const product = await prisma.product.findUnique({
-//   where: { slug },
-//   include: {
-//     category: true,
-//     images: { orderBy: { order: "asc" } },
-//     variants: true,
-//     reviews: {
-//       where: { approved: true },
-//       include: {
-//         user: {
-//           select: {
-//             name: true,
-//             orders: {
-//               where: {
-//                 items: {
-//                   some: {
-                  
-//                     productId: { not: undefined } 
-//                   }
+//     where: { slug },
+//     include: {
+//       category: true,
+//       images: { orderBy: { order: "asc" } },
+//       variants: true,
+//       reviews: {
+//         where: { approved: true },
+//         include: {
+//           user: {
+//             select: {
+//               name: true,
+//               orders: {
+//                 where: {
+//                   items: {
+//                     some: {
+//                       productId: { not: undefined } 
+//                     }
+//                   },
+//                   status: "DELIVERED"
 //                 },
-//                 status: "DELIVERED"
-//               },
-             
-//               select: {
-//                 items: {
-//                   select: { productId: true }
+//                 select: {
+//                   items: {
+//                     select: { productId: true }
+//                   }
 //                 }
 //               }
 //             }
 //           }
-//         }
+//         },
+//         orderBy: { createdAt: "desc" },
 //       },
-//       orderBy: { createdAt: "desc" },
 //     },
-//   },
-// });
+//   });
 
 //   if (!product) return notFound();
 
@@ -111,19 +116,20 @@
 //     category: product.category,
 //     images: product.images.length > 0 ? product.images : [],
 //     imageUrl: product.images.length > 0 ? product.images[0].url : "/logo.png",
+    
+//     // Explicitly mapping the vendorProfileId from the database record
+//     vendorProfileId: product.vendorProfileId,
 
 //     variants: product.variants.map((v) => ({
 //       ...v,
 //       price: Number(v.price),
 //     })),
 
-//     // Mapping reviews with correct Schema field 'body' and Verified logic
 //     reviews: product.reviews.map((r) => ({
 //       id: r.id,
 //       rating: r.rating,
-//       body: r.body, // Fixed field name
+//       body: r.body,
 //       createdAt: r.createdAt.toISOString(),
-//       // Logic: If user has at least 1 delivered order containing this product
 //       isVerified: r.user.orders.some(order => 
 //         order.items.some((item: any) => item.productId === product.id)
 //       ),
@@ -140,11 +146,10 @@
 //     imageUrl: p.images[0]?.url || "/logo.png",
 //   }));
 
+//   // Passing the formattedProduct containing the vendorProfileId to the details component
 //   return <ProductDetails product={formattedProduct} similarItems={formattedSimilar} />;
+
 // }
-
-
-
 
 
 
@@ -155,7 +160,6 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage } from "@prisma/client";
-import ChatWithVendor from "./_components/ChatWithVendor"
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -172,8 +176,15 @@ export type ProductWithRelations = Omit<
   category: Category | null;
   images: ProductImage[];
   imageUrl: string;
-  // This connects the product to the Merchant for the Chat component
   vendorProfileId: string; 
+  // ADDED: Detailed Vendor Information
+  vendorProfile?: {
+    storeName: string;
+    isVerified: boolean;
+    store?: {
+      slug: string;
+    };
+  };
   variants: {
     id: string;
     name: string;
@@ -203,6 +214,14 @@ export default async function ProductPage({ params }: Props) {
       category: true,
       images: { orderBy: { order: "asc" } },
       variants: true,
+      // NEW: Include Vendor Profile and Store Relation
+      vendorProfile: {
+        include: {
+          store: {
+            select: { slug: true }
+          }
+        }
+      },
       reviews: {
         where: { approved: true },
         include: {
@@ -211,18 +230,10 @@ export default async function ProductPage({ params }: Props) {
               name: true,
               orders: {
                 where: {
-                  items: {
-                    some: {
-                      productId: { not: undefined } 
-                    }
-                  },
+                  items: { some: { productId: { not: undefined } } },
                   status: "DELIVERED"
                 },
-                select: {
-                  items: {
-                    select: { productId: true }
-                  }
-                }
+                select: { items: { select: { productId: true } } }
               }
             }
           }
@@ -261,8 +272,15 @@ export default async function ProductPage({ params }: Props) {
     images: product.images.length > 0 ? product.images : [],
     imageUrl: product.images.length > 0 ? product.images[0].url : "/logo.png",
     
-    // Explicitly mapping the vendorProfileId from the database record
     vendorProfileId: product.vendorProfileId,
+    // NEW: Pass through the Vendor Profile Data
+    vendorProfile: product.vendorProfile ? {
+      storeName: product.vendorProfile.storeName,
+      isVerified: product.vendorProfile.isVerified,
+      store: product.vendorProfile.store ? {
+        slug: product.vendorProfile.store.slug
+      } : undefined
+    } : undefined,
 
     variants: product.variants.map((v) => ({
       ...v,
@@ -270,8 +288,7 @@ export default async function ProductPage({ params }: Props) {
     })),
 
     reviews: product.reviews.map((r) => ({
-      id: r.id,
-      rating: r.rating,
+      ...r,
       body: r.body,
       createdAt: r.createdAt.toISOString(),
       isVerified: r.user.orders.some(order => 
@@ -290,6 +307,5 @@ export default async function ProductPage({ params }: Props) {
     imageUrl: p.images[0]?.url || "/logo.png",
   }));
 
-  // Passing the formattedProduct containing the vendorProfileId to the details component
   return <ProductDetails product={formattedProduct} similarItems={formattedSimilar} />;
 }

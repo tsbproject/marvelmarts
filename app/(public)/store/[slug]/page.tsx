@@ -287,28 +287,42 @@ export default async function PublicStorePage({
 }) {
   const { slug } = await params;
 
-  // 1. Fetch Store + Products + Score + Verification Status + Suspension Status
-  const storeData = await prisma.vendorStore.findUnique({
-    where: { slug },
-    include: {
-      vendorProfile: {
-        include: {
-          products: {
-            where: { 
-              isPublished: true,
-              status: "ACTIVE" 
-            },
-            orderBy: { createdAt: "desc" },
-            include: {
-              category: { select: { name: true } },
-              images: true,
-            }
+// 1. Fetch Store + Products + Score + Verification Status + Suspension Status
+const storeData = await prisma.vendorStore.findFirst({
+  where: {
+    OR: [
+      { slug: slug },           // Try matching the slug 
+      { id: slug },             // Try matching the VendorStore ID
+      { vendorProfileId: slug } // Try matching the VendorProfile ID (the cmll... ID)
+    ]
+  },
+  include: {
+    vendorProfile: {
+      include: {
+        products: {
+          where: { 
+            isPublished: true,
+            status: "ACTIVE" 
           },
-          score: true 
-        }
+          orderBy: { createdAt: "desc" },
+          include: {
+            category: { select: { name: true } },
+            images: true,
+            // Important: Include store inside vendorProfile for the ProductCard link!
+            vendorProfile: {
+               include: { store: true }
+            }
+          }
+        },
+        score: true 
       }
     }
-  });
+  }
+});
+
+if (!storeData) {
+  return notFound();
+}
 
   if (!storeData || !storeData.vendorProfile) notFound();
 

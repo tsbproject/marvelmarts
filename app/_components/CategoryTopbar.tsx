@@ -52,7 +52,7 @@ export default function CategoryTopbar({ categories = [] }: CategoryTopbarProps)
   };
 
   return (
-    <nav className="relative bg-brand-primary border-b border-white/5 shadow-2xl h-18 overflow-x-auto no-scrollbar z-10">
+    <nav className="relative bg-brand-primary border-b border-white/5 shadow-2xl h-11 overflow-x-auto  z-10">
       <div className="max-w-[1400px] mx-auto w-full h-full flex items-center px-4">
         
         {/* Explore Button */}
