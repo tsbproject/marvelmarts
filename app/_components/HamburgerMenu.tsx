@@ -114,7 +114,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                     MARVELMARTS
                   </h2>
                   <p className="text-[10px] text-neutral-gray uppercase tracking-widest font-bold">
-                    Premium Armory
+                    Premium Marketplace
                   </p>
                 </div>
                 <button
@@ -125,7 +125,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                 </button>
               </div>
 
-              {/* UX UPDATE: MY ACCOUNT PUSHED UP (Immediately visible below header) */}
+           
               <div className="p-4 bg-neutral-white border-b border-gray-100">
                 <button
                   onClick={() => {
@@ -156,7 +156,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`flex-1 py-2.5 text-xl font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+                      className={`flex-1 py-2.5 text-sm font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
                         activeTab === tab
                           ? "bg-neutral-white text-accent-navy shadow-sm"
                           : "text-neutral-gray hover:text-accent-navy"
@@ -203,7 +203,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                                   <div className="p-2 bg-accent-navy/5 rounded-lg text-accent-navy">
                                     {item.icon}
                                   </div>
-                                  <span className="text-xl">{item.label}</span>
+                                  <span className="text-md">{item.label}</span>
                                 </div>
                                 <ChevronRight
                                   className={`w-4 h-4 transition-transform duration-300 ${
@@ -226,7 +226,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                                 <div className={`p-2 rounded-lg ${item.highlight ? "bg-neutral-white/20 text-neutral-white" : "bg-accent-navy/5 text-accent-navy"}`}>
                                   {item.icon}
                                 </div>
-                                <span className="text-xl font-bold">
+                                <span className="text-[13px] font-bold">
                                   {item.label}
                                 </span>
                               </div>
