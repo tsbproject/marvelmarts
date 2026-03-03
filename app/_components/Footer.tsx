@@ -604,7 +604,7 @@ export default function Footer({ settings }: FooterProps) {
         <div className="bg-[#F7931E] rounded-[3rem] p-1 md:p-16 mb-24 xs:px-15 xxs:px-10 shadow-2xl shadow-orange-950/30 border-b-8 border-[#1E1E1E]/10">
           <div className="flex flex-col xl:flex-row items-center justify-between gap-12">
             <div className="max-w-4xl text-center xl:text-left">
-              <h3 className="text-4xl md:text-5xl 2xl:text-7xl lg:text-6xl font-black uppercase tracking-tighter italic text-[#1E1E1E] leading-[0.9]">
+              <h3 className="text-2xl md:text-5xl 2xl:text-5xl lg:text-6xl font-black uppercase tracking-tighter italic text-[#1E1E1E] leading-[0.9]">
                 Get &nbsp; the &nbsp; <span className="text-white">Marvel</span> Advantage
               </h3>
               <p className="text-[#002B5B] font-extrabold mt-6 text-lg md:text-xl lg:text-2xl max-w-xl">

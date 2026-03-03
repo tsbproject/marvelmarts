@@ -201,7 +201,7 @@ const handleClick = async (item: MenuItem) => {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-[50%] max-w-xs bg-white shadow-2xl z-[101] flex flex-col"
+            className="fixed top-0 right-0 h-full w-[80%] max-w-sm  bg-white shadow-2xl z-[1100] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-8">
@@ -243,7 +243,7 @@ const handleClick = async (item: MenuItem) => {
                         <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">
                           {viewMode === "VENDOR" ? "Merchant Active" : "Logged in as"}
                         </p>
-                        <p className="font-black text-gray-900 truncate uppercase tracking-tight">
+                        <p className="font-black text-xs text-gray-900 truncate uppercase tracking-tight">
                           {session?.user?.name || session?.user?.email?.split('@')[0]}
                         </p>
                       </div>
@@ -280,7 +280,7 @@ const handleClick = async (item: MenuItem) => {
 
               {/* General Links */}
               <div className="space-y-4 pb-8">
-                <p className="text-[13px] font-black uppercase tracking-[0.2em] text-gray-400">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
                   {viewMode === "VENDOR" ? "Business Management" : "Dashboard"}
                 </p>
                 <div className="grid gap-2">
@@ -321,7 +321,7 @@ const handleClick = async (item: MenuItem) => {
                             New
                           </span>
                         )}
-                        <ChevronRight size={2} className={`transition-all
+                        <ChevronRight size={6} className={`transition-all
                           ${(isSpecial || isSwitcher) ? "text-orange-400" : "text-gray-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-1"}`} 
                         />
                       </motion.div>

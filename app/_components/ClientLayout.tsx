@@ -156,8 +156,8 @@ import { SessionProvider as NextAuthSessionProvider, useSession } from "next-aut
 import { SessionProvider as CustomSessionProvider } from "@/app/_context/useSessionContext";
 import { NotificationProvider } from "@/app/_context/NotificationContext";
 import { LoadingOverlayProvider } from "@/app/_context/LoadingOverlayContext";
-import { GlobalSettingsProvider } from "@/app/_context/GlobalSettingsContext"; 
-import DynamicStyles from "@/app/_components/DynamicStyles"; 
+// import { GlobalSettingsProvider } from "@/app/_context/GlobalSettingsContext"; 
+// import DynamicStyles from "@/app/_components/DynamicStyles"; 
 import Header from "@/app/_components/Header";
 import Footer from "@/app/_components/Footer";
 // import SupportDrawer from "@/app/_components/SupportDrawer"; 
@@ -268,8 +268,8 @@ export default function ClientLayout({
             {/* Loading overlay */}
             <LoadingOverlayProvider>
               {/* ── GLOBAL SETTINGS & DYNAMIC STYLES ── */}
-              <GlobalSettingsProvider>
-                <DynamicStyles />
+              {/* <GlobalSettingsProvider> */}
+                {/* <DynamicStyles /> */}
 
                 {/* Progress bar */}
                 <NextTopLoader
@@ -294,7 +294,7 @@ export default function ClientLayout({
 
                 {/* Footer */}
                 <Footer settings={settings} />
-              </GlobalSettingsProvider>
+              {/* </GlobalSettingsProvider> */}
             </LoadingOverlayProvider>
           </NotificationProvider>
         </CustomSessionProvider>

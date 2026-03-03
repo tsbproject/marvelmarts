@@ -592,7 +592,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-72 2xl:w-60 bg-gray-950 text-gray-300 border-r border-white/5 sticky top-0 h-screen">
       <div className="px-8 py-8 flex flex-col gap-1">
-        <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">
+        <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">
           MarvelMarts<span className="text-indigo-500">.</span>
         </h2>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
@@ -624,7 +624,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-lg uppercase tracking-tight
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-tight
                     ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
                 >
                   {link.icon}
@@ -680,7 +680,8 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
                   ) : (
                     <Link
                       href={link.href}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-md uppercase tracking-tight
+                      // ADMINS MANAGEMENT MENUS
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-[11px] uppercase tracking-tight
                         ${pathname === link.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "hover:bg-white/5 hover:text-white"}`}
                     >
                       {link.icon}
