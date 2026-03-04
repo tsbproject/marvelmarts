@@ -56,11 +56,11 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       {/* Mobile Hamburger */}
       <div
         className="
-          absolute -top-1   md:hidden
+          absolute -top-1   lg:hidden
           xxs:top-12
           xs:top-12
           sm:right-100 sm:top-15
-          md:left-2
+          md:right-120 md:top-15
           lg:right-20 lg:top-4
         "
       >
@@ -85,11 +85,11 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       {/* CartDrawer - Mobile */}
       <div
         className="
-          absolute visible lg:invisible
+          absolute visible xl:invisible
           xxs:left-72 xxs:top-20
           xs:left-87 xs:top-20
           sm:left-107 sm:top-20
-          md:left-130 md:top-25
+          md:left-130 md:top-27
           lg:left-80 lg:top-5
           
         "

@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 import { useState, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -89,7 +85,7 @@ function SignInForm() {
   
 
   return (
-    <div className="w-full max-w-[480px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
+    <div className="w-full max-w-[700px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
       
       <button
         type="button"
@@ -101,7 +97,7 @@ function SignInForm() {
       </button>
 
       <div className="mb-10 text-center lg:text-left">
-        <h1 className="text-4xl font-black text-neutral-dark tracking-tight mb-3">Sign In</h1>
+        <h1 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-black text-neutral-dark tracking-tight mb-3">Sign In</h1>
         <p className="text-neutral-dark font-medium text-lg md:text-xl text-balance">Access your account and manage your orders</p>
       </div>
 
@@ -113,15 +109,15 @@ function SignInForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label className="text-xl font-black text-accent-navy uppercase tracking-[0.15em] ml-1">Email</label>
+          <label className="text-xs md:text-xl xl:text-lg 2xl:text-xl font-black text-accent-navy uppercase tracking-[0.15em] ml-1">Email</label>
           <div className="relative group">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-primary transition-colors" size={20} />
             <input
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-xl text-accent-navy font-bold placeholder:text-gray-400 shadow-inner"
-              placeholder="Enter your email or username"
+              className="w-full pl-12 pr-4 py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-accent-navy font-bold placeholder:text-gray-400 shadow-inner"
+              placeholder="Enter your email address"
               required
             />
           </div>
@@ -129,8 +125,8 @@ function SignInForm() {
 
         <div className="space-y-2">
           <div className="flex justify-between items-center ml-1">
-            <label className="text-xl font-black text-accent-navy uppercase tracking-[0.15em]">Password</label>
-            <Link href="/auth/forgot-password"  className="text-md font-black text-brand-primary hover:underline">
+            <label className="text-xs md:text-xl xl:text-lg 2xl:text-xl font-black text-accent-navy uppercase tracking-[0.15em]">Password</label>
+            <Link href="/auth/forgot-password"  className="text-xs font-black text-brand-primary hover:underline">
               Reset Password?
             </Link>
           </div>
@@ -140,14 +136,14 @@ function SignInForm() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-4 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-neutral-dark font-bold placeholder:text-gray-400 shadow-inner"
+              className="w-full pl-12 pr-12 py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-neutral-dark font-bold placeholder:text-gray-400 shadow-inner"
               placeholder="••••••••"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((p) => !p)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-accent-navy"
+              className="absolute right-4 top-1/2 -translate-y-1/2  text-gray-400 hover:text-accent-navy"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -157,7 +153,7 @@ function SignInForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-5 bg-accent-navy text-white rounded-2xl font-black text-lg hover:bg-accent-navy transition-all active:scale-[0.97] disabled:opacity-70 flex items-center justify-center gap-3 shadow-xl shadow-[#002B5B]/20 uppercase tracking-widest"
+          className="w-full py-5 bg-accent-navy text-white rounded-2xl font-black text-xs xl:text-sm 2xl:text-lg hover:bg-accent-navy transition-all active:scale-[0.97] disabled:opacity-70 flex items-center justify-center gap-3 shadow-xl shadow-[#002B5B]/20 uppercase tracking-widest"
         >
           {loading ? <Loader2 className="animate-spin" size={24} /> : "Authorize Access"}
         </button>

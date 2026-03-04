@@ -1,10 +1,7 @@
-
-
-
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -235,60 +232,60 @@ export default function VendorRegistration() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCcw className="animate-spin text-[#F7931E]" size={48} />
-          <p className="font-black text-[#002B5B] animate-pulse">SETTING UP MERCHANT PORTAL...</p>
+          <RefreshCcw className="animate-spin text-brand-primary" size={48} />
+          <p className="font-black text-sm  text-accent-navy animate-pulse">SETTING UP MERCHANT PORTAL...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl w-full bg-[#FFFFFF] rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500">
+    <div className="min-h-screen bg-neutral-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-4">
+      <div className="max-w-2xl w-full bg-neutral-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500">
         
         {/* Progress Header */}
-        <div className="bg-[#002B5B] p-10 text-[#FFFFFF] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#F7931E] opacity-10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+        <div className="bg-accent-navy p-10 text-neutral-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-brand-primary opacity-10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           
           <div className="flex items-center justify-between mb-10 relative z-10">
             <button 
               type="button"
               onClick={() => router.back()} 
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-[#FFFFFF]"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-neutral-white"
             >
               <ChevronLeft size={28} />
             </button>
             <div className="text-center">
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
+              <h2 className="text-sm md:text-2xl font-black tracking-tight uppercase">
                 {isReapplying ? "Update Store" : "Merchant Onboarding"}
               </h2>
-              <p className="text-[#FFE8CC] font-bold text-sm mt-1 uppercase tracking-tighter">
+              <p className="text-[#FFE8CC] font-bold text-xs md:text-sm 2xl:text-xl mt-1 uppercase tracking-tighter">
                 {isReapplying ? "Marvelmarts Resubmission" : "Scale your business with Marvelmarts"}
               </p>
             </div>
             <div className="w-10" /> 
           </div>
           
-          <div className="flex justify-between max-w-lg mx-auto relative z-10">
+          <div className="flex justify-between max-w-lg  mx-auto relative z-10">
             {[
               { id: 1, label: "Personal", icon: <User size={18} /> },
               { id: 2, label: "Business", icon: <Building2 size={18} /> },
               { id: 3, label: "Security", icon: <LockKeyhole size={18} /> }
             ].map((item) => (
-              <div key={item.id} className="flex flex-col items-center gap-3">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-300 shadow-lg ${
-                  step >= item.id ? "bg-[#F7931E] text-white scale-110" : "bg-white/10 text-white/50 border border-white/20"
+              <div key={item.id} className="flex flex-col  items-center gap-3">
+                <div className={`w-9 h-9 rounded-2xl flex items-center  justify-center font-black transition-all duration-300 shadow-lg ${
+                  step >= item.id ? "bg-brand-primary  text-brand-white scale-110" : "bg-brand-white/10 text-brand-white/50 border border-white/20"
                 }`}>
                   {step > item.id ? <CheckCircle2 size={24} /> : item.icon}
                 </div>
-                <span className={`text-xs font-black uppercase tracking-widest ${step >= item.id ? "text-[#F7931E]" : "text-white/40"}`}>
+                <span className={`text-[10px] md:text-sm lg:text-md 2xl:text-lg font-black uppercase tracking-widest ${step >= item.id ? "text-brand-primary" : "text-white/40"}`}>
                   {item.label}
                 </span>
               </div>
             ))}
             <div className="absolute top-6 left-0 w-full h-1 bg-white/10 -z-10 rounded-full" />
             <div 
-              className="absolute top-6 left-0 h-1 bg-[#F7931E] transition-all duration-700 -z-10 rounded-full shadow-[0_0_10px_#F7931E]" 
+              className="absolute top-6 left-0 h-1 bg-brand-primary transition-all duration-700 -z-10 rounded-full shadow-[0_0_10pxbrand-primary" 
               style={{ width: `${(step - 1) * 50}%` }}
             />
           </div>
@@ -300,29 +297,29 @@ export default function VendorRegistration() {
             <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1">First Name</label>
+                  <label className="text-xs 2xl:text-sm font-black uppercase tracking-widest text-accent-navy ml-1">First Name</label>
                   <input
                     type="text"
-                    placeholder="John"
+                    placeholder="Enter first name  "
                     value={formData.firstName}
                     onChange={(e) => setField("firstName", e.target.value)}
-                    className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E] transition-all"
+                    className="w-full p-3 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black transition-all"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1">Last Name</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-accent-navy ml-1">Last Name</label>
                   <input
                     type="text"
-                    placeholder="Doe"
+                    placeholder="Enter last name"
                     value={formData.lastName}
                     onChange={(e) => setField("lastName", e.target.value)}
-                    className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E] transition-all"
+                    className="w-full p-3 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-brand-white rounded-2xl outline-none font-bold text-brand-gray transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
+                <label className="text-xs 2xl:text-sm font-black uppercase tracking-widest text-accent-navy ml-1">
                     Business Email
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -332,39 +329,68 @@ export default function VendorRegistration() {
                     value={formData.email}
                     onChange={(e) => setField("email", e.target.value)}
                     disabled={isVerified}
-                    className="flex-1 p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E] disabled:opacity-60"
+                    className="w-full p-2 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-brand-white rounded-2xl outline-none font-bold text-brand-gray transition-all"
                   />
                   {!isVerified && (
-                    <button
-                      type="button"
-                      onClick={handleSendCode}
-                      disabled={loading.code}
-                      className="px-8 bg-[#002B5B] text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-[#1E1E1E] transition-all disabled:opacity-50 h-[60px]"
-                    >
-                      {loading.code ? "Sending..." : "Send Code"}
-                    </button>
+                  <button
+  type="button"
+  onClick={handleSendCode}
+  disabled={loading.code}
+  className="
+    /* Layout & Sizing */
+    flex items-center justify-center
+    min-w-[120px] sm:min-w-[140px]
+    h-[50px] sm:h-[60px]
+    px-6 sm:px-8
+    
+    /* Typography */
+    font-black uppercase tracking-widest
+    text-[9px] sm:text-[10px]
+    
+    /* Styling */
+    bg-accent-navy text-neutral-white 
+    rounded-2xl 
+    transition-all duration-200
+    
+    /* Interaction */
+    hover:bg-brand-black 
+    active:scale-[0.98]
+    disabled:opacity-50 
+    disabled:cursor-not-allowed
+    disabled:hover:bg-accent-navy
+  "
+>
+  {loading.code ? (
+    <div className="flex items-center gap-2">
+      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+      <span>Sending...</span>
+    </div>
+  ) : (
+    "Send Code"
+  )}
+</button>
                   )}
                 </div>
               </div>
 
               {verificationId && !isVerified && (
-                <div className="space-y-4 p-6 bg-[#FFE8CC] rounded-3xl border border-[#F7931E]/20 animate-in zoom-in-95 duration-300">
-                  <label className="text-xs font-black uppercase tracking-widest text-[#002B5B] ml-1 flex items-center gap-2">
+                <div className="space-y-4 p-6 bg-[#FFE8CC] rounded-3xl border border-brand-primary/20 animate-in zoom-in-95 duration-300">
+                  <label className="text-xs font-black uppercase tracking-widest text-accent-navy ml-1 flex items-center gap-2">
                     <ShieldCheck size={16} /> Verification Code
                   </label>
-                  <div className="flex gap-3">
+                  <div className="flex xxs:flex-col gap-3">
                     <input
                       type="text"
                       placeholder="XXXXXX"
                       value={formData.verificationCode}
                       onChange={(e) => setField("verificationCode", e.target.value)}
-                      className="flex-1 p-4 bg-white border-2 border-[#F7931E]/30 rounded-2xl outline-none font-black text-center tracking-[0.5em] text-xl"
+                      className="flex-1 p-4 bg-brand-white border-2 border-brand-primary/30 rounded-2xl outline-none font-black text-center tracking-[0.5em] text-xs"
                     />
                     <button
                       type="button"
                       onClick={handleVerifyCode}
                       disabled={loading.verify}
-                      className="px-8 bg-green-600 text-white rounded-2xl font-black uppercase tracking-wider hover:bg-green-700 transition-all h-[64px]"
+                      className="px-8 bg-green-600 text-brand-white rounded-2xl font-black uppercase tracking-wider hover:bg-green-700 transition-all h-[64px]"
                     >
                       {loading.verify ? "..." : "Verify"}
                     </button>
@@ -382,7 +408,7 @@ export default function VendorRegistration() {
                 type="button"
                 onClick={() => setStep(2)}
                 disabled={!isVerified}
-                className="w-full py-6 bg-[#F7931E] text-white rounded-3xl font-black text-xl flex items-center justify-center gap-3 shadow-xl shadow-[#F7931E]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale"
+                className="w-full py-3 bg-brand-primary text-white rounded-3xl font-black text-sm md:text-md lg:text-lg 2xl:text-xl flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale"
               >
                 Continue to Store Details <ChevronRight size={24} />
               </button>
@@ -403,38 +429,38 @@ export default function VendorRegistration() {
 
               <div className="space-y-3">
                 <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
-                  <Store size={16} className="text-[#F7931E]" /> Store Name
+                  <Store size={16} className="text-brand-primary" /> Store Name
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Marvel Mart Lagos"
                   value={formData.storeName}
                   onChange={(e) => setField("storeName", e.target.value)}
-                  className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E]"
+                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
-                    <Smartphone size={16} className="text-[#F7931E]" /> Business Phone
+                    <Smartphone size={16} className="text-brand-primary" /> Business Phone
                   </label>
                   <input
                     type="tel"
                     placeholder="080 0000 0000"
                     value={formData.storePhone}
                     onChange={(e) => setField("storePhone", e.target.value)}
-                    className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E]"
+                    className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                   />
                 </div>
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
-                    <MapPin size={16} className="text-[#F7931E]" /> Operating State
+                    <MapPin size={16} className="text-brand-primary" /> Operating State
                   </label>
                   <select
                     value={formData.state}
                     onChange={(e) => setField("state", e.target.value)}
-                    className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E] appearance-none cursor-pointer"
+                    className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black appearance-none cursor-pointer"
                   >
                     <option value="">Select State</option>
                     {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -449,7 +475,7 @@ export default function VendorRegistration() {
                   placeholder="Street address, Suite/Shop number..."
                   value={formData.storeAddress}
                   onChange={(e) => setField("storeAddress", e.target.value)}
-                  className="w-full p-4 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E]"
+                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                 />
               </div>
 
@@ -457,7 +483,7 @@ export default function VendorRegistration() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="flex-1 py-5 bg-[#4B4B4B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-[#1E1E1E] transition-all"
+                  className="flex-1 py-5 bg-[#4B4B4B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-brand-black transition-all"
                 >
                   Back
                 </button>
@@ -465,7 +491,7 @@ export default function VendorRegistration() {
                   type="button"
                   onClick={() => setStep(3)}
                   disabled={!formData.storeName || !formData.state}
-                  className="flex-[2] py-5 bg-[#F7931E] text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-xl shadow-[#F7931E]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="flex-[2] py-5 bg-brand-primary text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   Final Step <ChevronRight size={24} />
                 </button>
@@ -478,14 +504,14 @@ export default function VendorRegistration() {
             <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
               <div className="space-y-3">
                 <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
-                  <Lock size={16} className="text-[#F7931E]" /> {isReapplying || session?.user ? "Verify Security Password" : "Create Store Password"}
+                  <Lock size={16} className="text-brand-primary" /> {isReapplying || session?.user ? "Verify Security Password" : "Create Store Password"}
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setField("password", e.target.value)}
-                    className="w-full p-5 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E]"
+                    className="w-full p-5 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                     placeholder="••••••••"
                   />
                   <button
@@ -500,7 +526,7 @@ export default function VendorRegistration() {
                   <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
                     <div 
                       className={`h-full transition-all duration-500 rounded-full ${
-                        passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-[#F7931E]" : "bg-green-500"
+                        passwordScore < 40 ? "bg-red-500" : passwordScore < 70 ? "bg-brand-primary" : "bg-green-500"
                       }`}
                       style={{ width: `${passwordScore}%` }}
                     />
@@ -514,26 +540,26 @@ export default function VendorRegistration() {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => setField("confirmPassword", e.target.value)}
-                  className="w-full p-5 bg-[#F8F8F8] border-2 border-transparent focus:border-[#F7931E]/20 focus:bg-white rounded-2xl outline-none font-bold text-[#1E1E1E]"
+                  className="w-full p-5 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                   placeholder="••••••••"
                 />
               </div>
 
-              <div className="p-6 bg-[#F8F8F8] border-2 border-dashed border-gray-200 rounded-[2rem]">
+              <div className="p-6 bg-neutral-white border-2 border-dashed border-gray-200 rounded-[2rem]">
                 <label className="flex items-start gap-4 cursor-pointer group">
                   <div className="relative flex items-center mt-1">
                     <input
                       type="checkbox"
                       checked={formData.agree}
                       onChange={() => setField("agree", !formData.agree)}
-                      className="peer h-6 w-6 cursor-pointer appearance-none rounded-lg border-2 border-[#4B4B4B] checked:border-[#F7931E] checked:bg-[#F7931E] transition-all"
+                      className="peer h-6 w-6 cursor-pointer appearance-none rounded-lg border-2 border-[#4B4B4B] checked:border-brand-primary checked:bg-brand-primary transition-all"
                     />
                     <CheckCircle2 size={16} className="absolute left-1 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
                   </div>
-                  <span className="text-sm font-bold text-[#4B4B4B] leading-relaxed group-hover:text-[#1E1E1E]">
+                  <span className="text-sm font-bold text-[#4B4B4B] leading-relaxed group-hover:text-brand-black">
                     I certify that I am authorized to register this business. I agree to the 
-                    <span className="text-[#F7931E] underline mx-1">Terms</span> and 
-                    <span className="text-[#F7931E] underline mx-1">Privacy Policy</span>.
+                    <span className="text-brand-primary underline mx-1">Terms</span> and 
+                    <Link href="/privacy-policy"><span className="text-brand-primary underline mx-1"> Privacy Policy</span>.</Link>
                   </span>
                 </label>
               </div>
@@ -542,14 +568,14 @@ export default function VendorRegistration() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="flex-1 py-5 bg-[#4B4B4B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-[#1E1E1E]"
+                  className="flex-1 py-5 bg-[#4B4B4B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-brand-black"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={loading.submit || !formData.agree}
-                  className="flex-[2] py-6 bg-[#002B5B] text-white rounded-3xl font-black text-xl shadow-2xl shadow-[#002B5B]/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="flex-[2] py-6 bg-accent-navy text-white rounded-3xl font-black text-xl shadow-2xl shadow-accent-navy/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   {loading.submit ? "PROCESSING..." : isReapplying ? "RESUBMIT" : "LAUNCH MY STORE"}
                 </button>
