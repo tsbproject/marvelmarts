@@ -148,7 +148,7 @@ export default function MobileTopbar({
                       </div>
                       
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black italic tracking-tighter">
+                        <span className="text-md xl:text-xl 2xl:text-2xl font-black italic tracking-tighter">
                           ₦{todayRevenue.toLocaleString()}
                         </span>
                         <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>

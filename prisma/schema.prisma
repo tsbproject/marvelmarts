@@ -109,6 +109,12 @@ model VendorProfile {
 
   withdrawal       Withdrawal[]
 
+
+  transactions CreditTransaction[] 
+  
+
+
+
   
 
 
@@ -186,11 +192,35 @@ model VendorStore {
 }
 
 // PHASE 8: VENDOR BOOST SYSTEM
+// 1. Add this Enum to your schema
+enum BoostPlan {
+  FREE
+  BASIC
+  PRO
+  ULTRA
+}
+
+// 2. Update the VendorBoost model
 model VendorBoost {
-  id              String        @id @default(cuid())
+ id              String        @id @default(cuid())
   vendorProfileId String        @unique
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
   credits         Int           @default(0)
+  plan            BoostPlan     @default(FREE)
+  createdAt       DateTime      @default(now())
+  // Add @default(now()) temporarily so existing rows can be populated
+  updatedAt       DateTime      @default(now()) @updatedAt
+}
+
+model CreditTransaction {
+  id              String   @id @default(cuid())
+  reference       String   @unique // Paystack Reference
+  amount          Int      // Credits added
+  platform        String   // "PAYSTACK" or "FLUTTERWAVE"
+  status          String   @default("SUCCESS")
+  vendorProfileId String
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+  createdAt       DateTime @default(now())
 }
 
 // PHASE 11: VENDOR REPUTATION SCORE
@@ -372,12 +402,15 @@ model Product {
   rating            Float          @default(0)
   ratingCount       Int            @default(0)
   
-  isFeatured      Boolean        @default(false)
-  isFlashSale     Boolean  @default(false) // Add this
-  isNewArrival    Boolean  @default(false) // Add this
-  isTrending      Boolean  @default(false) // This is our tactical flag
-  
-  isPublished       Boolean        @default(true)
+  isFeatured      Boolean          @default(false)
+  isFlashSale     Boolean          @default(false) 
+  isNewArrival    Boolean          @default(false) 
+  isTrending      Boolean          @default(false) 
+  isPublished     Boolean          @default(true)
+
+  boostUntil      DateTime?
+
+
   
 
 

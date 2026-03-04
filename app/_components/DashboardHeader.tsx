@@ -1,8 +1,3 @@
-
-
-
-
-
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -64,7 +59,7 @@ export default function DashboardHeader({
               <ChevronRight size={10} className="text-neutral-gray opacity-50" />
               <span className="text-neutral-gray/60">Dashboard</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-accent-navy uppercase tracking-tight">
+            <h1 className="text-xl sm:text-xl xl:text-2xl 2xl:text-2xl font-black text-accent-navy uppercase tracking-tight">
               {title}
             </h1>
           </div>
@@ -78,7 +73,7 @@ export default function DashboardHeader({
                 href={secondaryButtonLink}
                 className="flex-1 md:flex-none inline-flex items-center justify-center gap-2
                   px-5 py-3 rounded-2xl
-                  bg-neutral-light text-accent-navy text-xs font-bold uppercase tracking-widest
+                  bg-neutral-light text-accent-navy text-[9px] xl:text-xl 2xl:text-2xl font-bold uppercase tracking-widest
                   hover:bg-brand-light transition-all active:scale-95 shadow-sm"
               >
                 {secondaryButtonIcon ?? <Plus size={16} />}
@@ -109,7 +104,7 @@ export default function DashboardHeader({
                 href={addButtonLink}
                 className="flex-1 md:flex-none inline-flex items-center justify-center gap-2
                   px-6 py-3 rounded-2xl
-                  bg-brand-primary text-white text-md sm:text-lg font-black uppercase tracking-widest
+                  bg-brand-primary text-white text-xs sm:text-xs 2xl:text-xs font-black uppercase tracking-widest
                   hover:bg-accent-navy hover:text-neutral-white transition-all active:scale-95 shadow-lg shadow-brand-primary/20"
               >
                 {addButtonIcon ?? <Plus size={18} />}

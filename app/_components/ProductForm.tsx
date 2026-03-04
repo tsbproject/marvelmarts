@@ -1,7 +1,3 @@
-
-
-
-
 // "use client";
 
 // import React, { useEffect, useId, useReducer, useState } from "react";
@@ -15,7 +11,9 @@
 //   ArrowPathIcon,
 //   StarIcon,
 //   CheckBadgeIcon,
-//   TruckIcon
+//   TruckIcon,
+//   PlusIcon,   
+//   TrashIcon   
 // } from "@heroicons/react/24/outline";
 // import { mapCategoriesToOptions } from "@/app/lib/MapCategoriesToOptions";
 // import { normalizeProductData } from "@/app/lib/normalizeProductData";
@@ -34,6 +32,7 @@
 //   vendorId?: string;
 // }
 
+// // Helper for UI
 // function formatNaira(value: number) {
 //   if (!value) return "";
 //   return new Intl.NumberFormat("en-NG", {
@@ -48,6 +47,16 @@
 //   return digits ? Number(digits) : 0;
 // }
 
+
+// interface VariantState {
+//   id?: string;
+//   name: string;
+//   sku: string;
+//   price: number;
+//   stock: number;
+//   attributes: Record<string, string>;
+// }
+
 // export type ProductFormState = {
 //   title: string;
 //   description: string;
@@ -60,16 +69,18 @@
 //   stock: number;
 //   brand: string;
 //   tags: string[];
-//   shippingMethod: string; // New
-//   weight: number; // New
+//   shippingMethod: string;
+//   weight: number;
 //   mainImage: File | string | null;
 //   extraImages: (File | string)[];
 //   metaTitle: string;
 //   metaDescription: string;
+//   variants: VariantState[]; // NEW
 // };
 
 // type FormAction =
 //   | { type: "SET_FIELD"; field: keyof ProductFormState; value: any }
+//   | { type: "SET_VARIANTS"; value: VariantState[] } // NEW
 //   | { type: "RESET" };
 
 // const initialFormState: ProductFormState = {
@@ -90,12 +101,15 @@
 //   extraImages: [],
 //   metaTitle: "",
 //   metaDescription: "",
+//   variants: [], 
 // };
 
 // function formReducer(state: ProductFormState, action: FormAction): ProductFormState {
 //   switch (action.type) {
 //     case "SET_FIELD":
 //       return { ...state, [action.field]: action.value };
+//     case "SET_VARIANTS": 
+//       return { ...state, variants: action.value };
 //     case "RESET":
 //       return initialFormState;
 //     default:
@@ -118,9 +132,9 @@
 //   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 //   const selectInstanceId = useId();
 
-//   // Handle Tag Input separately to allow comma typing without losing focus
 //   const [tagInput, setTagInput] = useState(form.tags.join(", "));
 
+//   // Image Preview Logic (No changes to your existing logic)
 //   useEffect(() => {
 //     if (form.mainImage instanceof File) {
 //       const url = URL.createObjectURL(form.mainImage);
@@ -140,6 +154,29 @@
 //     setPreviewExtras(urls);
 //   }, [form.extraImages]);
 
+//   // Variant Handlers (NEW)
+//   const addVariant = () => {
+//     const newVariant: VariantState = {
+//       name: "",
+//       sku: `${form.sku}-${form.variants.length + 1}`,
+//       price: form.price,
+//       stock: 0,
+//       attributes: {}
+//     };
+//     dispatch({ type: "SET_VARIANTS", value: [...form.variants, newVariant] });
+//   };
+
+//   const updateVariant = (index: number, field: keyof VariantState, value: any) => {
+//     const updated = [...form.variants];
+//     updated[index] = { ...updated[index], [field]: value };
+//     dispatch({ type: "SET_VARIANTS", value: updated });
+//   };
+
+//   const removeVariant = (index: number) => {
+//     dispatch({ type: "SET_VARIANTS", value: form.variants.filter((_, i) => i !== index) });
+//   };
+
+//   // Standard Handlers
 //   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     const file = e.target.files?.[0];
 //     if (file) dispatch({ type: "SET_FIELD", field: "mainImage", value: file });
@@ -192,6 +229,9 @@
 //     fd.append("shippingMethod", form.shippingMethod);
 //     fd.append("weight", String(form.weight));
 //     fd.append("deletedImageIds", JSON.stringify(deletedImageIds));
+    
+//     // NEW: Variants serialization
+//     fd.append("variants", JSON.stringify(form.variants));
 
 //     if (vendorId) fd.append("vendorId", vendorId);
 //     if (form.mainImage instanceof File) fd.append("mainImage", form.mainImage);
@@ -206,17 +246,17 @@
 //     }
 //   }
 
-//   // Categories Logic Fix
 //   const groupedOptions = mapCategoriesToOptions(categories);
 //   const flatOptions = groupedOptions.flatMap((g: any) => g.options || []);
 //   const selectedValue = flatOptions.filter((opt: any) => form.categories.includes(opt.value));
 
 //   return (
 //     <div className="max-w-5xl mx-auto">
-//       <h1 className="text-center text-3xl md:text-5xl font-bold mb-8 text-gray-800 uppercase tracking-tighter italic">
+//       <h1 className="text-center text-xl md:text-2xl font-bold mb-8 text-gray-800 uppercase tracking-tighter italic">
 //        {initialData ? "⚡ Update Product" : "📦 Add New Product"}
 //       </h1>
 
+//       {/* Vendor Header */}
 //       {vendorId && (
 //         <div className="mb-8 p-4 bg-accent-navy text-neutral-white rounded-3xl flex items-center justify-between border border-white/10 shadow-xl relative overflow-hidden">
 //           <div className="flex items-center gap-4 relative z-10">
@@ -254,7 +294,7 @@
 //           />
 //         </div>
 
-//         {/* Pricing & Visibility */}
+//         {/* Pricing */}
 //         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
 //           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-green-700">
 //             <CurrencyDollarIcon className="h-6 w-6" /> Pricing & Visibility
@@ -292,19 +332,88 @@
 //               </select>
 //             </div>
 //           </div>
+//         </div>
 
-//           <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-200">
-//             <div className="flex items-center gap-3">
-//               <div className="bg-orange-100 p-2 rounded-lg"><StarIcon className="h-6 w-6 text-orange-600" /></div>
-//               <div>
-//                 <h3 className="font-bold text-orange-900">Flash Sale / Featured</h3>
-//                 <p className="text-xs text-orange-700">Display this product in the homepage Flash Sales section.</p>
-//               </div>
+//         {/* NEW: Variant & Inventory Management Section */}
+//         <div className="p-6 border rounded-lg shadow-sm bg-gray-50 border-purple-200">
+//           <div className="flex items-center justify-between mb-6">
+//             <h2 className="text-xl font-semibold flex items-center gap-2 text-purple-700">
+//               <ArchiveBoxIcon className="h-6 w-6" /> Variants & Inventory Tracking
+//             </h2>
+//             <button 
+//               type="button" 
+//               onClick={addVariant}
+//               className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-purple-700 transition shadow-lg"
+//             >
+//               <PlusIcon className="h-4 w-4" /> Add Variant
+//             </button>
+//           </div>
+
+//           {form.variants.length > 0 ? (
+//             <div className="space-y-4">
+//               {form.variants.map((v, idx) => (
+//                 <div key={idx} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative animate-in fade-in slide-in-from-top-2">
+//                   <button 
+//                     type="button" 
+//                     onClick={() => removeVariant(idx)} 
+//                     className="absolute top-4 right-4 text-red-400 hover:text-red-600"
+//                   >
+//                     <TrashIcon className="h-5 w-5" />
+//                   </button>
+//                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+//                     <div>
+//                       <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Variant Name (e.g. Red / Large)</label>
+//                       <input 
+//                         type="text" 
+//                         value={v.name} 
+//                         onChange={(e) => updateVariant(idx, "name", e.target.value)} 
+//                         placeholder="Red / XL" 
+//                         className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+//                       />
+//                     </div>
+//                     <div>
+//                       <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Price (Optional)</label>
+//                       <input 
+//                         type="text" 
+//                         value={v.price ? formatNaira(v.price) : ""} 
+//                         onChange={(e) => updateVariant(idx, "price", parseNaira(e.target.value))} 
+//                         placeholder="Default price" 
+//                         className="w-full border rounded-lg px-3 py-2 text-sm"
+//                       />
+//                     </div>
+//                     <div>
+//                       <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Stock Level</label>
+//                       <input 
+//                         type="number" 
+//                         value={v.stock} 
+//                         onChange={(e) => updateVariant(idx, "stock", Number(e.target.value))} 
+//                         className="w-full border rounded-lg px-3 py-2 text-sm"
+//                       />
+//                     </div>
+//                     <div>
+//                       <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">SKU</label>
+//                       <input 
+//                         type="text" 
+//                         value={v.sku} 
+//                         onChange={(e) => updateVariant(idx, "sku", e.target.value)} 
+//                         className="w-full border rounded-lg px-3 py-2 text-sm"
+//                       />
+//                     </div>
+//                   </div>
+//                 </div>
+//               ))}
 //             </div>
-//             <label className="relative inline-flex items-center cursor-pointer">
-//               <input type="checkbox" checked={form.isFeatured} onChange={(e) => dispatch({ type: "SET_FIELD", field: "isFeatured", value: e.target.checked })} className="sr-only peer" />
-//               <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-//             </label>
+//           ) : (
+//             <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-2xl">
+//                <p className="text-gray-400 text-sm">No variants added. This product will be sold as a single item using the base stock below.</p>
+//             </div>
+//           )}
+          
+//           {/* Base SKU/Stock for Non-Variant products */}
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-200">
+//             <div><label className="block text-sm font-medium mb-1 text-gray-600">Base SKU</label><input type="text" value={form.sku} onChange={(e) => dispatch({ type: "SET_FIELD", field: "sku", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
+//             <div><label className="block text-sm font-medium mb-1 text-gray-600">Base Stock</label><input type="number" value={form.stock} onChange={(e) => dispatch({ type: "SET_FIELD", field: "stock", value: Number(e.target.value) })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
+//             <div><label className="block text-sm font-medium mb-1 text-gray-600">Brand Name</label><input type="text" value={form.brand} onChange={(e) => dispatch({ type: "SET_FIELD", field: "brand", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
 //           </div>
 //         </div>
 
@@ -398,18 +507,6 @@
 //           )}
 //         </div>
 
-//         {/* Inventory & Branding */}
-//         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-//           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-purple-700">
-//             <ArchiveBoxIcon className="h-6 w-6" /> Inventory & branding
-//           </h2>
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//             <div><label className="block text-sm font-medium mb-1">SKU</label><input type="text" value={form.sku} onChange={(e) => dispatch({ type: "SET_FIELD", field: "sku", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
-//             <div><label className="block text-sm font-medium mb-1">Stock</label><input type="number" value={form.stock} onChange={(e) => dispatch({ type: "SET_FIELD", field: "stock", value: Number(e.target.value) })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
-//             <div><label className="block text-sm font-medium mb-1">Brand</label><input type="text" value={form.brand} onChange={(e) => dispatch({ type: "SET_FIELD", field: "brand", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
-//           </div>
-//         </div>
-
 //         {/* Tags Section */}
 //         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
 //           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-teal-700">
@@ -450,6 +547,8 @@
 
 
 
+
+
 "use client";
 
 import React, { useEffect, useId, useReducer, useState } from "react";
@@ -461,15 +560,36 @@ import {
   PhotoIcon,
   ArchiveBoxIcon,
   ArrowPathIcon,
-  StarIcon,
   CheckBadgeIcon,
   TruckIcon,
-  PlusIcon,   // New
-  TrashIcon   // New
+  PlusIcon,   
+  TrashIcon 
 } from "@heroicons/react/24/outline";
 import { mapCategoriesToOptions } from "@/app/lib/MapCategoriesToOptions";
 import { normalizeProductData } from "@/app/lib/normalizeProductData";
 import RichTextEditor from "./RichTextEditor";
+import DOMPurify from "isomorphic-dompurify"; // Required for XSS prevention
+
+// --- SECURITY UTILITIES ---
+
+/**
+ * Strips HTML tags and suspicious characters from strings to prevent XSS
+ * and basic injection attempts.
+ */
+const sanitizeInput = (val: string) => {
+  if (typeof val !== "string") return val;
+  // Remove scripts, styles, and event handlers
+  return DOMPurify.sanitize(val, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).trim();
+};
+
+/**
+ * Rich Text Sanitizer (Allows only safe formatting)
+ */
+const sanitizeHTML = (html: string) => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3'],
+  });
+};
 
 interface Category {
   id: string;
@@ -484,7 +604,6 @@ interface ProductFormProps {
   vendorId?: string;
 }
 
-// Helper for UI
 function formatNaira(value: number) {
   if (!value) return "";
   return new Intl.NumberFormat("en-NG", {
@@ -496,10 +615,11 @@ function formatNaira(value: number) {
 
 function parseNaira(input: string) {
   const digits = input.replace(/[^\d]/g, "");
-  return digits ? Number(digits) : 0;
+  const num = digits ? Number(digits) : 0;
+  // Security: Prevent negative numbers or excessively large values (Integer Overflow protection)
+  return Math.min(Math.max(0, num), 999999999);
 }
 
-// NEW: Local interface for Variant State
 interface VariantState {
   id?: string;
   name: string;
@@ -527,12 +647,12 @@ export type ProductFormState = {
   extraImages: (File | string)[];
   metaTitle: string;
   metaDescription: string;
-  variants: VariantState[]; // NEW
+  variants: VariantState[];
 };
 
 type FormAction =
   | { type: "SET_FIELD"; field: keyof ProductFormState; value: any }
-  | { type: "SET_VARIANTS"; value: VariantState[] } // NEW
+  | { type: "SET_VARIANTS"; value: VariantState[] }
   | { type: "RESET" };
 
 const initialFormState: ProductFormState = {
@@ -553,14 +673,14 @@ const initialFormState: ProductFormState = {
   extraImages: [],
   metaTitle: "",
   metaDescription: "",
-  variants: [], // NEW
+  variants: [], 
 };
 
 function formReducer(state: ProductFormState, action: FormAction): ProductFormState {
   switch (action.type) {
     case "SET_FIELD":
       return { ...state, [action.field]: action.value };
-    case "SET_VARIANTS": // NEW
+    case "SET_VARIANTS": 
       return { ...state, variants: action.value };
     case "RESET":
       return initialFormState;
@@ -582,11 +702,11 @@ export default function ProductForm({
   const [previewMain, setPreviewMain] = useState<string | null>(null);
   const [previewExtras, setPreviewExtras] = useState<string[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [honeyPot, setHoneyPot] = useState(""); // Anti-bot Security
   const selectInstanceId = useId();
 
   const [tagInput, setTagInput] = useState(form.tags.join(", "));
 
-  // Image Preview Logic (No changes to your existing logic)
   useEffect(() => {
     if (form.mainImage instanceof File) {
       const url = URL.createObjectURL(form.mainImage);
@@ -606,11 +726,10 @@ export default function ProductForm({
     setPreviewExtras(urls);
   }, [form.extraImages]);
 
-  // Variant Handlers (NEW)
   const addVariant = () => {
     const newVariant: VariantState = {
       name: "",
-      sku: `${form.sku}-${form.variants.length + 1}`,
+      sku: `${sanitizeInput(form.sku)}-${form.variants.length + 1}`,
       price: form.price,
       stock: 0,
       attributes: {}
@@ -620,7 +739,8 @@ export default function ProductForm({
 
   const updateVariant = (index: number, field: keyof VariantState, value: any) => {
     const updated = [...form.variants];
-    updated[index] = { ...updated[index], [field]: value };
+    const sanitizedVal = field === "name" || field === "sku" ? sanitizeInput(value) : value;
+    updated[index] = { ...updated[index], [field]: sanitizedVal };
     dispatch({ type: "SET_VARIANTS", value: updated });
   };
 
@@ -628,21 +748,27 @@ export default function ProductForm({
     dispatch({ type: "SET_VARIANTS", value: form.variants.filter((_, i) => i !== index) });
   };
 
-  // Standard Handlers
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) dispatch({ type: "SET_FIELD", field: "mainImage", value: file });
+    if (file) {
+        // Security: Validate file size (Max 5MB) and type
+        if (file.size > 5 * 1024 * 1024) return setError("File too large (Max 5MB)");
+        if (!file.type.startsWith("image/")) return setError("Only image files are allowed");
+        dispatch({ type: "SET_FIELD", field: "mainImage", value: file });
+    }
   };
 
   const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+    const files = Array.from(e.target.files ?? []).filter(file => {
+        return file.size <= 5 * 1024 * 1024 && file.type.startsWith("image/");
+    });
     dispatch({ type: "SET_FIELD", field: "extraImages", value: [...form.extraImages, ...files] });
   };
 
   const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTagInput(val);
-    const tags = val.split(",").map(t => t.trim()).filter(t => t !== "");
+    const tags = val.split(",").map(t => sanitizeInput(t)).filter(t => t !== "");
     dispatch({ type: "SET_FIELD", field: "tags", value: tags });
   };
 
@@ -650,7 +776,7 @@ export default function ProductForm({
     const imgToRemove = form.extraImages[index];
     if (typeof imgToRemove === "string" && initialData?.images) {
       const imgObj = initialData.images.find((i: any) => i.url === imgToRemove);
-      if (imgObj) setDeletedImageIds(prev => [...prev, imgObj.id]);
+      if (imgObj) setDeletedImageIds(prev => [...prev, sanitizeInput(imgObj.id)]);
     }
     const newExtras = [...form.extraImages];
     newExtras.splice(index, 1);
@@ -659,40 +785,49 @@ export default function ProductForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (honeyPot) return; // Silent fail for bots
+    
     setError(null);
     setIsSubmitting(true);
 
-    if (!form.title.trim()) { setError("Title is required."); setIsSubmitting(false); return; }
+    // Validation & Final Sanitization
+    const cleanTitle = sanitizeInput(form.title);
+    if (!cleanTitle) { setError("Title is required."); setIsSubmitting(false); return; }
     if (form.categories.length < 1) { setError("Select a category."); setIsSubmitting(false); return; }
 
     const fd = new FormData();
-    fd.append("title", form.title);
-    fd.append("description", form.description);
+    fd.append("title", cleanTitle);
+    fd.append("description", sanitizeHTML(form.description));
     fd.append("price", String(form.price));
     fd.append("discountPrice", String(form.discountPrice));
-    fd.append("status", form.status);
+    fd.append("status", sanitizeInput(form.status));
     fd.append("isFeatured", String(form.isFeatured));
     fd.append("isPublished", String(form.status === "ACTIVE"));
-    fd.append("categoryId", form.categories[form.categories.length - 1]);
+    fd.append("categoryId", sanitizeInput(form.categories[form.categories.length - 1]));
     fd.append("stock", String(form.stock));
-    fd.append("brand", form.brand);
-    fd.append("tags", JSON.stringify(form.tags));
-    fd.append("sku", form.sku);
-    fd.append("shippingMethod", form.shippingMethod);
+    fd.append("brand", sanitizeInput(form.brand));
+    fd.append("tags", JSON.stringify(form.tags.map(t => sanitizeInput(t))));
+    fd.append("sku", sanitizeInput(form.sku));
+    fd.append("shippingMethod", sanitizeInput(form.shippingMethod));
     fd.append("weight", String(form.weight));
     fd.append("deletedImageIds", JSON.stringify(deletedImageIds));
     
-    // NEW: Variants serialization
-    fd.append("variants", JSON.stringify(form.variants));
+    // Serialize variants safely
+    const cleanVariants = form.variants.map(v => ({
+        ...v,
+        name: sanitizeInput(v.name),
+        sku: sanitizeInput(v.sku)
+    }));
+    fd.append("variants", JSON.stringify(cleanVariants));
 
-    if (vendorId) fd.append("vendorId", vendorId);
+    if (vendorId) fd.append("vendorId", sanitizeInput(vendorId));
     if (form.mainImage instanceof File) fd.append("mainImage", form.mainImage);
     form.extraImages.forEach(img => { if (img instanceof File) fd.append("extraImages", img); });
 
     try {
       await onSubmit(fd);
     } catch (err) {
-      setError("Error saving product.");
+      setError("Critical Error: Unable to verify and save asset.");
     } finally {
       setIsSubmitting(false);
     }
@@ -704,11 +839,19 @@ export default function ProductForm({
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-center text-3xl md:text-5xl font-bold mb-8 text-gray-800 uppercase tracking-tighter italic">
-       {initialData ? "⚡ Update Product" : "📦 Add New Product"}
+      {/* SECURITY: HoneyPot Field (Hidden from humans) */}
+      <input 
+        type="text" 
+        style={{ display: 'none' }} 
+        tabIndex={-1} 
+        autoComplete="off" 
+        onChange={(e) => setHoneyPot(e.target.value)} 
+      />
+
+      <h1 className="text-center text-md md:text-2xl font-bold mb-8 text-gray-800 uppercase tracking-tighter italic">
+        {initialData ? "⚡ Update Product" : "📦 Add New Product"}
       </h1>
 
-      {/* Vendor Header */}
       {vendorId && (
         <div className="mb-8 p-4 bg-accent-navy text-neutral-white rounded-3xl flex items-center justify-between border border-white/10 shadow-xl relative overflow-hidden">
           <div className="flex items-center gap-4 relative z-10">
@@ -728,13 +871,14 @@ export default function ProductForm({
 
         {/* Basic Info */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
             <TagIcon className="h-6 w-6" /> Basic info
           </h2>
           <label className="block text-sm font-medium mb-1">Product title</label>
           <input
             type="text"
             value={form.title}
+            maxLength={100} // Security: Max length limit
             onChange={(e) => dispatch({ type: "SET_FIELD", field: "title", value: e.target.value })}
             className="border rounded px-3 py-2 w-full mb-4 focus:ring-2 focus:ring-blue-500"
             required
@@ -748,7 +892,7 @@ export default function ProductForm({
 
         {/* Pricing */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-green-700">
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-4 flex items-center gap-2 text-green-700">
             <CurrencyDollarIcon className="h-6 w-6" /> Pricing & Visibility
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -786,16 +930,16 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* NEW: Variant & Inventory Management Section */}
+        {/* Variant Section */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50 border-purple-200">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2 text-purple-700">
+            <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold flex items-center gap-2 text-purple-700">
               <ArchiveBoxIcon className="h-6 w-6" /> Variants & Inventory Tracking
             </h2>
             <button 
               type="button" 
               onClick={addVariant}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-purple-700 transition shadow-lg"
+              className="flex items-center gap-1 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs xl:text-xl 2xl:text-2xl font-bold hover:bg-purple-700 transition shadow-lg"
             >
               <PlusIcon className="h-4 w-4" /> Add Variant
             </button>
@@ -814,12 +958,11 @@ export default function ProductForm({
                   </button>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Variant Name (e.g. Red / Large)</label>
+                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Variant Name</label>
                       <input 
                         type="text" 
                         value={v.name} 
                         onChange={(e) => updateVariant(idx, "name", e.target.value)} 
-                        placeholder="Red / XL" 
                         className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
                       />
                     </div>
@@ -829,16 +972,15 @@ export default function ProductForm({
                         type="text" 
                         value={v.price ? formatNaira(v.price) : ""} 
                         onChange={(e) => updateVariant(idx, "price", parseNaira(e.target.value))} 
-                        placeholder="Default price" 
                         className="w-full border rounded-lg px-3 py-2 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Stock Level</label>
+                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-1">Stock</label>
                       <input 
                         type="number" 
                         value={v.stock} 
-                        onChange={(e) => updateVariant(idx, "stock", Number(e.target.value))} 
+                        onChange={(e) => updateVariant(idx, "stock", Math.max(0, Number(e.target.value)))} 
                         className="w-full border rounded-lg px-3 py-2 text-sm"
                       />
                     </div>
@@ -857,14 +999,13 @@ export default function ProductForm({
             </div>
           ) : (
             <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-2xl">
-               <p className="text-gray-400 text-sm">No variants added. This product will be sold as a single item using the base stock below.</p>
+                <p className="text-gray-400 text-sm">No variants added. Sold as single item.</p>
             </div>
           )}
           
-          {/* Base SKU/Stock for Non-Variant products */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-200">
             <div><label className="block text-sm font-medium mb-1 text-gray-600">Base SKU</label><input type="text" value={form.sku} onChange={(e) => dispatch({ type: "SET_FIELD", field: "sku", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
-            <div><label className="block text-sm font-medium mb-1 text-gray-600">Base Stock</label><input type="number" value={form.stock} onChange={(e) => dispatch({ type: "SET_FIELD", field: "stock", value: Number(e.target.value) })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
+            <div><label className="block text-sm font-medium mb-1 text-gray-600">Base Stock</label><input type="number" value={form.stock} onChange={(e) => dispatch({ type: "SET_FIELD", field: "stock", value: Math.max(0, Number(e.target.value)) })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
             <div><label className="block text-sm font-medium mb-1 text-gray-600">Brand Name</label><input type="text" value={form.brand} onChange={(e) => dispatch({ type: "SET_FIELD", field: "brand", value: e.target.value })} className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-purple-500" /></div>
           </div>
         </div>
@@ -894,7 +1035,7 @@ export default function ProductForm({
                 type="number"
                 step="0.1"
                 value={form.weight}
-                onChange={(e) => dispatch({ type: "SET_FIELD", field: "weight", value: Number(e.target.value) })}
+                onChange={(e) => dispatch({ type: "SET_FIELD", field: "weight", value: Math.max(0, Number(e.target.value)) })}
                 className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -903,7 +1044,7 @@ export default function ProductForm({
 
         {/* Categories Section */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-orange-700">
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-2 flex items-center gap-2 text-orange-700">
             <Squares2X2Icon className="h-6 w-6" /> Categories
           </h2>
           <Select
@@ -915,7 +1056,7 @@ export default function ProductForm({
             onChange={(selected) => dispatch({
               type: "SET_FIELD",
               field: "categories",
-              value: (selected ?? []).map((s: any) => s.value),
+              value: (selected ?? []).map((s: any) => sanitizeInput(s.value)),
             })}
             placeholder="Search categories..."
             className="w-full"
@@ -924,7 +1065,7 @@ export default function ProductForm({
 
         {/* Images Section */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pink-700">
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-4 flex items-center gap-2 text-pink-700">
             <PhotoIcon className="h-6 w-6" /> Product images
           </h2>
           <label className="block text-sm font-medium mb-1">Main image</label>
@@ -961,10 +1102,10 @@ export default function ProductForm({
 
         {/* Tags Section */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-teal-700">
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-4 flex items-center gap-2 text-teal-700">
             <TagIcon className="h-6 w-6" /> Tags
           </h2>
-          <label className="block text-sm font-medium mb-1">Tags (comma separated)</label>
+          <label className="block text-sm xl:text-xl 2xl:text-2xl font-medium mb-1">Tags (comma separated)</label>
           <input
             type="text"
             placeholder="e.g. sneakers, running, sports"
@@ -976,16 +1117,16 @@ export default function ProductForm({
 
         {/* SEO Section */}
         <div className="p-6 border rounded-lg shadow-sm bg-gray-50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-indigo-700">SEO Settings</h2>
+          <h2 className="text-sm xl:text-xl 2xl:text-2xl font-semibold mb-4 flex items-center gap-2 text-indigo-700">SEO Settings</h2>
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium mb-1">Meta Title</label><input type="text" value={form.metaTitle} onChange={(e) => dispatch({ type: "SET_FIELD", field: "metaTitle", value: e.target.value })} className="border rounded px-3 py-2 w-full" /></div>
-            <div><label className="block text-sm font-medium mb-1">Meta Description</label><textarea value={form.metaDescription} onChange={(e) => dispatch({ type: "SET_FIELD", field: "metaDescription", value: e.target.value })} className="border rounded px-3 py-2 w-full" rows={3} /></div>
+            <div><label className="block text-sm font-medium mb-1">Meta Title</label><input type="text" value={form.metaTitle} onChange={(e) => dispatch({ type: "SET_FIELD", field: "metaTitle", value: sanitizeInput(e.target.value) })} className="border rounded px-3 py-2 w-full" /></div>
+            <div><label className="block text-sm font-medium mb-1">Meta Description</label><textarea value={form.metaDescription} onChange={(e) => dispatch({ type: "SET_FIELD", field: "metaDescription", value: sanitizeInput(e.target.value) })} className="border rounded px-3 py-2 w-full" rows={3} /></div>
           </div>
         </div>
 
         {/* Submit Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <button type="submit" disabled={isSubmitting} className={`flex-1 ${initialData ? "bg-indigo-600" : "bg-blue-600"} text-white py-4 px-6 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold transition shadow-md disabled:opacity-50`}>
+          <button type="submit" disabled={isSubmitting} className={`flex-1 ${initialData ? "bg-indigo-600" : "bg-blue-600"} text-white py-4 px-6 rounded-lg flex items-center justify-center gap-2 text-sm xl:text-xl 2xl:text-2xl font-semibold transition shadow-md disabled:opacity-50`}>
             {isSubmitting ? <ArrowPathIcon className="h-6 w-6 animate-spin" /> : (initialData ? <ArrowPathIcon className="h-6 w-6" /> : <TagIcon className="h-6 w-6" />)}
             {initialData ? "Update product" : "Save product"}
           </button>

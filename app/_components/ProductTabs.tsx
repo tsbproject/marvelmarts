@@ -1,3 +1,6 @@
+
+
+
 // "use client";
 
 // import { useState } from "react";
@@ -13,7 +16,11 @@
 
 // export default function ProductTabs({ product }: ProductTabsProps) {
 //   const [activeTab, setActiveTab] = useState("DESCRIPTION");
+//   // Use the approved reviews passed from the parent
 //   const reviews = product?.reviews || [];
+  
+//   // Calculate average for the display
+//   const averageRating = product.rating > 0 ? product.rating.toFixed(1) : "5.0";
 
 //   const tabs = [
 //     { id: "DESCRIPTION", label: "DESCRIPTION" },
@@ -53,36 +60,48 @@
 //           <div className="space-y-12">
 //             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center border-b border-neutral-light pb-10">
 //               <div className="text-center md:text-left">
-//                 <h4 className="text-5xl font-black italic text-accent-navy mb-2">4.9</h4>
+//                 <h4 className="text-5xl font-black italic text-accent-navy mb-2">{averageRating}</h4>
 //                 <div className="flex justify-center md:justify-start gap-1 mb-2">
 //                   {[...Array(5)].map((_, i) => (
-//                     <Star key={i} size={16} className="fill-brand-primary text-brand-primary" />
+//                     <Star key={i} size={16} className={i < Math.round(product.rating || 5) ? "fill-brand-primary text-brand-primary" : "text-neutral-gray"} />
 //                   ))}
 //                 </div>
-//                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">Based on {reviews.length || 2450} Missions</p>
+//                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">Based on {reviews.length} Verified Missions</p>
 //               </div>
 //               <div className="md:col-span-2 space-y-2">
-//                 {[5, 4, 3, 2, 1].map((rating) => (
-//                   <div key={rating} className="flex items-center gap-4">
-//                     <span className="text-[10px] font-black w-4">{rating}</span>
-//                     <div className="flex-1 h-1.5 bg-neutral-white rounded-full overflow-hidden">
-//                       <div className="h-full bg-brand-primary" style={{ width: rating === 5 ? '92%' : '4%' }} />
+//                 {[5, 4, 3, 2, 1].map((starLevel) => {
+//                   // Logic to show percentage of each star level
+//                   const count = reviews.filter((r: any) => Math.round(r.rating) === starLevel).length;
+//                   const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                  
+//                   return (
+//                     <div key={starLevel} className="flex items-center gap-4">
+//                       <span className="text-[10px] font-black w-4">{starLevel}</span>
+//                       <div className="flex-1 h-1.5 bg-neutral-white rounded-full overflow-hidden">
+//                         <div 
+//                           className="h-full bg-brand-primary transition-all duration-500" 
+//                           style={{ width: `${percentage || (starLevel === 5 && reviews.length === 0 ? 100 : 0)}%` }} 
+//                         />
+//                       </div>
 //                     </div>
-//                   </div>
-//                 ))}
+//                   );
+//                 })}
 //               </div>
 //             </div>
-//             {/* Individual Reviews */}
+            
 //             <div className="space-y-6">
 //               {reviews.length > 0 ? (
-//                 reviews.map((rev: any, idx: number) => (
-//                   <div key={idx} className="bg-neutral-white/50 p-6 rounded-3xl border border-neutral-light/50">
+//                 reviews.map((rev: any) => (
+//                   <div key={rev.id} className="bg-neutral-white/50 p-6 rounded-3xl border border-neutral-light/50">
 //                     <div className="flex justify-between mb-4">
 //                       <div className="flex items-center gap-3">
 //                         <div className="w-8 h-8 bg-accent-navy rounded-full flex items-center justify-center text-brand-primary text-[10px] font-black">
 //                           <User size={14} />
 //                         </div>
-//                         <h5 className="text-[10px] font-black uppercase text-accent-navy">{rev.user?.name || "Anonymous"}</h5>
+//                         <div>
+//                           <h5 className="text-[10px] font-black uppercase text-accent-navy">{rev.user?.name || "Anonymous Looter"}</h5>
+//                           <p className="text-[8px] text-neutral-gray font-bold">{new Date(rev.createdAt).toLocaleDateString()}</p>
+//                         </div>
 //                       </div>
 //                       <div className="flex gap-1">
 //                         {[...Array(5)].map((_, i) => (
@@ -90,7 +109,9 @@
 //                         ))}
 //                       </div>
 //                     </div>
-//                     <p className="text-[10px] font-bold text-neutral-gray uppercase leading-relaxed">{rev.comment}</p>
+//                     <p className="text-[10px] font-bold text-neutral-gray uppercase leading-relaxed">
+//                       {rev.comment || "Tactical objective met. No verbal report filed."}
+//                     </p>
 //                   </div>
 //                 ))
 //               ) : (
@@ -187,13 +208,14 @@
 
 
 
+
 "use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Star, MessageSquare, ShieldCheck, User, 
-  Send, Truck, Clock, Globe, ShieldAlert 
+  Send, Truck, Clock, Globe, ShieldAlert, Store 
 } from "lucide-react";
 
 interface ProductTabsProps {
@@ -202,15 +224,16 @@ interface ProductTabsProps {
 
 export default function ProductTabs({ product }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState("DESCRIPTION");
-  // Use the approved reviews passed from the parent
-  const reviews = product?.reviews || [];
   
-  // Calculate average for the display
+  // Dynamic Vendor Discovery
+  const vendorName = product?.vendorProfile?.store?.name || product?.vendorProfile?.storeName || "Marvel Marts Partner";
+  
+  const reviews = product?.reviews || [];
   const averageRating = product.rating > 0 ? product.rating.toFixed(1) : "5.0";
 
   const tabs = [
     { id: "DESCRIPTION", label: "DESCRIPTION" },
-    { id: "BRAND", label: "BRAND" },
+    { id: "BRAND", label: "SELLER' INFO" }, 
     { id: "REVIEWS", label: `REVIEWS (${reviews.length})` },
     { id: "SHIPPING", label: "SHIPPING & DELIVERY" },
     { id: "POLICIES", label: "STORE POLICIES" },
@@ -234,9 +257,25 @@ export default function ProductTabs({ product }: ProductTabsProps) {
 
       case "BRAND":
         return (
-          <div className="flex items-center gap-4">
-            <p className="text-neutral-gray font-black uppercase text-[11px] tracking-widest">
-              Vendor: <span className="text-brand-primary">{product.brand?.name || "Official Marvel Marts Partner"}</span>
+          <div className="space-y-6">
+            <div className="flex items-center gap-6 p-6 bg-white rounded-3xl border border-neutral-light/50 shadow-sm">
+               <div className="w-16 h-16 bg-accent-navy rounded-2xl flex items-center justify-center text-brand-primary">
+                  <Store size={32} />
+               </div>
+               <div>
+                  <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-1">Official Merchant</p>
+                  <h3 className="text-xl font-black text-accent-navy uppercase italic tracking-tighter">
+                    {vendorName}<span className="text-brand-primary">.</span>
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <ShieldCheck size={12} className="text-green-500" />
+                    <span className="text-[8px] font-black uppercase text-green-600 tracking-tighter">Verified Marvel Vendor</span>
+                  </div>
+               </div>
+            </div>
+            <p className="text-[10px] font-bold text-neutral-gray uppercase leading-relaxed max-w-2xl">
+              This asset is deployed and fulfilled directly by <span className="text-accent-navy">{vendorName}</span>. 
+              All products from this merchant have passed MarvelMarts high-frequency quality resonance checks.
             </p>
           </div>
         );
@@ -256,10 +295,8 @@ export default function ProductTabs({ product }: ProductTabsProps) {
               </div>
               <div className="md:col-span-2 space-y-2">
                 {[5, 4, 3, 2, 1].map((starLevel) => {
-                  // Logic to show percentage of each star level
                   const count = reviews.filter((r: any) => Math.round(r.rating) === starLevel).length;
                   const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-                  
                   return (
                     <div key={starLevel} className="flex items-center gap-4">
                       <span className="text-[10px] font-black w-4">{starLevel}</span>

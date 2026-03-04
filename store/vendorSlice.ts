@@ -29,6 +29,7 @@ interface VendorProfile {
 
 
 interface VendorState {
+  credits: number;
   profile: any | null;
   onboarding: Onboarding;
   balance: number;
@@ -76,6 +77,7 @@ export interface Payout {
   vendorName?: string;  
 }
 const initialState: VendorState = {
+  credits: 0,
   profile: null,
   onboarding: {
     profileDone: false,
@@ -312,6 +314,17 @@ const vendorSlice = createSlice({
   initialState,
   reducers: {
 
+
+    updateCredits: (state, action: PayloadAction<number>) => {
+      state.credits = action.payload;
+    },
+
+    setVendorProfile: (state, action: PayloadAction<any>) => {
+      state.profile = action.payload;
+      // Initialize credits from the profile object on load
+      state.credits = action.payload?.boost?.credits || 0;
+    },
+
     processAdminPayout: (state, action: PayloadAction<{ 
     requestId: string; 
     status: "APPROVED" | "REJECTED"; 
@@ -514,6 +527,8 @@ const vendorSlice = createSlice({
 
 export const { 
   setVendorData, 
+  setVendorProfile, 
+  updateCredits,
   resetVendor, 
   setAllVendors, 
   updateVendorStatusInStore, 

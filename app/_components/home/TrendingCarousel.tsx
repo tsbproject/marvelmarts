@@ -1,3 +1,9 @@
+
+
+
+
+
+
 // "use client";
 
 // import React from "react";
@@ -56,17 +62,22 @@
 //             whileHover={{ animationPlayState: "paused" }} 
 //           >
 //             {trendingProducts.map((product: SerializedProduct) => {
-//               // FIX: Handle empty string or null imageUrl to prevent runtime console errors
-//               const validSrc = product.imageUrl && product.imageUrl.trim() !== "" 
+//               // --- IMPROVED IMAGE LOGIC ---
+//               // Check primary imageUrl, then check the images array from Prisma include
+//               const validSrc = (product.imageUrl && product.imageUrl.trim() !== "") 
 //                 ? product.imageUrl 
-//                 : "/placeholder-product.jpg"; // Ensure this file exists in your /public folder
+//                 : (product.images && product.images[0]?.url) 
+//                 ? product.images[0].url 
+//                 : "/logo.png"; 
+
+//               const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
 
 //               return (
 //                 <div 
 //                   key={product.id} 
 //                   className="min-w-[280px] md:min-w-[320px] group/card"
 //                 >
-//                   <Link href={`/product/${product.slug}`}>
+//                   <Link href={`/products/${slug}`}>
 //                     <div className="relative aspect-[4/5] bg-gray-50 rounded-3xl overflow-hidden mb-4 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-blue-100">
 //                       <Image 
 //                         src={validSrc} 
@@ -108,14 +119,12 @@
 
 
 
-
-
 "use client";
 
 import React from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Flame, ChevronRight, ShoppingCart } from "lucide-react";
+import { Flame, ChevronRight, ShoppingCart, Rocket } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { SerializedProduct } from "@/types/product";
@@ -126,7 +135,17 @@ interface TrendingCarouselProps {
 
 export default function TrendingCarousel({ initialData }: TrendingCarouselProps) {
   const reduxItems = useSelector((state: any) => state.trending?.items);
-  const trendingProducts = reduxItems && reduxItems.length > 0 ? reduxItems : initialData;
+  const rawProducts = reduxItems && reduxItems.length > 0 ? reduxItems : initialData;
+
+  // --- BOOST LOGIC SORTING ---
+  // Ensure products with active boostUntil dates appear first if the server hasn't sorted them
+  const trendingProducts = [...rawProducts].sort((a, b) => {
+    const aIsBoosted = a.boostUntil && new Date(a.boostUntil) > new Date();
+    const bIsBoosted = b.boostUntil && new Date(b.boostUntil) > new Date();
+    if (aIsBoosted && !bIsBoosted) return -1;
+    if (!aIsBoosted && bIsBoosted) return 1;
+    return 0;
+  });
 
   if (!trendingProducts || trendingProducts.length === 0) return null;
 
@@ -152,7 +171,7 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
           </Link>
         </div>
 
-        {/* Carousel Rail with Auto-Loop Logic */}
+        {/* Carousel Rail */}
         <div className="relative group">
           <motion.div 
             className="flex gap-6 pb-8 cursor-grab active:cursor-grabbing"
@@ -168,8 +187,7 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
             whileHover={{ animationPlayState: "paused" }} 
           >
             {trendingProducts.map((product: SerializedProduct) => {
-              // --- IMPROVED IMAGE LOGIC ---
-              // Check primary imageUrl, then check the images array from Prisma include
+              // --- IMAGE LOGIC ---
               const validSrc = (product.imageUrl && product.imageUrl.trim() !== "") 
                 ? product.imageUrl 
                 : (product.images && product.images[0]?.url) 
@@ -178,6 +196,9 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
 
               const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
 
+              // --- BOOST ACTIVE CHECK ---
+              const isBoosted = product.boostUntil && new Date(product.boostUntil) > new Date();
+
               return (
                 <div 
                   key={product.id} 
@@ -185,6 +206,15 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
                 >
                   <Link href={`/products/${slug}`}>
                     <div className="relative aspect-[4/5] bg-gray-50 rounded-3xl overflow-hidden mb-4 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-blue-100">
+                      
+                      {/* BOOST BADGE */}
+                      {isBoosted && (
+                        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-[var(--accent-navy)] text-[var(--brand-primary)] px-3 py-1.5 rounded-full shadow-xl">
+                          <Rocket size={12} className="animate-bounce" />
+                          <span className="text-[8px] font-black uppercase tracking-widest italic">Promoted</span>
+                        </div>
+                      )}
+
                       <Image 
                         src={validSrc} 
                         alt={product.title}
@@ -202,10 +232,13 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
                   </Link>
 
                   <div className="space-y-1 px-2">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                      {product.categoryName || "Tactical"}
-                    </p>
-                    <h3 className="font-black text-lg uppercase tracking-tight text-gray-900 leading-tight">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        {product.categoryName || "Tactical"}
+                        </p>
+                        {isBoosted && <span className="text-[8px] font-black text-orange-500 uppercase italic">Featured</span>}
+                    </div>
+                    <h3 className="font-black text-lg uppercase tracking-tight text-gray-900 leading-tight group-hover/card:text-blue-600 transition-colors">
                       {product.title}
                     </h3>
                     <p className="text-blue-600 font-black text-xl">
