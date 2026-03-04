@@ -9,6 +9,13 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { updateCredits } from "@/store/vendorSlice";
 
+interface PaystackWrapperProps {
+  config: any;
+  onSuccess: (reference: any) => void;
+  onClose: () => void;
+  isLoading: boolean;
+}
+
 interface CreditTopUpProps {
   vendorProfileId: string;
   userEmail: string;
