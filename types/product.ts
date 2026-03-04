@@ -56,6 +56,7 @@ export interface SerializedProduct {
   variantId?: string;
   isTrending?: boolean;
   isPublished: boolean;
+  boostUntil?: string | null; 
   
   // Vendor-related data
   vendorProfileId: string;
