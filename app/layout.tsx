@@ -111,7 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         suppressHydrationWarning
       >
         <ClientLayout 
-          settings={settings as any} 
+          // settings={settings as any} 
           initialCategories={categories}
         >
           {children}
