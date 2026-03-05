@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import AdminVendorManager from "./AdminVendorManager"; 
+import AdminVendorManager from "./_components/AdminVendorManager"; 
 import { ShieldCheck } from "lucide-react";
 
 export default function VendorsPage() {
