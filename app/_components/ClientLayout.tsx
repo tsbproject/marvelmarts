@@ -235,23 +235,23 @@ function ReduxStateSync() {
    MAIN CLIENT LAYOUT COMPONENT
 ─────────────────────────────────────────────────────────────────── */
 
-interface SiteSettings {
-  footerDesc: string;
-  supportPhone: string;
-  supportEmail: string;
-  // You can add more fields later (accentNavy, layoutScale, etc.)
-}
+// interface SiteSettings {
+//   footerDesc: string;
+//   supportPhone: string;
+//   supportEmail: string;
+//   // You can add more fields later (accentNavy, layoutScale, etc.)
+// }
 
 interface ClientLayoutProps {
   children: React.ReactNode;
-  settings: SiteSettings;
+  // settings: SiteSettings;
   initialCategories: CategoryWithChildren[];
   session?: any;
 }
 
 export default function ClientLayout({
   children,
-  settings,
+  // settings,
   initialCategories,
   session,
 }: ClientLayoutProps) {
@@ -293,7 +293,7 @@ export default function ClientLayout({
                 {/* <SupportDrawer /> */}
 
                 {/* Footer */}
-                <Footer settings={settings} />
+                {/* <Footer settings={settings} /> */}
               {/* </GlobalSettingsProvider> */}
             </LoadingOverlayProvider>
           </NotificationProvider>
