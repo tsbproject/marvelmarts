@@ -30,7 +30,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           sm:left-20 sm:top-7
           md:left-28 md:top-3
           lg:left-20 lg:top-2
-          xl:left-20 xl:top-4
+          xl:left-8 xl:top-10
           2xl:left-8 2xl:top-8
         "
       >
@@ -40,6 +40,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       {/* Search Bar - Desktop */}
       <div className="absolute 
                       top-15 left-30 hidden lg:block
+                      xl:top-25   xl:left-57
                       2xl:top-20  2xl:left-50
                       "
                                       
@@ -98,11 +99,12 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
       </div>
 
       {/* RIGHT CORNER AREA FOR ALL ICONS */}
-      <div className="absolute right-8 -top-1 2xl:-top-15 2xl:right-11 flex items-center gap-6 z-20 invisible lg:visible">
+      <div className="absolute right-8 -top-1 2xl:-top-15 2xl:right-11 xl:-top-11
+      flex items-center gap-6 z-20 invisible lg:visible">
         <NavigationRight />
       </div>
 
-      <div className="absolute right-60 top-24 2xl:top-13 flex items-center invisible lg:visible">
+      <div className="absolute right-60 top-24 2xl:top-13 xl:top-16 flex items-center invisible lg:visible">
         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
         <button
           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
@@ -112,12 +114,21 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
           <span className="text-white text-base 2xl:text-[13px] mt-1">Account</span>
         </button>
       </div>
+     
+     
       <Link href="/auth/register/vendor-registration">
-  <button className="absolute 2xl:top-22 2xl:left-[65rem] hidden lg:flex items-center gap-2 
+  <button className="absolute 
+                    2xl:top-22 2xl:left-[65rem]    hidden lg:flex items-center gap-2 
     bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm
     hover:shadow-md hover:border-brand-primary hover:bg-brand-primary hover:text-white
     text-accent-navy text-[10px] font-black uppercase tracking-widest 
-    rounded-full py-2.5 px-6 transition-all duration-300 active:scale-95 group">
+    rounded-full py-2.5 px-6 transition-all duration-300 active:scale-95 group
+
+     xl:top-35 xl:left-[50rem]
+    
+    "
+    
+    >
     
     <Store size={14} className="text-brand-primary group-hover:text-white transition-colors" />
     <span>Register Merchant Account</span>

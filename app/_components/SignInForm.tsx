@@ -220,7 +220,7 @@ export default function SignInPage() {
 
         <div className="relative z-10">
           <h2 className="text-5xl font-black text-white leading-[1.1] mb-8">
-            One Portal. <br />
+            One MarketPlace. <br />
             <span className="text-brand-primary">Infinite Possibilities.</span>
           </h2>
           

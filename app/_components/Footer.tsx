@@ -96,7 +96,7 @@ export default function Footer({ settings }: FooterProps) {
             </div>
             
             <div className="w-full xl:w-auto">
-              <form onSubmit={handleSubscribe} className="flex flex-col md:flex-row gap-4">
+              <form onSubmit={handleSubscribe} className="flex flex-col xl:flex-col 2xl:flex-col md:flex-row gap-4">
                 <div style={{ display: 'none' }} aria-hidden="true">
                   <input type="text" name="marvel_marts_bot_check" tabIndex={-1} autoComplete="off" />
                 </div>

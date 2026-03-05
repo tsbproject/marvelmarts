@@ -12,19 +12,32 @@ import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import MobileTopbar from "@/app/_components/MobileTopbar"; // Ensure this matches your file path
 import { PendingApprovalView } from "@/app/_components/PendingApprovalView"; 
 import { RejectedView } from "@/app/_components/RejectedView";
-import { ShieldAlert, Mail, RefreshCw, LayoutDashboard, User, Package, Wallet, Truck, MessageSquare, Settings, ChartArea } from "lucide-react";
+import { ShieldAlert, 
+  Mail, RefreshCw,
+   LayoutDashboard, 
+   User, 
+   Package,
+    Wallet, 
+    Truck,
+     MessageSquare, 
+     Settings,
+      ChartArea,
+      CreditCard
+     } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- Dashboard Menu Configuration ---
 const DASHBOARD_CONFIG = {
   CUSTOMER: {
     "Personal": [
-      { label: "My Profile", href: "/account/customer/profile", icon: <User size={16} /> },
+      { label: "My Profile", href: "/account/customer", icon: <User size={16} /> },
       { label: "My Orders", href: "/account/customer/orders", icon: <Package size={16} /> },
     ],
     "Support": [
       { label: "Messages", href: "/account/customer/messages", icon: <MessageSquare size={16} /> },
-      { label: "Settings", href: "/account/customer/settings", icon: <Settings size={16} /> },
+      { label: "Settings", href: "/account/customer/Profile-settings", icon: <Settings size={16} /> },
+      { label: "Account Details", href: "/account/customer/Profile-settings", icon: <CreditCard size={16} /> },
+      { label: "Payment Methos", href: "/account/customer/Profile-settings", icon: <CreditCard size={16} /> }
     ]
   },
   VENDOR: {
