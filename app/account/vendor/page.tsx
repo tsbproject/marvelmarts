@@ -697,7 +697,7 @@ export default async function VendorDashboardPage() {
                   <OnboardingStep 
                     label="Store Branding" 
                     done={onboarding?.storeDone ?? false} 
-                    href="/account/vendor/settings" 
+                    href="/account/vendor/store-settings" 
                     dark
                   />
                   <OnboardingStep 
