@@ -557,9 +557,9 @@ export default async function VendorDashboardPage() {
                 <Link 
                     href={`/store/${vendorData.store?.slug}`} 
                     target="_blank"
-                    className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-[8px] uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm group"
+                    className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm group"
                 >
-                    <ExternalLink size={14} className="group-hover:text-brand-primary text-sm transition-colors" />
+                    <ExternalLink size={14} className="group-hover:text-brand-primary text-sm md:text-md 2xl:text-lg transition-colors" />
                     View Public Store
                 </Link>
                 <BusinessToggleAction />
@@ -640,7 +640,7 @@ export default async function VendorDashboardPage() {
                   <p className="text-2xl font-black text-accent-navy italic">{formatNaira(Number(todayRevenue._sum.total || 0))}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">Monthly Stash</p>
+                  <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">Monthly Revenue</p>
                   <p className="text-2xl font-black text-brand-primary italic">{formatNaira(Number(monthRevenue._sum.total || 0))}</p>
                 </div>
               </div>
@@ -712,7 +712,7 @@ export default async function VendorDashboardPage() {
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-8">
-                   <h3 className="text-lg font-black text-accent-navy uppercase italic">Comm Center</h3>
+                   <h3 className="text-lg font-black text-accent-navy uppercase italic">Message Center</h3>
                    <VendorMessageBadge vendorProfileId={vId} initialUnreadCount={unreadCount} />
                 </div>
                 <div className="space-y-6">
