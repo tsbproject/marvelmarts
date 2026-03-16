@@ -55,7 +55,7 @@ export default async function VendorVerificationPage() {
         */}
         {vendor.status === "PENDING_REVIEW" ? (
           <div className="flex min-h-[70vh] items-center justify-center">
-            <PendingApprovalView />
+           <PendingApprovalView status={vendor.status} />
           </div>
         ) : (
           <VerificationCenter 
