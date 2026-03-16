@@ -277,6 +277,7 @@ type EnhancedLink = SectionLink & {
   hasChildren?: boolean;
   children?: { label: string; href: string; icon?: ReactNode }[];
   locked?: boolean; 
+
 };
 
 const DashboardSidebar = memo(({ children, sections, role: propRole, user: propUser, permissions, vendorLocked = false }: DashboardSidebarProps) => {
@@ -319,6 +320,9 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
 
   const computedSections = useMemo(() => {
     const safeSections = sections || { general: [], management: [] };
+
+    const hasPerm = (key: keyof typeof userPermissions) =>
+  isSuperAdmin || userPermissions?.[key] === true;
 
     // ── CUSTOMER MODE ──
     if (userRole === "CUSTOMER" || userRole === "USER") {
@@ -373,7 +377,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
         { label: "Reviews", href: "/dashboard/admins/reviews", icon: <StarHalf size={20} />, visible: isSuperAdmin || userPermissions.manageReviews === true },
         { label: "Vendors", href: "/dashboard/admins/vendors", icon: <Store size={20} />, visible: isSuperAdmin || userPermissions.manageVendors === true },
         { label: "Vendors Payout", href: "/dashboard/admins/vendorspayout", icon: <Store size={20} />, visible: isSuperAdmin || userPermissions.manageVendorspayout === true },
-        { label: "Verifications", href: "/dashboard/admins/verifications", icon: <Store size={20} />, visible: isSuperAdmin || userPermissions.manageVerifications === true },
+        // { label: "Verifications", href: "/dashboard/admins/verifications", icon: <Store size={20} />, visible: isSuperAdmin || userPermissions.manageVerifications === true },
         { label: "Users", href: "/dashboard/admins/users", icon: <Users size={20} />, visible: isSuperAdmin || userPermissions.manageUsers === true },
         { label: "Blogs", href: "/dashboard/blogs", icon: <Newspaper size={20} />, visible: isSuperAdmin || userPermissions.manageBlogs === true },
         { label: "Products", href: "/dashboard/admins/products", icon: <Package size={20} />, visible: isSuperAdmin || userPermissions.manageProducts === true },
@@ -384,17 +388,18 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
         // ── Support Dropdown ──
         {
           label: "Support",
+          href: "/dashboard/admins/support",
           icon: <LifeBuoy size={20} />,
-          visible: isSuperAdmin || userPermissions.manageSupport === true,
+          visible: hasPerm("manageSupport"),
           hasChildren: true,
           children: [
-            { label: "Articles", href: "/dashboard/admins/support/articles", icon: <LifeBuoy size={20} /> },
-            { label: "Ticket", href: "/dashboard/admins/support/tickets", icon: <LifeBuoy size={20} /> },
-            { label: "Refunds", href: "/dashboard/admins/support/refunds", icon: <LifeBuoy size={20} /> },
-            { label: "Live Chat", href: "/dashboard/admins/support/messages", icon: <LifeBuoy size={20} /> },
+            { label: "Articles", href: "/dashboard/admins/support/articles", icon: <LifeBuoy size={16} /> },
+            { label: "Tickets",   href: "/dashboard/admins/support/tickets",   icon: <LifeBuoy size={16} /> },
+            { label: "Refunds",   href: "/dashboard/admins/support/refunds",   icon: <LifeBuoy size={16} /> },
+            { label: "Live Chat", href: "/dashboard/admins/support/messages",  icon: <MessageCircle size={16} /> },
           ],
         },
-
+        
         { label: "Settings", href: "/dashboard/admins/settings", icon: <Settings size={20} />, visible: isSuperAdmin || userPermissions.manageSettings === true },
         { label: "Subscribers", href: "/dashboard/admins/subscribers", icon: <Mail size={20} />, visible: isSuperAdmin || userPermissions.manageSubscribers === true },
       ];
