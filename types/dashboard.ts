@@ -7,6 +7,7 @@ export interface SectionLink {
   visible: boolean;
   hasChildren?: boolean; 
   children?: {
+    icon: ReactNode;
     label: string;
     href: string;
   }[];
