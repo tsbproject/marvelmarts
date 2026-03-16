@@ -214,6 +214,7 @@ export default function AdminLayoutClient({ user, children, todayRevenue = 0 }: 
           <div className="lg:hidden">
             <MobileTopbar 
               role={isSuperAdmin ? "SUPER_ADMIN" : isAdmin ? "ADMIN" : "UNKNOWN"}
+              roles={user.roles} // Add this line!
               sections={sections}
               isSuperAdmin={isSuperAdmin}
               todayRevenue={todayRevenue}
