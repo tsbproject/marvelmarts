@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 1. Find user
+    //  1. Find user
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 2. Verify password (guard against null)
+    //  2. Verify password (guard against null)
     if (!user.passwordHash) {
       // Social login users have no passwordHash
       return NextResponse.json(
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 3. Load correct profile based on role
+    // 3. Load correct profile based on role
     let profile: { id: string } | null = null;
 
     switch (user.role) {
@@ -72,16 +72,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 4. Create session payload
+    //  4. Create session payload
     const sessionData = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.roles,
       name: user.name ?? "User",
       profileId: profile.id,
     };
 
-    // 🔹 5. Set session cookie
+    //  5. Set session cookie
     const response = NextResponse.json({
       message: "Login Successful",
       user: sessionData,

@@ -1,0 +1,177 @@
+[
+  {
+    "name": "Computers and Accessories",
+    "children": [
+      {
+        "name": "Laptops",
+        "children": [
+          { "name": "Mini Laptops and Netbooks" },
+          { "name": "Ultrabooks" },
+          { "name": "Notebooks" },
+          { "name": "Hybrid PCs" },
+          { "name": "Macbooks" }
+        ]
+      },
+      {
+        "name": "WIFI AND NETWORKING",
+        "children": [
+          { "name": "Routers" },
+          { "name": "Modems" },
+          { "name": "Switches" },
+          { "name": "Networking Gadgets" }
+        ]
+      },
+      {
+        "name": "DESKTOP AND MONITORS",
+        "children": [
+          { "name": "Desktop Bundles" },
+          { "name": "CPUs" },
+          { "name": "Servers" },
+          { "name": "Monitors" }
+        ]
+      },
+      {
+        "name": "GAMING",
+        "children": [
+          { "name": "PC Games" },
+          { "name": "PC Gaming Accessories" }
+        ]
+      },
+      {
+        "name": "COMPUTER ACCESSORIES",
+        "children": [
+          { "name": "Storage Devices" },
+          { "name": "Laptop & Desktop Accessories" },
+          { "name": "Bags,Cases,Covers & Sleeves" },
+          { "name": "Computer Peripherals" },
+          { "name": "Scanners" },
+          { "name": "Uninterrupted Power Supply" },
+          { "name": "Video Projectors" },
+          { "name": "Keyboards & Mice" }
+        ]
+      },
+      {
+        "name": "PRINTERS,SCANNER & ACCESSORIES",
+        "children": [
+          { "name": "Scanners" },
+          { "name": "Inks, Toners & Cartridges" },
+          { "name": "Printers" }
+        ]
+      },
+      {
+        "name": "COMPUTER SOFTWARES",
+        "children": [
+          { "name": "Office & Business" },
+          { "name": "Operating Systems" },
+          { "name": "Security & Utilities" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Health and Beauty",
+    "children": [
+      { "name": "MAKE UP" },
+      { "name": "SkIN CARE" },
+      { "name": "HEALTH CARE" }
+    ]
+  },
+  {
+    "name": "Electronics",
+    "children": [
+      {
+        "name": "TELEVISIONS",
+        "children": [
+          { "name": "Smart TVs" },
+          { "name": "LED TVs" },
+          { "name": "Plasma TVs" },
+          { "name": "OLED TVs" },
+          { "name": "Curved TVs" }
+        ]
+      },
+      {
+        "name": "DVD PLAYERS & RECORDERS",
+        "children": [
+          { "name": "DVD Recorders" },
+          { "name": "DVD Players" }
+        ]
+      },
+      {
+        "name": "CAMERAS",
+        "children": [
+          { "name": "Digital Cameras" },
+          { "name": "Professional & SLR Cameras" },
+          { "name": "Camera Lenses & Accessories" },
+          { "name": "Camcorders & Video Cameras" },
+          { "name": "CCTV Cameras" }
+        ]
+      },
+      {
+        "name": "ACCESSORIES",
+        "children": [
+          { "name": "Headphones" },
+          { "name": "Television Accessories" },
+          { "name": "Gaming Accessories" },
+          { "name": "Other Accessories" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Phones and Tablets",
+    "children": [
+      {
+        "name": "MOBILE PHONES",
+        "children": [
+          { "name": "Smartphones" },
+          { "name": "Basic Phones" }
+        ]
+      },
+      {
+        "name": "TABLETS",
+        "children": [
+          { "name": "Android Tablets" },
+          { "name": "iPads" },
+          { "name": "Educational Tablets" }
+        ]
+      },
+      {
+        "name": "TABLET ACCESSORIES",
+        "children": [
+          { "name": "Cases and Covers" },
+          { "name": "Holders & Stands" },
+          { "name": "Other Accessories" }
+        ]
+      },
+      {
+        "name": "MOBILE PHONE ACCESSORIES",
+        "children": [
+          { "name": "Smart Watches" },
+          { "name": "Selfie Sticks & Tripods" },
+          { "name": "Screen Protectors" },
+          { "name": "MicroSD Cards" },
+          { "name": "Earphones & Headsets" },
+          { "name": "Chargers" },
+          { "name": "Car Accessorie" },
+          { "name": "Cables" },
+          { "name": "Bluetooth Headsets" },
+          { "name": "Battery Chargers" },
+          { "name": "Batteries" },
+          { "name": "Adapters" },
+          { "name": "Accessory Kits" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "African Arts & Crafts",
+    "children": [
+      { "name": "Paintings" },
+      { "name": "Handmade" },
+      { "name": "Sculptures" }
+    ]
+  },
+  { "name": "Automobile" },
+  { "name": "Other Categories" },
+  { "name": "MISCELLANOUS" }
+]

@@ -31,7 +31,7 @@ export async function reviewVendorAccount(
       });
     }
 
-    revalidatePath("/admins/vendors");
+    revalidatePath("/dashboard/admins/vendors");
     return { success: true };
   } catch (error) {
     return { error: "Action failed." };

@@ -121,28 +121,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   return sendEmail({ to, subject: "Password Reset Request", html: wrapLayout(content, "Reset your password") });
 }
 
-// VENDOR: Status Update (Merged Approve/Reject)
-export async function sendVendorStatusEmail({ email, firstName, storeName, status, reason }: { email: string; firstName: string; storeName: string; status: "APPROVED" | "REJECTED"; reason?: string | null; }) {
-  const isApproved = status === "APPROVED";
-  const content = isApproved ? `
-    <h2 style="color: ${COLORS.navy};">Congratulations, ${firstName}!</h2>
-    <p>Your store <strong>${storeName}</strong> has been officially approved.</p>
-    <p>You can now log in to your dashboard to start selling gear!</p>
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="${BASE_URL}/account/vendor" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
-    </div>
-  ` : `
-    <h2 style="color: ${COLORS.red}; text-transform: uppercase;">Application Update</h2>
-    <p>Hello ${firstName}, your application for <strong>${storeName}</strong> requires some changes.</p>
-    <div style="background-color: #fff5f5; border-left: 4px solid ${COLORS.red}; padding: 15px; margin: 20px 0;">
-      <strong>Feedback:</strong> ${reason || "Please review your business details and resubmit."}
-    </div>
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="${BASE_URL}/account/vendor" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Fix & Resubmit</a>
-    </div>
-  `;
-  return sendEmail({ to: email, subject: `MarvelMarts: Store ${status}`, html: wrapLayout(content, `Your store application has been ${status.toLowerCase()}`) });
-}
+
 
 // COMMERCE: Order Confirmation
 export async function sendOrderConfirmationEmail(order: any) {
@@ -473,5 +452,89 @@ export async function sendNewMessageEmail(
     to: recipientEmail,
     subject: `New Message from ${senderName} | MarvelMarts`,
     html,
+  });
+}
+
+
+
+// VENDOR: Status Update (Merged Approve/Reject)
+export async function sendVendorStatusEmail({ email, firstName, storeName, status, reason }: { email: string; firstName: string; storeName: string; status: "APPROVED" | "REJECTED"; reason?: string | null; }) {
+  const isApproved = status === "APPROVED";
+  const content = isApproved ? `
+    <h2 style="color: ${COLORS.navy};">Congratulations, ${firstName}!</h2>
+    <p>Your store <strong>${storeName}</strong> has been officially approved.</p>
+    <p>You can now log in to your dashboard to start selling gear!</p>
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="${BASE_URL}/account/vendor" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+    </div>
+  ` : `
+    <h2 style="color: ${COLORS.red}; text-transform: uppercase;">Application Update</h2>
+    <p>Hello ${firstName}, your application for <strong>${storeName}</strong> requires some changes.</p>
+    <div style="background-color: #fff5f5; border-left: 4px solid ${COLORS.red}; padding: 15px; margin: 20px 0;">
+      <strong>Feedback:</strong> ${reason || "Please review your business details and resubmit."}
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="${BASE_URL}/account/vendor" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Fix & Resubmit</a>
+    </div>
+  `;
+  return sendEmail({ to: email, subject: `MarvelMarts: Store ${status}`, html: wrapLayout(content, `Your store application has been ${status.toLowerCase()}`) });
+}
+
+
+
+// VENDOR: Documents Submitted → Under Review
+export async function sendVendorReviewEmail({
+  email,
+  firstName,
+  storeName
+}: {
+  email: string;
+  firstName: string;
+  storeName: string;
+}) {
+
+  const content = `
+    <h2 style="color: ${COLORS.navy};">Documents Received, ${firstName}!</h2>
+
+    <p>Thank you for submitting the required verification documents for your store 
+    <strong>${storeName}</strong>.</p>
+
+    <p>Our compliance team is currently reviewing your documents to ensure everything
+    meets our marketplace standards.</p>
+
+    <div style="background-color: #f5f9ff; border-left: 4px solid ${COLORS.navy}; padding: 16px; margin: 22px 0;">
+      <strong>Verification Timeline:</strong><br/>
+      Reviews typically take <strong>24 – 48 hours</strong>.
+      If any additional information is required, our team will contact you.
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${BASE_URL}/account/vendor/verification"
+        style="
+          background: ${COLORS.navy};
+          color: white;
+          padding: 14px 28px;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: bold;
+          display: inline-block;
+        ">
+        Track Verification Status
+      </a>
+    </div>
+
+    <p style="margin-top: 20px;">
+      We appreciate your patience while we complete the review process.
+      You will receive another email once your store is approved.
+    </p>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "MarvelMarts: Documents Under Review",
+    html: wrapLayout(
+      content,
+      "Your vendor verification documents are currently under review"
+    )
   });
 }

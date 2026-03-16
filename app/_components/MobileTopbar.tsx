@@ -40,10 +40,15 @@ interface MobileTopbarProps {
   sections: any;
   isSuperAdmin?: boolean;
   todayRevenue?: number;
+  permissions?: Record<string, boolean> | null; 
+  roles: "VENDOR" | "CUSTOMER";
+  vendorLocked?: boolean; 
+
   user?: {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    
   };
 }
 

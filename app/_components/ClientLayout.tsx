@@ -294,6 +294,7 @@ export default function ClientLayout({
 
                 {/* Footer */}
                 {/* <Footer settings={settings} /> */}
+                  <Footer />
               {/* </GlobalSettingsProvider> */}
             </LoadingOverlayProvider>
           </NotificationProvider>

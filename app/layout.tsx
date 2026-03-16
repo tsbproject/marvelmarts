@@ -1,6 +1,3 @@
-
-
-
 import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
@@ -33,13 +30,13 @@ const inter = Inter({
 
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  let settings = null;
+  // let settings = null;
   let categories: CategoryWithChildren[] = [];
 
   try {
     // Parallel fetch: DB data is ready before the page hits the browser
-    const [dbSettings, dbCategories] = await Promise.all([
-      prisma.siteSettings.findFirst(),
+    const [dbCategories] = await Promise.all([
+   
       prisma.category.findMany({
         where: { 
           OR: [
@@ -56,7 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       })
     ]);
 
-    settings = dbSettings;
+   
     categories = dbCategories as CategoryWithChildren[];
 
     // If database returned nothing but didn't throw an error
@@ -68,11 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     console.error("Database fetch failed in RootLayout:", error);
     
     //FALLBACK: Prevent UI disappearance when Neon DB is ENOTFOUND
-    settings = {
-      footerDesc: "The Ultimate Armory for Gadgets & Tech.",
-      supportPhone: "Contact Support",
-      supportEmail: "support@marvelmarts.com"
-    };
+    
   
   try{
     } catch (error) {

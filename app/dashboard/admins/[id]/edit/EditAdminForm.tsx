@@ -1,238 +1,10 @@
-// "use client";
 
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import { useNotification } from "@/app/_context/NotificationContext";
-// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-
-// export type Permissions = {
-//   manageAdmins: boolean;
-//   manageUsers: boolean;
-//   manageBlogs: boolean;
-//   manageProducts: boolean;
-//   manageOrders: boolean;
-//   manageMessages: boolean;
-//   manageSettings: boolean;
-//   manageCategories: boolean; 
-//   manageReview: false, 
-//   manageSupport: false, 
-//   manageActivity: false, 
-// };
-
-
-// export type AdminProfile = {
-//   id: string;
-//   userId: string;
-//   permissions?: Permissions;
-//   notes?: string | null;
-// };
-
-// export type AdminUser = {
-//   id: string; // User.id
-//   name?: string | null;
-//   email: string;
-//   role: "ADMIN" | "SUPER_ADMIN" | "CUSTOMER";
-//   image?: string | null;
-//   adminProfile?: AdminProfile | null;
-// };
-
-// const DEFAULT_PERMISSIONS: Permissions = {
-//   manageAdmins: false,
-//   manageUsers: false,
-//   manageBlogs: false,
-//   manageProducts: false,
-//   manageOrders: false,
-//   manageMessages: false,
-//   manageSettings: false,
-//   manageCategories: false, 
-//   manageReview: false, 
-//   manageSupport: false, 
-//   manageActivity: false, 
-// };
-
-
-// type Props =
-//   | { mode: "create"; initialData?: undefined }
-//   | { mode: "edit"; initialData: AdminUser };
-
-// export default function EditAdminForm(props: Props) {
-//   const { mode } = props;
-//   const initialData = mode === "edit" ? props.initialData : undefined;
-
-//   const { notifySuccess, notifyError } = useNotification();
-//   const { setLoading } = useLoadingOverlay();
-//   const router = useRouter();
-
-//   const [name, setName] = useState<string>(initialData?.name ?? "");
-//   const [email, setEmail] = useState<string>(initialData?.email ?? "");
-//   const [password, setPassword] = useState<string>("");
-//   const [role, setRole] = useState<"ADMIN" | "SUPER_ADMIN">(
-//     initialData?.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN"
-//   );
-
-//   const [permissions, setPermissions] = useState<Permissions>({
-//     ...DEFAULT_PERMISSIONS,
-//     ...(initialData?.adminProfile?.permissions ?? {}),
-//   });
-
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   function toggle(key: keyof Permissions) {
-//     setPermissions((p) => ({ ...p, [key]: !p[key] }));
-//   }
-
-//   async function submit(e: React.FormEvent<HTMLFormElement>) {
-//     e.preventDefault();
-//     setSaving(true);
-//     setLoading(true);
-//     setError(null);
-
-//     const body: {
-//       name?: string;
-//       email?: string;
-//       role?: "ADMIN" | "SUPER_ADMIN";
-//       password?: string;
-//       permissions?: Permissions;
-//     } = { name, email, role, permissions };
-
-//     if (mode === "create") {
-//       body.password = password;
-//     } else if (password.trim().length > 0) {
-//       body.password = password;
-//     }
-
-//     try {
-//       const url =
-//         mode === "create"
-//           ? "/api/admins"
-//           : `/api/admins/${initialData!.id}`;
-
-//       const res = await fetch(url, {
-//         method: mode === "create" ? "POST" : "PUT",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(body),
-//       });
-
-//       const data = await res.json();
-
-//       if (!res.ok) {
-//         setError(data.error || "Error saving admin");
-//         notifyError(data.error || "Error saving admin");
-//       } else {
-//         notifySuccess(
-//           mode === "create"
-//             ? "Admin created successfully"
-//             : "Admin updated successfully"
-//         );
-//         router.push("/dashboard/admins");
-//       }
-//     } catch {
-//       setError("Server error while saving admin");
-//       notifyError("Server error while saving admin");
-//     } finally {
-//       setSaving(false);
-//       setLoading(false);
-//     }
-//   }
-
-//   return (
-//     <form onSubmit={submit} className="bg-white shadow rounded-xl p-6 space-y-6">
-//       {/* Name */}
-//       <div>
-//         <label className="block font-medium mb-1">Name</label>
-//         <input
-//           className="w-full px-3 py-2 border rounded-md"
-//           value={name}
-//           onChange={(e) => setName(e.target.value)}
-//           required
-//         />
-//       </div>
-
-//       {/* Email */}
-//       <div>
-//         <label className="block font-medium mb-1">Email</label>
-//         <input
-//           className="w-full px-3 py-2 border rounded-md"
-//           type="email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//           required
-//         />
-//       </div>
-
-//       {/* Password */}
-//       <div>
-//         <label className="block font-medium mb-1">
-//           {mode === "create" ? "Password" : "New Password (optional)"}
-//         </label>
-//         <input
-//           className="w-full px-3 py-2 border rounded-md"
-//           type="password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//           minLength={mode === "create" ? 6 : 0}
-//         />
-//       </div>
-
-//       {/* Role */}
-//       <div>
-//         <label className="block font-medium mb-1">Role</label>
-//         <select
-//           className="w-full px-3 py-2 border rounded-md"
-//           value={role}
-//           onChange={(e) => setRole(e.target.value as "ADMIN" | "SUPER_ADMIN")}
-//         >
-//           <option value="ADMIN">Admin</option>
-//           <option value="SUPER_ADMIN">Super Admin</option>
-//         </select>
-//       </div>
-
-//       {/* Permissions */}
-//       <div>
-//         <label className="block font-medium mb-2">Permissions</label>
-//         <div className="grid grid-cols-2 gap-3">
-//           {(Object.keys(DEFAULT_PERMISSIONS) as Array<keyof Permissions>).map(
-//             (key) => (
-//               <label key={key} className="flex items-center gap-2">
-//                 <input
-//                   type="checkbox"
-//                   checked={permissions[key]}
-//                   onChange={() => toggle(key)}
-//                 />
-//                 <span className="capitalize">
-//                   {String(key).replace(/([A-Z])/g, " $1")}
-//                 </span>
-//               </label>
-//             )
-//           )}
-//         </div>
-//       </div>
-
-//       {error && <p className="text-red-600">{error}</p>}
-
-//       <button
-//         type="submit"
-//         disabled={saving}
-//         className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-//       >
-//         {saving
-//           ? mode === "create"
-//             ? "Creating..."
-//             : "Updating..."
-//           : mode === "create"
-//           ? "Create Admin"
-//           : "Update Admin"}
-//       </button>
-//     </form>
-//   );
-// }
 
 
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
@@ -255,14 +27,17 @@ export type Permissions = {
   manageBlogs: boolean;
   manageProducts: boolean;
   manageOrders: boolean;
-  manageMessages: boolean;
   manageSettings: boolean;
   manageCategories: boolean; 
   manageReviews: boolean; 
   manageSupport: boolean; 
   manageActivity: boolean; 
-  manageTrending: boolean,
-  manageSubscribers: boolean, 
+  manageTrending: boolean;
+  manageSubscribers: boolean;
+  manageVerifications: boolean;
+  manageVendorspayout: boolean;
+  manageTreasury: boolean;
+ 
 };
 
 export type AdminUser = {
@@ -280,21 +55,23 @@ type Props =
   | { mode: "create"; initialData?: undefined }
   | { mode: "edit"; initialData: AdminUser };
 
-/* --- Constants (Defined outside to prevent ReferenceError) --- */
+/* --- Constants --- */
 const DEFAULT_PERMISSIONS: Permissions = {
   manageAdmins: false,
   manageUsers: false,
   manageBlogs: false,
   manageProducts: false,
   manageOrders: false,
-  manageMessages: false,
   manageSettings: false,
   manageCategories: false, 
   manageReviews: false, 
   manageSupport: false, 
   manageActivity: false, 
-  manageTrending: false, 
+  manageTrending: false,
   manageSubscribers: false,
+  manageVerifications: false,
+  manageVendorspayout: false,
+  manageTreasury: false,
 };
 
 export default function EditAdminForm(props: Props) {
@@ -319,7 +96,22 @@ export default function EditAdminForm(props: Props) {
 
   const [saving, setSaving] = useState(false);
 
+  // Sync permissions if Super Admin is selected
+  useEffect(() => {
+    if (role === "SUPER_ADMIN") {
+      const allTrue = Object.keys(DEFAULT_PERMISSIONS).reduce((acc, key) => {
+        acc[key as keyof Permissions] = true;
+        return acc;
+      }, {} as Permissions);
+      setPermissions(allTrue);
+    } else {
+      // Reset to default false for regular ADMIN
+      setPermissions(DEFAULT_PERMISSIONS);
+    }
+  }, [role]);
+
   function toggle(key: keyof Permissions) {
+    if (role === "SUPER_ADMIN") return; // Prevent toggle for SUPER_ADMIN
     setPermissions((p) => ({ ...p, [key]: !p[key] }));
   }
 
@@ -332,7 +124,7 @@ export default function EditAdminForm(props: Props) {
     if (password.trim().length > 0) body.password = password;
 
     try {
-      const url = mode === "create" ? "/api/admins" : `/api/admins/${initialData!.id}`;
+      const url = mode === "create" ? "/api/admins/create" : `/api/admins/${initialData!.id}`;
       const res = await fetch(url, {
         method: mode === "create" ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
@@ -359,7 +151,7 @@ export default function EditAdminForm(props: Props) {
     <div className="max-w-5xl mx-auto">
       <form onSubmit={submit} className="space-y-6">
         
-        {/* --- Header: Brand Navy Background --- */}
+        {/* --- Header --- */}
         <div className="bg-[#002B5B] p-8 rounded-[2rem] text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-[#F7931E] flex items-center justify-center text-white shadow-lg">
@@ -385,7 +177,7 @@ export default function EditAdminForm(props: Props) {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* --- Identity & Role: Ghost/White Background --- */}
+          {/* --- Identity & Role --- */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm space-y-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#002B5B] mb-2 border-b border-gray-50 pb-2">Identification</h3>
@@ -407,7 +199,7 @@ export default function EditAdminForm(props: Props) {
                   <input
                     type="email"
                     placeholder="Email"
-                    className="w-full pl-12 pr-4 py-4 bg-[#F8F8F8] border-none rounded-2xl text-sm font-bold text-[#1E1E1E] focus:ring-2 focus:ring-[#F7931E] transition-all outline-none"
+                    className="w-full pl-12 pr-4 py-4 bg-[#F8F8F8] border-none rounded-2xl text-sm font-bold text-[#1E1E1E] focus:ring-2 focus:ring [#F7931E] transition-all outline-none"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -419,7 +211,7 @@ export default function EditAdminForm(props: Props) {
                   <input
                     type="password"
                     placeholder={mode === "create" ? "Access Key" : "Reset Key (Optional)"}
-                    className="w-full pl-12 pr-4 py-4 bg-[#F8F8F8] border-none rounded-2xl text-sm font-bold text-[#1E1E1E] focus:ring-2 focus:ring-[#F7931E] transition-all outline-none"
+                    className="w-full pl-12 pr-4 py-4 bg-[#F8F8F8] border-none rounded-2xl text-sm font-bold text-[#1E1E1E] focus:ring-2 focus:ring [#F7931E] transition-all outline-none"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={mode === "create" ? 6 : 0}
@@ -434,7 +226,7 @@ export default function EditAdminForm(props: Props) {
                 <select
                   className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest outline-none focus:border-[#F7931E] transition-colors cursor-pointer"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
+                  onChange={(e) => setRole(e.target.value as "ADMIN" | "SUPER_ADMIN")}
                 >
                   <option value="ADMIN" className="bg-[#1E1E1E]">Standard Admin</option>
                   <option value="SUPER_ADMIN" className="bg-[#1E1E1E]">Super Admin</option>
@@ -450,7 +242,7 @@ export default function EditAdminForm(props: Props) {
             </div>
           </div>
 
-          {/* --- Permissions: Professional Grid --- */}
+          {/* --- Permissions --- */}
           <div className="lg:col-span-8">
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm h-full flex flex-col">
               <div className="mb-6 flex items-end justify-between border-b border-gray-50 pb-4">
@@ -471,11 +263,12 @@ export default function EditAdminForm(props: Props) {
                     key={key}
                     type="button"
                     onClick={() => toggle(key)}
+                    disabled={role === "SUPER_ADMIN"}
                     className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all group ${
                       permissions[key] 
                       ? "border-[#F7931E] bg-[#FFE8CC]/30 text-[#002B5B]" 
                       : "border-[#F8F8F8] bg-[#F8F8F8] text-[#4B4B4B] hover:border-gray-200"
-                    }`}
+                    } ${role === "SUPER_ADMIN" ? "cursor-not-allowed" : "cursor-pointer"}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
@@ -513,7 +306,6 @@ export default function EditAdminForm(props: Props) {
               </div>
             </div>
           </div>
-
         </div>
       </form>
     </div>

@@ -26,7 +26,7 @@ export async function submitVerification(
       },
     });
 
-    revalidatePath("/account/vendor/verification-center");
+    revalidatePath("/account/vendor/verification");
     return { success: true };
   } catch (error) {
     return { error: "Failed to submit documents." };

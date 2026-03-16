@@ -58,18 +58,18 @@ export default function EditAdminPage() {
   const params = useParams();
   const { notifyError } = useNotification();
 
-  const adminId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   // Set the state to our detailed interface
   const [admin, setAdmin] = useState<DetailedAdmin | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!adminId) return;
+    if (!id) return;
 
     const fetchAdmin = async () => {
       try {
-        const res = await fetch(`/api/admins/${adminId}`, {
+        const res = await fetch(`/api/admins/${id}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -102,9 +102,9 @@ export default function EditAdminPage() {
     };
 
     fetchAdmin();
-  }, [adminId, notifyError]);
+  }, [id, notifyError]);
 
-  if (!adminId) return <div className="p-8">Invalid admin ID</div>;
+  if (!id) return <div className="p-8">Invalid admin ID</div>;
   if (loading) return <div className="p-8">Loading...</div>;
   if (!admin) return <div className="p-8">Admin not found</div>;
 

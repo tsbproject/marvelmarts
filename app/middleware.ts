@@ -1,148 +1,136 @@
-
-
-// import type { NextRequest } from "next/server";
-// import { NextResponse } from "next/server";
-// import { getToken } from "next-auth/jwt";
-// import { UserRole } from "@prisma/client";
-
-// export async function middleware(request: NextRequest) {
-//   const { pathname } = request.nextUrl;
-
-//   // 1. Instant Static/Internal Whitelist
-//   if (
-//     pathname.startsWith("/_next") ||
-//     pathname.startsWith("/api/auth") || 
-//     pathname.startsWith("/images") ||
-//     pathname === "/logo.png" ||
-//     pathname === "/favicon.ico"
-//   ) {
-//     return NextResponse.next();
-//   }
-
-//   const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
-//   const token = await getToken({
-//     req: request,
-//     secret: process.env.NEXTAUTH_SECRET,
-//   });
-
-//   // 2. Maintenance Logic
-//   if (isMaintenanceMode && !pathname.startsWith("/api")) {
-//     const isAdmin = token?.role === UserRole.ADMIN || token?.role === UserRole.SUPER_ADMIN;
-//     if (!isAdmin && pathname !== "/maintenance") {
-//       return NextResponse.redirect(new URL("/maintenance", request.url));
-//     }
-//   }
-
-//   // 3. Protected Dashboard/Account Logic
-//   const PROTECTED_ROUTES: Record<string, UserRole[]> = {
-//     "/dashboard/admins": [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-//     "/account/vendor": [UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
-//     "/account/customer": [UserRole.CUSTOMER, UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
-//   };
-
-//   const matchedBase = Object.keys(PROTECTED_ROUTES).find(route => 
-//     pathname.startsWith(route)
-//   );
-
-//   if (matchedBase) {
-//     // FIX 1: Use a standard Redirect for navigation routes
-//     if (!token) {
-//       const url = new URL("/auth/sign-in", request.url);
-//       url.searchParams.set("callbackUrl", pathname);
-//       return NextResponse.redirect(url); 
-//     }
-
-//     const userRole = token.role as UserRole;
-//     const allowedRoles = PROTECTED_ROUTES[matchedBase];
-
-//     // FIX 2: Check if userRole actually exists before checking inclusion
-//     if (!userRole || !allowedRoles.includes(userRole)) {
-//       return NextResponse.redirect(new URL("/", request.url)); // Redirect to home if role is missing/invalid
-//     }
-//   }
-
-//   return NextResponse.next();
-// }
-
-// export const config = {
-//   matcher: [
-//     '/((?!_next/static|_next/image|favicon.ico|logo.png|images).*)',
-//   ],
-// };
-
-
-
-
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { UserRole } from "@prisma/client"
+import { UserRole } from "@prisma/client";
+
+const ROLE_PRIORITY: UserRole[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ADMIN,
+  UserRole.VENDOR,
+  UserRole.CUSTOMER,
+];
+
+// Determine the user's highest-priority role
+function getHighestRole(
+  singleRole: UserRole | undefined,
+  multiRoles: UserRole[] | undefined
+): UserRole | undefined {
+
+  // Admin role always wins
+  if (singleRole) return singleRole;
+
+  // If roles missing, default to CUSTOMER
+  const roles = multiRoles && multiRoles.length > 0
+    ? multiRoles
+    : [UserRole.CUSTOMER];
+
+  return ROLE_PRIORITY.find((role) => roles.includes(role));
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Instant Static/Internal Whitelist (STAYS THE SAME)
+  // ── 1. Skip internal Next.js, static, auth, RSC, and prefetch requests ──
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") || 
+    pathname.startsWith("/api/auth") ||
     pathname.startsWith("/images") ||
     pathname === "/logo.png" ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    request.headers.get("rsc") === "1" ||
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("next-router-state-tree")
   ) {
     return NextResponse.next();
   }
 
+  // ── 2. Get session token ──
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // 2. Maintenance Logic (STAYS THE SAME)
-  // ...
+  const singleRole = token?.role as UserRole | undefined; // admin role
+  const multiRoles = token?.roles as UserRole[] | undefined; // customer/vendor roles
+  const highestRole = getHighestRole(singleRole, multiRoles);
 
-  // 3. Protected Dashboard/Account Logic
+  console.log("[Middleware] Path:", pathname, "SingleRole:", singleRole, "MultiRoles:", multiRoles, "HighestRole:", highestRole);
+
+  // ── 3. Landing redirect (skip login pages) ──
+  const landingPaths = ["/", "/account", "/dashboard", "/home", "/auth/sign-in", "/signin", "/login"];
+  const isLandingPath = landingPaths.includes(pathname);
+
+  if (token && isLandingPath && highestRole) {
+    let redirectTo = "/account/customer"; // default fallback
+    switch (highestRole) {
+      case UserRole.SUPER_ADMIN:
+      case UserRole.ADMIN:
+        redirectTo = "/dashboard/admins";
+        break;
+      case UserRole.VENDOR:
+        redirectTo = "/account/vendor";
+        break;
+      case UserRole.CUSTOMER:
+        redirectTo = "/account/customer";
+        break;
+    }
+
+    if (pathname !== redirectTo) {
+      console.log("[Middleware] Landing redirect:", pathname, "→", redirectTo);
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
+  }
+
+  // ── 4. Protected routes ──
   const PROTECTED_ROUTES: Record<string, UserRole[]> = {
     "/dashboard/admins": [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     "/account/vendor": [UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
     "/account/customer": [UserRole.CUSTOMER, UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
-    // ADD YOUR API PATH HERE IF IT NEEDS PROTECTION
     "/api/vendors": [UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
   };
 
-  const matchedBase = Object.keys(PROTECTED_ROUTES).find(route => 
-    pathname.startsWith(route)
-  );
+  const matchedBase = Object.keys(PROTECTED_ROUTES).find((route) => pathname.startsWith(route));
 
   if (matchedBase) {
-    if (!token) {
-      // FIX: If it's an API request, return 401 JSON instead of a 302 Redirect
+    if (!highestRole) {
+      // Not logged in
       if (pathname.startsWith("/api")) {
-        return new NextResponse(
-          JSON.stringify({ error: "Unauthorized access" }),
-          { status: 401, headers: { 'content-type': 'application/json' } }
-        );
+        return new NextResponse(JSON.stringify({ error: "Unauthorized access" }), {
+          status: 401,
+          headers: { "content-type": "application/json" },
+        });
       }
-
-      // Standard redirect for browser pages
       const url = new URL("/auth/sign-in", request.url);
       url.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(url);
     }
 
-    const userRole = token.role as UserRole;
     const allowedRoles = PROTECTED_ROUTES[matchedBase];
-
-    if (!userRole || !allowedRoles.includes(userRole)) {
-      // Same logic for API vs Page for Access Denied
+    if (!allowedRoles.includes(highestRole)) {
+      console.log("[Middleware] Forbidden:", pathname, "HighestRole:", highestRole, "Roles:", multiRoles);
       if (pathname.startsWith("/api")) {
-        return new NextResponse(
-          JSON.stringify({ error: "Forbidden: Insufficient Permissions" }),
-          { status: 403, headers: { 'content-type': 'application/json' } }
-        );
+        return new NextResponse(JSON.stringify({ error: "Forbidden: Insufficient permissions" }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        });
       }
       return NextResponse.redirect(new URL("/auth/access-denied", request.url));
     }
   }
 
+  // ── 5. All good → continue ──
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: [
+    "/",
+    "/account/:path*",
+    "/dashboard/:path*",
+    "/api/vendors/:path*",
+    "/auth/callback",
+    "/home",
+    "/signin",
+    "/login",
+  ],
+};

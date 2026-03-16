@@ -1,82 +1,124 @@
+
+
+
+
+
 "use server";
 
 import { prisma } from "@/app/lib/prisma";
 import { VendorStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { sendVendorReviewEmail } from "@/app/lib/mailer";
 
-export async function processVendorApproval(
-  vendorProfileId: string, 
-  status: VendorStatus,
-  rejectionReason?: string
+export type VerificationStatus =
+  | "NOT_STARTED"
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "PENDING_REVIEW";
+export async function submitVendorDocs(
+  vendorProfileId: string,
+  url: string,
+  step: "IDENTITY" | "BUSINESS" | "LOCATION"
 ) {
   try {
-    // 1. Update the VendorProfile status
-    const updatedProfile = await prisma.vendorProfile.update({
-      where: { id: vendorProfileId },
-      data: { 
-        status: status,
-        isVerified: status === "APPROVED",
-        rejectionReason: status === "REJECTED" ? rejectionReason : null
-      }
-    });
+    const fieldMap = {
+      IDENTITY: "identityDoc",
+      BUSINESS: "businessDoc",
+      LOCATION: "locationDoc",
+    } as const;
 
-    // 2. Self-Healing: Ensure the VendorStore exists if approved
-    if (status === "APPROVED") {
-      const storeName = updatedProfile.storeName || "My Store";
-      const storeSlug = `${storeName.toLowerCase().replace(/\s+/g, '-')}-${vendorProfileId.slice(-5)}`;
+    const field = fieldMap[step];
+    if (!field) return { success: false, error: "Invalid verification step" };
 
-      await prisma.vendorStore.upsert({
-        where: { vendorProfileId },
-        update: {},
-        create: {
-          vendorProfileId,
-          name: storeName,
-          slug: storeSlug,
-        }
-      });
-    }
-
-    revalidatePath("/account/vendor/verification");
-    return { success: true };
-  } catch (error: any) {
-    // CRUCIAL: Look at your VS Code terminal for this log!
-    console.error("ADMIN_ACTION_PRISMA_ERROR:", error.message || error);
-    return { success: false, error: error.message || "Database update failed" };
-  }
-}
-
-
-export async function submitVendorDocs(vendorProfileId: string, docUrl: string) {
-  try {
-    console.log("Saving URL for Profile:", vendorProfileId); // Check your terminal for this
-    
+    // 1. Update Document
     await prisma.vendorProfile.update({
       where: { id: vendorProfileId },
-      data: { 
-        status: "PENDING",
-        // !!! CHECK: Is this field EXACTLY 'verificationDoc' in your schema.prisma?
-        verificationDoc: docUrl 
-      }
+      data: { [field]: url },
     });
+
+    // 2. Fetch fresh data
+    const vendor = await prisma.vendorProfile.findUnique({
+      where: { id: vendorProfileId },
+      include: { user: true },
+    });
+
+    if (!vendor) return { success: false, error: "Vendor profile not found" };
+
+    // 3. Re-map document state
+    const identityDoc = vendor.identityDoc;
+    const businessDoc = vendor.businessDoc;
+    const locationDoc = vendor.locationDoc;
+    const hasAllDocs = Boolean(identityDoc && businessDoc && locationDoc);
+
+    let finalStatus = vendor.status;
     
-    return { success: true };
+    
+    let emailSent = false;
+
+    // 4. Handle Status Transition to PENDING_REVIEW
+    if (hasAllDocs && (vendor.status === VendorStatus.PENDING || vendor.status === VendorStatus.REJECTED)) {
+      const updatedVendor = await prisma.vendorProfile.update({
+        where: { id: vendorProfileId },
+        data: { status: VendorStatus.PENDING_REVIEW },
+      });
+      finalStatus = updatedVendor.status;
+
+      // 5. Send Email (Explicitly awaited to ensure execution)
+      try {
+        console.log(`[submitVendorDocs] Attempting to send review email to: ${vendor.user.email}`);
+        await sendVendorReviewEmail({
+          email: vendor.user.email,
+          firstName: vendor.user.name || "Vendor",
+          storeName: vendor.storeName || "Your Store",
+        });
+        emailSent = true;
+        console.log(`[submitVendorDocs] Review email successfully sent.`);
+      } catch (emailError) {
+        console.error("[submitVendorDocs] Email sending FAILED:", emailError);
+        // Do not return error here; document update was successful.
+      }
+    }
+
+    // 7 Determine frontend-friendly verificationStatus
+    let verificationStatus: VerificationStatus = "NOT_STARTED";
+    if (!identityDoc && !businessDoc && !locationDoc) {
+      verificationStatus = "NOT_STARTED";
+    } else if (finalStatus === VendorStatus.PENDING_REVIEW) {
+      verificationStatus = "PENDING_REVIEW";
+    } else if (finalStatus === VendorStatus.REJECTED) {
+      verificationStatus = "REJECTED";
+    } else if (finalStatus === VendorStatus.APPROVED) {
+      verificationStatus = "APPROVED";
+    } else {
+      verificationStatus = "PENDING";
+    }
+
+    // 8 Revalidate server-side pages
+    revalidatePath("/account/vendor");
+    revalidatePath("/account/vendor/verification");
+
+    // 9 Return response to frontend
+    return {
+      success: true,
+    allDocsSubmitted: hasAllDocs,
+      status: finalStatus,
+      verificationStatus,
+    };
   } catch (error: any) {
-    // This will print the EXACT Prisma error in your VS Code terminal
-    console.error("SUBMIT_DOCS_DATABASE_ERROR:", error.message || error);
-    return { success: false, error: error.message };
+    console.error("[submitVendorDocs] Error:", error);
+    return {
+      success: false,
+      error: error?.message || "Unexpected error occurred",
+    };
   }
 }
 
 
-export async function getPendingVendors() {
-  try {
-    const pendingVendors = await prisma.vendorProfile.findMany({
-      where: { status: "PENDING" },
-      include: { user: true }, // To show the person's name/email
-      orderBy: { updatedAt: "desc" },
-    });
-    return { success: true, data: pendingVendors };
-  } catch (error) {
-    return { success: false, error: "Failed to fetch pending vendors" };
-  }
-}
+
+
+
+
+
+
+

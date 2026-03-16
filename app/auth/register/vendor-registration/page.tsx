@@ -74,52 +74,59 @@ export default function VendorRegistration() {
   const [showPassword, setShowPassword] = useState(false);
 
   // --- PRE-FILL LOGIC ---
-  useEffect(() => {
-    async function fetchExistingData() {
-      // 1. Pre-fill from existing NextAuth session if available
-      if (session?.user) {
-        setFormData(prev => ({
-          ...prev,
-          email: session.user.email || prev.email,
-          firstName: session.user.name?.split(" ")[0] || prev.firstName,
-          lastName: session.user.name?.split(" ")[1] || prev.lastName,
-        }));
-        setIsVerified(true); 
-      }
+  // --- PRE-FILL LOGIC --- 
+useEffect(() => {
+  async function fetchExistingData() {
+    // 1. Pre-fill from existing NextAuth session (but only for email/name, NOT verification)
+    if (session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        email: session.user.email || prev.email,
+        firstName: session.user.name?.split(" ")[0] || prev.firstName,
+        lastName: session.user.name?.split(" ")[1] || prev.lastName,
+      }));
+      // Do NOT set isVerified here, because session user might just be CUSTOMER
+    }
 
-      // 2. Only fetch vendor profile if authenticated to avoid 404/401 console noise
-      if (status === "authenticated") {
-        try {
-          const res = await fetch("/api/vendor/profile/me");
-          if (res.ok) {
-            const data = await res.json();
-            if (data.vendor) {
-              setFormData(prev => ({
-                ...prev,
-                email: data.vendor.user?.email || prev.email,
-                firstName: data.vendor.user?.firstName || prev.firstName,
-                lastName: data.vendor.user?.lastName || prev.lastName,
-                storeName: data.vendor.storeName || "",
-                storePhone: data.vendor.storePhone || "",
-                storeAddress: data.vendor.storeAddress || "",
-                state: data.vendor.state || "",
-              }));
-              setIsVerified(true);
-              setIsReapplying(true);
-              setStep(2);
-            }
-          }
-        } catch (err) {
-          console.warn("User is not a vendor yet.");
+    // 2. Check if the user already has a vendor profile
+    try {
+      const res = await fetch("/api/vendor/profile");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.vendor) {
+          // Only mark as verified if vendor profile exists
+          setFormData(prev => ({
+            ...prev,
+            email: data.vendor.user?.email || prev.email,
+            firstName: data.vendor.user?.firstName || prev.firstName,
+            lastName: data.vendor.user?.lastName || prev.lastName,
+            storeName: data.vendor.storeName || "",
+            storePhone: data.vendor.storePhone || "",
+            storeAddress: data.vendor.storeAddress || "",
+            state: data.vendor.state || "",
+          }));
+          setIsVerified(true);
+          setIsReapplying(true); // User is updating an existing vendor account
+          setStep(2);
         }
+      } else if (res.status === 404) {
+        // No vendor account exists: this is a fresh vendor registration
+        setIsVerified(false);
+        setIsReapplying(false);
       }
-      setLoading(prev => ({ ...prev, initial: false }));
+    } catch (err) {
+      console.warn("User is not a vendor yet, ready for fresh registration.");
+      setIsVerified(false);
+      setIsReapplying(false);
     }
 
-    if (status !== "loading") {
-      fetchExistingData();
-    }
-  }, [session, status]);
+    setLoading(prev => ({ ...prev, initial: false }));
+  }
+
+  if (status !== "loading") {
+    fetchExistingData();
+  }
+}, [session, status]);
 
   const setField = useCallback(<K extends keyof VendorFormData>(key: K, value: VendorFormData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));

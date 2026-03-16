@@ -37,13 +37,13 @@ export function RejectedView({ reason, email }: RejectedViewProps) {
 
       <div className="flex flex-col sm:flex-row gap-4 w-full">
         <button
-          onClick={() => router.push("/auth/register/vendor")}
+          onClick={() => router.push("/auth/register/vendor-registration")}
           className="flex-[2] py-5 bg-[#002B5B] text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#002B5B]/20"
         >
           Fix & Resubmit <ArrowRight size={20} />
         </button>
         <a
-          href={`mailto:support@marvelmarts.com?subject=Rejection Appeal - ${email}`}
+          href={`http://localhost:3000/support`}
           className="flex-1 py-5 bg-[#F8F8F8] text-[#4B4B4B] rounded-2xl font-black text-sm uppercase flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
         >
           <Mail size={18} /> Support

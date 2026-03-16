@@ -1,0 +1,2 @@
+-- Migration recreated to match database state
+-- No changes needed because database already contains this migration

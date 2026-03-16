@@ -5,7 +5,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: UserRole;
+      roles: UserRole;
       permissions: Record<string, boolean>;
      
       vendorStatus?: VendorStatus | null;
@@ -26,6 +26,11 @@ declare module "next-auth" {
     vendorStatus?: VendorStatus | null;
     isSuspended?: boolean;
     rejectionReason?: string | null;
+
+     user: {
+      id: string;
+      role: "VENDOR" | "ADMIN" | "SUPER_ADMIN" | "CUSTOMER";
+    } & DefaultSession["user"];
   }
 }
 
@@ -33,6 +38,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     userId: string;
     role: UserRole;
+    roles: UserRole;
     permissions: Record<string, boolean>;
     // Added Vendor Specific Fields
     vendorStatus?: VendorStatus | null;

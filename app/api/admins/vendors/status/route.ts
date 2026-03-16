@@ -1,9 +1,12 @@
+
+
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { Role, UserRole, VendorStatus } from "@prisma/client";
-import { sendVendorStatusEmail } from "@/app/lib/mailer"; // Ensure this import is correct
+import { sendVendorStatusEmail } from "@/app/lib/mailer";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -12,22 +15,22 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }
 
-    const { vendorId, action, reason } = await req.json();
+    const { vendorProfileId, action, reason } = await req.json();
 
-    if (!vendorId) {
+    if (!vendorProfileId) {
       return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
     }
 
     if (action === "DELETE") {
-      await prisma.vendorProfile.delete({ where: { id: vendorId } });
-      return NextResponse.json({ success: true, message: "Vendor deleted forever" });
+      await prisma.vendorProfile.delete({ where: { id: vendorProfileId } });
+      return NextResponse.json({ success: true, message: "Vendor deleted successfully" });
     }
 
     // TRANSACTION
     const updated = await prisma.$transaction(async (tx) => {
       const currentVendor = await tx.vendorProfile.findUnique({
-        where: { id: vendorId },
-        select: { userId: true }
+        where: { id: vendorProfileId },
+        include: { user: true }
       });
 
       if (!currentVendor) throw new Error("Vendor not found");
@@ -37,6 +40,16 @@ export async function PATCH(req: NextRequest) {
 
       switch (action) {
         case "APPROVE":
+          // NEW GATEKEEPER: Ensure all 3 documents exist
+          const missingDocs = [];
+          if (!currentVendor.identityDoc) missingDocs.push("Identity");
+          if (!currentVendor.businessDoc) missingDocs.push("Business");
+          if (!currentVendor.locationDoc) missingDocs.push("Location");
+
+          if (missingDocs.length > 0) {
+            throw new Error(`Cannot approve: Missing documents (${missingDocs.join(", ")}).`);
+          }
+          
           dataUpdate = { 
             status: VendorStatus.APPROVED,
             isVerified: true, 
@@ -56,7 +69,7 @@ export async function PATCH(req: NextRequest) {
             status: VendorStatus.REJECTED,
             isVerified: false, 
             isSuspended: false,
-            rejectionReason: reason || "No reason provided" 
+            rejectionReason: reason || "Your documents could not be verified. Please re-upload clear copies." 
           };
           onboardingUpdate = { completed: false, profileDone: true, storeDone: false };
           break;
@@ -74,8 +87,8 @@ export async function PATCH(req: NextRequest) {
       }
 
       return await tx.vendorProfile.update({
-        where: { id: vendorId },
-        include: { user: true }, // IMPORTANT: We need this to get user.email and user.name
+        where: { id: vendorProfileId },
+        include: { user: true },
         data: {
           ...dataUpdate,
           onboarding: onboardingUpdate.completed !== undefined ? {
@@ -89,18 +102,16 @@ export async function PATCH(req: NextRequest) {
     });
 
     // --- TRIGGER EMAIL NOTIFICATION ---
-    // Only send if it was an Approval or Rejection
     if (action === "APPROVE" || action === "REJECT") {
       try {
-      await sendVendorStatusEmail({
-        email: updated.user.email,
-        firstName: updated.user.name?.split(" ")[0] || "Merchant", 
-        storeName: updated.storeName || "Your Store", 
-        status: action === "APPROVE" ? "APPROVED" : "REJECTED",
-        reason: reason || undefined
-      });
+        await sendVendorStatusEmail({
+          email: updated.user.email,
+          firstName: updated.user.name?.split(" ")[0] || "Merchant", 
+          storeName: updated.storeName || "Your Store", 
+          status: action === "APPROVE" ? "APPROVED" : "REJECTED",
+          reason: reason || (action === "REJECT" ? "Documents provided were insufficient." : undefined)
+        });
       } catch (emailErr) {
-        // We log the error but don't stop the response because the DB is already updated
         console.error("Mailer Error:", emailErr);
       }
     }
@@ -113,6 +124,7 @@ export async function PATCH(req: NextRequest) {
 
   } catch (error: any) {
     console.error("ADMIN_PATCH_ERROR:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Return the specific error message (like "Missing documents") to the frontend
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }

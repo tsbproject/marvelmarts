@@ -1,20 +1,19 @@
 "use client";
-import { useState, FormEvent, Suspense } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
-import Image from "next/image";
 import Link from "next/link";
 import { 
   Eye, EyeOff, Mail, Lock, ArrowLeft, 
-  Loader2, Facebook, CheckCircle2
+  Loader2, Facebook,
 } from "lucide-react";
 // REDUX IMPORT
 import { useDispatch } from "react-redux";
 import { setViewMode } from "@/store/appSlice";
 
-function SignInForm() {
+export default function SignInForm() {
   const router = useRouter();
-  const dispatch = useDispatch(); // Initialize Redux Dispatch
+  const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -22,14 +21,23 @@ function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+   const ROLE_PRIORITY = ["SUPER_ADMIN", "ADMIN", "VENDOR", "CUSTOMER"] as const;
+
+  // Determine highest-priority role
+  const getHighestRole = (singleRole: string | undefined, multiRoles: string[] | undefined) => {
+    if (singleRole) return singleRole;
+    if (!multiRoles || multiRoles.length === 0) return "CUSTOMER";
+    return ROLE_PRIORITY.find((role) => multiRoles.includes(role)) ?? "CUSTOMER";
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // Get the callback URL from the query string
     const callbackUrl = searchParams.get("callbackUrl");
 
+    // Attempt login
     const res = await signIn("credentials", {
       redirect: false,
       identifier,
@@ -42,48 +50,41 @@ function SignInForm() {
       return;
     }
 
-    // MANDATORY SYNC: Fetch the session immediately after successful login
     const session = await getSession();
-
     if (!session) {
       setError("Authorization failed. Please try again.");
       setLoading(false);
       return;
     }
 
-    /**
-     * DUAL ACCOUNT SYNC: 
-     * Even if the user is a VENDOR, we default their view to CUSTOMER 
-     * in Redux so they land on the marketplace first.
-     */
-    dispatch(setViewMode("CUSTOMER"));
+    // Extract roles from session
+    const singleRole = session.user?.role; // admin role
+    const multiRoles = session.user?.roles; // customer/vendor roles
+    const highestRole = getHighestRole(singleRole, multiRoles);
 
-    // PRIORITY 1: Redirect back to the specific callback path
-    if (callbackUrl) {
-      window.location.href = callbackUrl;
-      return;
+    // Set Redux view mode
+    if (highestRole === "SUPER_ADMIN" || highestRole === "ADMIN") dispatch(setViewMode("ADMIN"));
+    else if (highestRole === "VENDOR") dispatch(setViewMode("VENDOR"));
+    else dispatch(setViewMode("CUSTOMER"));
+
+    // Define allowed landing paths
+    const allowedLanding: Record<string, string> = {
+      SUPER_ADMIN: "/dashboard/admins",
+      ADMIN: "/dashboard/admins",
+      VENDOR: "/account/vendor",
+      CUSTOMER: "/account/customer",
+    };
+
+    // Determine final redirect path
+    let redirectPath = allowedLanding[highestRole];
+    if (callbackUrl && callbackUrl.startsWith(allowedLanding[highestRole])) {
+      redirectPath = callbackUrl; // allow callback only if it matches allowed landing
     }
 
-    // PRIORITY 2: Role-based dashboard redirect (Fallback)
-    const userRole = session?.user?.role?.toUpperCase();
-
-    /**
-     * ADJUSTED REDIRECT LOGIC:
-     * To ensure dual-account users land as customers first:
-     * - Admins go to Admin Dashboard.
-     * - Everyone else (Vendor/Customer) goes to Home (/) to browse first.
-     */
-    if (userRole === "SUPER_ADMIN" || userRole === "ADMIN") {
-      router.push("/dashboard/admins");
-    } else {
-      // Vendors and Customers land on Home page by default
-      router.push("/");
-    }
+    setLoading(false);
+    router.push(redirectPath);
   };
-
-
   
-
   return (
     <div className="w-full max-w-[700px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
       
@@ -180,7 +181,7 @@ function SignInForm() {
           Google
         </button>
         <button 
-         onClick={() => signIn("facebook", { callbackUrl: searchParams.get("callbackUrl") || "/" })}
+          onClick={() => signIn("facebook", { callbackUrl: searchParams.get("callbackUrl") || "/" })}
           className="flex items-center justify-center gap-3 py-4 border-2 border-neutral-light rounded-2xl hover:border-blue-600 hover:bg-white transition-all font-bold text-accent-navy"
         >
           <Facebook size={20} className="text-blue-600 fill-blue-600" /> Facebook
@@ -193,58 +194,6 @@ function SignInForm() {
           Create Account
         </Link>
       </p>
-    </div>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <div className="min-h-screen flex bg-neutral-white font-sans">
-      
-      {/* LEFT SIDE: Brand Identity Sidebar */}
-      <div className="hidden lg:flex lg:w-[40%] bg-accent-navy p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-brand-primary/20 blur-[120px] rounded-full" />
-        
-        <div className="relative z-10">
-          <Link href="/" className="flex items-center gap-3">
-            <Image 
-              src="/logo.png" 
-              alt="MarvelMarts Logo" 
-              width={180} 
-              height={50} 
-              className="object-contain"
-              priority
-            />
-          </Link>
-        </div>
-
-        <div className="relative z-10">
-          <h2 className="text-5xl font-black text-white leading-[1.1] mb-8">
-            One MarketPlace. <br />
-            <span className="text-brand-primary">Infinite Possibilities.</span>
-          </h2>
-          
-          <ul className="space-y-4">
-            {['Premium Marketplace Access', 'Global Vendor Network', 'Priority User Support'].map((text) => (
-              <li key={text} className="flex items-center gap-3 text-brand-light font-medium">
-                <CheckCircle2 size={20} className="text-brand-primary" />
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="relative z-10 border-t border-white/10 pt-8 text-white/50 text-xs font-bold uppercase tracking-widest">
-          MarvelMarts International © {new Date().getFullYear()}
-        </div>
-      </div>
-
-      {/* RIGHT SIDE: Gateway */}
-      <div className="w-full lg:w-[60%] flex items-center justify-center p-6 md:p-12 lg:p-24 bg-[#F8F8F8]">
-        <Suspense fallback={<div className="animate-pulse text-accent-navy font-black">INITIALIZING GATEWAY...</div>}>
-          <SignInForm />
-        </Suspense>
-      </div>
     </div>
   );
 }

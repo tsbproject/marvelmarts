@@ -89,7 +89,7 @@ export async function POST(req: Request) {
                 state,
                 country,
                 isVerified: false, 
-                status: VendorStatus.PENDING,
+                status: VendorStatus.AWAITING_DOCUMENTS,
               },
               update: {
                 firstName,
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
                 storeAddress,
                 state,
                 country,
-                status: VendorStatus.PENDING, 
+               status: VendorStatus.AWAITING_DOCUMENTS,   
                 rejectionReason: null, 
               },
             },
