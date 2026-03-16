@@ -87,9 +87,10 @@ export async function PUT(
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const userRoles = session?.user?.roles || []; // Fallback to empty array
+const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("SUPER_ADMIN");
     
-    // Check ownership by comparing vendorProfile link (User ID check)
+// Check ownership by comparing vendorProfile link (User ID check)
     const vendorProfile = await prisma.vendorProfile.findUnique({
       where: { userId: session.user.id },
       select: { id: true }
@@ -153,7 +154,8 @@ export async function DELETE(
 
     if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+   const userRoles = session?.user?.roles || []; // Fallback to empty array
+   const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("SUPER_ADMIN");
     
     const vendorProfile = await prisma.vendorProfile.findUnique({
       where: { userId: session.user.id },

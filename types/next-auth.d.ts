@@ -6,6 +6,7 @@ declare module "next-auth" {
     user: {
       id: string;
       roles: UserRole;
+      role: UserRole;
       permissions: Record<string, boolean>;
      
       vendorStatus?: VendorStatus | null;
