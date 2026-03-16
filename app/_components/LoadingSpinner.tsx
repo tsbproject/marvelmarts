@@ -13,7 +13,7 @@ export default function LoadingSpinner() {
     >
       <div className="flex flex-col items-center space-y-6">
         {/* Dual Ring Spinner - Using Framer Motion for GPU acceleration */}
-        <div className="w-20 h-20 relative">
+        <div className="w-15 h-15 relative">
           {/* Outer Ring - Brand Navy */}
           <motion.div
             animate={{ rotate: 360 }}
