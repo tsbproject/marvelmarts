@@ -162,7 +162,7 @@ const isSuspended = vendorData.isSuspended;
                   </div>
                   <div className="flex items-center gap-4">
                       <Link
-                       href={`/store/${vendorData?.profile?.slug}`}  target="_blank" className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm">
+                       href={`/store/${vendorData?.store?.slug}`}  target="_blank" className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm">
                           <ExternalLink size={14} /> View Public Store
                       </Link>
                       <BusinessToggleAction />
