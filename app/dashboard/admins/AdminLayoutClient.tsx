@@ -201,8 +201,9 @@ export default function AdminLayoutClient({ user, children, todayRevenue = 0 }: 
           <DashboardSidebar 
             sections={sections} 
             role={isSuperAdmin ? "SUPER_ADMIN" : isAdmin ? "ADMIN" : "UNKNOWN"}
+            roles={user.roles} // Add this line!
             user={user}
-            permissions={permissions} // Pass for filtering inside Sidebar
+            permissions={permissions}
           />
         </div>
 
