@@ -142,6 +142,12 @@ interface AdminLayoutClientProps {
   user: any;
   children: React.ReactNode;
   todayRevenue?: number;
+
+
+  roles: string[];
+  role: string;
+  sections: any;
+
 }
 
 export default function AdminLayoutClient({ user, children, todayRevenue = 0 }: AdminLayoutClientProps) {
