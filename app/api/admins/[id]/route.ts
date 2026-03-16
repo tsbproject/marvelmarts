@@ -39,9 +39,18 @@ export async function GET(
       include: { adminProfile: true },
     });
 
-    if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-    }
+          // 1. Check if user exists
+        if (!user) {
+          return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        // 2. Check if the user has the right permissions
+        const userRole = user.role || "USER"; // Default to a safe low-level role
+        const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(userRole);
+
+        if (!isAdmin) {
+          return NextResponse.json({ error: "Access denied: Admins only" }, { status: 403 });
+        }
 
     return NextResponse.json({
       user: {
