@@ -369,7 +369,7 @@ export async function POST(request: NextRequest) {
 
     // ── Parse FormData ──────────────────────────────────────────────────────
     const formData = await request.formData();
-    console.log("[POST] FormData entries count:", formData.entries().length);
+    // console.log("[POST] FormData entries count:", formData.entries().length);
 
     const fields: Record<string, any> = {};
     const files: File[] = [];
