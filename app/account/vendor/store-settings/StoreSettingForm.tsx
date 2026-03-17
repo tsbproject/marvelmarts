@@ -85,53 +85,54 @@ useEffect(() => {
 
 
 
-  const handleSave = async () => {
-  setLoading(true);
+        const handleSave = async () => {
+          setLoading(true);
 
-  try {
-    const isBrandingComplete = !!(
-      formData.logoUrl &&
-      formData.coverUrl &&
-      formData.storeName &&
-      formData.slug
-    );
+          try {
+            const isBrandingComplete = !!(
+              formData.logoUrl &&
+              formData.coverUrl &&
+              formData.storeName &&
+              formData.slug
+            );
 
-    const isPayoutComplete = !!(
-      formData.bankName &&
-      formData.accountNumber.length >= 10 &&
-      formData.accountName
-    );
+            const isPayoutComplete = !!(
+              formData.bankName &&
+              formData.accountNumber.length >= 10 &&
+              formData.accountName
+            );
 
-    const payload = {
-      ...formData,
-      storeDone: isBrandingComplete,
-      payoutsDone: isPayoutComplete,
-    };
+            const payload = {
+              ...formData,
+              storeDone: isBrandingComplete,
+              payoutsDone: isPayoutComplete,
+            };
 
+            await dispatch(updateVendorSettings(payload)).unwrap();
 
+            console.log("Saved payload:", payload);
 
-    await dispatch(updateVendorSettings(payload)).unwrap();
+            if (isBrandingComplete && isPayoutComplete) {
+              confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ["#F7931E", "#002B5B"],
+              });
+            }
 
-    if (isBrandingComplete && isPayoutComplete) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#F7931E", "#002B5B"],
-      });
-    }
+            notifySuccess("All store settings updated!");
 
-    notifySuccess("All store settings updated!");
+            if (update) await update();
 
-    if (update) await update();
-
-    router.replace("/account/vendor");
-  } catch (err: any) {
-    notifyError(err?.message || "Update failed");
-  } finally {
-    setLoading(false);
-  }
-};
+            router.replace("/account/vendor");
+            router.refresh();
+          } catch (err: any) {
+            notifyError(err?.message || "Update failed");
+          } finally {
+            setLoading(false);
+          }
+        };
   // Progress Calculation
   const progress = (() => {
     let score = 0;

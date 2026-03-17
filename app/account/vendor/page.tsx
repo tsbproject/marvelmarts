@@ -60,7 +60,8 @@
         }
 
         // 3. ONBOARDING & COMPLETION FLAGS
-        const storeStepDone = !!(vendorData.storeDone && vendorData.store?.slug);
+
+              const storeStepDone = !!vendorData.storeDone;
               const payoutsStepDone = !!vendorData.payoutsDone;
               const productStepDone = vendorData.products.length > 0;
 
@@ -71,6 +72,28 @@
 
               const showOnboardingSteps = !onboardingComplete;
               const showPendingBanner = !onboardingComplete;
+
+
+              console.log("Dashboard flags:", {
+                storeDone: vendorData.storeDone,
+                payoutsDone: vendorData.payoutsDone,
+                storeSlug: vendorData.store?.slug,
+              });
+
+
+
+
+              // const storeStepDone = !!(vendorData.storeDone && vendorData.store?.slug);
+              // const payoutsStepDone = !!vendorData.payoutsDone;
+              // const productStepDone = vendorData.products.length > 0;
+
+              // const onboardingComplete =
+              //   storeStepDone &&
+              //   payoutsStepDone &&
+              //   productStepDone;
+
+              // const showOnboardingSteps = !onboardingComplete;
+              // const showPendingBanner = !onboardingComplete;
 
 
 // 3 Suspension check (DO NOT block dashboard)
