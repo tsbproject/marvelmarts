@@ -19,7 +19,8 @@ export const useAuthSync = () => {
         onboarding: {
           profileDone: !!session.user.name,
           storeDone: !!session.user.vendorStatus,
-          productDone: true, // or dynamic based on session
+          productDone: true, 
+          payoutsDone: !!session.user.vendorProfileId,
         }
       }));
     }
