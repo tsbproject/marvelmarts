@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       roles: UserRole;
       role: UserRole;
+     
       permissions: Record<string, boolean>;
      
       vendorStatus?: VendorStatus | null;
@@ -30,6 +31,10 @@ declare module "next-auth" {
 
      user: {
       id: string;
+      email: string;
+      roles: UserRole[];
+      permissions: any;
+      role: UserRole;
       role: "VENDOR" | "ADMIN" | "SUPER_ADMIN" | "CUSTOMER";
     } & DefaultSession["user"];
   }
