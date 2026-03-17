@@ -287,37 +287,39 @@ const isSuspended = vendorData.isSuspended;
               <div className="space-y-8"> 
                 {showOnboardingSteps && (
                   <div className="bg-brand-primary p-8 rounded-[2.5rem] shadow-2xl animate-in zoom-in duration-500 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <div className="absolute top-0 right-0 mt-8 p-4 opacity-10">
                         <ShieldAlert size={80} />
                     </div>
-                    <h3 className="text-sm font-black text-accent-navy uppercase mb-6 flex items-center gap-2 relative z-10">
+                    <h3 className="text-sm font-black text-accent-navy uppercase mb-6 flex items-center gap-10 relative z-10">
                       <AlertCircle size={18} className="text-red-700" /> Pending store setup
                     </h3>
-                    <OnboardingStep
-                        label="KYC Verification"
-                        done={true}
-                        href="/account/vendor/verification"
-                        dark
-                      />
-                      <OnboardingStep
-                        label="Store Branding"
-                        done={storeStepDone}
-                        href="/account/vendor/store-settings"
-                        dark
-                      />
-                      <OnboardingStep
-                        label="Payout Setup"
-                        done={payoutsStepDone}
-                        href="/account/vendor/store-settings"
-                        dark
-                      />
-                      <OnboardingStep
-                        label="Product Launch"
-                        done={productStepDone}
-                        href="/account/vendor/products/new"
-                        dark
-                      />
-                                          </div>
+                    <div className="flex flex-col space-y-5 relative z-10">
+                              <OnboardingStep 
+                                label="KYC Verification"
+                                done={true}
+                                href="/account/vendor/verification"
+                                dark
+                              />
+                              <OnboardingStep
+                                label="Store Branding"
+                                done={storeStepDone}
+                                href="/account/vendor/store-settings"
+                                dark
+                              />
+                              <OnboardingStep
+                                label="Payout Setup"
+                                done={payoutsStepDone}
+                                href="/account/vendor/store-settings"
+                                dark
+                              />
+                              <OnboardingStep
+                                label="Product Launch"
+                                done={productStepDone}
+                                href="/account/vendor/products/new"
+                                dark
+                              />
+                            </div>
+                                            </div>
                    )}
 
                 <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">

@@ -1,4 +1,5 @@
 // @/types/dashboard.ts
+import { ReactNode } from "react";
 
 export interface SectionLink {
   label: string;
