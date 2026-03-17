@@ -16,9 +16,9 @@ export async function requireRole(req: Request, allowedRoles: AllowedRole[]) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!allowedRoles.includes(session.user.role)) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
-  }
+if (!allowedRoles.includes(session.user.role as AllowedRole)) {
+  return NextResponse.json({ error: "Access denied" }, { status: 403 });
+}
 
   return session;
 }
