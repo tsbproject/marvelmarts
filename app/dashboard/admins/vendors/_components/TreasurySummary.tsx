@@ -7,7 +7,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { RootState } from "@/store";
-import { Payout } from "@/store/vendorSlice"; 
+import { Payout } from "@prisma/client";
 import { Calendar, TrendingUp, PieChart } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 

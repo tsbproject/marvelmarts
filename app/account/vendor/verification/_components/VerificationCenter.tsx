@@ -25,6 +25,8 @@ interface Props {
   profileData?: VendorProfileData; 
 }
 
+type StepId = "IDENTITY" | "BUSINESS" | "LOCATION";
+
 function VerificationCenterContent({ vendorProfileId, currentStatus, profileData }: Props) {
   const { notifySuccess, notifyError } = useNotification();
   const router = useRouter();
@@ -36,116 +38,153 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
   const { update } = useSession();
   const uploadsLocked = isRedirecting || currentStatus === "APPROVED";
 
+  
+
+
+  const isApproved = currentStatus === "APPROVED";
+
+  const [uploadedSteps, setUploadedSteps] = useState<Partial<Record<StepId, boolean>>>({});
+
+  
   // Steps definition with memoization
-        const steps = useMemo(() => [
-        {
-          id: "IDENTITY",
-          title: "Identity Verification",
-          desc: "Upload Passport or Driver's License",
-          icon: (
-            <FileText
-              className={currentStatus === "REJECTED" ? "text-red-500" : "text-blue-500"}
-            />
-          ),
-          hasExistingDoc: !!profileData?.identityDoc,
-          isDone: currentStatus !== "REJECTED" && !!profileData?.identityDoc,
-          isRejected: currentStatus === "REJECTED",
-        },
-        {
-          id: "BUSINESS",
-          title: "Business Registration",
-          desc: "Upload CAC or Certificate of Incorporation",
-          icon: (
-            <Briefcase
-              className={currentStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}
-            />
-          ),
-          hasExistingDoc: !!profileData?.businessDoc,
-          isDone: currentStatus !== "REJECTED" && !!profileData?.businessDoc,
-          isRejected: currentStatus === "REJECTED",
-        },
-        {
-          id: "LOCATION",
-          title: "Business Location",
-          desc: "Upload Utility Bill or Tenancy Agreement",
-          icon: (
-            <MapPin
-              className={currentStatus === "REJECTED" ? "text-red-500" : "text-green-500"}
-            />
-          ),
-          hasExistingDoc: !!profileData?.locationDoc,
-          isDone: currentStatus !== "REJECTED" && !!profileData?.locationDoc,
-          isRejected: currentStatus === "REJECTED",
-        },
-      ], [profileData, currentStatus]);
+      const steps = useMemo(
+                (): {
+                  id: StepId;
+                  title: string;
+                  desc: string;
+                  icon: React.ReactNode;
+                  hasExistingDoc: boolean;
+                  isDone: boolean;
+                  isRejected: boolean;
+                }[] => [
+              {
+                id: "IDENTITY",
+                title: "Identity Verification",
+                desc: "Upload Passport or Driver's License",
+                icon: (
+                  <FileText
+                    className={currentStatus === "REJECTED" ? "text-red-500" : "text-blue-500"}
+                  />
+                ),
+                hasExistingDoc: !!profileData?.identityDoc,
+                isDone:
+                  currentStatus === "REJECTED"
+                    ? !!uploadedSteps.IDENTITY
+                    : !!profileData?.identityDoc,
+                isRejected: currentStatus === "REJECTED",
+              },
+              {
+                id: "BUSINESS",
+                title: "Business Registration",
+                desc: "Upload CAC or Certificate of Incorporation",
+                icon: (
+                  <Briefcase
+                    className={currentStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}
+                  />
+                ),
+                hasExistingDoc: !!profileData?.businessDoc,
+                isDone:
+                  currentStatus === "REJECTED"
+                    ? !!uploadedSteps.BUSINESS
+                    : !!profileData?.businessDoc,
+                isRejected: currentStatus === "REJECTED",
+              },
+              {
+                id: "LOCATION",
+                title: "Business Location",
+                desc: "Upload Utility Bill or Tenancy Agreement",
+                icon: (
+                  <MapPin
+                    className={currentStatus === "REJECTED" ? "text-red-500" : "text-green-500"}
+                  />
+                ),
+                hasExistingDoc: !!profileData?.locationDoc,
+                isDone:
+                  currentStatus === "REJECTED"
+                    ? !!uploadedSteps.LOCATION
+                    : !!profileData?.locationDoc,
+                isRejected: currentStatus === "REJECTED",
+              },
+            ],
+            [profileData, currentStatus, uploadedSteps]
+          );
 
- 
-  
-  
-  
-  const triggerUpload = (stepId: string) => {
-    if (loading || isRedirecting) return;
-    setActiveStep(stepId);
-    fileInputRef.current?.click();
-  };
+          const triggerUpload = (stepId: StepId) => {
+              if (loading || isRedirecting) return;
+              setActiveStep(stepId);
+              fileInputRef.current?.click();
+            };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeStep || !vendorProfileId) return;
+          const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file || !activeStep || !vendorProfileId) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      notifyError("File too large (max 5MB)");
-      return;
-    }
+            if (file.size > 5 * 1024 * 1024) {
+              notifyError("File too large (max 5MB)");
+              return;
+            }
 
-    setLoading(activeStep);
+            setLoading(activeStep);
 
-    try {
-      const sigResult = await getCloudinarySignature("vendor-docs") as any;
-      if (!sigResult?.success) throw new Error("Signature failed");
+            try {
+              const sigResult = (await getCloudinarySignature("vendor-docs")) as any;
+              if (!sigResult?.success) throw new Error("Signature failed");
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", sigResult.apiKey);
-      formData.append("timestamp", sigResult.timestamp.toString());
-      formData.append("signature", sigResult.signature);
-      formData.append("folder", "vendor-docs");
+              const formData = new FormData();
+              formData.append("file", file);
+              formData.append("api_key", sigResult.apiKey);
+              formData.append("timestamp", sigResult.timestamp.toString());
+              formData.append("signature", sigResult.signature);
+              formData.append("folder", "vendor-docs");
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sigResult.cloudName}/image/upload`,
-        { method: "POST", body: formData }
-      );
-      const uploadData = await uploadRes.json();
+              const uploadRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${sigResult.cloudName}/image/upload`,
+                { method: "POST", body: formData }
+              );
+              const uploadData = await uploadRes.json();
 
-     const dbResult = await submitVendorDocs(
-      vendorProfileId, 
-      uploadData.secure_url, 
-      activeStep as "IDENTITY" | "BUSINESS" | "LOCATION"
-    );
+              const uploadedStep = activeStep;
 
-      if (dbResult?.success) {
-        notifySuccess("Upload successful!");
+              const dbResult = await submitVendorDocs(
+                vendorProfileId,
+                uploadData.secure_url,
+                uploadedStep
+              );
 
-        if (dbResult?.allDocsSubmitted || dbResult?.verificationStatus === "PENDING_REVIEW") {
-          setIsRedirecting(true);
+              if (dbResult?.success) {
+                setUploadedSteps((prev) => ({
+                  ...prev,
+                  [uploadedStep]: true,
+                }));
 
-          setTimeout(async () => {
-            try { await update(); } 
-            catch (err) { console.error("Session update failed:", err); }
-            router.push("/account/vendor/verification"); 
-          }, 1500);
-        } else {
-          router.refresh();
-        }
-      }
-    } catch (error: any) {
-      notifyError(error.message || "Upload failed");
-    } finally {
-      setLoading(null);
-      setActiveStep(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+                notifySuccess("Upload successful!");
+
+                if (
+                  dbResult?.allDocsSubmitted ||
+                  dbResult?.verificationStatus === "PENDING_REVIEW"
+                ) {
+                  setIsRedirecting(true);
+
+                  setTimeout(async () => {
+                    try {
+                      await update();
+                    } catch (err) {
+                      console.error("Session update failed:", err);
+                    }
+                    router.push("/account/vendor/verification");
+                  }, 1500);
+                }
+              } else {
+                notifyError(dbResult?.error || "Upload failed");
+              }
+            } catch (error: any) {
+              notifyError(error.message || "Upload failed");
+            } finally {
+              setLoading(null);
+              setActiveStep(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }
+          };
 
   return (
     <div className="relative">
@@ -200,10 +239,10 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
               <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
                 <StatusBadge
                     status={
-                      step.isRejected
-                        ? "REJECTED"
-                        : step.isDone
+                      step.isDone
                         ? "PENDING"
+                        : currentStatus === "REJECTED"
+                        ? "REJECTED"
                         : currentStatus
                     }
                   />
@@ -211,7 +250,8 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                   <button 
                     onClick={() => triggerUpload(step.id)}
                   
-                    disabled={!!loading || uploadsLocked}
+                    // disabled={!!loading || uploadsLocked}
+                   disabled={!!loading || step.isDone || isRedirecting || isApproved}
                    
                     className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
                       step.isDone 
@@ -221,26 +261,27 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                         : "bg-accent-navy text-white hover:bg-brand-primary hover:text-accent-navy"
                     }`}
                   >
-                    {loading === step.id ? (
+                   {loading === step.id ? (
                       <span className="flex items-center gap-2">
                         <Loader2 size={18} className="animate-spin" />
                         Uploading...
                       </span>
                     ) : step.isDone ? (
-                        <span className="flex items-center gap-2">
-                          <CheckCircle size={18} />
-                          Uploaded
-                        </span>
-                      ) : (
-                        <>
-                          {step.isRejected
-                            ? step.hasExistingDoc
-                              ? "Replace Document"
-                              : "Re-upload Now"
-                            : "Upload Now"}
-                          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </>
-                      )}
+                      <span className="flex items-center gap-2">
+                        <CheckCircle size={18} />
+                        Uploaded
+                      </span>
+                    ) : (
+                      <>
+                        {currentStatus === "REJECTED"
+                          ? step.hasExistingDoc
+                            ? "Replace Document"
+                            : "Re-upload Now"
+                          : "Upload Now"}
+                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                                      
                   </button>
                 )}
               </div>
