@@ -374,12 +374,6 @@ export async function PATCH(req: Request) {
   } catch (error: any) {
     console.error("PATCH Error:", error);
 
-  //   console.log("PATCH result flags:", {
-  //   storeDone: result?.storeDone,
-  //   payoutsDone: result?.payoutsDone,
-  //   storeSlug: result?.store?.slug,
-  //   storeName: result?.store?.name,
-  // });
 
 
     return NextResponse.json({ message: "Failed to save settings" }, { status: 500 });

@@ -48,12 +48,7 @@
           }
         });
 
-        console.log("Dashboard vendorData:", {
-          storeDone: vendorData.storeDone,
-          payoutsDone: vendorData.payoutsDone,
-          storeSlug: vendorData.store?.slug,
-          storeName: vendorData.store?.name,
-        });
+      
 
         if (!vendorData) redirect("/auth/register/vendor-registration");
 
