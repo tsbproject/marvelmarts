@@ -142,6 +142,7 @@ interface AdminLayoutClientProps {
   user: any;
   children: React.ReactNode;
   todayRevenue?: number;
+  permissions?: Record<string, boolean>;
 
 
   roles: string[];
