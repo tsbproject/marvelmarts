@@ -65,14 +65,17 @@ export async function PATCH(req: NextRequest) {
           break;
 
         case "REJECT":
-          dataUpdate = { 
-            status: VendorStatus.REJECTED,
-            isVerified: false, 
-            isSuspended: false,
-            rejectionReason: reason || "Your documents could not be verified. Please re-upload clear copies." 
-          };
-          onboardingUpdate = { completed: false, profileDone: true, storeDone: false };
-          break;
+            dataUpdate = { 
+              status: VendorStatus.REJECTED,
+              isVerified: false,
+              isSuspended: false,
+              rejectionReason: reason || "Your documents could not be verified. Please re-upload clear copies.",
+              identityDoc: null,
+              businessDoc: null,
+              locationDoc: null,
+            };
+            onboardingUpdate = { completed: false, profileDone: true, storeDone: false };
+            break;
 
         case "SUSPEND":
           dataUpdate = { isSuspended: true };

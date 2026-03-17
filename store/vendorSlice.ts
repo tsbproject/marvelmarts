@@ -579,17 +579,29 @@ interface PayoutPayload {
   accountName: string;
 }
 
-interface VendorProfile {
-  id: string;
+export interface AdminVendor {
+   id: string;
   userId: string;
   storeName: string;
-  status: VerificationStatus | "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED";
   isSuspended: boolean;
   logoUrl?: string;
   coverUrl?: string;
+  bio?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  instagram?: string;
+  whatsapp?: string;
+  twitter?: string;
   user: {
-    [key: string]: any;
+    email: string;
+    name: string;
   };
+  identityDoc?: string;
+  businessDoc?: string;
+  locationDoc?: string;
+  verificationDoc?: string;
 }
 
 interface VendorState {
@@ -609,7 +621,7 @@ interface VendorState {
   selectedOrder: any | null;
 
   // Admin Management Fields
-  vendors: VendorProfile[];
+  vendors: AdminVendor[];
   searchQuery: string;
   statusFilter: string;
   currentPage: number;
@@ -1069,6 +1081,7 @@ export const {
   setSearchQuery,
   setCurrentPage,
   setStatusFilter,
+  
 } = vendorSlice.actions;
 
 export default vendorSlice.reducer;

@@ -1,8 +1,3 @@
-
-
-
-
-
 "use server";
 
 import { prisma } from "@/app/lib/prisma";
@@ -58,12 +53,15 @@ export async function submitVendorDocs(
 
     // 4. Handle Status Transition to PENDING_REVIEW
     if (hasAllDocs && (vendor.status === VendorStatus.PENDING || vendor.status === VendorStatus.REJECTED)) {
-      const updatedVendor = await prisma.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: { status: VendorStatus.PENDING_REVIEW },
-      });
-      finalStatus = updatedVendor.status;
-
+        const updatedVendor = await prisma.vendorProfile.update({
+          where: { id: vendorProfileId },
+          data: {
+            status: VendorStatus.PENDING_REVIEW,
+            rejectionReason: null,
+          },
+        });
+        finalStatus = updatedVendor.status;
+      
       // 5. Send Email (Explicitly awaited to ensure execution)
       try {
         console.log(`[submitVendorDocs] Attempting to send review email to: ${vendor.user.email}`);

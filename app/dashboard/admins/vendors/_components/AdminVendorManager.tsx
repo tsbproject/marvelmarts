@@ -558,6 +558,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useNotification } from "@/app/_context/NotificationContext";
+import type { AdminVendor, VerificationStatus } from "@/store/vendorSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -567,39 +568,17 @@ import {
   setCurrentPage,
   setStatusFilter,
 } from "@/store/vendorSlice";
+import { Admin } from "@/types/admin";
 
 
-type VendorWithUser = VendorProfile & {
+type VendorWithUser = AdminVendor & {
   user: {
     name: string | null;
     email: string | null;
   };
 };
 
-interface VendorProfile {
-  id: string;
-  userId: string;
-  storeName: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  isSuspended: boolean;
-  logoUrl?: string;
-  coverUrl?: string;
-  bio?: string;
-  bankName?: string;
-  accountNumber?: string;
-  accountName?: string;
-  instagram?: string;
-  whatsapp?: string;
-  twitter?: string;
-  user: {
-    email: string;
-    name: string;
-  };
-  identityDoc?: string;
-  businessDoc?: string;
-  locationDoc?: string;
-  verificationDoc?: string;
-}
+
 
 const itemsPerPage = 10;
 
@@ -613,11 +592,11 @@ export default function AdminVendorManager() {
 
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
-  const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<AdminVendor | null>(null);
 
   const [enforcementModal, setEnforcementModal] = useState<{
     isOpen: boolean;
-    vendor: VendorProfile | null;
+    vendor: AdminVendor | null;
     action: "SUSPEND" | "RESTORE" | null;
   }>({
     isOpen: false,
@@ -627,7 +606,7 @@ export default function AdminVendorManager() {
 
   const [enforcementReason, setEnforcementReason] = useState("");
 
-  const filteredVendors = vendors.filter((v: VendorProfile) => {
+  const filteredVendors = vendors.filter((v: AdminVendor) => {
     const query = searchQuery.toLowerCase();
 
     const matchesSearch =
@@ -650,6 +629,7 @@ export default function AdminVendorManager() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentVendors = filteredVendors.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
+
 
   async function fetchVendors() {
     try {
@@ -705,13 +685,15 @@ export default function AdminVendorManager() {
         return;
       }
 
-      dispatch(
-        updateVendorStatusInStore({
-          vendorProfileId,
-          status: data.vendor?.status,
-          isSuspended: data.vendor?.isSuspended,
-        })
-      );
+     if (data.vendor) {
+  dispatch(
+    updateVendorStatusInStore({
+      vendorProfileId: data.vendor.id, 
+      status: data.vendor.status,
+      isSuspended: data.vendor.isSuspended,
+    })
+  );
+}
 
       notifySuccess(`Vendor ${action.toLowerCase()} successful`);
 
@@ -860,7 +842,7 @@ export default function AdminVendorManager() {
                   </td>
                 </tr>
               ) : (
-                currentVendors.map((vendor: VendorProfile) => (
+                currentVendors.map((vendor: AdminVendor) => (
                   <tr key={vendor.id} className="group hover:bg-gray-50/20 transition-colors">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">

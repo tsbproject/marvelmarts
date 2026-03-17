@@ -37,7 +37,7 @@ export function RejectedView({ reason, email }: RejectedViewProps) {
 
       <div className="flex flex-col sm:flex-row gap-4 w-full">
         <button
-          onClick={() => router.push("/auth/register/vendor-registration")}
+          onClick={() => router.push("/account/vendor/verification")}
           className="flex-[2] py-5 bg-[#002B5B] text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#002B5B]/20"
         >
           Fix & Resubmit <ArrowRight size={20} />

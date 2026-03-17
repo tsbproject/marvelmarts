@@ -34,35 +34,55 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { update } = useSession();
+  const uploadsLocked = isRedirecting || currentStatus === "APPROVED";
 
   // Steps definition with memoization
-  const steps = useMemo(() => [
-    { 
-      id: "IDENTITY", 
-      title: "Identity Verification", 
-      desc: "Upload Passport or Driver's License", 
-      icon: <FileText className={currentStatus === "REJECTED" && !profileData?.identityDoc ? "text-red-500" : "text-blue-500"} />,
-      isDone: !!profileData?.identityDoc,
-      isRejected: currentStatus === "REJECTED" && !profileData?.identityDoc 
-    },
-    { 
-      id: "BUSINESS", 
-      title: "Business Registration", 
-      desc: "Upload CAC or Certificate of Incorporation", 
-      icon: <Briefcase className={currentStatus === "REJECTED" && !profileData?.businessDoc ? "text-red-500" : "text-orange-500"} />,
-      isDone: !!profileData?.businessDoc,
-      isRejected: currentStatus === "REJECTED" && !profileData?.businessDoc
-    },
-    { 
-      id: "LOCATION", 
-      title: "Business Location", 
-      desc: "Upload Utility Bill or Tenancy Agreement", 
-      icon: <MapPin className={currentStatus === "REJECTED" && !profileData?.locationDoc ? "text-red-500" : "text-green-500"} />,
-      isDone: !!profileData?.locationDoc,
-      isRejected: currentStatus === "REJECTED" && !profileData?.locationDoc
-    }
-  ], [profileData, currentStatus]);
+        const steps = useMemo(() => [
+        {
+          id: "IDENTITY",
+          title: "Identity Verification",
+          desc: "Upload Passport or Driver's License",
+          icon: (
+            <FileText
+              className={currentStatus === "REJECTED" ? "text-red-500" : "text-blue-500"}
+            />
+          ),
+          hasExistingDoc: !!profileData?.identityDoc,
+          isDone: currentStatus !== "REJECTED" && !!profileData?.identityDoc,
+          isRejected: currentStatus === "REJECTED",
+        },
+        {
+          id: "BUSINESS",
+          title: "Business Registration",
+          desc: "Upload CAC or Certificate of Incorporation",
+          icon: (
+            <Briefcase
+              className={currentStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}
+            />
+          ),
+          hasExistingDoc: !!profileData?.businessDoc,
+          isDone: currentStatus !== "REJECTED" && !!profileData?.businessDoc,
+          isRejected: currentStatus === "REJECTED",
+        },
+        {
+          id: "LOCATION",
+          title: "Business Location",
+          desc: "Upload Utility Bill or Tenancy Agreement",
+          icon: (
+            <MapPin
+              className={currentStatus === "REJECTED" ? "text-red-500" : "text-green-500"}
+            />
+          ),
+          hasExistingDoc: !!profileData?.locationDoc,
+          isDone: currentStatus !== "REJECTED" && !!profileData?.locationDoc,
+          isRejected: currentStatus === "REJECTED",
+        },
+      ], [profileData, currentStatus]);
 
+ 
+  
+  
+  
   const triggerUpload = (stepId: string) => {
     if (loading || isRedirecting) return;
     setActiveStep(stepId);
@@ -170,7 +190,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                   {step.isDone ? <CheckCircle className="text-green-500" size={32} /> : step.icon}
                 </div>
                 <div>
-                  <h3 className={`text-xl font-black uppercase italic ${step.isRejected ? "text-red-600" : "text-accent-navy"}`}>
+                  <h3 className={`text-md font-black uppercase italic ${step.isRejected ? "text-red-600" : "text-accent-navy"}`}>
                     {step.title} {step.isRejected && " (Action Required)"}
                   </h3>
                   <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{step.desc}</p>
@@ -178,13 +198,22 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
               </div>
 
               <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
-                <StatusBadge status={step.isDone ? "PENDING" : (step.isRejected ? "REJECTED" : currentStatus)} />
-                
+                <StatusBadge
+                    status={
+                      step.isRejected
+                        ? "REJECTED"
+                        : step.isDone
+                        ? "PENDING"
+                        : currentStatus
+                    }
+                  />
                 {currentStatus !== "APPROVED" && (
                   <button 
                     onClick={() => triggerUpload(step.id)}
-                    disabled={!!loading || step.isDone || isRedirecting}
-                    className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-[0.15em] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
+                  
+                    disabled={!!loading || uploadsLocked}
+                   
+                    className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
                       step.isDone 
                         ? "bg-green-100 text-green-600 shadow-none cursor-default" 
                         : step.isRejected 
@@ -198,13 +227,20 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                         Uploading...
                       </span>
                     ) : step.isDone ? (
-                      <span className="flex items-center gap-2"><CheckCircle size={18} />Uploaded</span>
-                    ) : (
-                      <>
-                        {step.isRejected ? "Re-upload Now" : "Upload Now"}
-                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
+                        <span className="flex items-center gap-2">
+                          <CheckCircle size={18} />
+                          Uploaded
+                        </span>
+                      ) : (
+                        <>
+                          {step.isRejected
+                            ? step.hasExistingDoc
+                              ? "Replace Document"
+                              : "Re-upload Now"
+                            : "Upload Now"}
+                          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
                   </button>
                 )}
               </div>
