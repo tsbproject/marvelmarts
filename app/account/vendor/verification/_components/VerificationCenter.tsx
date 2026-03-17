@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 
 type VerificationStatus = "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED" | "PENDING_REVIEW";
 
+type StepId = "IDENTITY" | "BUSINESS" | "LOCATION";
+
 interface VendorProfileData {
   identityDoc?: string | null;
   businessDoc?: string | null;
@@ -25,7 +27,7 @@ interface Props {
   profileData?: VendorProfileData; 
 }
 
-type StepId = "IDENTITY" | "BUSINESS" | "LOCATION";
+
 
 function VerificationCenterContent({ vendorProfileId, currentStatus, profileData }: Props) {
   const { notifySuccess, notifyError } = useNotification();
@@ -33,10 +35,11 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState<string | null>(null);
-  const [activeStep, setActiveStep] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState<StepId | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { update } = useSession();
   const uploadsLocked = isRedirecting || currentStatus === "APPROVED";
+
 
   
 

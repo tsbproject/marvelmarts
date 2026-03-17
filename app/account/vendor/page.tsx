@@ -25,6 +25,7 @@
 
   export default async function VendorDashboardPage() {
     const session = await getServerSession(authOptions);
+    
 
     // 1. Ensure user is logged in and role is allowed
     if (!session || !(["VENDOR", "ADMIN", "SUPER_ADMIN"] as string[]).includes(session.user.role as string)) {
@@ -59,28 +60,17 @@
         }
 
         // 3. ONBOARDING & COMPLETION FLAGS
-        const storeStepDone = !!(
-  vendorData.logoUrl &&
-  vendorData.coverUrl &&
-  vendorData.store?.name &&
-  vendorData.store?.slug
-);
+        const storeStepDone = !!(vendorData.storeDone && vendorData.store?.slug);
+              const payoutsStepDone = !!vendorData.payoutsDone;
+              const productStepDone = vendorData.products.length > 0;
 
-const payoutsStepDone = !!(
-  vendorData.bankName &&
-  vendorData.accountNumber &&
-  vendorData.accountName
-);
+              const onboardingComplete =
+                storeStepDone &&
+                payoutsStepDone &&
+                productStepDone;
 
-const productStepDone = vendorData.products.length > 0;
-
-const onboardingComplete =
-  storeStepDone &&
-  payoutsStepDone &&
-  productStepDone;
-
-const showOnboardingSteps = !onboardingComplete;
-const showPendingBanner = !onboardingComplete;
+              const showOnboardingSteps = !onboardingComplete;
+              const showPendingBanner = !onboardingComplete;
 
 
 // 3 Suspension check (DO NOT block dashboard)
@@ -88,23 +78,7 @@ const isSuspended = vendorData.isSuspended;
 
 
 
-      //  const storeStepDone = !!(vendorData.storeDone && vendorData.store?.slug);
      
-      //   const productStepDone = vendorData.products.length > 0;
-      //   const payoutsDone = !!vendorData.payoutsDone;
-
-          // const storeStepDone = !!(vendorData.storeDone && vendorData.store?.slug);
-          // const payoutsStepDone = !!vendorData.payoutsDone;
-          // const productStepDone = vendorData.products.length > 0;
-
-          // const onboardingComplete =
-          //   storeStepDone &&
-          //   payoutsStepDone &&
-          //   productStepDone;
-
-// const showOnboardingSteps = !onboardingComplete;
-// const showPendingBanner = !onboardingComplete;
-
        
         
         

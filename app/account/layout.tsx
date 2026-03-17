@@ -7,6 +7,7 @@ import { useDispatch } from "react-redux";
 import { setVendorData } from "@/store/vendorSlice";
 import DashboardSidebar from "@/app/_components/DashboardSidebar";
 import MobileTopbar from "@/app/_components/MobileTopbar";
+import { fetchVendorProfile } from "@/store/vendorSlice";
 import { RejectedView } from "@/app/_components/RejectedView";
 import SuspensionBanner from "@/app/_components/SuspensionBanner";
 import {
@@ -22,6 +23,7 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
+import { UserRole } from "@prisma/client";
 
 // ── Dashboard Menu Configuration ──
 const DASHBOARD_CONFIG = {
@@ -61,39 +63,52 @@ export default function UnifiedAccountLayout({ children }: { children: React.Rea
   const { data: session, status: authStatus, update } = useSession();
   const initialSyncDone = useRef(false);
 
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [pathname]);
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.push("/auth/sign-in");
-    }
-  }, [authStatus, router]);
+      
 
-  useEffect(() => {
-    if (authStatus === "authenticated" && session?.user) {
-      dispatch(
-        setVendorData({
-          profile: session.user,
-          onboarding: {
-            profileDone: !!session.user.name,
-            storeDone: !!session.user.vendorStatus,
-            productDone: true,
-            payoutsDone: true,
-          },
-          balance: Number(session.user.balance || 0),
-        })
-      );
+      
+      
+      useEffect(() => {
+        setIsSidebarOpen(false);
+      }, [pathname]);
 
-      if (!initialSyncDone.current) {
-        initialSyncDone.current = true;
-        update().catch((err) => console.error("Session Update Failed:", err));
-      }
-    }
-  }, [session?.user?.id, authStatus, dispatch, update]);
+      useEffect(() => {
+        if (authStatus === "authenticated" && session?.user) {
+          dispatch(
+            setVendorData({
+              profile: session.user,
+              onboarding: {
+                profileDone: false,
+                storeDone: false,
+                productDone: false,
+                payoutsDone: false,
+              },
+              balance: Number(session.user.balance || 0),
+            })
+          );
+
+          if (!initialSyncDone.current) {
+            initialSyncDone.current = true;
+            update().catch((err) => console.error("Session Update Failed:", err));
+          }
+        }
+      }, [session?.user?.id, authStatus, dispatch, update]);
+
+
+      
 
   const userRole = session?.user?.role;
+
+   useEffect(() => {
+        if (authStatus === "authenticated" && session?.user && userRole === "VENDOR") {
+          dispatch(fetchVendorProfile() as any);
+        }
+      }, [authStatus, session?.user?.id, userRole, dispatch]);
+
+
+
+
+
   const isVendorZone = pathname.includes("/account/vendor");
   const activeZone: "VENDOR" | "CUSTOMER" = isVendorZone ? "VENDOR" : "CUSTOMER";
 
