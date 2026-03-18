@@ -12,34 +12,75 @@ import BusinessToggleAction from "./_components/BusinessToggleAction";
 
 
 export default async function CustomerDashboardPage() {
-  
   const session = await getServerSession(authOptions);
 
   if (!session) return null;
 
-  const rawOrders = await prisma.order.findMany({
+  const [rawOrders, wishlistItems] = await Promise.all([
+  prisma.order.findMany({
     where: { userId: session.user.id },
     take: 5,
-    orderBy: { createdAt: 'desc' }
-  });
+    orderBy: { createdAt: "desc" },
+  }),
+  prisma.wishlist.findMany({
+    where: { userId: session.user.id },
+    select: { id: true },
+  }),
+]);
 
-  // Check if the user has a Vendor role
-  const isActualVendor = session.user.role === "VENDOR" || session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 
-  // 1. Fetch real dynamic data from the database
-  const recentOrders = rawOrders.map(order => ({
-      ...order,
-      subtotal: Number(order.subtotal),
-      shipping: Number(order.shipping),
-      tax: Number(order.tax),
-      total: Number(order.total),
-      createdAt: order.createdAt.toISOString(),
-    }));
+
+const wishlistCount = wishlistItems.length;
+  const isActualVendor =
+    session.user.role === "VENDOR" ||
+    session.user.role === "ADMIN" ||
+    session.user.role === "SUPER_ADMIN";
+
+
+ console.log(
+  "CUSTOMER DASHBOARD WISHLIST DEBUG:",
+  JSON.stringify(
+    {
+      sessionUserId: session.user.id,
+      wishlistCount,
+      wishlistItems,
+    },
+    null,
+    2
+  )
+);
+
+  const recentOrders = rawOrders.map((order) => ({
+    ...order,
+    subtotal: Number(order.subtotal),
+    shipping: Number(order.shipping),
+    tax: Number(order.tax),
+    total: Number(order.total),
+    createdAt: order.createdAt.toISOString(),
+  }));
 
   const actions = [
-    { label: "My Orders", value: `${recentOrders.length} placed`, icon: <Package className="text-brand-primary" />, href: "/account/customer/orders", color: "bg-brand-light" },
-    { label: "Wishlist", value: "View Favorites", icon: <Heart className="text-brand-primary" />, href: "/account/customer/wishlist", color: "bg-brand-light" },
-    { label: "Account Details", value: "Update Profile", icon: <User className="text-brand-primary" />, href: "/account/customer/profile", color: "bg-brand-light" },
+    {
+      label: "My Orders",
+      value: `${recentOrders.length} placed`,
+      icon: <Package className="text-brand-primary" />,
+      href: "/account/customer/orders",
+      color: "bg-brand-light",
+    },
+    {
+      label: "Wishlist",
+      value: `${wishlistCount} saved`,
+      icon: <Heart className="text-brand-primary" />,
+      href: "/account/customer/wishlist",
+      color: "bg-brand-light",
+    },
+    {
+      label: "Account Details",
+      value: "Update Profile",
+      icon: <User className="text-brand-primary" />,
+      href: "/account/customer/profile",
+      color: "bg-brand-light",
+    },
   ];
 
   return (

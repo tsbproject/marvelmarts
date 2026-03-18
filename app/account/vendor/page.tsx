@@ -147,25 +147,30 @@ const isSuspended = vendorData.isSuspended;
             <div className="p-4 lg:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
               
               {/* HEADER */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-end gap-6">
                   <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-accent-navy rounded-3xl flex items-center justify-center text-brand-primary shadow-2xl">
-                          <Store size={32} />
-                      </div>
-                      <div>
-                          <h1 className="text-md font-black text-accent-navy uppercase tracking-tighter italic leading-none">
-                              {vendorData.store?.name || "Merchant"}<span className="text-brand-primary">.</span>
-                          </h1>
-                          <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mt-2">SID: {vendorData.id.slice(-8).toUpperCase()}</p>
-                      </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                      <Link
-                       href={`/store/${vendorData?.store?.slug}`}  target="_blank" className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm">
-                          <ExternalLink size={14} /> View Public Store
+
+                     <Link
+                        href="/account/vendor/products/new"
+                        className="flex items-center gap-2 px-6 py-4 bg-brand-primary text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:scale-[1.02] transition-all"
+                      >
+                        <Plus size={14} />
+                        Add Product
                       </Link>
-                      <BusinessToggleAction />
-                  </div>
+
+
+                     
+                      <Link
+                        href={`/store/${vendorData?.store?.slug}`}
+                        target="_blank"
+                        className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm"
+                      >
+                        <ExternalLink size={14} />
+                        View Public Store
+                      </Link>
+                        <BusinessToggleAction />
+
+                    </div>
               </div>
 
               {/* ONBOARDING BANNER */}

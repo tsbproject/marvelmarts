@@ -5,9 +5,16 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  console.log("WISHLIST POST SESSION USER:", session?.user?.id);
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { productId } = await req.json();
+
+  console.log("WISHLIST POST PRODUCT:", productId);
 
   const existing = await prisma.wishlist.findUnique({
     where: { userId_productId: { userId: session.user.id, productId } },
@@ -15,11 +22,15 @@ export async function POST(req: Request) {
 
   if (existing) {
     await prisma.wishlist.delete({ where: { id: existing.id } });
+    console.log("WISHLIST REMOVED:", existing.id);
     return NextResponse.json({ action: "removed" });
   }
 
-  await prisma.wishlist.create({
+  const created = await prisma.wishlist.create({
     data: { userId: session.user.id, productId },
   });
+
+  console.log("WISHLIST ADDED:", created);
+
   return NextResponse.json({ action: "added" });
 }

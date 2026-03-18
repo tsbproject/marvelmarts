@@ -44,7 +44,7 @@ export default function WishlistPage() {
 
     vendorProfile: {
     storeName: "Vendor",
-    isVerified: false, // Move it here
+    isVerified: false, 
   }
     };
     dispatch(addToCart({ 
@@ -83,7 +83,7 @@ export default function WishlistPage() {
           <Heart size={40} />
         </div>
         <h1 className="text-4xl font-black italic uppercase text-slate-900 tracking-tighter mb-4 text-center">
-          Your Stash is <span className="text-blue-600">Empty</span>
+          Your Cart is <span className="text-blue-600">Empty</span>
         </h1>
         <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mb-10 text-center">
           You haven&apos;t marked any tactical gear yet.

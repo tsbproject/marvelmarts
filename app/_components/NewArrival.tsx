@@ -31,11 +31,11 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
     <section className="py-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-neutral-light pb-8 gap-4">
         <div>
-          <h2 className="text-4xl md:text-5xl font-black italic text-accent-navy uppercase tracking-tighter">
+          <h2 className="text-md md:text-xl font-black italic text-accent-navy uppercase tracking-tighter">
             New <span className="text-brand-primary">Arrivals</span>
           </h2>
           <p className="text-xs font-bold text-neutral-gray uppercase tracking-[0.3em] mt-2">
-            The Latest Deployments to the Stash
+            The Latest Deployments to the Harmory
           </p>
         </div>
         

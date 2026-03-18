@@ -43,7 +43,7 @@ export default function CartPage() {
             </Link>
             <div className="flex items-center gap-4">
               <ShoppingBag className="w-12 h-12 text-brand-primary" />
-              <h1 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-accent-navy leading-none">
+              <h1 className="text-lg md:text-3xl font-black italic uppercase tracking-tighter text-accent-navy leading-none">
                 Your <span className="text-brand-primary">Order</span>
               </h1>
             </div>
@@ -78,7 +78,7 @@ export default function CartPage() {
                   {/* Thumbnail */}
                   <div className="relative w-full sm:w-32 h-32 bg-neutral-light rounded-[1.5rem] overflow-hidden flex-shrink-0 border border-neutral-light">
                     <Image
-                      src={item.imageUrl || "/logo.png"}
+                      src={item.imageUrl || "/placeholder-product.png"}
                       alt={item.title}
                       fill
                       sizes="128px"
@@ -90,7 +90,7 @@ export default function CartPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <Link href={`/products/${item.slug}`}>
-                          <h3 className="text-xl font-black italic uppercase text-accent-navy hover:text-brand-primary transition-colors leading-tight">
+                          <h3 className="text-lg font-black italic uppercase text-accent-navy hover:text-brand-primary transition-colors leading-tight">
                             {item.title}
                           </h3>
                         </Link>
@@ -126,7 +126,7 @@ export default function CartPage() {
                       
                       <div className="text-right">
                         <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest mb-1">Unit Price: ₦{item.price.toLocaleString()}</p>
-                        <span className="text-xl font-black text-accent-navy italic">
+                        <span className="text-lg font-black text-accent-navy italic">
                           ₦{(item.price * item.quantity).toLocaleString()}
                         </span>
                       </div>
@@ -141,8 +141,8 @@ export default function CartPage() {
               <div className="bg-accent-navy rounded-[2.5rem] p-8 sticky top-24 text-neutral-white shadow-2xl overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-3xl -mr-16 -mt-16" />
                 
-                <h2 className="text-2xl font-black italic uppercase mb-8 border-b border-neutral-white/10 pb-4 relative z-10">
-                  Intel <span className="text-brand-primary">Summary</span>
+                <h2 className="text-xl font-black italic uppercase mb-8 border-b border-neutral-white/10 pb-4 relative z-10">
+                  Order <span className="text-brand-primary">Summary</span>
                 </h2>
                 
                 <div className="space-y-4 mb-8 relative z-10">
@@ -158,8 +158,8 @@ export default function CartPage() {
 
                 <div className="border-t border-neutral-white/10 pt-6 mb-8 flex justify-between items-end relative z-10">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Total Investment</span>
-                    <div className="text-4xl font-black italic leading-none mt-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Total Spent</span>
+                    <div className="text-lg font-black italic leading-none mt-1">
                       ₦{subtotal.toLocaleString()}
                     </div>
                   </div>

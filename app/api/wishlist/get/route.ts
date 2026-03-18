@@ -20,11 +20,12 @@ export async function GET() {
 
   // Format to match your WishlistItem interface
   const formatted = wishlistItems.map((item) => ({
-    id: item.product.id,
-    title: item.product.title,
+    id: item.id,
+    productId: item.product.id,
+    name: item.product.title,
     slug: item.product.slug,
     price: Number(item.product.price),
-    imageUrl: item.product.images[0]?.url || "/logo.png",
+    image: item.product.images[0]?.url || "/placeholder-product.png",
   }));
 
   return NextResponse.json(formatted);
