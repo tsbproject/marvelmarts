@@ -65,41 +65,36 @@ export default function UnifiedAccountLayout({ children }: { children: React.Rea
 
 
       
+                     useEffect(() => {
+                        setIsSidebarOpen(false);
+                      }, [pathname]);
+
+                      
+                      useEffect(() => {
+                        if (authStatus === "authenticated" && session?.user) {
+                          dispatch(
+                            setVendorData({
+                              profile: session.user,
+                              onboarding: {
+                                profileDone: false,
+                                storeDone: false,
+                                productDone: false,
+                                payoutsDone: false,
+                              },
+                              balance: 0
+                            })
+                          );
+
+                        
+                        }
+                      }, [authStatus, session?.user, dispatch]);
+
 
       
-      
+
+          const userRole = session?.user?.role;
+
       useEffect(() => {
-        setIsSidebarOpen(false);
-      }, [pathname]);
-
-      useEffect(() => {
-        if (authStatus === "authenticated" && session?.user) {
-          dispatch(
-            setVendorData({
-              profile: session.user,
-              onboarding: {
-                profileDone: false,
-                storeDone: false,
-                productDone: false,
-                payoutsDone: false,
-              },
-              balance: Number(session.user.balance || 0),
-            })
-          );
-
-          if (!initialSyncDone.current) {
-            initialSyncDone.current = true;
-            update().catch((err) => console.error("Session Update Failed:", err));
-          }
-        }
-      }, [session?.user?.id, authStatus, dispatch, update]);
-
-
-      
-
-  const userRole = session?.user?.role;
-
-   useEffect(() => {
         if (authStatus === "authenticated" && session?.user && userRole === "VENDOR") {
           dispatch(fetchVendorProfile() as any);
         }

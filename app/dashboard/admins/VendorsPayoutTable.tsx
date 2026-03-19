@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { CheckCircle2, XCircle, Banknote, User, Copy } from "lucide-react";
 import { RootState } from "@/store";
-import { processAdminPayout } from "@/store/vendorSlice";
+import { fetchAdminPayouts, processAdminPayout } from "@/store/vendorSlice";
 import { formatNaira } from "@/app/lib/FormatNaira";
 
 interface PayoutRequest {
@@ -39,45 +39,76 @@ class VendorsPayoutTableClass extends Component<VendorsPayoutProps> {
     this.props.notifySuccess(`${label.toUpperCase()} COPIED!`);
   };
 
-  handleAction = async (requestId: string, vendor: string, amount: number, action: "APPROVED" | "REJECTED") => {
-    const { notifySuccess, notifyError, dispatch } = this.props;
+      state = {
+        processingId: null as string | null,
+      };
 
-    // 1. Handle Remarks for Rejection
-    const remarks = action === "REJECTED" 
-      ? prompt(`Enter reason for rejecting ${vendor}'s payout of ${formatNaira(amount)}:`) 
+
+
+  handleAction = async (
+  requestId: string,
+  vendor: string,
+  amount: number,
+  action: "APPROVED" | "REJECTED"
+) => {
+  const { notifySuccess, notifyError, dispatch } = this.props;
+
+  if (this.state.processingId === requestId) return;
+
+  const remarks =
+    action === "REJECTED"
+      ? prompt(`Enter reason for rejecting ${vendor}'s payout of ${formatNaira(amount)}:`)
       : "Processed by Admin";
-    
-    if (action === "REJECTED" && remarks === null) return;
-    if (action === "REJECTED" && (!remarks || remarks.trim() === "")) {
-        return notifyError("A reason is required for rejection.");
-      }
 
-    try {
-      const res = await fetch(`/api/admins/payouts/${requestId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: action, remarks }),
-      });
+  if (action === "REJECTED" && remarks === null) return;
 
-      const data = await res.json();
+  if (action === "REJECTED" && (!remarks || remarks.trim() === "")) {
+    return notifyError("A reason is required for rejection.");
+  }
 
-      if (res.ok) {
-        if (action === "APPROVED") {
-          notifySuccess(`PAYOUT OF ${formatNaira(amount)} FOR ${vendor} APPROVED!`);
-        } else {
-          notifyError(`PAYOUT FOR ${vendor} REJECTED.`);
-        }
-        
-        dispatch(processAdminPayout({ requestId, 
-          action,
-           remarks: remarks || undefined  }));
+  this.setState({ processingId: requestId });
+
+  try {
+    const res = await fetch(`/api/admins/payouts/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: action, remarks }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      if (action === "APPROVED") {
+        notifySuccess(`PAYOUT OF ${formatNaira(amount)} FOR ${vendor} APPROVED!`);
       } else {
-        notifyError(data.error || "Failed to process payout.");
+        notifySuccess(`PAYOUT FOR ${vendor} REJECTED SUCCESSFULLY.`);
       }
-    } catch (err) {
-      notifyError("Connection error. Please try again.");
+
+      dispatch(
+        processAdminPayout({
+          requestId,
+          action,
+          remarks: remarks || undefined,
+        })
+      );
+
+      dispatch(fetchAdminPayouts());
+      return;
     }
-  };
+
+    if (res.status === 409) {
+      notifyError(data.error || "This payout has already been processed.");
+      dispatch(fetchAdminPayouts());
+      return;
+    }
+
+    notifyError(data.error || "Failed to process payout.");
+  } catch (err) {
+    notifyError("Connection error. Please try again.");
+  } finally {
+    this.setState({ processingId: null });
+  }
+};
 
   render() {
     const { payouts, loading } = this.props;
@@ -146,19 +177,22 @@ class VendorsPayoutTableClass extends Component<VendorsPayoutProps> {
                     <td className="p-5 px-8">
                       <div className="flex items-center justify-end gap-3">
                         <button
-                          disabled={loading || !request.accountNumber}
-                          onClick={() => this.handleAction(request.id, request.name, request.amount, "APPROVED")}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20 hover:scale-105 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100"
-                        >
-                          <CheckCircle2 size={14} /> Approve
-                        </button>
-                        <button
-                          disabled={loading}
-                          onClick={() => this.handleAction(request.id, request.name, request.amount, "REJECTED")}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-600/20 hover:scale-105 transition-all disabled:opacity-50"
-                        >
-                          <XCircle size={14} /> Reject
-                        </button>
+                            disabled={loading || this.state.processingId === request.id || !request.accountNumber}
+                            onClick={() => this.handleAction(request.id, request.name, request.amount, "APPROVED")}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20 hover:scale-105 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100"
+                          >
+                            <CheckCircle2 size={14} />
+                            {this.state.processingId === request.id ? "Processing..." : "Approve"}
+                          </button>
+
+                          <button
+                            disabled={loading || this.state.processingId === request.id}
+                            onClick={() => this.handleAction(request.id, request.name, request.amount, "REJECTED")}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-600/20 hover:scale-105 transition-all disabled:opacity-50"
+                          >
+                            <XCircle size={14} />
+                            {this.state.processingId === request.id ? "Processing..." : "Reject"}
+                          </button>
                       </div>
                     </td>
                   </tr>

@@ -37,18 +37,6 @@ const wishlistCount = wishlistItems.length;
     session.user.role === "SUPER_ADMIN";
 
 
- console.log(
-  "CUSTOMER DASHBOARD WISHLIST DEBUG:",
-  JSON.stringify(
-    {
-      sessionUserId: session.user.id,
-      wishlistCount,
-      wishlistItems,
-    },
-    null,
-    2
-  )
-);
 
   const recentOrders = rawOrders.map((order) => ({
     ...order,

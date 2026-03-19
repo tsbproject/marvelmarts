@@ -342,8 +342,11 @@ const vendorSlice = createSlice({
         ...state.onboarding,
         ...action.payload.onboarding,
       };
-
-      state.balance = Number(action.payload.balance || 0);
+        
+      if (typeof action.payload.balance === "number") {
+            state.balance = Number(action.payload.balance);
+          }
+      // state.balance = Number(action.payload.balance || 0);
 
       if (action.payload.lastSyncedAt) {
         state.lastSyncedAt = action.payload.lastSyncedAt;
