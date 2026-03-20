@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           sendAdminOrderNotification(updatedOrder)
         ]);
 
-        console.log("✅ All notifications sent successfully");
+        console.log(" All notifications sent successfully");
       } catch (mailErr: any) {
         // We log the error but allow the response to succeed since the DB is updated
         console.error("⚠️ Email dispatch failed:", mailErr.message);

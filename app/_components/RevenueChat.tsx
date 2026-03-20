@@ -141,6 +141,7 @@
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+
 import {
   XAxis,
   YAxis,
@@ -151,13 +152,14 @@ import {
   AreaChart,
 } from "recharts";
 
-interface RevenueChartPoint {
+// Matches the chartData shape already prepared in your dashboard page
+interface ChartDataPoint {
   date: string;
   amount: number;
 }
 
 interface RevenueChartProps {
-  data: RevenueChartPoint[];
+  data: ChartDataPoint[];
 }
 
 export default function RevenueChart({ data }: RevenueChartProps) {
@@ -167,8 +169,6 @@ export default function RevenueChart({ data }: RevenueChartProps) {
       compactDisplay: "short",
     }).format(value);
   };
-
-  
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -196,7 +196,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
             Revenue Pulse
           </h3>
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            Last 30 Days Performance
+            Last 7 Days Performance
           </p>
         </div>
         <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">

@@ -139,26 +139,29 @@ model VendorStore {
 }
 
 model VendorBoost {
-  id              String        @id @default(cuid())
-  vendorProfileId String        @unique
-  credits         Int           @default(0)
-  createdAt       DateTime      @default(now())
-  plan            BoostPlan     @default(FREE)
-  updatedAt       DateTime      @default(now()) @updatedAt
-  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  id                  String        @id @default(cuid())
+  vendorProfileId     String        @unique
+  credits             Int           @default(0)
+  plan                BoostPlan     @default(FREE)
+  lowCreditAlertSent  Boolean       @default(false)
+  exhaustedAlertSent  Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @default(now()) @updatedAt
+  vendorProfile       VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 
 model CreditTransaction {
   id              String        @id @default(cuid())
   reference       String        @unique
   amount          Int
-  platform        String
-  status          String        @default("SUCCESS")
   vendorProfileId String
+  status          String
+  platform        String
+  emailSent       Boolean       @default(false)
+  emailSentAt     DateTime?
   createdAt       DateTime      @default(now())
-  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
-
 model VendorScore {
   id              String        @id @default(cuid())
   vendorProfileId String        @unique

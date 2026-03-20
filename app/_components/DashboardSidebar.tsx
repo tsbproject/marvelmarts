@@ -105,7 +105,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
       const management: EnhancedLink[] = [
         { label: "Store Orders", href: "/account/vendor/orders", icon: <ShoppingCart size={20} />, visible: true },
         { label: "Store Settings", href: "/account/vendor/store-settings", icon: <Settings size={20} />, visible: true },
-        { label: "Withdraw Request", href: "/account/vendor/payouts", icon: <Settings size={20} />, visible: true },
+        { label: "Wallet and Payout", href: "/account/vendor/payouts", icon: <Settings size={20} />, visible: true },
         { label: "Live Chat", href: "/account/vendor/messages", icon: <MessageCircle size={20} />, visible: true },
       ];
 

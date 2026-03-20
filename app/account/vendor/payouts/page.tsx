@@ -126,8 +126,8 @@ export default function VendorPayoutsPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter italic text-accent-navy text-[#001f41]">
-            FINANCIAL<span className="text-[#002B5B]">DASHBOARD</span>
+          <h1 className="text-sm md:text-4xl font-black uppercase tracking-tighter italic text--accent-navy text-[#001f41]">
+            FINANCIAL <span className="text-brand-primary">DASHBOARD</span>
           </h1>
           <p className="text-[10px] font-black text-neutral-gray uppercase tracking-[0.3em] mt-1 bg-white w-fit px-2 py-1 rounded border border-gray-100">
             Earnings & Withdrawals
@@ -166,7 +166,7 @@ export default function VendorPayoutsPage() {
                   )}
                 </div>
 
-                <h2 className="text-5xl font-black mt-2 tracking-tighter">
+                <h2 className="text-sm md:text-3xl font-black mt-2 tracking-tighter">
                   {formatNaira(balance)}
                 </h2>
               </div>

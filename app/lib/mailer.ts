@@ -357,7 +357,7 @@ export async function sendVendorActionEmail({
       }
     </p>
     
-    <a href="https://marvelmarts.vercel.app/dashboard" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+    <a href="https://marvelmarts.vercel.app/account/vendore" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
       ${isRestore ? "Access My Store" : "Open My Dashboard"}
     </a>
   `;
@@ -536,5 +536,106 @@ export async function sendVendorReviewEmail({
       content,
       "Your vendor verification documents are currently under review"
     )
+  });
+}
+
+
+
+
+//VENDOR'S BOOST CREDIT PURCHASE EMAIL
+
+export async function sendVendorCreditPurchaseEmail({
+  email,
+  firstName,
+  storeName,
+  amountAdded,
+  newBalance,
+}: {
+  email: string;
+  firstName: string;
+  storeName: string;
+  amountAdded: number;
+  newBalance: number;
+}) {
+  const content = `
+    <h2 style="color: ${COLORS.navy};">Credits Added Successfully, ${firstName}!</h2>
+    <p>Your store <strong>${storeName}</strong> has been credited successfully.</p>
+    <p><strong>Credits added:</strong> ${amountAdded}</p>
+    <p><strong>New balance:</strong> ${newBalance}</p>
+    <p>You can now use your credits to boost your products and improve visibility on MarvelMarts.</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${BASE_URL}/account/vendor" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "MarvelMarts: Boost Credits Added Successfully",
+    html: wrapLayout(content, "Your boost credit purchase was successful"),
+  });
+}
+
+
+//VENDOR'S BOOST LOW CREDIT EMAIL
+
+export async function sendVendorLowCreditsEmail({
+  email,
+  firstName,
+  storeName,
+  currentBalance,
+}: {
+  email: string;
+  firstName: string;
+  storeName: string;
+  currentBalance: number;
+}) {
+  const content = `
+    <h2 style="color: ${COLORS.orange};">Low Boost Credit Balance</h2>
+    <p>Hello ${firstName},</p>
+    <p>Your store <strong>${storeName}</strong> is running low on boost credits.</p>
+    <div style="background-color: #fffaf0; border-left: 4px solid ${COLORS.orange}; padding: 15px; margin: 20px 0;">
+      <strong>Current balance:</strong> ${currentBalance}
+    </div>
+    <p>Top up your credits to continue boosting your products and keeping them visible to buyers.</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${BASE_URL}/account/vendor/credits" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Buy More Credits</a>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "MarvelMarts: Your Boost Credits Are Running Low",
+    html: wrapLayout(content, "Your boost credits are running low"),
+  });
+}
+
+
+//VENDOR'S BOOST CREDIT EXHAUSTION EMAIL
+
+export async function sendVendorExhaustedCreditsEmail({
+  email,
+  firstName,
+  storeName,
+}: {
+  email: string;
+  firstName: string;
+  storeName: string;
+}) {
+  const content = `
+    <h2 style="color: ${COLORS.red}; text-transform: uppercase;">Boost Credits Exhausted</h2>
+    <p>Hello ${firstName},</p>
+    <p>Your store <strong>${storeName}</strong> has exhausted its boost credits.</p>
+    <div style="background-color: #fff5f5; border-left: 4px solid ${COLORS.red}; padding: 15px; margin: 20px 0;">
+      <strong>Action needed:</strong> Purchase more credits to continue boosting your products.
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${BASE_URL}/account/vendor/credits" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Buy Credits Now</a>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "MarvelMarts: Your Boost Credits Have Been Exhausted",
+    html: wrapLayout(content, "Your boost credits have been exhausted"),
   });
 }

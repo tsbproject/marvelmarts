@@ -43,7 +43,7 @@ const DASHBOARD_CONFIG = {
     Management: [
       { label: "Dashboard", href: "/account/vendor/", icon: <LayoutDashboard size={16} /> },
       { label: "My Products", href: "/account/vendor/products", icon: <Package size={16} /> },
-      { label: "Settings", href: "/account/vendor/settings", icon: <Settings size={16} /> },
+      { label: "Settings", href: "/account/vendor/store-settings", icon: <Settings size={16} /> },
       { label: "Live Chat", href: "/account/vendor/messages", icon: <ChartArea size={16} /> },
     ],
     Finances: [

@@ -9,10 +9,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Eye, ShoppingCart, Heart, Edit3,
-  Rocket, Store, CheckCircle2
+  Rocket, Store, CheckCircle2, Zap
 } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
+import{ getDaysRemaining } from "@/app/lib/utils/boost-utils"
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/store/cartSlice";
 import { toggleWishlist } from "@/store/wishlistSlice";
@@ -22,13 +23,18 @@ import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 import { toggleProductStatus } from "@/app/lib/actions/product-actions";
 import Link from "next/link";
 
+
 interface ProductCardProps {
   product: SerializedProduct;
   onQuickView?: (p: SerializedProduct) => void;
   onViewDetails?: () => void;
   viewMode?: "grid" | "list";
   isOwner?: boolean;
+  
 }
+
+
+
 
 export default function ProductCard({
   product,
@@ -136,6 +142,13 @@ export default function ProductCard({
 
   const isList = viewMode === "list";
 
+
+  // 2. USE THE IMPORTED UTILITY
+  // Temporary fix to stop the red error
+  const daysLeft = getDaysRemaining((product as any).boostUntil);
+  // const daysLeft = getDaysRemaining(product.boostUntil);
+  const isBoosted = daysLeft > 0;
+
   return (
     <div
       onClick={() => {
@@ -153,6 +166,13 @@ export default function ProductCard({
       {discountPercentage && !isOwner && (
         <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-[9px] font-black w-9 h-9 flex items-center justify-center rounded-full shadow-lg uppercase tracking-tighter">
           -{discountPercentage}%
+        </div>
+      )}
+
+      {isOwner && isBoosted && (
+        <div className="absolute top-4 right-4 z-20 bg-[#F7931E] text-[#002B5B] text-[8px] font-black w-9 h-9 flex flex-col items-center justify-center rounded-full shadow-lg uppercase tracking-tighter border border-white/20 animate-in zoom-in duration-300">
+          <Zap size={10} fill="currentColor" className="animate-pulse mb-[1px]" />
+          <span>{daysLeft}D</span>
         </div>
       )}
 
@@ -183,7 +203,8 @@ export default function ProductCard({
                 onClick={(e) => { e.stopPropagation(); }}
                 className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
               >
-                <Rocket size={12} className="text-orange-500" /> Boost
+                <Rocket size={12} className={isBoosted ? "text-green-500" : "text-[#F7931E]"} /> 
+                {isBoosted ? "Extend" : "Boost"}
               </button>
             </div>
           ) : (
@@ -210,6 +231,15 @@ export default function ProductCard({
 
       {/* Content Section */}
       <div className={`flex-1 flex flex-col w-full ${isList ? "text-left items-start py-1" : "text-center items-center mt-3 px-1"}`}>
+          
+          {/* SMALL TRENDING INDICATOR */}
+            {isOwner && isBoosted && (
+              <div className="flex items-center gap-1 mb-1 animate-pulse">
+                <span className="text-[7px] font-black text-green-600 uppercase tracking-widest italic">
+                  Trending Engine Active
+                </span>
+              </div>
+            )}
         
         {/* STORE & BRAND LINE */}
         <div className="flex items-center justify-center gap-2 mb-1 overflow-hidden w-full">

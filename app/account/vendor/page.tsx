@@ -98,14 +98,60 @@
         const monthStart = startOfMonth(new Date());
         const thirtyDaysAgo = subDays(today, 30);
 
-        const [liveProductsCount, newOrdersCount, todayRevenue, monthRevenue, unreadCount, rawRevenueData] = await Promise.all([
-          prisma.product.count({ where: { vendorProfileId: vendorData.id, isPublished: true } }),
-          prisma.order.count({ where: { vendorProfileId: vendorData.id, status: "PENDING" } }),
-          prisma.order.aggregate({ where: { vendorProfileId: vendorData.id, status: "APPROVED", createdAt: { gte: today } }, _sum: { total: true } }),
-          prisma.order.aggregate({ where: { vendorProfileId: vendorData.id, status: "APPROVED", createdAt: { gte: monthStart } }, _sum: { total: true } }),
-          prisma.message.count({ where: { conversation: { participantIds: { has: session.user.id } }, isRead: false, senderId: { not: session.user.id } } }),
-          prisma.order.findMany({ where: { vendorProfileId: vendorData.id, status: "APPROVED", createdAt: { gte: thirtyDaysAgo } }, select: { total: true, createdAt: true }, orderBy: { createdAt: 'asc' } })
-        ]);
+        const revenueStatuses = ["DELIVERED"];
+
+            const [
+              liveProductsCount,
+              newOrdersCount,
+              todayRevenue,
+              monthRevenue,
+              unreadCount,
+              rawRevenueData,
+            ] = await Promise.all([
+              prisma.product.count({
+                where: { vendorProfileId: vendorData.id, isPublished: true },
+              }),
+
+              prisma.order.count({
+                where: { vendorProfileId: vendorData.id, status: "PENDING" },
+              }),
+
+              prisma.order.aggregate({
+                where: {
+                  vendorProfileId: vendorData.id,
+                  status: { in: revenueStatuses },
+                  createdAt: { gte: today },
+                },
+                _sum: { total: true },
+              }),
+
+              prisma.order.aggregate({
+                where: {
+                  vendorProfileId: vendorData.id,
+                  status: { in: revenueStatuses },
+                  createdAt: { gte: monthStart },
+                },
+                _sum: { total: true },
+              }),
+
+              prisma.message.count({
+                where: {
+                  conversation: { participantIds: { has: session.user.id } },
+                  isRead: false,
+                  senderId: { not: session.user.id },
+                },
+              }),
+
+              prisma.order.findMany({
+                where: {
+                  vendorProfileId: vendorData.id,
+                  status: { in: revenueStatuses },
+                  createdAt: { gte: thirtyDaysAgo },
+                },
+                select: { total: true, createdAt: true },
+                orderBy: { createdAt: "asc" },
+              }),
+            ]);
 
         const dailyDataMap: Record<string, number> = {};
         for (let i = 0; i < 30; i++) dailyDataMap[format(subDays(today, i), 'MMM dd')] = 0;
@@ -114,7 +160,7 @@
           if (dailyDataMap[dateStr] !== undefined) dailyDataMap[dateStr] += Number(order.total || 0);
         });
         const chartData = Object.entries(dailyDataMap).map(([date, amount]) => ({ date, amount })).reverse();
-        const mappedProducts = vendorData.products.map(p => ({ ...p, imageUrl: p.images[0]?.url || '/logo.png' }));
+        const mappedProducts = vendorData.products.map(p => ({ ...p, imageUrl: p.images[0]?.url || '/placeholder-product.png' }));
 
         const stats = [
           { label: "Live Products", value: liveProductsCount, icon: <Package size={20}/>, color: "bg-blue-50 text-blue-600" },
@@ -130,25 +176,47 @@
               
               {/* HEADER */}
               <div className="flex flex-col md:flex-row md:items-center justify-end gap-6">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-center gap-4">
 
-                     <Link
-                        href="/account/vendor/products/new"
-                        className="flex items-center gap-2 px-6 py-4 bg-brand-primary text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:scale-[1.02] transition-all"
-                      >
-                        <Plus size={14} />
-                        Add Product
+
+                    <Link
+                          href="/account/vendor/products/new"
+                          className="
+                            flex items-center justify-center gap-1.5 xxs:gap-2 
+                            px-3 xxs:px-4 md:px-6 
+                            py-2 
+                            bg-brand-primary text-accent-navy 
+                            rounded-[1rem] xxs:rounded-2xl 
+                            font-black uppercase tracking-wider shadow-sm 
+                            hover:scale-[1.02] active:scale-95 transition-all
+                            /* Responsive Text Scaling */
+                            text-[8px] xxs:text-[9px] xs:text-[10px] md:text-xs
+                          "
+                        >
+                        <Plus size={14} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">Add Product</span>
                       </Link>
 
-
                      
+
                       <Link
                         href={`/store/${vendorData?.store?.slug}`}
                         target="_blank"
-                        className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-accent-navy rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm"
+                        className="
+                          flex items-center justify-center 
+                          gap-1.5 xxs:gap-2 
+                          px-3 xxs:px-4 md:px-6 
+                          py-3 xxs:py-4 
+                          bg-white border border-gray-100 text-accent-navy 
+                          rounded-2xl 
+                          font-black uppercase tracking-widest shadow-sm 
+                          hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-[0.98]
+                          /* Responsive Text Scaling */
+                          text-[8px] xxs:text-[9px] xs:text-[10px] md:text-xs
+                        "
                       >
-                        <ExternalLink size={14} />
-                        View Public Store
+                        <ExternalLink size={14} className="flex-shrink-0 opacity-60" />
+                        <span className="whitespace-nowrap">View Public Store</span>
                       </Link>
                         <BusinessToggleAction />
 
@@ -217,7 +285,7 @@
                 <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col h-[480px]">
                   <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h3 className="text-xl font-black text-accent-navy uppercase tracking-tight italic">Performance Graph</h3>
+                        <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">Performance Graph</h3>
                         <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">Revenue Flow (30 Days)</p>
                     </div>
                     <TrendingUp className="text-brand-primary" />
@@ -230,44 +298,73 @@
                   <div className="grid grid-cols-2 border-t border-gray-50 pt-8">
                     <div>
                       <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">Total Revenue Today</p>
-                      <p className="text-2xl font-black text-accent-navy italic">{formatNaira(Number(todayRevenue._sum.total || 0))}</p>
+                      <p className=" text-sm  md:text-xl font-black text-accent-navy italic">{formatNaira(Number(todayRevenue._sum.total || 0))}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">Monthly Revenue</p>
-                      <p className="text-2xl font-black text-brand-primary italic">{formatNaira(Number(monthRevenue._sum.total || 0))}</p>
+                      <p className="text-sm  md:text-xl font-black text-brand-primary italic">{formatNaira(Number(monthRevenue._sum.total || 0))}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-8">
-                      <h3 className="text-sm font-black text-accent-navy uppercase tracking-tight italic">Top Inventory</h3>
-                      <Link href="/account/vendor/products" className="text-[10px] font-black text-brand-primary uppercase underline italic tracking-widest">Manage All</Link>
-                    </div>
-                    <div className="space-y-4">
-                      {mappedProducts.length > 0 ? mappedProducts.map(product => (
-                        <div key={product.id} className="flex items-center gap-4 p-2 bg-gray-50/50 rounded-3xl group border border-transparent hover:border-brand-primary/20 hover:bg-white hover:shadow-xl transition-all duration-300">
-                          <div className="w-16 h-16 rounded-2xl bg-white overflow-hidden border border-gray-100 shrink-0 p-2">
-                            <img src={product.imageUrl} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt={product.title}/>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-black text-accent-navy uppercase truncate italic">{product.title}</p>
-                            <p className="text-[9px] font-black text-neutral-gray uppercase mt-1 italic tracking-tighter">
-                                Sales: {product.salesCount || 0} units <span className="mx-2 opacity-30">|</span> Stock: {product.stock || 0}
-                            </p>
-                          </div>
-                          <div className="text-right pr-2 space-y-2">
-                              <p className="font-black text-accent-navy text-sm italic tracking-tighter">
-                                {formatNaira(Number(product.price))}
-                              </p>
-                              <BoostButton productId={product.id} />
-                          </div>
-                        </div>
-                      )) : (
-                        <div className="py-20 text-center text-neutral-gray text-[10px] font-black uppercase border-2 border-dashed border-gray-100 rounded-[2rem] italic tracking-widest">No products detected in inventory</div>
-                      )}
+                <div className="bg-white p-5 xxs:p-6 md:p-8 rounded-[2rem] xxs:rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+  {/* Header: Responsive flex-row */}
+  <div className="flex flex-row justify-between items-center mb-6 xxs:mb-8 gap-2">
+    <h3 className="text-xs xxs:text-sm font-black text-accent-navy uppercase tracking-tight italic truncate">
+      Top Inventory
+    </h3>
+    <Link 
+      href="/account/vendor/products" 
+      className="shrink-0 text-[8px] xxs:text-[10px] font-black text-brand-primary uppercase underline italic tracking-widest"
+    >
+      Manage All
+    </Link>
+  </div>
+
+  <div className="space-y-3 xxs:space-y-4">
+    {mappedProducts.length > 0 ? mappedProducts.map(product => (
+      <div 
+        key={product.id} 
+        className="flex flex-col xs:flex-row items-start xs:items-center gap-3 xxs:gap-4 p-2 xxs:p-3 bg-gray-50/50 rounded-[1.5rem] xxs:rounded-3xl group border border-transparent hover:border-brand-primary/20 hover:bg-white hover:shadow-xl transition-all duration-300"
+      >
+        {/* Product Image: Fixed size but smaller on xxs */}
+        <div className="w-12 h-12 xxs:w-16 xxs:h-16 rounded-xl xxs:rounded-2xl bg-white overflow-hidden border border-gray-100 shrink-0 p-1.5 xxs:p-2 self-center xs:self-auto">
+          <img 
+            src={product.imageUrl} 
+            className="w-full h-full object-contain group-hover:scale-110 transition-transform" 
+            alt={product.title}
+          />
+        </div>
+
+                {/* Info Column: Flexible width */}
+                <div className="flex-1 min-w-0 w-full xs:w-auto text-center xs:text-left">
+                  <p className="text-xs xxs:text-sm font-black text-accent-navy uppercase truncate italic">
+                    {product.title}
+                  </p>
+                  <p className="text-[8px] xxs:text-[9px] font-black text-neutral-gray uppercase mt-1 italic tracking-tighter">
+                    Sales: {product.salesCount || 0} <span className="mx-1 opacity-30">|</span> Stock: {product.stock || 0}
+                  </p>
+                </div>
+
+                {/* Price & Action: Stacks nicely on xxs, side-by-side on xs */}
+                <div className="flex flex-row xs:flex-col items-center xs:items-end justify-between xs:justify-center w-full xs:w-auto border-t xs:border-t-0 border-gray-100 pt-2 xs:pt-0 pr-0 xs:pr-2 gap-2">
+                    <p className="font-black text-accent-navy text-xs xxs:text-sm italic tracking-tighter">
+                      {formatNaira(Number(product.price))}
+                    </p>
+                    <div className="scale-90 xxs:scale-100 origin-right">
+                      <BoostButton productId={product.id} />
                     </div>
                 </div>
+              </div>
+            )) : (
+              <div className="py-12 xxs:py-20 text-center text-neutral-gray text-[8px] xxs:text-[10px] font-black uppercase border-2 border-dashed border-gray-100 rounded-[2rem] italic tracking-widest px-4">
+                No products detected in inventory
+              </div>
+            )}
+          </div>
+        </div>
+              
+              
               </div>
 
               {/* SIDEBAR */}

@@ -4,99 +4,226 @@ import prisma from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
+import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
 
-const BOOST_COST = 5; 
-const BOOST_DURATION_DAYS = 7;
+const getBoostPlanDetails = (days: number) => {
+  switch (days) {
+    case 3:
+      return { cost: 15, duration: 3 };
+    case 7:
+      return { cost: 30, duration: 7 };
+    case 30:
+      return { cost: 100, duration: 30 };
+    default:
+      return { cost: days * 5, duration: days };
+  }
+};
 
-/**
- * 1. BOOST PRODUCT ACTION
- * Deducts credits from a vendor and applies a time-based boost to a product
- */
-export async function boostProduct(productId: string) {
+type BoostProductResult =
+  | { error: string }
+  | { success: true; newBalance: number; expiry: Date };
+
+
+
+export async function boostProduct(
+  productId: string,
+  requestedDays: number
+): Promise<BoostProductResult> {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user?.id) {
     return { error: "Unauthorized. Please log in." };
   }
 
+  const { cost, duration } = getBoostPlanDetails(requestedDays);
+
   try {
-    return await prisma.$transaction(async (tx) => {
-      // Find the Vendor Profile associated with the User
+    const result = await prisma.$transaction(async (tx) => {
       const vendorProfile = await tx.vendorProfile.findUnique({
         where: { userId: session.user.id },
-        select: { id: true }
+        select: { id: true },
       });
 
       if (!vendorProfile) {
         throw new Error("Vendor profile not found.");
       }
 
-      // Get the Vendor's Boost Wallet
       const vendorBoost = await tx.vendorBoost.findUnique({
-        where: { vendorProfileId: vendorProfile.id }
+        where: { vendorProfileId: vendorProfile.id },
+        select: {
+          id: true,
+          credits: true,
+          lowCreditAlertSent: true,
+          exhaustedAlertSent: true,
+        },
       });
 
-      if (!vendorBoost || vendorBoost.credits < BOOST_COST) {
-        throw new Error(`Insufficient credits. You need ${BOOST_COST} credits to boost.`);
+      if (!vendorBoost || vendorBoost.credits < cost) {
+        throw new Error(`Insufficient credits. You need ${cost} credits for this plan.`);
       }
 
-      // Calculate new expiry date
       const product = await tx.product.findUnique({
         where: { id: productId },
-        select: { boostUntil: true, vendorProfileId: true }
+        select: { boostUntil: true, vendorProfileId: true, title: true },
       });
 
-      if (!product) throw new Error("Product not found.");
-      
-      // Safety check: Ensure the vendor owns the product they are boosting
-      if (product.vendorProfileId !== vendorProfile.id) {
-        throw new Error("Unauthorized: You do not own this product.");
+      if (!product) {
+        throw new Error("Product not found.");
       }
 
-      const baseDate = (product.boostUntil && new Date(product.boostUntil) > new Date()) 
-        ? new Date(product.boostUntil) 
-        : new Date();
-      
-      const newBoostUntil = new Date(baseDate);
-      newBoostUntil.setDate(newBoostUntil.getDate() + BOOST_DURATION_DAYS);
+      if (product.vendorProfileId !== vendorProfile.id) {
+        throw new Error("Unauthorized: Ownership mismatch.");
+      }
 
-      // Deduct Credits
-      await tx.vendorBoost.update({
+      const now = new Date();
+      const baseDate =
+        product.boostUntil && new Date(product.boostUntil) > now
+          ? new Date(product.boostUntil)
+          : now;
+
+      const newBoostUntil = new Date(baseDate);
+      newBoostUntil.setDate(newBoostUntil.getDate() + duration);
+
+      const previousBalance = vendorBoost.credits;
+
+      const updatedBoost = await tx.vendorBoost.update({
         where: { id: vendorBoost.id },
-        data: { credits: { decrement: BOOST_COST } }
+        data: { credits: { decrement: cost } },
+        select: {
+          id: true,
+          credits: true,
+          lowCreditAlertSent: true,
+          exhaustedAlertSent: true,
+        },
       });
 
-      // Apply Boost to Product
       await tx.product.update({
         where: { id: productId },
-        data: { 
+        data: {
           boostUntil: newBoostUntil,
-          isTrending: true 
-        }
+          isTrending: true,
+        },
       });
 
-      revalidatePath("/account/vendor");
-      revalidatePath("/"); // Update homepage carousels
-      return { success: true };
+      await tx.creditTransaction.create({
+        data: {
+          reference: `USE_${productId}_${Date.now()}`,
+          amount: -cost,
+          vendorProfileId: vendorProfile.id,
+          status: "SUCCESS",
+          platform: "INTERNAL_BOOST",
+        },
+      });
+
+      const vendor = await tx.vendorProfile.findUnique({
+        where: { id: vendorProfile.id },
+        select: {
+          id: true,
+          storeName: true,
+          user: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true as const,
+        newBalance: updatedBoost.credits,
+        expiry: newBoostUntil,
+        previousBalance,
+        vendorProfileId: vendorProfile.id,
+        lowCreditAlertSent: updatedBoost.lowCreditAlertSent,
+        exhaustedAlertSent: updatedBoost.exhaustedAlertSent,
+        vendor,
+      };
     });
-  } catch (error: any) {
-    return { error: error.message || "An unexpected error occurred during boosting." };
+
+    revalidatePath("/account/vendor/products");
+    revalidatePath("/");
+    revalidatePath("/account/vendor");
+    revalidatePath("/account/vendor/credit-boost");
+
+    if (result.vendor?.user?.email) {
+      const crossedLowThreshold =
+        result.previousBalance > 10 &&
+        result.newBalance <= 10 &&
+        result.newBalance > 0;
+
+      const becameExhausted =
+        result.previousBalance > 0 &&
+        result.newBalance === 0;
+
+      if (becameExhausted && !result.exhaustedAlertSent) {
+        const { sendVendorExhaustedCreditsEmail } = await import(
+          "@/app/lib/mailer"
+        );
+
+        await sendVendorExhaustedCreditsEmail({
+          email: result.vendor.user.email,
+          firstName: result.vendor.user.name || "Vendor",
+          storeName:
+            result.vendor.storeName ||
+            result.vendor.user.name ||
+            "Your Store",
+        });
+
+        await prisma.vendorBoost.update({
+          where: { vendorProfileId: result.vendorProfileId },
+          data: {
+            exhaustedAlertSent: true,
+            lowCreditAlertSent: true,
+          },
+        });
+      } else if (crossedLowThreshold && !result.lowCreditAlertSent) {
+        const { sendVendorLowCreditsEmail } = await import(
+          "@/app/lib/mailer"
+        );
+
+        await sendVendorLowCreditsEmail({
+          email: result.vendor.user.email,
+          firstName: result.vendor.user.name || "Vendor",
+          storeName:
+            result.vendor.storeName ||
+            result.vendor.user.name ||
+            "Your Store",
+          currentBalance: result.newBalance,
+        });
+
+        await prisma.vendorBoost.update({
+          where: { vendorProfileId: result.vendorProfileId },
+          data: {
+            lowCreditAlertSent: true,
+          },
+        });
+      }
+    }
+
+    return {
+      success: true,
+      newBalance: result.newBalance,
+      expiry: result.expiry,
+    };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+
+    return { error: message };
   }
 }
 
-/**
- * 2. ADD CREDITS ACTION (With Security & History)
- * Fulfills a credit purchase and logs the transaction.
- */
+
+
 export async function addCreditsToVendor(
-  vendorProfileId: string, 
-  amount: number, 
+  vendorProfileId: string,
+  amount: number,
   reference: string
 ) {
   try {
-    // Check if this reference has already been used (Prevent double-claiming)
     const existingTransaction = await prisma.creditTransaction.findUnique({
-      where: { reference }
+      where: { reference },
     });
 
     if (existingTransaction) {
@@ -104,73 +231,84 @@ export async function addCreditsToVendor(
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Create a record of the transaction for billing history
       await tx.creditTransaction.create({
         data: {
           reference,
           amount,
           vendorProfileId,
           status: "SUCCESS",
-          platform: "PAYSTACK" // Or dynamic based on provider
-        }
+          platform: "PAYSTACK",
+          emailSent: false, 
+        },
       });
 
-      // Update the vendor's credit balance
-      return await tx.vendorBoost.update({
+      const updatedBoost = await tx.vendorBoost.update({
         where: { vendorProfileId },
         data: {
           credits: { increment: amount },
+          lowCreditAlertSent: false, 
+          exhaustedAlertSent: false, 
         },
       });
+
+      const vendor = await tx.vendorProfile.findUnique({
+        where: { id: vendorProfileId },
+        select: {
+          storeName: true,
+          user: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      return {
+        updatedBoost,
+        vendor,
+      };
     });
 
     revalidatePath("/account/vendor");
-    return { success: true, newBalance: result.credits };
-  } catch (error: any) {
+    revalidatePath("/account/vendor/credit-boost");
+
+    if (result.vendor?.user?.email) {
+      const { sendVendorCreditPurchaseEmail } = await import(
+        "@/app/lib/mailer"
+      );
+
+      await sendVendorCreditPurchaseEmail({
+        email: result.vendor.user.email,
+        firstName: result.vendor.user.name || "Vendor",
+        storeName:
+          result.vendor.storeName || result.vendor.user.name || "Your Store",
+        amountAdded: amount,
+        newBalance: result.updatedBoost.credits,
+      });
+
+      await prisma.creditTransaction.update({
+        where: { reference },
+        data: {
+          emailSent: true, 
+          emailSentAt: new Date(), 
+        },
+      });
+    }
+
+    return {
+      success: true,
+      newBalance: result.updatedBoost.credits,
+    };
+  } catch (error: unknown) {
     console.error("Credit Purchase Error:", error);
-    return { success: false, error: error.message || "Failed to update credits." };
-  }
-}
 
-/**
- * 3. GET TRANSACTION HISTORY
- * Fetches the credit purchase history for a specific vendor
- */
-export async function getTransactionHistory(vendorProfileId: string) {
-  try {
-    const transactions = await prisma.creditTransaction.findMany({
-      where: { vendorProfileId },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-    return { success: true, transactions };
-  } catch (error) {
-    return { success: false, error: "Failed to load transactions." };
-  }
-}
-
-/**
- * 4. CLEANUP ACTION
- * Resets isTrending for products where boostUntil has expired
- */
-export async function cleanupExpiredBoosts() {
-  const now = new Date();
-
-  try {
-    const result = await prisma.product.updateMany({
-      where: {
-        boostUntil: { lt: now },
-        isTrending: true,
-      },
-      data: {
-        isTrending: false,
-      },
-    });
-
-    revalidatePath("/");
-    return { success: true, count: result.count };
-  } catch (error) {
-    console.error("Cleanup Error:", error);
-    return { success: false, error: "Cleanup task failed." };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update credits.",
+    };
   }
 }

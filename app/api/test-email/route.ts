@@ -1,6 +1,6 @@
 // app/api/test-email/route.ts
 import { NextResponse } from "next/server";
-import { sendVendorStatusEmail } from "@/app/lib/mailer";
+import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
 
 export async function GET(req: Request) {
   try {
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     
     const testEmail = "tsbolarinwa@gmail.com"; 
 
-    await sendVendorStatusEmail({
+    await sendVendorCreditPurchaseEmail({
       email: testEmail,
       firstName: "Tayo",
       storeName: "Marvelmarts Premium Store",

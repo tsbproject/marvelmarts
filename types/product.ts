@@ -1,37 +1,4 @@
-// types/product.ts
-// 1. Define exactly what the Client Component expects
 
-
-// export interface SerializedProduct {
-//   id: string;
-//   slug: string;
-//   title: string;
-//   description: string;
-//   price: number;
-//   discountPrice: number | null;
-//   categoryName: string;
-//   images: { url: string }[];
-//   imageUrl: string;
-//   rating?: number;
-//   reviewCount?: number;
-//   stock: number;
-//   brand?: string | null;
-//   createdAt?: string; 
-//   updatedAt?: string;
-//   variantId?: string;
-//   isTrending?: boolean;
-//   isPublished: boolean;
-//   name       : string;
-//   storeName  : string;
-//   isVerified : boolean;
-//   vendorProfileId: string;
-//   vendorProfile:string;
-
- 
-
-
-
-// }
 
 
 
@@ -56,7 +23,7 @@ export interface SerializedProduct {
   variantId?: string;
   isTrending?: boolean;
   isPublished: boolean;
-  boostUntil?: string | null; 
+
   
   // Vendor-related data
   vendorProfileId: string;
@@ -73,4 +40,6 @@ export interface SerializedProduct {
 
   // Keep these if you flatten them during serialization on the server
   name: string; 
+
+  boostUntil?: string | Date | null;
 }
