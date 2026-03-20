@@ -10,13 +10,14 @@ export default function BoostButton({ productId }: { productId: string }) {
   const { notifyError, notifySuccess } = useNotification();
 
   const handleBoost = async () => {
-    setLoading(true);
-    try {
-      const res = await boostProduct(productId);
-      
-      if ("success" in res && res.success) {
-        // Using your custom notification helper as requested
-        notifySuccess("Product Boosted Successfully! -5 Credits");
+  setLoading(true);
+  try {
+    // 🚀 FIX: Pass the second argument (days). 
+    // If you have a state for selected days, use that. Otherwise, use a default like 7.
+    const res = await boostProduct(productId, 7); 
+    
+    if ("success" in res && res.success) {
+      notifySuccess("Product boosted successfully!");
       } else if ("error" in res) {
         // Handling the error case with your notification helper
         notifyError(res.error || "Failed to boost product");
