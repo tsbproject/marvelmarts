@@ -13,6 +13,8 @@ import Link from "next/link";
 import RevenueChart from "@/app/_components/RevenueChat";
 import OrderStatusBadge from "@/app/_components/admins/OrderStatusBadge";
 
+
+
 export default function DashboardOverview() {
   const dispatch = useDispatch();
 
@@ -74,6 +76,18 @@ export default function DashboardOverview() {
       .slice(0, 4);
   }, [orders]);
 
+  const revenueData = [
+  { month: "Jan", revenue: 4000 },
+  { month: "Feb", revenue: 3000 },
+  // ... more months
+];
+
+
+const chartData = [
+  { name: 'Jan', total: 0 },
+  { name: 'Feb', total: 0 },
+];
+
 
   return (
     <div className="space-y-8 pb-12">
@@ -92,7 +106,7 @@ export default function DashboardOverview() {
         <div className="grid grid-cols-1 gap-8 mt-8">
           {/* Added a height wrapper to fix your RevenueChart "height -1" error */}
           <div className="min-h-[400px] w-full bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
-            <RevenueChart />
+           <RevenueChart data={chartData} />
           </div>
         </div>
 

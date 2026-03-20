@@ -159,10 +159,11 @@ interface ChartDataPoint {
 }
 
 interface RevenueChartProps {
-  data: ChartDataPoint[];
+  // data: ChartDataPoint[];
+  data?: any[];
 }
 
-export default function RevenueChart({ data }: RevenueChartProps) {
+export default function RevenueChart({ data = [] }: RevenueChartProps) {
   const formatYAxis = (value: number) => {
     return new Intl.NumberFormat("en-NG", {
       notation: "compact",
