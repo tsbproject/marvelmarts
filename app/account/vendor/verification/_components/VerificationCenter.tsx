@@ -130,21 +130,32 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
             setLoading(activeStep);
 
             try {
-              const sigResult = (await getCloudinarySignature("vendor-docs")) as any;
-              if (!sigResult?.success) throw new Error("Signature failed");
+             const sigResult = (await getCloudinarySignature("vendor-docs")) as any;
 
-              const formData = new FormData();
-              formData.append("file", file);
-              formData.append("api_key", sigResult.apiKey);
-              formData.append("timestamp", sigResult.timestamp.toString());
-              formData.append("signature", sigResult.signature);
-              formData.append("folder", "vendor-docs");
+                if (!sigResult?.success) {
+                  throw new Error(sigResult?.error || "Failed to generate upload signature");
+                }
 
-              const uploadRes = await fetch(
-                `https://api.cloudinary.com/v1_1/${sigResult.cloudName}/image/upload`,
-                { method: "POST", body: formData }
-              );
-              const uploadData = await uploadRes.json();
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("api_key", sigResult.apiKey);
+                formData.append("timestamp", String(sigResult.timestamp));
+                formData.append("signature", sigResult.signature);
+                formData.append("folder", "vendor-docs");
+
+                const uploadRes = await fetch(
+                  `https://api.cloudinary.com/v1_1/${sigResult.cloudName}/auto/upload`,
+                  { method: "POST", body: formData }
+                );
+
+                const uploadData = await uploadRes.json();
+
+                if (!uploadRes.ok) {
+                  console.error("CLOUDINARY_UPLOAD_ERROR:", uploadData);
+                  throw new Error(
+                    uploadData?.error?.message || "Cloudinary upload failed"
+                  );
+                }
 
               const uploadedStep = activeStep;
 
