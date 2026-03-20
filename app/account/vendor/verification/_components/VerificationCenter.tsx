@@ -189,124 +189,127 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
             }
           };
 
-  return (
-    <div className="relative">
-      {/* Success Redirect Overlay */}
-      {isRedirecting && (
-        <div className="fixed inset-0 z-[100] bg-accent-navy/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 animate-in fade-in duration-500">
-          <div className="w-24 h-24 bg-brand-primary rounded-full flex items-center justify-center mb-6 animate-bounce">
-            <ShieldCheck size={48} className="text-accent-navy" />
-          </div>
-          <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-2">Documents Secured!</h2>
-          <p className="text-blue-100 font-bold max-w-xs uppercase text-xs tracking-[0.2em]">Initiating compliance review protocol...</p>
-          <Loader2 className="mt-8 text-brand-primary animate-spin" size={32} />
+ /**
+ * VerificationCenter.tsx 
+ * Optimized for Mobile, Tablet, and Desktop Responsiveness
+ */
+
+return (
+  <div className="relative min-h-screen pb-10">
+    {/* Success Redirect Overlay */}
+    {isRedirecting && (
+      <div className="fixed inset-0 z-[100] bg-accent-navy/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 sm:p-6 animate-in fade-in duration-500">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-brand-primary rounded-full flex items-center justify-center mb-6 animate-bounce">
+          <ShieldCheck size={40} className="text-accent-navy" />
         </div>
-      )}
+        <h2 className="text-2xl sm:text-4xl font-black text-white uppercase italic tracking-tighter mb-2">Documents Secured!</h2>
+        <p className="text-blue-100 font-bold max-w-xs uppercase text-[10px] sm:text-xs tracking-[0.2em]">Initiating compliance review protocol...</p>
+        <Loader2 className="mt-8 text-brand-primary animate-spin" size={32} />
+      </div>
+    )}
 
-      <div className={`max-w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRedirecting ? 'opacity-0 scale-95 transition-all duration-500' : 'opacity-100'}`}>
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,.pdf" />
+    <div className={`max-w-6xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRedirecting ? 'opacity-0 scale-95 transition-all duration-500' : 'opacity-100'}`}>
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,.pdf" />
 
-        {/* Hero Header */}
-        <div className="bg-gradient-to-br from-accent-navy via-[#003366] to-accent-navy rounded-[32px] p-10 text-white shadow-2xl relative overflow-hidden border border-white/10">
-          <div className="relative z-10">
-            <span className="bg-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full mb-4 inline-block border border-brand-primary/30">Phase 3: Verification</span>
-            <h1 className="text-4xl font-black uppercase tracking-tighter mb-2 italic">Trust & Verification</h1>
-            <p className="text-blue-100/80 max-w-md text-sm font-medium leading-relaxed">
-              Submit credentials to join our elite marketplace and unlock your <span className="text-brand-primary font-bold ml-1 italic underline decoration-2 underline-offset-4">Verified Merchant Badge</span>.
-            </p>
-          </div>
-          <ShieldCheck size={180} className="absolute right-[-30px] top-[-30px] text-white/5 rotate-12 pointer-events-none" />
+      {/* Hero Header */}
+      <div className="bg-gradient-to-br from-accent-navy via-[#003366] to-accent-navy rounded-[24px] sm:rounded-[32px] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden border border-white/10">
+        <div className="relative z-10">
+          <span className="bg-brand-primary/20 text-brand-primary text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full mb-3 sm:mb-4 inline-block border border-brand-primary/30">Phase 3: Verification</span>
+          <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter mb-2 italic leading-none">Trust & Verification</h1>
+          <p className="text-blue-100/80 max-w-md text-xs sm:text-sm font-medium leading-relaxed">
+            Submit credentials to join our elite marketplace and unlock your <span className="text-brand-primary font-bold italic underline decoration-2 underline-offset-4">Verified Merchant Badge</span>.
+          </p>
         </div>
+        <ShieldCheck size={140} className="absolute right-[-20px] top-[-20px] sm:right-[-30px] sm:top-[-30px] text-white/5 rotate-12 pointer-events-none" />
+      </div>
 
-        {/* Checklist Steps */}
-        <div className="grid gap-5">
-          {steps.map((step) => (
-            <div 
-              key={step.id} 
-              className={`bg-white border rounded-[2.5rem] p-7 flex flex-col md:flex-row items-start md:items-center justify-between transition-all duration-500 gap-6 group ${
-                step.isRejected ? "border-red-200 bg-red-50/30 shadow-inner" : "border-gray-100 hover:shadow-xl hover:border-brand-primary/10"
-              }`}
-            >
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-[2rem] bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 group-hover:bg-white group-hover:scale-110 transition-transform duration-500">
-                  {step.isDone ? <CheckCircle className="text-green-500" size={32} /> : step.icon}
-                </div>
-                <div>
-                  <h3 className={`text-md font-black uppercase italic ${step.isRejected ? "text-red-600" : "text-accent-navy"}`}>
-                    {step.title} {step.isRejected && " (Action Required)"}
-                  </h3>
-                  <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{step.desc}</p>
-                </div>
+      {/* Checklist Steps */}
+      <div className="grid gap-4 sm:gap-5">
+        {steps.map((step) => (
+          <div 
+            key={step.id} 
+            className={`bg-white border rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-7 flex flex-col lg:flex-row items-center lg:items-center justify-between transition-all duration-500 gap-6 group ${
+              step.isRejected ? "border-red-200 bg-red-50/30 shadow-inner" : "border-gray-100 hover:shadow-xl hover:border-brand-primary/10"
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.5rem] sm:rounded-[2rem] bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 group-hover:bg-white group-hover:scale-105 transition-transform duration-500">
+                {step.isDone ? <CheckCircle className="text-green-500" size={28} /> : step.icon}
               </div>
-
-              <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
-                <StatusBadge
-                    status={
-                      step.isDone
-                        ? "PENDING"
-                        : currentStatus === "REJECTED"
-                        ? "REJECTED"
-                        : currentStatus
-                    }
-                  />
-                {currentStatus !== "APPROVED" && (
-                  <button 
-                    onClick={() => triggerUpload(step.id)}
-                  
-                    // disabled={!!loading || uploadsLocked}
-                   disabled={!!loading || step.isDone || isRedirecting || isApproved}
-                   
-                    className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
-                      step.isDone 
-                        ? "bg-green-100 text-green-600 shadow-none cursor-default" 
-                        : step.isRejected 
-                        ? "bg-red-600 text-white hover:bg-red-700" 
-                        : "bg-accent-navy text-white hover:bg-brand-primary hover:text-accent-navy"
-                    }`}
-                  >
-                   {loading === step.id ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 size={18} className="animate-spin" />
-                        Uploading...
-                      </span>
-                    ) : step.isDone ? (
-                      <span className="flex items-center gap-2">
-                        <CheckCircle size={18} />
-                        Uploaded
-                      </span>
-                    ) : (
-                      <>
-                        {currentStatus === "REJECTED"
-                          ? step.hasExistingDoc
-                            ? "Replace Document"
-                            : "Re-upload Now"
-                          : "Upload Now"}
-                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                                      
-                  </button>
-                )}
+              <div className="flex-1 overflow-hidden">
+                <h3 className={`text-sm sm:text-md font-black uppercase italic truncate ${step.isRejected ? "text-red-600" : "text-accent-navy"}`}>
+                  {step.title} {step.isRejected && " (Action)"}
+                </h3>
+                <p className="text-gray-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest line-clamp-1">{step.desc}</p>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Footer */}
-        <div className="bg-orange-50 border border-orange-100 rounded-[2rem] p-8 flex gap-5 items-center shadow-inner">
-          <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
-            <AlertCircle className="text-orange-600" size={24} />
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5 w-full lg:w-auto">
+              <div className="w-full sm:w-auto">
+                <StatusBadge
+                  status={
+                    step.isDone
+                      ? "PENDING"
+                      : currentStatus === "REJECTED"
+                      ? "REJECTED"
+                      : currentStatus
+                  }
+                />
+              </div>
+              
+              {currentStatus !== "APPROVED" && (
+                <button 
+                  onClick={() => triggerUpload(step.id)}
+                  disabled={!!loading || step.isDone || isRedirecting || isApproved}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-[0.15em] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
+                    step.isDone 
+                      ? "bg-green-100 text-green-600 shadow-none cursor-default" 
+                      : step.isRejected 
+                      ? "bg-red-600 text-white hover:bg-red-700" 
+                      : "bg-accent-navy text-white hover:bg-brand-primary hover:text-accent-navy"
+                  }`}
+                >
+                 {loading === step.id ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      Uploading
+                    </span>
+                  ) : step.isDone ? (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle size={16} />
+                      Done
+                    </span>
+                  ) : (
+                    <>
+                      {currentStatus === "REJECTED" ? "Replace" : "Upload"}
+                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-          <div>
-            <h4 className="font-black text-orange-900 uppercase text-xs tracking-[0.2em] mb-1">Internal Review Protocol</h4>
-            <p className="text-orange-700/80 text-sm font-bold italic leading-tight">
-              Our compliance team reviews documents within 24-48 business hours. You will receive a notification once your status updates.
-            </p>
-          </div>
+        ))}
+      </div>
+
+      {/* Footer Notice */}
+      <div className="bg-orange-50 border border-orange-100 rounded-[24px] sm:rounded-[2rem] p-5 sm:p-8 flex flex-col sm:flex-row gap-4 sm:gap-5 items-center sm:items-start shadow-inner">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+          <AlertCircle 
+              className="text-orange-600 w-5 h-5 sm:w-6 sm:h-6" 
+              strokeWidth={2.5} 
+            />
+        </div>
+        <div className="text-center sm:text-left">
+          <h4 className="font-black text-orange-900 uppercase text-[10px] sm:text-xs tracking-[0.2em] mb-1">Internal Review Protocol</h4>
+          <p className="text-orange-700/80 text-xs sm:text-sm font-bold italic leading-tight">
+            Our compliance team reviews documents within 24-48 business hours. You will receive a notification once your status updates.
+          </p>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 // Suspense wrapper
@@ -323,13 +326,15 @@ function StatusBadge({ status }: { status: string }) {
   const safeStatus = status || "NOT_STARTED";
   const styles: any = {
     NOT_STARTED: "bg-gray-100 text-gray-400 border-transparent",
-    PENDING: "bg-blue-50 text-blue-600 border-blue-100 shadow-sm shadow-blue-100",
-    APPROVED: "bg-green-50 text-green-600 border-green-100 shadow-sm shadow-green-100",
-    REJECTED: "bg-red-50 text-red-600 border-red-100 shadow-sm shadow-red-100",
-    PENDING_REVIEW: "bg-blue-50 text-blue-600 border-blue-100 shadow-sm shadow-blue-100",
+    PENDING: "bg-blue-50 text-blue-600 border-blue-100",
+    APPROVED: "bg-green-50 text-green-600 border-green-100",
+    REJECTED: "bg-red-50 text-red-600 border-red-100",
+    PENDING_REVIEW: "bg-blue-50 text-blue-600 border-blue-100",
   };
+  
   return (
-    <div className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shrink-0 border-2 ${styles[safeStatus]}`}>
+    <div className={`w-full sm:w-auto px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border-2 whitespace-nowrap ${styles[safeStatus]}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${safeStatus === 'APPROVED' ? 'bg-green-500' : 'bg-current'}`} />
       {safeStatus.replace("_", " ")}
     </div>
   );
