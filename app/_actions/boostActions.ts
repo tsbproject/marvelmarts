@@ -312,3 +312,27 @@ export async function addCreditsToVendor(
     };
   }
 }
+
+
+
+/**
+ * GET TRANSACTION HISTORY
+ * Fetches the credit purchase and usage history for a specific vendor
+ */
+export async function getTransactionHistory(vendorProfileId: string) {
+  try {
+    const transactions = await prisma.creditTransaction.findMany({
+      where: { vendorProfileId },
+      orderBy: { createdAt: "desc" },
+      take: 10, // Adjust this number if you want to show more
+    });
+
+    return { 
+      success: true, 
+      transactions: JSON.parse(JSON.stringify(transactions)) // Ensure Date objects are serialized
+    };
+  } catch (error) {
+    console.error("History Fetch Error:", error);
+    return { success: false, error: "Failed to load transactions." };
+  }
+}
