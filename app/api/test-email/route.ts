@@ -14,8 +14,10 @@ export async function GET(req: Request) {
       email: testEmail,
       firstName: "Tayo",
       storeName: "Marvelmarts Premium Store",
-      status: type,
-      reason: type === "REJECTED" ? "The business registration document provided is expired. Please upload a valid document." : null
+      amountAdded: 50,
+      newBalance: 120,
+    
+         
     });
 
     return NextResponse.json({ 
