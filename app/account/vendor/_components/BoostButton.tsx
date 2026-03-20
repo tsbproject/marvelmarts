@@ -2,36 +2,44 @@
 
 import { useState } from "react";
 import { Rocket, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { boostProduct } from "@/app/_actions/boostActions";
 import { useNotification } from "@/app/_context/NotificationContext"; 
+import { updateCredits } from "@/store/vendorSlice";
+import router from "next/router";
+import { useDispatch } from "react-redux";
 
 export default function BoostButton({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(false);
   const { notifyError, notifySuccess } = useNotification();
+  const router = useRouter();
 
-  const handleBoost = async () => {
-  setLoading(true);
-  try {
-    // 🚀 FIX: Pass the second argument (days). 
-    // If you have a state for selected days, use that. Otherwise, use a default like 7.
-    const res = await boostProduct(productId, 7); 
-    
-    if ("success" in res && res.success) {
-      notifySuccess("Product boosted successfully!");
-      } else if ("error" in res) {
-        // Handling the error case with your notification helper
-        notifyError(res.error || "Failed to boost product");
+  // Inside your BoostButton component logic
+const handleBoost = async (selectedDays: number) => {
+    setLoading(true);
+    try {
+     
+      const res = await boostProduct(productId, selectedDays);
+      
+      if ("success" in res && res.success) {
+        notifySuccess(`Boosted for ${selectedDays} days!`);
+        // Update Redux balance with the returned value
+        dispatch(updateCredits(res.newBalance));
+        
+        router.refresh();
+      } else {
+        notifyError((res as any).error || "Boost failed");
       }
-    } catch (err) {
-      notifyError("A system error occurred. Please try again.");
+    } catch (error) {
+      notifyError("Connection error.");
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <button 
-      onClick={handleBoost}
+      onClick={() => handleBoost(3)} 
       disabled={loading}
       className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full text-[9px] font-black uppercase hover:bg-orange-600 hover:text-white transition-all disabled:opacity-50 active:scale-95 shadow-sm"
     >
@@ -43,4 +51,8 @@ export default function BoostButton({ productId }: { productId: string }) {
       {loading ? "Processing..." : "Boost Now"}
     </button>
   );
+}
+
+function dispatch(arg0: { payload: number; type: "vendor/updateCredits"; }) {
+  throw new Error("Function not implemented.");
 }
