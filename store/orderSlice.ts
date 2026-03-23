@@ -1,53 +1,3 @@
-// import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-// interface OrderItem {
-//   id: string;
-//   productId: string;
-//   quantity: number;
-//   price: number;
-// }
-
-// export interface Order {
-//   id: string;
-//   userId: string;
-//   customerName: string;
-//   total: number;
-//   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-//   items: OrderItem[];
-//   createdAt: string;
-// }
-
-// interface OrderState {
-//   orders: Order[];
-//   loading: boolean;
-//   error: string | null;
-// }
-
-// const initialState: OrderState = {
-//   orders: [],
-//   loading: false,
-//   error: null,
-// };
-
-// const orderSlice = createSlice({
-//   name: "orders",
-//   initialState,
-//   reducers: {
-//     setOrders: (state, action: PayloadAction<Order[]>) => {
-//       state.orders = action.payload;
-//     },
-//     updateOrderStatus: (state, action: PayloadAction<{ id: string; status: Order["status"] }>) => {
-//       const order = state.orders.find(o => o.id === action.payload.id);
-//       if (order) {
-//         order.status = action.payload.status;
-//       }
-//     },
-    
-//   },
-// });
-
-// export const { setOrders, updateOrderStatus } = orderSlice.actions;
-// export default orderSlice.reducer;
 
 
 
@@ -58,17 +8,18 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface OrderItem {
   id: string;
   productId: string;
-  name: string; // Added to display in tables without extra fetches
-  image?: string; // Added for UI thumbnails
+  name: string; 
+  image?: string; 
   quantity: number;
   price: number;
 }
 
 export interface Order {
+  orderNumber: string; 
   id: string;
   userId: string;
   customerName: string;
-  customerEmail?: string; // Useful for notifications
+  customerEmail?: string; 
   total: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
   refundStatus?: "none" | "requested" | "approved" | "rejected"; // Roadmap: Order refund flow
@@ -146,14 +97,22 @@ const orderSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+    
+    
     updateOrderInState: (state, action) => {
     const updatedOrder = action.payload;
-    const index = state.orders.findIndex((o) => o.id === updatedOrder.id);
-    if (index !== -1) {
+    const index = state.orders.findIndex(
+        (o) =>
+          o.orderNumber === updatedOrder.orderNumber ||
+          o.id === updatedOrder.id // ✅ fallback safety
+      );
+        if (index !== -1) {
       state.orders[index] = updatedOrder;
     }
   },
   },
+
+
 });
 
 export const { 

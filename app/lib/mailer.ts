@@ -126,38 +126,151 @@ export async function sendPasswordResetEmail(to: string, token: string) {
 // COMMERCE: Order Confirmation
 export async function sendOrderConfirmationEmail(order: any) {
   const content = `
-    <h1 style="color: ${COLORS.navy}; text-align: center; font-style: italic;">ORDER SECURED</h1>
-    <p style="text-align: center; color: ${COLORS.orange}; font-weight: bold;">Order #${order.orderNumber}</p>
-    <p>Hi ${order.firstName}, your gear is being prepped for dispatch!</p>
-    <div style="margin: 20px 0; padding: 20px; background: ${COLORS.ghost}; border-radius: 12px;">
-      ${order.items.map((item: any) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-          <span>${item.title} x ${item.qty}</span>
-          <span style="font-weight: bold;">₦${(item.unitPrice * item.qty).toLocaleString()}</span>
-        </div>
-      `).join('')}
-      <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;" />
-      <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; color: ${COLORS.navy};">
-        <span>Total Paid</span>
-        <span>₦${Number(order.total).toLocaleString()}</span>
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: ${COLORS.navy}; text-align: center; font-style: italic; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">
+        ORDER SECURED
+      </h1>
+      <p style="text-align: center; color: ${COLORS.navy}; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-top: 0;">
+        Confirmation #${order.orderNumber}
+      </p>
+      
+      <p style="color: #444; font-size: 14px; line-height: 1.6; margin: 30px 0;">
+        Hi <strong>${order.firstName}</strong>, your order is being prepared for dispatch! Our fulfillment team has received your payment and is currently pulling your items from the vault.
+      </p>
+
+      <div style="margin: 20px 0; padding: 25px; background-color: #f9fafb; border: 1px solid #f1f5f9; border-radius: 20px;">
+        <p style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
+          Items Secured
+        </p>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          ${order.items.map((item: any) => `
+            <tr>
+              <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 700;">
+                ${item.title.toUpperCase()} <span style="color: #94a3b8; font-size: 11px;">x${item.qty}</span>
+              </td>
+              <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+                ₦${(Number(item.unitPrice) * item.qty).toLocaleString()}
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+
+        <div style="border-top: 2px solid #eeeeee; margin: 20px 0;"></div>
+
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size: 16px; font-weight: 900; color: ${COLORS.navy}; text-transform: uppercase; font-style: italic;">
+              Total Paid
+            </td>
+            <td style="font-size: 20px; font-weight: 900; color: ${COLORS.navy}; text-align: right;">
+              ₦${Number(order.total).toLocaleString()}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="https://marvelmarts.com/orders/track-order" 
+           style="background-color: ${COLORS.navy}; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">
+          Track My Order
+        </a>
       </div>
     </div>
   `;
-  return sendEmail({ to: order.email, subject: `Order Secured: ${order.orderNumber}`, html: wrapLayout(content, "Thank you for your order!") });
+
+  return sendEmail({ 
+    to: order.email, 
+    subject: `Order Secured: ${order.orderNumber}`, 
+    html: wrapLayout(content, "Thank you for your order!") 
+  });
 }
 
 // COMMERCE: Shipment Notification
 export async function sendShipmentNotificationEmail(order: any) {
   const content = `
-    <h2 style="color: ${COLORS.navy};">Package En Route! 🚚</h2>
-    <p>Hello ${order.firstName}, your package has been handed over to our courier.</p>
-    <div style="background: ${COLORS.ghost}; padding: 25px; border-radius: 16px; border-left: 4px solid ${COLORS.orange}; margin: 25px 0; text-align: center;">
-      <p style="margin: 0; font-size: 12px; text-transform: uppercase; color: ${COLORS.gray};">Tracking Number</p>
-      <p style="margin: 5px 0 0; font-size: 24px; font-weight: 900; color: ${COLORS.navy};">${order.trackingNumber}</p>
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: ${COLORS.navy}; font-style: italic; font-weight: 900; text-transform: uppercase; text-align: center;">
+       YOur Package is Shipped and On The Way! 🚚
+      </h2>
+      <p style="text-align: center; color: #4b5563; font-size: 14px;">
+        Hello ${order.firstName}, your gear has been handed over to our courier and is officially on the move.
+      </p>
+
+      <div style="background-color: ${COLORS.ghost || '#f8fafc'}; padding: 30px; border-radius: 20px; border-left: 6px solid ${COLORS.orange || '#f97316'}; margin: 30px 0; text-align: center;">
+        <p style="margin: 0; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 2px;">
+          Tracking Number
+        </p>
+        <p style="margin: 10px 0; font-size: 28px; font-weight: 900; color: ${COLORS.navy}; letter-spacing: -1px;">
+          ${order.trackingNumber || 'PENDING DISPATCH'}
+        </p>
+        <p style="margin: 0; font-size: 11px; font-weight: 700; color: ${COLORS.orange || '#f97316'}; text-transform: uppercase;">
+          Status: In Transit
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <a href="https://marvelmarts.com/orders/track/${order.orderNumber}" 
+           style="background-color: ${COLORS.navy}; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; display: inline-block;">
+          Track Real-Time
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; font-style: italic;">
+        Note: Please allow up to 24 hours for the courier's system to activate the tracking link.
+      </p>
     </div>
-    <p style="font-size: 13px; color: ${COLORS.gray}; text-align: center;">Allow 24 hours for the tracking link to activate.</p>
   `;
-  return sendEmail({ to: order.email, subject: `Your Order has Shipped! #${order.orderNumber}`, html: wrapLayout(content, "Your package is on the way") });
+
+  return sendEmail({ 
+    to: order.email, 
+    subject: `Your Order has Shipped! #${order.orderNumber}`, 
+    html: wrapLayout(content, "Your package is on the way") 
+  });
+}
+
+
+export async function sendDeliveryConfirmationEmail(order: any) {
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: center;">
+      <div style="display: inline-block; background-color: #dcfce7; padding: 15px; border-radius: 50%; margin-bottom: 20px;">
+        <span style="font-size: 30px;">✅</span>
+      </div>
+      
+      <h2 style="color: ${COLORS.navy}; font-style: italic; font-weight: 900; text-transform: uppercase; margin-bottom: 5px;">
+        Mission Accomplished
+      </h2>
+      <p style="color: #16a34a; font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: 2px; margin-top: 0;">
+        Package Delivered
+      </p>
+
+      <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 30px 0;">
+        Hi ${order.firstName}, our logistics partner confirms that your MarvelMarts order <strong>#${order.orderNumber}</strong> was successfully delivered.
+      </p>
+
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; text-align: left; margin-bottom: 30px;">
+        <p style="margin: 0; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Delivery Address:</p>
+        <p style="margin: 5px 0 0; color: ${COLORS.navy}; font-weight: 700; font-size: 13px;">
+          ${order.streetAddress}, ${order.city}
+        </p>
+      </div>
+
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
+        Not seeing your package? Check your porch, lobby, or with a neighbor before reaching out to support.
+      </p>
+
+      <a href="https://marvelmarts.com/shop" 
+         style="color: ${COLORS.navy}; font-weight: 900; text-decoration: underline; font-size: 13px; text-transform: uppercase;">
+        Re-up your gear at the Shop
+      </a>
+    </div>
+  `;
+
+  return sendEmail({ 
+    to: order.email, 
+    subject: `Delivered: Order #${order.orderNumber}`, 
+    html: wrapLayout(content, "Enjoy your new gear!") 
+  });
 }
 
 // COMMERCE: Refund/Cancel
@@ -177,20 +290,85 @@ export async function sendOrderCancellationEmail(order: any) {
 //REFUND STATUS EMAIL
 export async function sendRefundStatusEmail(order: any, status: 'approved' | 'rejected', reason?: string) {
   const isApproved = status === 'approved';
-  const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 24px; overflow: hidden;">
-      <div style="background-color: ${COLORS.navy}; padding: 30px; text-align: center;">
-        <img src="${LOGO_URL}" width="120" />
+  
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: center;">
+      
+      {/* Dynamic Status Icon */}
+      <div style="margin-bottom: 25px;">
+        <div style="display: inline-block; padding: 20px; border-radius: 50%; background-color: ${isApproved ? '#ecfdf5' : '#fef2f2'}; border: 2px solid ${isApproved ? '#10b981' : '#ef4444'};">
+          <span style="font-size: 32px;">${isApproved ? '💰' : '🛡️'}</span>
+        </div>
       </div>
-      <div style="padding: 40px; text-align: center;">
-        <h2 style="color: ${isApproved ? '#16a34a' : '#dc2626'}; text-transform: uppercase;">Refund ${status}</h2>
-        <p>Your refund request for Order <b>#${order.orderNumber}</b> has been ${status}.</p>
-        ${!isApproved && reason ? `<div style="background: ${COLORS.ghost}; padding: 15px; margin-top: 20px; border-radius: 8px; color: ${COLORS.gray};">Reason: ${reason}</div>` : ''}
-        <p style="margin-top: 30px; font-size: 13px; color: ${COLORS.gray};">Thank you for choosing MarvelMarts.</p>
+
+      <h1 style="color: ${COLORS.navy}; font-style: italic; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 28px; letter-spacing: -1px;">
+        REFUND <span style="color: ${isApproved ? '#10b981' : '#ef4444'};">${status.toUpperCase()}</span>
+      </h1>
+      
+      <p style="color: #94a3b8; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 10px; margin-bottom: 30px;">
+        Protocol: Financial Resolution
+      </p>
+
+      <div style="background-color: #f8fafc; padding: 30px; border-radius: 24px; border: 1px solid #f1f5f9; text-align: left; margin-bottom: 30px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
+              <p style="margin: 0; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Reference Order</p>
+              <p style="margin: 5px 0 0; font-size: 16px; font-weight: 900; color: ${COLORS.navy};">#${order.orderNumber}</p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          Hi ${order.firstName}, the review of your refund request for MarvelMarts Order <strong>#${order.orderNumber}</strong> is complete. 
+          ${isApproved 
+            ? `Your request has been <strong>approved</strong>. The funds are being reversed to your original payment method.` 
+            : `Your request was <strong>not approved</strong> at this time based on our standard return protocols.`
+          }
+        </p>
+
+        {/* Reason Section (Only shows if rejected) */}
+        ${!isApproved && reason ? `
+          <div style="margin-top: 25px; padding: 20px; background-color: #ffffff; border-left: 4px solid #ef4444; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <p style="margin: 0 0 5px; font-size: 10px; font-weight: 900; color: #ef4444; text-transform: uppercase;">Reviewer Notes:</p>
+            <p style="margin: 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 600; line-height: 1.5;">${reason}</p>
+          </div>
+        ` : ''}
+
+        {/* Policy Link (Only shows if rejected) */}
+        ${!isApproved ? `
+          <div style="margin-top: 20px; text-align: center;">
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">Questions about this decision?</p>
+            <a href="${BASE_URL}/return-policy" style="color: #ef4444; font-weight: 800; text-transform: uppercase; font-size: 11px; text-decoration: underline; letter-spacing: 1px;">
+              View Our Return Protocols
+            </a>
+          </div>
+        ` : ''}
+
+        {/* Approval Timeline (Only shows if approved) */}
+        ${isApproved ? `
+          <div style="margin-top: 25px; padding: 15px; background-color: #f0fdf4; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 12px; font-weight: 700; color: #16a34a;">
+              ⏱️ Expected arrival: 3–7 business days (Bank dependent).
+            </p>
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${BASE_URL}/account/customer/orders" 
+           style="color: ${COLORS.navy}; font-weight: 900; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid ${COLORS.navy}; padding: 12px 25px; border-radius: 10px; display: inline-block;">
+          View Order History
+        </a>
       </div>
     </div>
   `;
-  return sendEmail({ to: order.email, subject: `Update on your Refund: #${order.orderNumber}`, html });
+
+  return sendEmail({ 
+    to: order.email, 
+    subject: `Update on Refund: #${order.orderNumber} [${status.toUpperCase()}]`, 
+    html: wrapLayout(content, "Financial Resolution Update") 
+  });
 }
 
 // SUPPORT: Admin/Customer Tickets
@@ -219,27 +397,131 @@ export async function sendCustomerTicketConfirmation(to: string, subject: string
 // ANNOUNCEMENT: Store Live
 export async function sendStoreLiveEmail(to: string, name: string) {
   const content = `
-    <h1 style="font-size: 32px; font-style: italic; text-transform: uppercase; color: ${COLORS.navy}; text-align: center;">The Mart is <span style="color: ${COLORS.orange};">Open.</span></h1>
-    <p style="text-align: center;">Hi ${name}, the doors to MarvelMarts are now officially wide open. Experience shopping redefined.</p>
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="${BASE_URL}/shop" style="background: ${COLORS.orange}; color: white; padding: 18px 36px; border-radius: 50px; text-decoration: none; font-weight: bold; text-transform: uppercase;">Enter the Shop</a>
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: center; padding: 20px;">
+      
+      {/* Hero Section */}
+      <div style="background-color: ${COLORS.navy}; border-radius: 32px; padding: 50px 30px; margin-bottom: 30px; border-bottom: 8px solid ${COLORS.orange};">
+        <h1 style="font-size: 42px; font-style: italic; font-weight: 900; text-transform: uppercase; color: #ffffff; margin: 0; letter-spacing: -2px; line-height: 0.9;">
+          THE MART IS <span style="color: ${COLORS.orange};">OPEN.</span>
+        </h1>
+        <p style="color: #94a3b8; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 4px; margin-top: 15px;">
+          Protocol: Live Access Granted
+        </p>
+      </div>
+
+      {/* Main Copy */}
+      <h2 style="color: ${COLORS.navy}; font-size: 24px; font-weight: 900; italic; text-transform: uppercase; margin-bottom: 10px;">
+        Shopping Redefined.
+      </h2>
+      <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 35px;">
+        Hi ${name}, the wait is over. The doors to **MarvelMarts** are now officially wide open. Step inside to experience a curated collection of gear designed for those who demand more.
+      </p>
+
+      {/* Bulletproof Button */}
+      <div style="margin: 40px 0;">
+        <a href="${BASE_URL}/shop" 
+           style="background-color: ${COLORS.orange}; color: #ffffff; padding: 20px 45px; border-radius: 16px; text-decoration: none; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; display: inline-block; box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4);">
+          Enter the Marketplace
+        </a>
+      </div>
+
+      {/* Footer Teaser */}
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 30px; margin-top: 40px;">
+        <p style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
+          Limited Stock • Premium Logistics • Secure Payments
+        </p>
+      </div>
+
     </div>
   `;
-  return sendEmail({ to, subject: "MarvelMarts is LIVE", html: wrapLayout(content, "Step into style") });
-}
 
+  return sendEmail({ 
+    to, 
+    subject: "🚨 ACCESS GRANTED: MarvelMarts is officially LIVE", 
+    html: wrapLayout(content, "Step into the future of retail") 
+  });
+}
 // ADMIN: New Sale
 export async function sendAdminOrderNotification(order: any) {
   const content = `
-    <h2 style="color: ${COLORS.navy};">💰 New Sale!</h2>
-    <p><strong>Order:</strong> ${order.orderNumber}</p>
-    <p><strong>Amount:</strong> ₦${Number(order.total).toLocaleString()}</p>
-    <p><strong>Customer:</strong> ${order.firstName} (${order.email})</p>
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; background-color: #ffffff;">
+      {/* Header Banner */}
+      <div style="background-color: ${COLORS.navy}; padding: 30px; text-align: center;">
+        <h2 style="color: #ffffff; font-style: italic; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: -1px; font-size: 24px;">
+          💰 NEW SALE SECURED
+        </h2>
+        <p style="color: ${COLORS.navy || '#3b82f6'}; font-weight: 800; font-size: 12px; text-transform: uppercase; margin-top: 5px; letter-spacing: 2px;">
+          Revenue Intelligence: ${order.orderNumber}
+        </p>
+      </div>
+
+      <div style="padding: 30px;">
+        {/* Core Stats Grid */}
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+          <tr>
+            <td style="width: 50%; padding: 15px; background-color: #f8fafc; border-radius: 16px 0 0 16px; border-right: 1px solid #e2e8f0;">
+              <p style="margin: 0; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Total Revenue</p>
+              <p style="margin: 5px 0 0; font-size: 20px; font-weight: 900; color: ${COLORS.navy};">₦${Number(order.total).toLocaleString()}</p>
+            </td>
+            <td style="width: 50%; padding: 15px; background-color: #f8fafc; border-radius: 0 16px 16px 0;">
+              <p style="margin: 0; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Payment Method</p>
+              <p style="margin: 5px 0 0; font-size: 14px; font-weight: 900; color: ${COLORS.navy}; text-transform: uppercase;">${order.paymentMethod || 'PAYSTACK'}</p>
+            </td>
+          </tr>
+        </table>
+
+        {/* Customer Details */}
+        <div style="margin-bottom: 30px;">
+          <p style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Customer Profile</p>
+          <div style="padding: 15px; border: 1px solid #f1f5f9; border-radius: 12px;">
+            <p style="margin: 0; font-size: 14px; font-weight: 800; color: ${COLORS.navy};">${order.firstName} ${order.lastName}</p>
+            <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">${order.email}</p>
+            <p style="margin: 8px 0 0; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">📍 ${order.city}, ${order.state}</p>
+          </div>
+        </div>
+
+        {/* Item Summary (Quick View) */}
+        <div style="margin-bottom: 30px;">
+          <p style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Inventory Outflow</p>
+          <table width="100%" style="border-collapse: collapse;">
+            ${order.items.map((item: any) => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 0; font-size: 12px; font-weight: 700; color: ${COLORS.navy};">
+                  ${item.title} <span style="color: #94a3b8;">x${item.qty}</span>
+                </td>
+                <td style="padding: 10px 0; font-size: 12px; font-weight: 800; color: ${COLORS.navy}; text-align: right;">
+                  ₦${(item.unitPrice * item.qty).toLocaleString()}
+                </td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+
+        {/* Admin Action Button */}
+        <div style="text-align: center; margin-top: 10px;">
+          <a href="https://marvelmarts.com/dashboard/admins/orders/${order.id}" 
+             style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 18px 35px; text-decoration: none; border-radius: 16px; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; width: 80%;">
+            Process Order & Fulfill
+          </a>
+        </div>
+      </div>
+    </div>
   `;
-  return sendEmail({ to: process.env.ADMIN_EMAIL!, subject: `🔥 New Sale: ${order.orderNumber}`, html: wrapLayout(content, "Admin Sale Alert") });
+
+   const adminEmails =
+    process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()) || [];
+
+  if (adminEmails.length === 0) {
+    console.warn("No ADMIN_EMAILS configured");
+    return;
+  }
+
+  return sendEmail({ 
+    to: process.env.ADMIN_EMAIL!, 
+    subject: `🔥 [SALE] ₦${Number(order.total).toLocaleString()} - ${order.orderNumber}`, 
+    html: wrapLayout(content, "New Revenue Alert") 
+  });
 }
-
-
 
 // ... (Your existing COLORS, LOGO_URL, and wrapLayout are already here)
 

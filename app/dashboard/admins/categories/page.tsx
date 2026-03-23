@@ -125,28 +125,51 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1600px] mx-auto space-y-6">
-      <DashboardHeader
-        title="Category Directory"
-        showAddButton={false} 
-        showLogout={false}
-      />
+  <div className="p-4 sm:p-6 lg:p-10 w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+    
+    {/* Page Header - Responsive padding handled internally */}
+    <DashboardHeader
+      title="Category Directory"
+      showAddButton={false} 
+      showLogout={false}
+    />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-         <CategoriesSearch initialSearch={search} />
-         
-         <div className="hidden lg:flex gap-4">
-            <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-                <p className="text-[10px] font-black uppercase text-blue-400 leading-none">Total categories</p>
-                <p className="text-xl font-black text-blue-700">{total}</p>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-100 px-4 py-2 rounded-xl">
-                <p className="text-[10px] font-black uppercase text-yellow-500 leading-none">Featured on Home</p>
-                <p className="text-xl font-black text-yellow-700">{featuredCount}</p>
-            </div>
-         </div>
+    {/* Search & Stats Bar */}
+    <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+      
+      {/* Search Input - Expands to fill space on mobile */}
+      <div className="w-full xl:max-w-md">
+        <CategoriesSearch initialSearch={search} />
       </div>
       
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-4 w-full sm:w-auto">
+        {/* Total Categories Stat */}
+        <div className="flex-1 sm:flex-none bg-brand-light/30 border border-brand-primary/10 px-5 py-3 sm:py-4 rounded-[1.5rem] shadow-sm hover:shadow-md transition-shadow">
+          <p className="text-[9px] sm:text-[10px] font-black uppercase text-brand-primary tracking-widest leading-none mb-1 sm:mb-2">
+            Total Database
+          </p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-xl sm:text-2xl font-black text-accent-navy italic">{total}</p>
+            <span className="text-[10px] font-bold text-brand-primary/60 uppercase">Nodes</span>
+          </div>
+        </div>
+
+        {/* Featured Stat */}
+        <div className="flex-1 sm:flex-none bg-orange-50 border border-orange-100 px-5 py-3 sm:py-4 rounded-[1.5rem] shadow-sm hover:shadow-md transition-shadow">
+          <p className="text-[9px] sm:text-[10px] font-black uppercase text-orange-600 tracking-widest leading-none mb-1 sm:mb-2">
+            Featured Live
+          </p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-xl sm:text-2xl font-black text-orange-700 italic">{featuredCount}</p>
+            <span className="text-[10px] font-bold text-orange-600/60 uppercase">Slots</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {/* Main Table Container */}
+    <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
       <CategoriesTable
         categories={normalizedCategories}
         canManageCategories={canManageCategories}
@@ -158,5 +181,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
         sortOrder={sortOrder}
       />
     </div>
-  );
+  </div>
+);
 }
+

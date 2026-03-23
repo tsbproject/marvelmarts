@@ -1,24 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
 
 export async function GET(
   req: Request,
-  // Changed orderId to id to match your other routes
-  { params }: { params: Promise<{ id: string }> } 
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Await the params promise
-    const { id } = await params;
+    const session = await getServerSession(authOptions);
 
-    if (!id) {
-      return NextResponse.json({ error: "Order ID missing" }, { status: 400 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch the order from Neon
-    const order = await prisma.order.findUnique({
-      where: { id: id }, // Use the 'id' variable here
+    const { id } = await params;
+    const orderNumber = id;
+
+    if (!orderNumber) {
+      return NextResponse.json(
+        { error: "Order number missing" },
+        { status: 400 }
+      );
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        orderNumber,
+        userId: session.user.id,
+      },
       include: {
         items: true,
+        vendorProfile: {
+          select: {
+            storeName: true,
+          },
+        },
       },
     });
 
@@ -26,22 +43,27 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 3. Convert Decimal fields
     const serializedOrder = {
       ...order,
       total: Number(order.total),
       subtotal: Number(order.subtotal),
       shipping: Number(order.shipping),
+      tax: Number(order.tax),
+      items: order.items.map((item) => ({
+        ...item,
+        unitPrice: Number(item.unitPrice),
+      })),
     };
 
     return NextResponse.json(serializedOrder);
   } catch (error: any) {
-    console.error("API_FETCH_ERROR:", error);
+    console.error("API_FETCH_ORDER_ERROR:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      {
+        error: "Internal Server Error",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
 }
-
-

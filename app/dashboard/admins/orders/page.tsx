@@ -16,8 +16,8 @@ export default async function OrdersManagementPage() {
     <div className="p-6 md:p-10 min-h-screen bg-gray-50/30">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col mb-8">
-          <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">
-            Order <span className="text-blue-600">Fulfillment</span>
+          <h1 className="  text-sm md:text-4xl font-black italic uppercase tracking-tighter text-accent-navy">
+            Order <span className="text-brand-primary">Fulfillment</span>
           </h1>
           <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.3em]">
             MarvelMarts Logistics & Revenue
