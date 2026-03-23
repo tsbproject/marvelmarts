@@ -362,7 +362,7 @@ export default function PrivacyPolicyPage() {
                <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-4">Contacting us</h3>
                <p className="text-gray-400 text-xs font-bold leading-relaxed mb-6">If you would like to contact us to understand more about this Policy or wish to contact us concerning any matter relating to individual rights and your Personal Information, you may do so via the contact form or send an email to <span className="text-[#F7931E]">contact@marvelmarts.com</span>.</p>
                <div className="pt-6 border-t border-white/10 flex justify-between items-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/50">This document was last updated on June 1, 2021</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/50">This document was last updated on March 23, 2026</p>
                </div>
             </div>
           </section>
