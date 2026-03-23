@@ -84,9 +84,9 @@ export default function DataDeletionPolicy() {
         </section>
 
         {/* CALL TO ACTION */}
-        <section className="bg-[#002B5B] rounded-[3rem] p-10 md:p-16 text-white text-center relative overflow-hidden">
+        <section className="bg-[#002B5B] rounded-[3rem] p-10 md:p-16 text-white text-center items-center relative overflow-hidden">
           <div className="relative z-10">
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-4">Submit Deletion Request</h2>
+            <h2 className="text-sm md:text-3xl font-black uppercase italic tracking-tighter mb-4">Submit Deletion Request</h2>
             <p className="text-blue-200 font-medium mb-8 max-w-lg mx-auto">
               Please make your data deletion request by writing to us. Your request will be attended to within 72 hours, 
               after which you will request a confirmation email to the effect of that action.
@@ -94,7 +94,7 @@ export default function DataDeletionPolicy() {
             
             <a 
               href="mailto:contact@marvelmarts.com" 
-              className="inline-flex items-center gap-3 px-10 py-5 bg-[#F7931E] hover:bg-orange-600 rounded-2xl text-white font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-orange-950/20"
+              className="inline-flex items-center gap-3 md:px-10 px-2 py-8 md:py-5 bg-[#F7931E] hover:bg-orange-600 rounded-2xl text-white font-black uppercase text-xs tracking-normal transition-all shadow-lg shadow-orange-950/20"
             >
               Email contact@marvelmarts.com
               <ArrowRight size={16} />
