@@ -365,21 +365,35 @@ export default function OrderDetailView({ order }: { order: any }) {
     action: null,
   });
 
-  const normalizedRefundStatus = String(order.refundStatus || "").toLowerCase();
+  const normalizedStatus = String(order.status || "").toLowerCase();
+        const normalizedRefundStatus = String(order.refundStatus || "").toLowerCase();
 
-  const isRefunded =
-    order.status === "refunded" || normalizedRefundStatus === "approved";
+        const isRefunded =
+          normalizedStatus === "refunded" ||
+          normalizedRefundStatus === "approved" ||
+          normalizedRefundStatus === "completed";
 
-  const isRefundRequested =
-    normalizedRefundStatus === "pending" ||
-    normalizedRefundStatus === "requested";
+        const isAdmin =
+          session?.user?.role === UserRole.ADMIN ||
+          session?.user?.role === UserRole.SUPER_ADMIN;
 
-  const isAdmin =
-    session?.user?.role === UserRole.ADMIN ||
-    session?.user?.role === UserRole.SUPER_ADMIN;
+        const isRefundRequested =
+          normalizedRefundStatus === "pending" ||
+          normalizedRefundStatus === "requested" ||
+          normalizedRefundStatus === "pending_review";
 
-  const canRefund = order.paymentStatus === true && !isRefunded && isAdmin;
+        const isCancelledUnderReview =
+          normalizedStatus === "cancelled" && !isRefunded;
 
+        const shouldShowRefundDecisionPanel =
+          isAdmin && (isRefundRequested || isCancelledUnderReview);
+
+        const canRefund =
+          order.paymentStatus === true &&
+          !isRefunded &&
+          isAdmin &&
+          !shouldShowRefundDecisionPanel;
+  
   const updateStatus = async (newStatus: string) => {
     setUpdating(true);
     try {
@@ -445,7 +459,7 @@ export default function OrderDetailView({ order }: { order: any }) {
         </button>
 
         <div className="flex gap-2 w-full md:w-auto">
-          {!isRefundRequested && canRefund && (
+          {canRefund && (
             <button
               disabled={refunding}
               onClick={() => setDecisionModal({ open: true, action: "approved" })}
@@ -464,7 +478,7 @@ export default function OrderDetailView({ order }: { order: any }) {
         </div>
       </div>
 
-      {isRefundRequested && (
+      {shouldShowRefundDecisionPanel && (
         <div className="bg-orange-50 border border-orange-100 p-6 rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center gap-4 animate-pulse-subtle mb-8">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white rounded-2xl text-orange-600 shadow-sm">

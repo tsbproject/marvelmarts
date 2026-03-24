@@ -142,14 +142,14 @@
 //           </div>
 
 //           {/* Action Buttons */}
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-//             <Link href="/" className="bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-center text-[10px] sm:text-xs hover:bg-brand-primary transition-all shadow-md active:scale-95">
-//               Continue Shopping
-//             </Link>
-//             <Link href="/orders/track-order" className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs hover:bg-neutral-light transition-all active:scale-95"> 
-//               Track Order
-//             </Link>
-//           </div>
+          // <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+          //   <Link href="/" className="bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-center text-[10px] sm:text-xs hover:bg-brand-primary transition-all shadow-md active:scale-95">
+          //     Continue Shopping
+          //   </Link>
+          //   <Link href="/orders/track-order" className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs hover:bg-neutral-light transition-all active:scale-95"> 
+          //     Track Order
+          //   </Link>
+          // </div>
 //         </div>
 //       </div>
 //     </div>
@@ -235,19 +235,19 @@ export default function OrderSuccessPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h1 className="text-4xl font-black italic uppercase mb-2 tracking-tighter">Order Secured</h1>
-          <p className="text-blue-200 font-bold uppercase text-sm tracking-widest">Your gear is being prepped for dispatch.</p>
+          <h1 className=" text-sm  md:text-4xl font-black italic uppercase mb-2 tracking-tighter">Order Secured</h1>
+          <p className="text-blue-200 font-bold uppercase text-sm tracking-widest">Your order is being prepped for dispatch.</p>
         </div>
 
         <div className="p-10 space-y-8">
           <div className="flex justify-between border-b-2 border-neutral-100 pb-6">
             <div>
               <p className="text-[10px] font-black text-neutral-gray uppercase mb-1">Order Number</p>
-              <p className="text-xl font-black text-accent-navy">{order?.orderNumber || "MARVEL-XXXX"}</p>
+              <p className="text-sm md:text-xl font-black text-accent-navy">{order?.orderNumber || "MARVEL-XXXX"}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-black text-neutral-gray uppercase mb-1">Total Paid</p>
-              <p className="text-xl font-black text-accent-navy">₦{order?.total?.toLocaleString()}</p>
+              <p className="text-sm md:text-xl font-black text-accent-navy">₦{order?.total?.toLocaleString()}</p>
             </div>
           </div>
 
@@ -297,12 +297,11 @@ export default function OrderSuccessPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <Link href="/" className="bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-center text-sm hover:bg-brand-primary transition-all shadow-md active:scale-95">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+            <Link href="/" className="bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-center text-[10px] sm:text-xs hover:bg-brand-primary transition-all shadow-md active:scale-95">
               Continue Shopping
             </Link>
-
-            <Link href={`/orders/track-order?orderNumber=${order?.orderNumber}`} className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-lg hover:bg-neutral-light transition-all active:scale-95">
+            <Link href="/orders/track-order" className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs hover:bg-neutral-light transition-all active:scale-95"> 
               Track Order
             </Link>
           </div>

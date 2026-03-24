@@ -1,6 +1,3 @@
-
-
-
 // "use client";
 
 // interface OrderActionsProps {
@@ -21,7 +18,6 @@
 //   isActionLoading 
 // }: OrderActionsProps) {
 //   // SAFETY GUARD: Fixes "Cannot read properties of undefined"
-//   // If order data is still loading from Redux, return null
 //   if (!order || !order.status) {
 //     return null;
 //   }
@@ -53,6 +49,18 @@
 //         </button>
 //       )}
 
+//       {/* NEW: CANCELLED STATUS FEEDBACK */}
+//       {status === "cancelled" && (
+//         <div className="p-4 bg-gray-100 rounded-xl border border-red-500/20 text-center">
+//           <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">
+//             Order Cancelled
+//           </p>
+//           <p className="text-[11px] font-bold text-red-700/80 leading-tight">
+//             The mission was aborted. Your refund is being processed automatically.
+//           </p>
+//         </div>
+//       )}
+
 //       {/* STATUS FEEDBACK: Shows progress if a refund is already active */}
 //       {hasRefundStarted && (
 //         <div className="p-4 bg-neutral-100 rounded-xl border border-neutral-200 text-center">
@@ -64,7 +72,6 @@
 //     </div>
 //   );
 // }
-
 
 
 
@@ -82,23 +89,20 @@ interface OrderActionsProps {
   isActionLoading: boolean;
 }
 
-export default function OrderActions({ 
-  order, 
-  onCancelClick, 
-  onRefundClick, 
-  isActionLoading 
+export default function OrderActions({
+  order,
+  onCancelClick,
+  onRefundClick,
+  isActionLoading,
 }: OrderActionsProps) {
-  // SAFETY GUARD: Fixes "Cannot read properties of undefined"
-  if (!order || !order.status) {
-    return null;
-  }
+  if (!order || !order.status) return null;
 
   const status = order.status.toLowerCase();
-  const hasRefundStarted = order.refundStatus && order.refundStatus !== "none";
+  const refundStatus = (order.refundStatus || "none").toLowerCase();
+  const hasRefundStarted = refundStatus !== "none";
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {/* CANCEL BUTTON: Visible only during early fulfillment stages */}
       {(status === "pending" || status === "processing") && (
         <button
           onClick={onCancelClick}
@@ -109,7 +113,6 @@ export default function OrderActions({
         </button>
       )}
 
-      {/* REFUND BUTTON: Visible only after successful delivery */}
       {status === "delivered" && !hasRefundStarted && (
         <button
           onClick={onRefundClick}
@@ -120,19 +123,32 @@ export default function OrderActions({
         </button>
       )}
 
-      {/* NEW: CANCELLED STATUS FEEDBACK */}
       {status === "cancelled" && (
         <div className="p-4 bg-gray-100 rounded-xl border border-red-500/20 text-center">
           <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">
             Order Cancelled
           </p>
-          <p className="text-[11px] font-bold text-red-700/80 leading-tight">
-            The mission was aborted. Your refund is being processed automatically.
-          </p>
+
+          {refundStatus === "requested" || refundStatus === "pending_review" ? (
+            <p className="text-[11px] font-bold text-red-700/80 leading-tight">
+              Your cancellation has been recorded. Refund eligibility is under admin review.
+            </p>
+          ) : refundStatus === "approved" || refundStatus === "processing" ? (
+            <p className="text-[11px] font-bold text-red-700/80 leading-tight">
+              Your refund has been approved and is being processed.
+            </p>
+          ) : refundStatus === "rejected" ? (
+            <p className="text-[11px] font-bold text-red-700/80 leading-tight">
+              Your refund request was reviewed and declined.
+            </p>
+          ) : (
+            <p className="text-[11px] font-bold text-red-700/80 leading-tight">
+              This cancelled order is awaiting refund review.
+            </p>
+          )}
         </div>
       )}
 
-      {/* STATUS FEEDBACK: Shows progress if a refund is already active */}
       {hasRefundStarted && (
         <div className="p-4 bg-neutral-100 rounded-xl border border-neutral-200 text-center">
           <p className="text-[10px] font-bold uppercase text-neutral-500 tracking-widest">

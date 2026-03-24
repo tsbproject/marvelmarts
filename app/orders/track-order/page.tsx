@@ -160,7 +160,7 @@ export default function OrderTracker() {
                           transition={{ repeat: Infinity, duration: 2 }}
                           className={`w-16 h-16 xxs:w-20 xxs:h-20 rounded-[1.8rem] xxs:rounded-[2.2rem] flex items-center justify-center transition-all duration-700 ${
                             isActive ? "bg-navy text-primary" : "bg-gray-50 text-gray-300"
-                          } ${isCurrent ? "ring-4 ring-primary/20" : ""}`}
+                          } ${isCurrent ? "ring-4 ring-brand-primary" : ""}`}
                         >
                           <Icon size={isActive ? 28 : 24} />
                         </motion.div>
@@ -212,12 +212,12 @@ export default function OrderTracker() {
                   </p>
                 </div>
 
-                <div className="bg-primary p-6 xxs:p-8 rounded-[2rem] xxs:rounded-[2.5rem] flex flex-col justify-between min-h-[120px]">
+                <div className="bg-brand-primary p-6 xxs:p-8 rounded-[2rem] xxs:rounded-[2.5rem] flex flex-col justify-between min-h-[120px]">
                   <span className="text-[8px] xxs:text-[10px] font-black uppercase text-navy/60">
                     Est. Delivery
                   </span>
-                  <p className="text-2xl xxs:text-3xl font-black italic text-navy leading-none">
-                    24-48H
+                  <p className=" text-xl md:text-2xl font-black italic text-accent-navy leading-none">
+                    24-48Hrs
                   </p>
                 </div>
               </div>
