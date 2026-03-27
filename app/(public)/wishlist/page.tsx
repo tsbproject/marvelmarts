@@ -367,7 +367,7 @@ export default function WishlistPage() {
             Your Personal Collection
           </p>
           <h1 className="text-sm md:text-3xl font-black italic uppercase text-accent-navy tracking-tighter leading-none">
-            Saved <span className="text-brand-primary">Loot</span>
+            Favorite <span className="text-brand-primary">Products</span>
           </h1>
         </div>
         <div className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">
@@ -407,7 +407,7 @@ export default function WishlistPage() {
                 onClick={() => handleMoveToCart(item)}
                 className="flex-1 bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
               >
-                <ShoppingBag size={14} /> Add to Stash
+                <ShoppingBag size={14} /> Add to Cart
               </button>
               <button
                 onClick={() => removeFromWishlist(item)}
