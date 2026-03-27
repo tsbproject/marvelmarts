@@ -33,7 +33,7 @@ const DASHBOARD_CONFIG = {
       { label: "My Orders", href: "/account/customer/orders", icon: <Package size={16} /> },
     ],
     Support: [
-      { label: "Messages", href: "/account/customer/messages", icon: <MessageSquare size={16} /> },
+      // { label: "Messages", href: "/account/customer/messages", icon: <MessageSquare size={16} /> },
       { label: "Settings", href: "/account/customer/profile-settings", icon: <Settings size={16} /> },
       { label: "Bank Details", href: "/account/customer/bank-details", icon: <CreditCard size={16} /> },
       { label: "Payment Methods", href: "/account/customer/payment-methods", icon: <CreditCard size={16} /> },
