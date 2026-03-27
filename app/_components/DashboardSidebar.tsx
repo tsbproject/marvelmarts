@@ -85,9 +85,9 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
           { label: "Wishlist", href: "/account/customer/wishlist", icon: <Heart size={20} />, visible: true },
         ],
         management: [
-          { label: "Addresses", href: "/account/customer/profile", icon: <MapPin size={20} />, visible: true },
+          // { label: "Addresses", href: "/account/customer/profile", icon: <MapPin size={20} />, visible: true },
           { label: "Settings", href: "/account/customer/profile-settings", icon: <Settings size={20} />, visible: true },
-          { label: "Downloads", href: "/account/customer/downloads", icon: <DownloadIcon size={20} />, visible: true },
+          // { label: "Downloads", href: "/account/customer/downloads", icon: <DownloadIcon size={20} />, visible: true },
           { label: "Payment method", href: "/account/customer/payment-methods", icon: <CreditCard size={20} />, visible: true },
           { label: "Bank details", href: "/account/customer/bank-details", icon: <CreditCard size={20} />, visible: true },
         ]
