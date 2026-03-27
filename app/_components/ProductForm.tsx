@@ -268,11 +268,12 @@ export default function ProductForm({
     
     fd.append("stock", String(form.stock));
     fd.append("brand", sanitizeInput(form.brand));
-    fd.append("tags", JSON.stringify(form.tags.map(t => sanitizeInput(t))));
     fd.append("sku", sanitizeInput(form.sku));
     fd.append("shippingMethod", sanitizeInput(form.shippingMethod));
     fd.append("weight", String(form.weight));
     fd.append("deletedImageIds", JSON.stringify(deletedImageIds));
+    fd.append("metaTitle", sanitizeInput(form.metaTitle));
+    fd.append("metaDescription", sanitizeInput(form.metaDescription));
     
     // Serialize variants safely
     const cleanVariants = form.variants.map(v => ({
@@ -288,8 +289,9 @@ export default function ProductForm({
 
     try {
       await onSubmit(fd);
-    } catch (err) {
-      setError("Critical Error: Unable to verify and save asset.");
+    } catch (err: any) {
+      console.error("PRODUCT FORM SUBMIT ERROR:", err);
+      setError(err?.message || "Failed to save product.");
     } finally {
       setIsSubmitting(false);
     }

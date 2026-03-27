@@ -1,75 +1,3 @@
-// // app/_components/home/FeaturedCategories.tsx
-// import Link from "next/link";
-// import Image from "next/image";
-// import { getFeaturedCategories } from "@/app/services/categoryService";
-// import { ArrowRight } from "lucide-react";
-
-
-// interface FeaturedCategory {
-//   id: string;
-//   name: string;
-//   slug: string;
-//   imageUrl: string; // Ensure this matches (string, not null)
-//   _count: {
-//     products: number;
-//   };
-// }
-// export default function FeaturedCategoriesHome({ categories }: { categories: FeaturedCategory[] }) {
-//   // const categories = await getFeaturedCategories();
-
-//   if (categories.length === 0) return null;
-
-//   return (
-//     <section className="py-16 px-4 max-w-9xl mx-auto">
-//       <div className="flex items-end justify-between mb-10">
-//         <div>
-//           <h2 className="text-3xl font-black uppercase tracking-tighter text-accent-navy">
-//             Featured <span className="text-brand-primary">Categories</span>
-//           </h2>
-//           <p className="text-gray-500 font-medium">Mission-ready products, organized by operations.</p>
-//         </div>
-//         <Link href="/categories" className="group flex items-center gap-2 text-sm font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors">
-//           View All <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-//         </Link>
-//       </div>
-
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-//         {categories.map((category) => (
-//           <Link 
-//             key={category.id} 
-//             href={`/category/${category.slug}`}
-//             className="group relative h-[300px] overflow-hidden rounded-2xl bg-gray-100 border border-gray-200"
-//           >
-//             {category.imageUrl ? (
-//               <Image
-//                 src={category.imageUrl}
-//                 alt={category.name}
-//                 fill
-//                 className="object-contain transition-transform duration-500 group-hover:scale-110"
-//               />
-//             ) : (
-//               <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400 font-black italic">
-//                 NO IMAGE DATA
-//               </div>
-//             )}
-            
-//             {/* Gradient Overlay */}
-//             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            
-//             <div className="absolute bottom-6 left-6 right-6">
-//               <p className="text-brand-primary text-[10px] font-black uppercase tracking-widest mb-1">
-//                 {category._count.products} Items Loaded
-//               </p>
-//               <h3 className="text-xl font-black text-white uppercase tracking-tight">
-//                 {category.name}
-//               </h3>
-//             </div>
-//           </Link>
-//         ))}
-//       </div>
-//     </section>
-//   );
-// }
 
 
 
@@ -110,7 +38,7 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
               Category Registry
             </span>
           </div>
-          <h2 className="text-4xl font-black uppercase italic tracking-tighter text-accent-navy">
+          <h2 className="text-sm md:text-2xl font-black uppercase italic tracking-tighter text-accent-navy">
             Featured <span className="text-brand-primary">Categories</span>
           </h2>
         </div>
@@ -152,7 +80,7 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
               <p className="text-brand-primary text-[9px] font-black uppercase tracking-widest mb-1 drop-shadow-sm">
                 {category._count.products} Products Found
               </p>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none">
+              <h3 className="text-[11px] font-black text-white uppercase tracking-tight leading-none">
                 {category.name}
               </h3>
             </div>

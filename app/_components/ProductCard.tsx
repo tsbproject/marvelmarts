@@ -53,11 +53,27 @@ export default function ProductCard({
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  const getValidImage = () => {
-      if (product.imageUrl && product.imageUrl.trim() !== "") return product.imageUrl;
-      if (product.images && product.images[0]?.url) return product.images[0].url;
-      return "/placeholder-product.png";
-    };
+  // const getValidImage = () => {
+  //     if (product.imageUrl && product.imageUrl.trim() !== "") return product.imageUrl;
+  //     if (product.images && product.images[0]?.url) return product.images[0].url;
+  //     return "/placeholder-product.png";
+  //   };
+
+
+          const getValidImage = () => {
+          if (typeof product.imageUrl === "string" && product.imageUrl.trim()) {
+            return product.imageUrl;
+          }
+
+          if (Array.isArray(product.images) && product.images.length > 0) {
+            const firstValidImage = product.images.find(
+              (img: any) => typeof img?.url === "string" && img.url.trim()
+            );
+            if (firstValidImage?.url) return firstValidImage.url;
+          }
+
+          return "/placeholder-image.png";
+        };
 
   const handleToggleStatus = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -75,14 +91,28 @@ export default function ProductCard({
   e.preventDefault();
   e.stopPropagation();
 
-  const wishlistItem = {
-    id: product.id,
-    productId: product.id,
-    title: product.title,
-    slug: typeof product.slug === "string" ? product.slug : (product.slug as any)?.current,
-    price: product.discountPrice ?? product.price,
-    imageUrl: getValidImage(),
-  };
+  // const wishlistItem = {
+  //   id: product.id,
+  //   productId: product.id,
+  //   title: product.title,
+  //   slug: typeof product.slug === "string" ? product.slug : (product.slug as any)?.current,
+  //   price: product.discountPrice ?? product.price,
+  //   imageUrl: getValidImage(),
+  // };
+
+      const wishlistItem = {
+        id: product.id,
+        productId: product.id,
+        title: product.title,
+        slug: typeof product.slug === "string" ? product.slug : (product.slug as any)?.current,
+        price: product.discountPrice ?? product.price,
+        imageUrl: getValidImage(),
+        product: {
+          title: product.title,
+          slug: typeof product.slug === "string" ? product.slug : (product.slug as any)?.current,
+          images: Array.isArray(product.images) ? product.images : [],
+        },
+      };
 
   const wasWishlisted = isWishlisted;
 
@@ -184,7 +214,7 @@ export default function ProductCard({
         >
           <Image
             src={getValidImage()}
-            alt={product.title}
+            alt={product.title?.trim() ? `${product.title} product image` : "Product image"}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"

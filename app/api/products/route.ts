@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       console.log("[POST] Unauthorized - no session");
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const vendor = await prisma.vendorProfile.findUnique({
@@ -56,12 +56,12 @@ export async function POST(request: NextRequest) {
 
     if (!vendor) {
       console.log("[POST] Vendor profile not found for user:", session.user.id);
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Vendor profile not found" }, { status: 404 });
     }
 
     if (vendor.isSuspended) {
       console.log("[POST] Vendor suspended:", vendor.id);
-      return NextResponse.json({ success: false, message: "Account suspended" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Account suspended" }, { status: 403 });
     }
 
     console.log("[POST] Vendor authenticated:", vendor.id);
@@ -88,10 +88,16 @@ export async function POST(request: NextRequest) {
     const parsed = productSchema.safeParse(fields);
     if (!parsed.success) {
       console.log("[POST] Zod validation failed:", parsed.error.flatten().fieldErrors);
-      return NextResponse.json(
-        { success: false, errors: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Validation error",
+            errors: fieldErrors,
+          },
+          { status: 400 }
+        );
     }
 
     const data = parsed.data;
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
     } catch (jsonErr) {
       console.error("[POST] Variants JSON parse error:", jsonErr);
       return NextResponse.json(
-        { success: false, message: "Invalid variants JSON format" },
+        { success: false, error: "Invalid variants JSON format" },
         { status: 400 }
       );
     }
@@ -282,14 +288,15 @@ export async function GET(request: NextRequest) {
 
     if (id) {
       const product = await prisma.product.findUnique({
-        where: { id },
-        include: { 
-          category: { select: { id: true, name: true } }, 
-          images: { orderBy: { order: "asc" } }, 
-          variants: true,
-          vendorProfile: { select: { isSuspended: true, status: true, id: true } }
-        },
-      });
+          where: { id },
+          include: { 
+            category: { select: { id: true, name: true } },
+            categories: { select: { id: true, name: true } },
+            images: { orderBy: { order: "asc" } }, 
+            variants: true,
+            vendorProfile: { select: { isSuspended: true, status: true, id: true } }
+          },
+        });
 
       if (!product) return NextResponse.json({ success: false, message: "Not found" }, { status: 404 });
 
@@ -301,14 +308,18 @@ export async function GET(request: NextRequest) {
     }
 
     const items = await prisma.product.findMany({
-      where: { 
-        vendorProfileId: vendorIdFilter, 
-        status: viewOwn ? undefined : "ACTIVE",
-        vendorProfile: viewOwn ? undefined : { isSuspended: false, status: "APPROVED" }
-      },
-      orderBy: { createdAt: "desc" },
-      include: { category: { select: { id: true, name: true } }, images: { orderBy: { order: "asc" } } },
-    });
+        where: { 
+          vendorProfileId: vendorIdFilter, 
+          status: viewOwn ? undefined : "ACTIVE",
+          vendorProfile: viewOwn ? undefined : { isSuspended: false, status: "APPROVED" }
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          category: { select: { id: true, name: true } },
+          categories: { select: { id: true, name: true } },
+          images: { orderBy: { order: "asc" } }
+        },
+      });
 
     return NextResponse.json({ success: true, items });
   } catch (err) {

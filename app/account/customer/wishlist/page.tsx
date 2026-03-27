@@ -34,7 +34,7 @@ export default async function WishlistPage() {
     productId: item.productId,
     name: item.product?.title || item.product?.title || "Product",
     price: Number(item.product?.discountPrice ?? item.product?.price ?? 0),
-    image: item.product?.images?.[0]?.url || "/placeholder-product.png",
+    image: item.product?.images?.[0]?.url || "/placeholder-image.png",
     slug: item.product?.slug || "",
     product: item.product
       ? {

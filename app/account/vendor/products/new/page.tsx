@@ -55,27 +55,47 @@ export default function NewProductPage() {
   }
 
   // Handle Submit (This should call your server action or an API route)
- const handleCreateProduct = async (formData: FormData) => {
-    try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        body: formData, // Ensure your API route is set up for Form Data (for images)
-      });
-      
-      if (!res.ok) {
-        // GET THE ACTUAL ERROR FROM SERVER
-        const errorData = await res.json();
-        console.error("SERVER REJECTION:", errorData);
-        throw new Error(errorData.error || "Failed to save");
-      }
+      const handleCreateProduct = async (formData: FormData) => {
+        try {
+          const res = await fetch("/api/products", {
+            method: "POST",
+            body: formData,
+          });
 
-      router.push("/account/vendor/products");
-    } catch (err: any) {
-      console.error(err);
-      // This will now pass the REAL error message to your ProductForm
-      throw err; 
-    }
-};
+          if (!res.ok) {
+            let errorData: any = {};
+
+            try {
+              errorData = await res.json();
+            } catch {
+              errorData = {};
+            }
+
+            console.error("SERVER REJECTION:", {
+              status: res.status,
+              statusText: res.statusText,
+              errorData,
+            });
+
+            const firstFieldError =
+              errorData?.errors &&
+              typeof errorData.errors === "object" &&
+              Object.values(errorData.errors).flat()[0];
+
+            throw new Error(
+              errorData?.error ||
+              errorData?.message ||
+              firstFieldError ||
+              "Failed to save"
+            );
+}
+
+          router.push("/account/vendor/products");
+        } catch (err: any) {
+          console.error("CREATE PRODUCT ERROR:", err);
+          throw err;
+        }
+      };
   return (
     <div className="flex flex-col min-h-screen">
       <DashboardHeader 
