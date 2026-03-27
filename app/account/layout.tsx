@@ -35,8 +35,8 @@ const DASHBOARD_CONFIG = {
     Support: [
       { label: "Messages", href: "/account/customer/messages", icon: <MessageSquare size={16} /> },
       { label: "Settings", href: "/account/customer/Profile-settings", icon: <Settings size={16} /> },
-      { label: "Account Details", href: "/account/customer/Profile-settings", icon: <CreditCard size={16} /> },
-      { label: "Payment Methods", href: "/account/customer/Profile-settings", icon: <CreditCard size={16} /> },
+      { label: "Bank Details", href: "/account/customer/bank-details", icon: <CreditCard size={16} /> },
+      { label: "Payment Methods", href: "/account/customer/payment-methods", icon: <CreditCard size={16} /> },
     ],
   },
   VENDOR: {
@@ -113,52 +113,92 @@ export default function UnifiedAccountLayout({ children }: { children: React.Rea
 
   const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
-  const hasAllDocs = !!(
-    session?.user?.identityDoc &&
-    session?.user?.businessDoc &&
-    session?.user?.locationDoc
-  );
 
-  const isNewOrIncompleteVendor =
-    isVendorZone &&
-    vendorStatus === "PENDING" &&
-    !hasAllDocs;
+ 
 
-  useEffect(() => {
-    if (isNewOrIncompleteVendor) {
-      router.replace("/account/vendor/verification");
-    }
-  }, [isNewOrIncompleteVendor, router]);
+const hasAllDocs = !!(
+  session?.user?.identityDoc &&
+  session?.user?.businessDoc &&
+  session?.user?.locationDoc
+);
 
-  const vendorLocked =
-    isVendorZone &&
-    !isAdmin &&
-    (vendorStatus !== "APPROVED" || isSuspended);
+const isNewOrIncompleteVendor =
+  isVendorZone &&
+  vendorStatus === "AWAITING_DOCUMENTS" &&
+  !hasAllDocs;
 
-  const showSuspendedBanner = isVendorZone && isSuspended;
+useEffect(() => {
+  if (isNewOrIncompleteVendor) {
+    router.replace("/account/vendor/verification");
+  }
+}, [isNewOrIncompleteVendor, router]);
 
-  const isVerificationPage = pathname === "/account/vendor/verification";
+const vendorLocked =
+  isVendorZone &&
+  !isAdmin &&
+  (vendorStatus !== "APPROVED" || isSuspended);
 
-  const showRejectedView =
+const showSuspendedBanner = isVendorZone && isSuspended;
+
+const isVerificationPage = pathname === "/account/vendor/verification";
+
+const showRejectedView =
   isVendorZone &&
   !isSuspended &&
   vendorStatus === "REJECTED" &&
   !isVerificationPage;
 
-  const shouldRedirectToVerification =
+const showReviewBanner =
   isVendorZone &&
-  !isAdmin &&
-  !isVerificationPage &&
-  (
-    (vendorStatus === "PENDING" && !hasAllDocs) ||
-    vendorStatus === "REJECTED"
-  );
+  !isSuspended &&
+  vendorStatus === "PENDING_REVIEW";
+
+  // const hasAllDocs = !!(
+  //   session?.user?.identityDoc &&
+  //   session?.user?.businessDoc &&
+  //   session?.user?.locationDoc
+  // );
+
+  // const isNewOrIncompleteVendor =
+  //   isVendorZone &&
+  //   vendorStatus === "PENDING" &&
+  //   !hasAllDocs;
+
+  // useEffect(() => {
+  //   if (isNewOrIncompleteVendor) {
+  //     router.replace("/account/vendor/verification");
+  //   }
+  // }, [isNewOrIncompleteVendor, router]);
+
+  // const vendorLocked =
+  //   isVendorZone &&
+  //   !isAdmin &&
+  //   (vendorStatus !== "APPROVED" || isSuspended);
+
+  // const showSuspendedBanner = isVendorZone && isSuspended;
+
+  // const isVerificationPage = pathname === "/account/vendor/verification";
+
+  // const showRejectedView =
+  // isVendorZone &&
+  // !isSuspended &&
+  // vendorStatus === "REJECTED" &&
+  // !isVerificationPage;
+
+  // const shouldRedirectToVerification =
+  // isVendorZone &&
+  // !isAdmin &&
+  // !isVerificationPage &&
+  // (
+  //   (vendorStatus === "PENDING" && !hasAllDocs) ||
+  //   vendorStatus === "REJECTED"
+  // );
   
   
-  const showReviewBanner =
-    isVendorZone &&
-    !isSuspended &&
-    (vendorStatus === "PENDING_REVIEW" || vendorStatus === "PENDING");
+  // const showReviewBanner =
+  //   isVendorZone &&
+  //   !isSuspended &&
+  //   (vendorStatus === "PENDING_REVIEW" || vendorStatus === "PENDING");
 
   if (authStatus === "loading") {
     return (

@@ -41,9 +41,13 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
     isFeatured: Boolean(initialData.isFeatured), 
 
     // Handle nested data if initialData comes directly from Prisma
-    categories: Array.isArray(initialData.categories) 
-      ? initialData.categories 
-      : (initialData.categoryId ? [initialData.categoryId] : []),
+    categories: Array.isArray(initialData.categories)
+      ? initialData.categories
+          .map((cat: any) => typeof cat === "string" ? cat : cat?.id)
+          .filter(Boolean)
+      : initialData.categoryId
+      ? [initialData.categoryId]
+      : [],
       
     sku: initialData.sku ?? "",
     stock: initialData.stock ? Number(initialData.stock) : 0,

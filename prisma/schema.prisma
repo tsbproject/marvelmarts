@@ -20,20 +20,26 @@ model User {
   balance            Float               @default(0.0)
   roles              UserRole[]          @default([CUSTOMER])
   role               UserRole?
+  walletBalance      Float               @default(0)
+  phone              String?
   accounts           Account[]
   addresses          Address[]
   adminProfile       AdminProfile?
+  bankAccount        BankAccount?
   cart               Cart?
   customerProfile    CustomerProfile?
   disputes           Dispute[]           @relation("UserDisputes")
   notifications      Notification[]
   orders             Order[]
   passwordResetToken PasswordResetToken?
+  paymentTypes       PaymentTypes[]
+  paymentMethods     PaymentMethod[]
   payouts            Payout[]
   reviews            Review[]
   sessions           Session[]
   vendorProfile      VendorProfile?
   verificationCodes  VerificationCode[]
+  wallet             Wallet?
   wishlists          Wishlist[]
   conversations      Conversation[]      @relation("UserConversations")
 }
@@ -76,11 +82,9 @@ model VendorProfile {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   isVerified      Boolean             @default(false)
-  
   bio             String?
   coverUrl        String?
   logoUrl         String?
-  
   isSuspended     Boolean             @default(false)
   rejectionReason String?
   status          VendorStatus        @default(PENDING)
@@ -97,12 +101,10 @@ model VendorProfile {
   productDone     Boolean             @default(false)
   profileDone     Boolean             @default(false)
   storeDone       Boolean             @default(false)
-  payoutsDone     Boolean             @default(false)
-  
   businessDoc     String?
   identityDoc     String?
   locationDoc     String?
-  
+  payoutsDone     Boolean             @default(false)
   transactions    CreditTransaction[]
   disputes        Dispute[]
   orders          Order[]
@@ -139,29 +141,30 @@ model VendorStore {
 }
 
 model VendorBoost {
-  id                  String        @id @default(cuid())
-  vendorProfileId     String        @unique
-  credits             Int           @default(0)
-  plan                BoostPlan     @default(FREE)
-  lowCreditAlertSent  Boolean       @default(false)
-  exhaustedAlertSent  Boolean       @default(false)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @default(now()) @updatedAt
-  vendorProfile       VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(cuid())
+  vendorProfileId    String        @unique
+  credits            Int           @default(0)
+  createdAt          DateTime      @default(now())
+  plan               BoostPlan     @default(FREE)
+  updatedAt          DateTime      @default(now()) @updatedAt
+  exhaustedAlertSent Boolean       @default(false)
+  lowCreditAlertSent Boolean       @default(false)
+  vendorProfile      VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 
 model CreditTransaction {
   id              String        @id @default(cuid())
   reference       String        @unique
   amount          Int
-  vendorProfileId String
-  status          String
   platform        String
+  status          String
+  vendorProfileId String
+  createdAt       DateTime      @default(now())
   emailSent       Boolean       @default(false)
   emailSentAt     DateTime?
-  createdAt       DateTime      @default(now())
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
+
 model VendorScore {
   id              String        @id @default(cuid())
   vendorProfileId String        @unique
@@ -255,61 +258,68 @@ model VendorVerification {
 }
 
 model Category {
-  id              String     @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
-  slug            String     @unique
+  slug            String   @unique
   parentId        String?
-  position        Int        @default(0)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  position        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   imageUrl        String?
   metaDescription String?
   metaTitle       String?
-  isFeatured      Boolean    @default(false)
-  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children        Category[] @relation("CategoryToCategory")
-  products        Product[]
+  isFeatured      Boolean  @default(false)
+
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
+
+  products        Product[] @relation("ProductCategories")
+  primaryProducts Product[] @relation("PrimaryProductCategory")
 }
 
 model Product {
-  id                String         @id @default(cuid())
+  id                String        @id @default(cuid())
   title             String
-  slug              String         @unique
+  slug              String        @unique
   description       String
   brand             String?
-  price             Decimal        @db.Decimal(10, 2)
-  discountPrice     Decimal?       @db.Decimal(10, 2)
-  stock             Int            @default(0)
-  rating            Float          @default(0)
-  ratingCount       Int            @default(0)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  price             Decimal       @db.Decimal(10, 2)
+  discountPrice     Decimal?      @db.Decimal(10, 2)
+  stock             Int           @default(0)
+  rating            Float         @default(0)
+  ratingCount       Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   categoryId        String?
-  isFeatured        Boolean        @default(false)
-  isPublished       Boolean        @default(true)
-  lowStockThreshold Int?           @default(5)
+  isFeatured        Boolean       @default(false)
+  isPublished       Boolean       @default(true)
+  lowStockThreshold Int?          @default(5)
   metaDescription   String?
   metaTitle         String?
-  status            ProductStatus  @default(ACTIVE)
+  status            ProductStatus @default(ACTIVE)
   sku               String?
   tags              String[]
-  isFlashSale       Boolean        @default(false)
-  isNewArrival      Boolean        @default(false)
+  isFlashSale       Boolean       @default(false)
+  isNewArrival      Boolean       @default(false)
   shippingMethod    String?
   weight            Float?
-  isTrending        Boolean        @default(false)
-  salesCount        Int            @default(0)
+  isTrending        Boolean       @default(false)
+  salesCount        Int           @default(0)
   vendorProfileId   String
   boostUntil        DateTime?
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
-  category          Category?      @relation(fields: [categoryId], references: [id])
-  vendorProfile     VendorProfile  @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
-  images            ProductImage[]
-  reviews           Review[]
-  variants          Variant[]
-  wishlists         Wishlist[]
-  flashSales        FlashSale[]    @relation("ProductToFlashSale")
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  category   Category?  @relation("PrimaryProductCategory", fields: [categoryId], references: [id])
+  categories Category[] @relation("ProductCategories")
+
+  vendorProfile VendorProfile  @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  reviews       Review[]
+  variants      Variant[]
+  wishlists     Wishlist[]
+  flashSales    FlashSale[]    @relation("ProductToFlashSale")
 }
 
 model ProductImage {
@@ -440,6 +450,7 @@ model Order {
   vendorProfileId      String
   shippingFirstName    String?
   shippingLastName     String?
+  paymentTypes         PaymentTypes?
   user                 User?         @relation(fields: [userId], references: [id])
   vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
   items                OrderItem[]
@@ -636,6 +647,59 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 }
 
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String
+  providerId  String   @unique
+  cardType    String?
+  last4       String
+  expiryMonth String
+  expiryYear  String
+  isDefault   Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Wallet {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  balance      Decimal             @default(0.0) @db.Decimal(10, 2)
+  currency     String              @default("NGN")
+  updatedAt    DateTime            @updatedAt
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  amount      Decimal  @db.Decimal(10, 2)
+  type        String
+  status      String   @default("SUCCESS")
+  reference   String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bankName      String
+  accountNumber String
+  accountName   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -705,4 +769,23 @@ enum ConversationType {
   CUSTOMER_VENDOR
   VENDOR_ADMIN
   CUSTOMER_ADMIN
+}
+
+enum PaymentTypes {
+  CARD
+  BANK_TRANSFER
+  WALLET
+  CASH_ON_DELIVERY
+}
+
+enum TransactionType {
+  TOPUP
+  PURCHASE
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }

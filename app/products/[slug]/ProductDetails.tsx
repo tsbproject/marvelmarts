@@ -3,9 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, ShieldCheck, Truck, 
-  RefreshCcw, Plus, Minus, ChevronLeft, Star, Store, CheckCircle2
-} from "lucide-react";
+  ShoppingCart,
+  ShieldCheck,
+  Truck,
+  RefreshCcw,
+  Plus,
+  Minus,
+  ChevronLeft,
+  Star,
+  Store,
+  CheckCircle2,
+  Facebook,
+  Mail,
+  MessageCircle,
+  Share2,
+} from "lucide-react";;
 
 // Redux & Context
 import { useDispatch } from "react-redux";
@@ -131,6 +143,56 @@ useEffect(() => {
     router.push(path);
   };
 
+    const productTags =
+    Array.isArray((product as any).tags)
+      ? (product as any).tags
+      : typeof (product as any).tags === "string"
+      ? (product as any).tags
+          .split(",")
+          .map((tag: string) => tag.trim())
+          .filter(Boolean)
+      : [];
+
+  const productCategories = [
+    product.category?.name,
+    ...(
+      Array.isArray((product as any).categories)
+        ? (product as any).categories.map((cat: any) =>
+            typeof cat === "string" ? cat : cat?.name
+          )
+        : []
+    ),
+  ].filter(Boolean);
+
+  const uniqueCategories = [...new Set(productCategories)];
+  const uniqueTags = [...new Set(productTags)];
+
+  console.log("PRODUCT DETAILS DATA:", product);
+  console.log("PRODUCT TAGS:", product.tags);
+
+
+    const productUrl =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/products/${product.slug}`;
+
+  const shareText = `Check out this product on MarvelMarts: ${product.title}`;
+
+  const encodedUrl = encodeURIComponent(productUrl);
+  const encodedText = encodeURIComponent(shareText);
+
+  const shareLinks = {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${productUrl}`)}`,
+    email: `mailto:?subject=${encodeURIComponent(product.title)}&body=${encodeURIComponent(`${shareText}\n\n${productUrl}`)}`,
+  };
+
+  const openShareWindow = (url: string) => {
+    if (typeof window === "undefined") return;
+    window.open(url, "_blank", "noopener,noreferrer,width=700,height=600");
+  };
+
   return (
     <div className="bg-[#F8F8F8] min-h-screen pb-20">
       <div className="container mx-auto px-4 py-8">
@@ -176,6 +238,92 @@ useEffect(() => {
                 </button>
               </div>
             </div>
+
+            {/*CATEGORIES AND TAGS */}
+      {(uniqueCategories.length > 0 || uniqueTags.length > 0) && (
+        <div className="mb-8 flex flex-col gap-4">
+          {uniqueCategories.length > 0 && (
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E] mb-2">
+                Categories
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {uniqueCategories.map((category, index) => (
+                  <span
+                    key={`${category}-${index}`}
+                    className="px-4 py-2 rounded-full bg-white border border-gray-100 text-[#002B5B] text-[10px] font-black uppercase tracking-wider shadow-sm"
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {uniqueTags.length > 0 && (
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E] mb-2">
+                Tags
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {uniqueTags.map((tag, index) => (
+                  <span
+                    key={`${tag}-${index}`}
+                    className="px-4 py-2 rounded-full bg-[#002B5B]/5 border border-[#002B5B]/10 text-[#4B4B4B] text-[10px] font-black uppercase tracking-wider"
+                  >
+                  #{String(tag)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+           {/*SOCIAL MEDIA SHARE */}
+        <div className="mb-8">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E] mb-3 flex items-center gap-2">
+              <Share2 size={12} />
+              Share Product
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => openShareWindow(shareLinks.facebook)}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white border border-gray-100 text-[#002B5B] text-[10px] font-black uppercase tracking-wider shadow-sm hover:border-[#F7931E] hover:text-[#F7931E] transition-all"
+              >
+                <Facebook size={14} />
+                Facebook
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openShareWindow(shareLinks.twitter)}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white border border-gray-100 text-[#002B5B] text-[10px] font-black uppercase tracking-wider shadow-sm hover:border-[#F7931E] hover:text-[#F7931E] transition-all"
+              >
+                <span className="text-[11px] font-black">X</span>
+                Twitter
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openShareWindow(shareLinks.whatsapp)}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white border border-gray-100 text-[#002B5B] text-[10px] font-black uppercase tracking-wider shadow-sm hover:border-[#F7931E] hover:text-[#F7931E] transition-all"
+              >
+                <MessageCircle size={14} />
+                WhatsApp
+              </button>
+
+              <a
+                href={shareLinks.email}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white border border-gray-100 text-[#002B5B] text-[10px] font-black uppercase tracking-wider shadow-sm hover:border-[#F7931E] hover:text-[#F7931E] transition-all"
+              >
+                <Mail size={14} />
+                Email
+              </a>
+            </div>
+          </div>
 
             {/* VENDOR BRANDING SECTION */}
             {product.vendorProfile && (

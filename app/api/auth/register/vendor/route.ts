@@ -121,7 +121,7 @@ export async function POST(req: Request) {
               state,
               country,
               isVerified: false,
-              status: VendorStatus.PENDING,
+              status: VendorStatus.AWAITING_DOCUMENTS,
             },
           },
         },
