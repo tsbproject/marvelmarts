@@ -332,8 +332,8 @@ const savedCards = [
                 <Lock size={12} className="text-brand-primary" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-light">PCI-DSS Compliant</span>
               </div>
-              <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-none">
-                Wallet & <span className="text-brand-primary">Billing</span>
+              <h2 className="text-md md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                Wallet &nbsp;  & &nbsp; <span className="text-brand-primary">Billing</span>
               </h2>
               <p className="text-blue-100/70 text-sm md:text-lg font-medium max-w-sm uppercase tracking-tight">
                 Securely manage your saved cards and payment preferences.
@@ -345,7 +345,7 @@ const savedCards = [
                 type="button" // keep it type="button" so it doesn't trigger a page reload
                 onClick={handleAddNewCard}
                 disabled={isInitializing}
-                className="group relative p-4 rounded-2xl font-bold flex items-center gap-4 bg-brand-primary ..."
+                className="group relative p-4 text-sm  rounded-2xl  font-bold flex items-center gap-4 bg-brand-primary ..."
               >
                 {isInitializing ? <Loader2 className="animate-spin" /> : <Plus size={20} />}
                 <span className="relative z-10">{isInitializing ? "Opening..." : "Add New Card"}</span>
@@ -533,52 +533,56 @@ const savedCards = [
             </div>
             
           </div>
+          
+          
           {/* Transaction History Section */}
-            <div className="mt-12 w-5xl max-w-4xl">
-              <h3 className="text-xl font-bold mb-6">Transaction History</h3>
-              <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
-                <table className="w-full  text-left">
+          <div className="mt-8 sm:mt-12 col-span-1 lg:col-span-3">
+            <h3 className="text-lg sm:text-xl font-black text-accent-navy uppercase italic px-2 mb-6">Transaction History</h3>
+            <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
-                    <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-neutral-gray">
-                      <th className="px-8 py-4">Date</th>
-                      <th className="px-8 py-4">Description</th>
-                      <th className="px-8 py-4">Amount</th>
-                      <th className="px-8 py-4">Status</th>
+                    <tr className="bg-gray-50 text-[9px] xxs:text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                      <th className="px-6 sm:px-8 py-4">Date</th>
+                      <th className="px-6 sm:px-8 py-4">Description</th>
+                      <th className="px-6 sm:px-8 py-4">Amount</th>
+                      <th className="px-6 sm:px-8 py-4 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-8 py-4 text-sm text-neutral-gray">
+                        <td className="px-6 sm:px-8 py-4 text-xs font-bold text-neutral-gray">
                           {new Date(tx.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-8 py-4 font-bold text-sm">{tx.description}</td>
-                        <td className={`px-8 py-4 font-bold text-sm ${tx.type === 'TOPUP' ? 'text-green-600' : 'text-red-600'}`}>
+                        <td className="px-6 sm:px-8 py-4 font-black text-[11px] uppercase italic text-accent-navy">
+                          {tx.description}
+                        </td>
+                        <td className={`px-6 sm:px-8 py-4 font-black text-xs sm:text-sm ${tx.type === 'TOPUP' ? 'text-green-600' : 'text-red-600'}`}>
                           {tx.type === 'TOPUP' ? '+' : '-'} ₦{Number(tx.amount).toLocaleString()}
                         </td>
-                        <td className="px-8 py-4">
-                          <span className="bg-green-100 text-green-700 text-[9px] font-black uppercase px-2 py-1 rounded-md">
+                        <td className="px-6 sm:px-8 py-4 text-right">
+                          <span className="bg-green-100 text-green-700 text-[8px] xxs:text-[9px] font-black uppercase px-2 py-1 rounded-md">
                             {tx.status}
                           </span>
                         </td>
                       </tr>
                     ))}
-                    {transactions.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-8 py-12 text-center text-neutral-gray italic">
-                          No transactions yet. Top up your wallet to get started!
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
 async function savePaymentMethod(data: {
   provider: string;
   providerId: string; // This is the reference from Paystack
@@ -614,7 +618,5 @@ async function savePaymentMethod(data: {
 }
 
 
-// function setIsProcessing(arg0: boolean) {
-//   throw new Error("Function not implemented.");
-// }
+
 

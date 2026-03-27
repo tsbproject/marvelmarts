@@ -153,52 +153,7 @@ const showReviewBanner =
   !isSuspended &&
   vendorStatus === "PENDING_REVIEW";
 
-  // const hasAllDocs = !!(
-  //   session?.user?.identityDoc &&
-  //   session?.user?.businessDoc &&
-  //   session?.user?.locationDoc
-  // );
-
-  // const isNewOrIncompleteVendor =
-  //   isVendorZone &&
-  //   vendorStatus === "PENDING" &&
-  //   !hasAllDocs;
-
-  // useEffect(() => {
-  //   if (isNewOrIncompleteVendor) {
-  //     router.replace("/account/vendor/verification");
-  //   }
-  // }, [isNewOrIncompleteVendor, router]);
-
-  // const vendorLocked =
-  //   isVendorZone &&
-  //   !isAdmin &&
-  //   (vendorStatus !== "APPROVED" || isSuspended);
-
-  // const showSuspendedBanner = isVendorZone && isSuspended;
-
-  // const isVerificationPage = pathname === "/account/vendor/verification";
-
-  // const showRejectedView =
-  // isVendorZone &&
-  // !isSuspended &&
-  // vendorStatus === "REJECTED" &&
-  // !isVerificationPage;
-
-  // const shouldRedirectToVerification =
-  // isVendorZone &&
-  // !isAdmin &&
-  // !isVerificationPage &&
-  // (
-  //   (vendorStatus === "PENDING" && !hasAllDocs) ||
-  //   vendorStatus === "REJECTED"
-  // );
   
-  
-  // const showReviewBanner =
-  //   isVendorZone &&
-  //   !isSuspended &&
-  //   (vendorStatus === "PENDING_REVIEW" || vendorStatus === "PENDING");
 
   if (authStatus === "loading") {
     return (
