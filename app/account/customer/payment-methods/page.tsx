@@ -2,9 +2,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import PaymentMethodsClient from "../_components/PaymentMethodsClient";
-import { PaymentMethod, PaymentTypes } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+type CardItem = {
+  id: string;
+  last4: string;
+  expiryMonth: number;
+  expiryYear: number;
+  cardType: string;
+  isDefault: boolean;
+};
 
 export default async function PaymentMethodsPage() {
   const session = await getServerSession(authOptions);
@@ -12,9 +20,13 @@ export default async function PaymentMethodsPage() {
 
   const [rawCards, walletData] = await Promise.all([
     prisma.paymentMethod.findMany({
-      where: { userId: session.user.id },
+      where: {
+        userId: session.user.id,
+      },
       orderBy: { isDefault: "desc" },
     }),
+    
+    
     prisma.wallet.findUnique({
       where: { userId: session.user.id },
       include: {
@@ -26,17 +38,14 @@ export default async function PaymentMethodsPage() {
     }),
   ]);
 
-  
-
-
-  const initialCards = PaymentTypes.map((card: { id: any; last4: any; expiryMonth: any; expiryYear: any; cardType: any; isDefault: any; }) => ({
-  id: card.id,
-  last4: card.last4,
-  expiryMonth: Number(card.expiryMonth),
-  expiryYear: Number(card.expiryYear),
-  cardType: card.cardType,
-  isDefault: card.isDefault,
-}));
+  const initialCards: CardItem[] = rawCards.map((card) => ({
+    id: card.id,
+    last4: card.last4 ?? "",
+    expiryMonth: Number(card.expiryMonth),
+    expiryYear: Number(card.expiryYear),
+    cardType: card.cardType ?? "",
+    isDefault: card.isDefault,
+  }));
 
   const safeTransactions =
     walletData?.transactions.map((tx) => ({
@@ -54,8 +63,7 @@ export default async function PaymentMethodsPage() {
     <PaymentMethodsClient
       initialCards={initialCards}
       walletBalance={walletData?.balance ? Number(walletData.balance) : 0}
-       transactions={safeTransactions}
-     
+      transactions={safeTransactions}
     />
   );
 }
