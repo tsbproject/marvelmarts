@@ -177,57 +177,83 @@ export default function ProductCard({
       )}
 
       {/* Image Section */}
-      <div className={`relative overflow-hidden rounded-[1.4rem] bg-[#F8FAFC] shrink-0 transition-all ${
-        isList ? "w-32 h-32" : "w-full h-56"
-      }`}>
-        <Image
-          src={getValidImage()}
-          alt={product.title}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-          className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-        />
+        <div
+          className={`relative overflow-hidden rounded-[1.4rem] bg-[#F8FAFC] shrink-0 transition-all ${
+            isList ? "w-32 h-32" : "w-full h-56"
+          }`}
+        >
+          <Image
+            src={getValidImage()}
+            alt={product.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+          />
 
-        {/* Actions Overlay */}
-        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-          {isOwner ? (
-            <div className="flex flex-col gap-2 w-full px-4">
-              <Link
-                href={`/account/vendor/products/edit/${product.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center justify-center gap-2 py-2 bg-brand-primary text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-              >
-                <Edit3 size={12} /> Edit
-              </Link>
-              <button
-                onClick={(e) => { e.stopPropagation(); }}
-                className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-              >
-                <Rocket size={12} className={isBoosted ? "text-green-500" : "text-[#F7931E]"} /> 
-                {isBoosted ? "Extend" : "Boost"}
-              </button>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onQuickView) onQuickView(product);
-                }}
-                className="p-3 bg-white rounded-full text-slate-900 shadow-xl hover:bg-brand-primary hover:scale-110 transition-all"
-              >
-                <Eye size={18} />
-              </button>
-              <button
-                onClick={handleWishlistToggle}
-                className={`p-3 rounded-full shadow-xl transition-all hover:scale-110 ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}
-              >
-                <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
-              </button>
-            </>
+          {/* Mobile Wishlist Button */}
+          {!isOwner && (
+            <button
+              type="button"
+              onClick={handleWishlistToggle}
+              className={`absolute top-3 right-3 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all active:scale-95 ${
+                isWishlisted ? "bg-red-500 text-white" : "bg-white text-slate-900"
+              }`}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+            </button>
           )}
+
+          {/* Actions Overlay */}
+          <div className="absolute inset-0 z-20 bg-slate-900/40 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] md:flex">
+            {isOwner ? (
+              <div className="flex flex-col gap-2 w-full px-4">
+                <Link
+                  href={`/account/vendor/products/edit/${product.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center gap-2 py-2 bg-brand-primary text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+                >
+                  <Edit3 size={12} /> Edit
+                </Link>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+                >
+                  <Rocket size={12} className={isBoosted ? "text-green-500" : "text-[#F7931E]"} />
+                  {isBoosted ? "Extend" : "Boost"}
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onQuickView) onQuickView(product);
+                  }}
+                  className="p-3 bg-white rounded-full text-slate-900 shadow-xl hover:bg-brand-primary hover:scale-110 transition-all"
+                >
+                  <Eye size={18} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleWishlistToggle}
+                  className={`hidden md:flex p-3 rounded-full shadow-xl transition-all hover:scale-110 ${
+                    isWishlisted ? "bg-red-500 text-white" : "bg-white text-slate-900"
+                  }`}
+                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
       {/* Content Section */}
       <div className={`flex-1 flex flex-col w-full ${isList ? "text-left items-start py-1" : "text-center items-center mt-3 px-1"}`}>

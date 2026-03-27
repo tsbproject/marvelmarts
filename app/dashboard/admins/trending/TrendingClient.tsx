@@ -1,177 +1,3 @@
-
-
-
-
-// "use client";
-
-// import React, { useTransition, useState, useEffect } from "react";
-// import { toggleTrendingAction } from "@/app/services/adminProductActions";
-// import { useNotification } from "@/app/_context/NotificationContext";
-// import { Flame, Package, Search, ChevronLeft, ChevronRight } from "lucide-react";
-// import { useDispatch } from "react-redux";
-// import { updateProductTrendingStatus } from "@/store/trendingSlice";
-// import { useRouter, usePathname, useSearchParams } from "next/navigation";
-
-// interface TrendingClientProps {
-//   products: any[];
-//   totalPages: number;
-//   currentPage: number;
-// }
-
-// export default function TrendingClient({ products, totalPages, currentPage }: TrendingClientProps) {
-//   const { notifySuccess, notifyError } = useNotification();
-//   const [isPending, startTransition] = useTransition();
-//   const dispatch = useDispatch();
-  
-//   const router = useRouter();
-//   const pathname = usePathname();
-//   const searchParams = useSearchParams();
-
-//   // Local state for search input to keep UI snappy
-//   const [searchTerm, setSearchTerm] = useState(searchParams.get("query") || "");
-
-//   // --- SMART SEARCH LOGIC (Debounced) ---
-//   useEffect(() => {
-//     const delayDebounceFn = setTimeout(() => {
-//       const params = new URLSearchParams(searchParams);
-//       if (searchTerm) {
-//         params.set("query", searchTerm);
-//       } else {
-//         params.delete("query");
-//       }
-//       params.set("page", "1"); // Reset to page 1 on new search
-//       router.push(`${pathname}?${params.toString()}`);
-//     }, 400); // Wait 400ms after typing stops
-
-//     return () => clearTimeout(delayDebounceFn);
-//   }, [searchTerm, pathname, router, searchParams]);
-
-//   // --- PAGINATION LOGIC ---
-//   const handlePageChange = (newPage: number) => {
-//     const params = new URLSearchParams(searchParams);
-//     params.set("page", newPage.toString());
-//     router.push(`${pathname}?${params.toString()}`);
-//   };
-
-//   const handleToggle = (id: string, current: boolean) => {
-//     startTransition(async () => {
-//       const result = await toggleTrendingAction(id, current);
-//       if (result.success) {
-//         dispatch(updateProductTrendingStatus({ id, status: !current }));
-//         notifySuccess("Tactical Priority Adjusted.");
-//         router.refresh(); // Refresh server data to sync UI
-//       } else {
-//         notifyError("Failed to update status.");
-//       }
-//     });
-//   };
-
-//   return (
-//     <div className="space-y-4">
-//       {/* Search Bar - Smart Filter */}
-//       <div className="relative group max-w-md">
-//         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-//         <input
-//           type="text"
-//           placeholder="SEARCH BY UNIT NAME OR SKU..."
-//           value={searchTerm}
-//           onChange={(e) => setSearchTerm(e.target.value)}
-//           className="w-full bg-white border border-gray-100 rounded-2xl py-4 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
-//         />
-//       </div>
-
-//       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-//         <table className="w-full text-left border-collapse">
-//           <thead>
-//             <tr className="bg-gray-50 border-b border-gray-100">
-//               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Product Details</th>
-//               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-//               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Trending Action</th>
-//             </tr>
-//           </thead>
-//           <tbody className={isPending ? "opacity-50 pointer-events-none transition-opacity" : ""}>
-//             {products.length > 0 ? (
-//               products.map((product) => (
-//                 <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-//                   <td className="p-6">
-//                     <div className="flex items-center gap-4">
-//                       <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100">
-//                         {product.imageUrl ? (
-//                           <img src={product.imageUrl} className="w-full h-full object-cover" alt={product.title} />
-//                         ) : (
-//                           <Package size={20} className="text-gray-300" />
-//                         )}
-//                       </div>
-//                       <div>
-//                         <p className="font-black text-gray-900 uppercase tracking-tight">{product.title}</p>
-//                         <p className="text-[10px] font-bold text-gray-400 tracking-widest">SKU: {product.sku || "N/A"}</p>
-//                       </div>
-//                     </div>
-//                   </td>
-//                   <td className="p-6">
-//                     {product.isTrending ? (
-//                       <span className="flex items-center gap-1 w-fit text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-md uppercase tracking-tighter ring-1 ring-orange-100">
-//                         <Flame size={10} fill="currentColor" className="animate-pulse" /> Trending Now
-//                       </span>
-//                     ) : (
-//                       <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">Standard Registry</span>
-//                     )}
-//                   </td>
-//                   <td className="p-6 text-right">
-//                     <button
-//                       onClick={() => handleToggle(product.id, product.isTrending)}
-//                       disabled={isPending}
-//                       className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-//                         product.isTrending
-//                           ? "bg-red-50 text-red-600 hover:bg-red-100"
-//                           : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
-//                       }`}
-//                     >
-//                       {product.isTrending ? "Decommission" : "Promote"}
-//                     </button>
-//                   </td>
-//                 </tr>
-//               ))
-//             ) : (
-//               <tr>
-//                 <td colSpan={3} className="p-20 text-center">
-//                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">No units found matching query.</p>
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-
-//         {/* --- TACTICAL PAGINATION FOOTER --- */}
-//         <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-//           <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-//             Page {currentPage} of {totalPages || 1}
-//           </p>
-//           <div className="flex items-center gap-2">
-//             <button
-//               onClick={() => handlePageChange(currentPage - 1)}
-//               disabled={currentPage <= 1 || isPending}
-//               className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 transition-all"
-//             >
-//               <ChevronLeft size={16} />
-//             </button>
-//             <button
-//               onClick={() => handlePageChange(currentPage + 1)}
-//               disabled={currentPage >= totalPages || isPending}
-//               className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 transition-all"
-//             >
-//               <ChevronRight size={16} />
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
 "use client";
 
 import React, { useTransition, useState, useEffect } from "react";
@@ -314,7 +140,7 @@ export default function TrendingClient({ products, totalPages, currentPage }: Tr
                           )}
                         </div>
                         <div>
-                          <p className="font-black text-gray-900 uppercase tracking-tight group-hover:text-blue-600 transition-colors">{product.title}</p>
+                          <p className="font-black text-gray-900 text-[9px] md:text-[10px] uppercase tracking-tight group-hover:text-blue-600 transition-colors">{product.title}</p>
                           <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">ID: {product.sku || "UNASSIGNED"}</p>
                         </div>
                       </div>
@@ -332,7 +158,7 @@ export default function TrendingClient({ products, totalPages, currentPage }: Tr
                       <button
                         onClick={() => handleToggle(product.id, product.isTrending)}
                         disabled={isPending}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+                        className={`px-6 py-2.5 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
                           product.isTrending
                             ? "bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-100"
                             : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
