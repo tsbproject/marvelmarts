@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import PaymentMethodsClient from "../_components/PaymentMethodsClient";
+import { PaymentMethod, PaymentTypes } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -28,14 +29,14 @@ export default async function PaymentMethodsPage() {
   
 
 
-  const initialCards = rawCards.map((card) => ({
-    id: card.id,
-    last4: card.last4,
-    expiryMonth: card.expiryMonth,
-    expiryYear: card.expiryYear,
-    cardType: card.cardType || "Card",
-    isDefault: card.isDefault,
-  }));
+  const initialCards = PaymentTypes.map((card: { id: any; last4: any; expiryMonth: any; expiryYear: any; cardType: any; isDefault: any; }) => ({
+  id: card.id,
+  last4: card.last4,
+  expiryMonth: Number(card.expiryMonth),
+  expiryYear: Number(card.expiryYear),
+  cardType: card.cardType,
+  isDefault: card.isDefault,
+}));
 
   const safeTransactions =
     walletData?.transactions.map((tx) => ({
