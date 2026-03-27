@@ -95,8 +95,8 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
     { label: "My Orders", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
     { label: "Wishlist", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
     { label: "Product Reviews", link: "/reviews", icon: <Star size={20} /> },
-    { label: "Addresses", link: "/addresses", icon: <MapPin size={20} /> },
-    { label: "Account Details", link: "/account-details", icon: <UserIcon size={20} /> },
+    // { label: "Addresses", link: "/addresses", icon: <MapPin size={20} /> },
+    { label: "Bank Details", link: "/bank-details", icon: <UserIcon size={20} /> },
   ];
 
   if (hasActiveVendorAccess) {

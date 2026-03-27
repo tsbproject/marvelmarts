@@ -91,14 +91,7 @@ export default function ProductCard({
   e.preventDefault();
   e.stopPropagation();
 
-  // const wishlistItem = {
-  //   id: product.id,
-  //   productId: product.id,
-  //   title: product.title,
-  //   slug: typeof product.slug === "string" ? product.slug : (product.slug as any)?.current,
-  //   price: product.discountPrice ?? product.price,
-  //   imageUrl: getValidImage(),
-  // };
+  
 
       const wishlistItem = {
         id: product.id,
