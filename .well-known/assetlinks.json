@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.marts.marvelmarts",
+      "sha256_cert_fingerprints": [
+        "DA:96:B2:03:53:38:CC:3A:25:33:D8:CC:8C:ED:DE:7B:37:75:D5:04:4F:A2:9F:B2:AA:41:95:1C:A7:01:D8:E4"
+      ]
+    }
+  }
+]
