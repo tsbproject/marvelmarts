@@ -43,7 +43,7 @@ declare module "next-auth" {
     } & DefaultSession["user"];
   }
 
-  interface User extends DefaultUser {
+    interface User extends DefaultUser {
     id: string;
     role: UserRole;
     roles: UserRole[];
@@ -56,7 +56,6 @@ declare module "next-auth" {
     identityDoc?: string | null;
     businessDoc?: string | null;
     locationDoc?: string | null;
-    user?: never;
   }
 }
 
@@ -138,7 +137,7 @@ export const authOptions: NextAuthOptions = {
       identifier: { label: "Email", type: "text" },
       password: { label: "Password", type: "password" },
             },
-            async authorize(credentials, req) {
+            async authorize(credentials): Promise<any> {
               try {
                 if (!credentials?.identifier || !credentials?.password) return null;
 
@@ -197,7 +196,7 @@ export const authOptions: NextAuthOptions = {
             credentials: {
               token: { label: "Token", type: "text" },
             },
-            async authorize(credentials, req) {
+           async authorize(credentials): Promise<any> {
               try {
                 if (!credentials?.token) return null;
 
