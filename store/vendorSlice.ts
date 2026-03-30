@@ -221,14 +221,33 @@ export const fetchAllPayouts = createAsyncThunk(
 /**
  * Syncs profile, onboarding status, and current balance.
  */
-export const fetchVendorProfile = createAsyncThunk(
+// export const fetchVendorProfile = createAsyncThunk(
+//   "vendor/fetchProfile",
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const response = await axios.get("/api/vendors/profile");
+//       return response.data;
+//     } catch (error: any) {
+//       return rejectWithValue(error.response?.data?.message || "Failed to sync profile");
+//     }
+//   }
+// );
+
+       export const fetchVendorProfile = createAsyncThunk(
   "vendor/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/vendors/profile");
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Failed to sync profile");
+      if (error.response?.status === 401) {
+        console.warn("User not authenticated yet");
+        return rejectWithValue("AUTH_NOT_READY"); 
+      }
+
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to sync profile"
+      );
     }
   }
 );
@@ -515,6 +534,11 @@ const vendorSlice = createSlice({
         (action) => action.type.endsWith("/rejected"),
         (state, action: any) => {
           state.loading = false;
+
+          if (action.payload === "AUTH_NOT_READY") {
+            return; // DO NOT set error
+          }
+
           state.error =
             (action.payload as string) || "An unexpected error occurred";
         }

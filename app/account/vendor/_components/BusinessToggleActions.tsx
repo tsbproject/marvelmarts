@@ -12,9 +12,10 @@ import { RootState } from "@/store";
 export default function BusinessToggleAction() {
   const [mounted, setMounted] = useState(false);
   const dispatch = useDispatch();
-  const { update } = useSession();
+  // const { update } = useSession();
   const { notifySuccess } = useNotification();
   const { setLoading } = useLoadingOverlay();
+  const { update, status } = useSession();
 
   const viewMode = useSelector((state: RootState) => state.app.viewMode);
 
@@ -22,34 +23,28 @@ export default function BusinessToggleAction() {
     setMounted(true);
   }, []);
 
-  const handleSwitch = async () => {
-    setLoading(true);
-    const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+      const handleSwitch = async () => {
+      if (status !== "authenticated") return;
+      setLoading(true);
 
-    try {
-      // 1. Update Redux
-      dispatch(setViewMode(nextMode));
+      try {
+        const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+        dispatch(setViewMode(nextMode));
+        await update({ role: nextMode });
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // 2. Update NextAuth session cookie
-      await update({ role: nextMode });
+        notifySuccess(
+          nextMode === "VENDOR"
+            ? "Merchant Console Activated"
+            : "Marketplace View Activated"
+        );
 
-      // 3. Delay for cookie persistence
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      notifySuccess(
-        nextMode === "VENDOR"
-          ? "Merchant Console Activated"
-          : "Marketplace View Activated"
-      );
-
-      // 4. Hard redirect so middleware/server-side checks pick up new role
-      const destination = nextMode === "VENDOR" ? "/account/vendor" : "/";
-      window.location.assign(destination);
-    } catch (error) {
-      console.error("Switch error:", error);
-      setLoading(false);
-    }
-  };
+        window.location.assign(nextMode === "VENDOR" ? "/account/vendor" : "/");
+      } catch (error) {
+        console.error("Switch error:", error);
+        setLoading(false);
+      }
+    };
 
   /**
    * HYDRATION SYMMETRY LOGIC:

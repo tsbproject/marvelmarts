@@ -19,11 +19,13 @@ import { fetchVendorOrders, requestPayout, fetchVendorProfile, fetchVendorPayout
 import { useNotification } from "@/app/_context/NotificationContext";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { pusherClient } from "@/app/lib/pusherClient";
+import { useSession } from "next-auth/react";
 
 export default function VendorPayoutsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { notifySuccess, notifyError } = useNotification();
   const [payoutAmount, setPayoutAmount] = useState("");
+    const { data: session, status } = useSession();
 
   // SELECTORS
   const { balance, orders, payouts, loading, lastSyncedAt, vendorProfile, user } = useSelector((state: RootState) => ({
@@ -41,11 +43,15 @@ export default function VendorPayoutsPage() {
   
 
   // INITIAL DATA FETCH
-  useEffect(() => {
-    dispatch(fetchVendorProfile());
-    dispatch(fetchVendorOrders());
-    dispatch(fetchVendorPayouts());
-  }, [dispatch]);
+
+
+useEffect(() => {
+  if (status !== "authenticated" || !session?.user?.id) return;
+
+  dispatch(fetchVendorProfile());
+  dispatch(fetchVendorOrders());
+  dispatch(fetchVendorPayouts());
+}, [dispatch, status, session?.user?.id]);
 
         // REAL-TIME PUSHER LISTENER
         useEffect(() => {

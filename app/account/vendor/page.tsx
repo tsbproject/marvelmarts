@@ -28,10 +28,15 @@
     
 
     // 1. Ensure user is logged in and role is allowed
-    if (!session || !(["VENDOR", "ADMIN", "SUPER_ADMIN"] as string[]).includes(session.user.role as string)) {
-    redirect("/auth/sign-in");
-  }
+      // if (!session || !(["VENDOR", "ADMIN", "SUPER_ADMIN"] as string[]).includes(session.user.role as string)) {
+      //   redirect("/auth/sign-in");
+      // }
 
+      const allowedRoles = ["VENDOR", "ADMIN", "SUPER_ADMIN"];
+
+      if (!session?.user || !allowedRoles.includes(session.user.role as string)) {
+        redirect("/auth/sign-in");
+      }
 
         const vendorData = await prisma.vendorProfile.findUnique({
           where: { userId: session.user.id },

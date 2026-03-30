@@ -20,24 +20,30 @@ export default function TransactionHistory({ vendorProfileId }: { vendorProfileI
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchHistory() {
-      try {
-        const res = await getTransactionHistory(vendorProfileId);
-        
-        // FIX: Use the nullish coalescing operator (??) to ensure we always 
-        // pass an array, even if res.transactions is undefined.
-        if (res.success) {
-          setTransactions(res.transactions ?? []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch transaction history:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchHistory();
-  }, [vendorProfileId]);
+          useEffect(() => {
+          if (!vendorProfileId) {
+            setLoading(false);
+            return;
+          }
+
+          async function fetchHistory() {
+            try {
+              const res = await getTransactionHistory(vendorProfileId);
+              if (res?.success) {
+                setTransactions(res.transactions ?? []);
+              } else {
+                setTransactions([]);
+              }
+            } catch (error) {
+              console.error("Failed to fetch transaction history:", error);
+              setTransactions([]);
+            } finally {
+              setLoading(false);
+            }
+          }
+
+          fetchHistory();
+        }, [vendorProfileId]);
 
   if (loading) return (
     <div className="p-8 text-center text-xs font-bold animate-pulse text-gray-400 uppercase tracking-widest">
