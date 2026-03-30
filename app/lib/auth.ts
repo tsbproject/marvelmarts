@@ -211,8 +211,7 @@ export const authOptions: NextAuthOptions = {
                   email: string;
                 };
 
-                // console.log("VERIFIED LOGIN AUTHORIZE HIT");
-                // console.log("TOKEN PRESENT:", !!credentials?.token);
+              
 
                 if (decoded.purpose !== "verified-login") return null;
 
@@ -225,7 +224,6 @@ export const authOptions: NextAuthOptions = {
                 });
 
 
-                // console.log("VERIFIED LOGIN DECODED:", decoded);
 
                 
 
@@ -235,7 +233,7 @@ export const authOptions: NextAuthOptions = {
                 const roles = (user.roles?.length ? user.roles : ["CUSTOMER"]) as UserRole[];
                 const role: UserRole = user.role ?? roles[0] ?? "CUSTOMER";
 
-                console.log("VERIFIED LOGIN USER FOUND:", !!user, user?.email);
+             
 
                 return {
                   id: user.id,
@@ -257,7 +255,7 @@ export const authOptions: NextAuthOptions = {
                   locationDoc: user.vendorProfile?.locationDoc || null,
                 };
               } catch (error) {
-                // console.error("Verified Login Authorize Error:", error);
+            
                 return null;
               }
             },
