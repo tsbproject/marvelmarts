@@ -133,7 +133,22 @@ export default function CheckoutPage() {
         }));
       }
     }, [status, session]);
-      
+
+
+    useEffect(() => {
+      if (!mounted) return;
+      if (status === "loading") return;
+
+      if (status === "unauthenticated") {
+        router.replace("/auth/sign-in?redirect=/checkout");
+      }
+    }, [mounted, status, router]);
+
+    useEffect(() => {
+      console.log("CHECKOUT STATUS:", status);
+      console.log("CHECKOUT SESSION:", session);
+    }, [status, session]);
+          
 
 
 
@@ -175,8 +190,9 @@ export default function CheckoutPage() {
   const shippingFee = 2500;
   const grandTotal = subtotal + shippingFee;
 
-  if (!mounted || status === "loading") return null;
-
+ if (!mounted || status === "loading" || status === "unauthenticated") {
+  return null;
+}
 
   const handleFundingSuccess = async (amount: number) => {
   // 1. Keep modal open for a second so user sees the progress
@@ -325,12 +341,14 @@ return (
               {/* DYNAMIC BUTTONS SECTION */}
               <div className="mt-8">
                 {paymentMethod === "CARD" && (
-                  <PaystackButton 
-                    email={formData.email} 
-                    amount={grandTotal} 
-                    onSuccess={() => { /* Handle main order success */ }} 
-                    onClose={() => notifyError("Payment Cancelled")} 
-                  />
+                <PaystackButton
+                  formData={formData}
+                  items={items}
+                  subtotal={subtotal}
+                  shipping={shippingFee}
+                  total={grandTotal}
+                  onClose={() => notifyError("Payment Cancelled")}
+                />
                 )}
                 
                 {paymentMethod === "WALLET" && (

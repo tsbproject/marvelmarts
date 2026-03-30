@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -12,6 +14,8 @@ import { useNotification } from "@/app/_context/NotificationContext";
 export default function CartPage() {
   const dispatch = useDispatch();
   const { notifySuccess } = useNotification();
+  const { status } = useSession();
+  const router = useRouter();
   
   // 1. Access items from Redux with the correct CartItem type
   const cartItems = useSelector((state: RootState) => state.cart.items);
@@ -30,6 +34,15 @@ export default function CartPage() {
     if (newQty < 1) return;
     dispatch(updateQuantity({ id, variantId, quantity: newQty }));
   };
+
+        const handleCheckoutRedirect = () => {
+        if (status === "authenticated") {
+          router.push("/checkout");
+          return;
+        }
+
+        router.push("/auth/sign-in?redirect=/checkout");
+      };
 
   return (
     <div className="bg-neutral-white min-h-screen pb-20">

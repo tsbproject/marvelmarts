@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { ShoppingBag, X, Trash2, ArrowRight, Plus, Minus, ShoppingCart, } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,6 +17,8 @@ export default function CartDrawer() {
   const [mounted, setMounted] = useState(false); 
   const dispatch = useDispatch();
   const { notifyInfo } = useNotification();
+  const { status } = useSession();
+  const router = useRouter();
 
   // 1. Pull cart items from Redux
   const cartItems = useSelector((state: RootState) => state.cart?.items || []);
@@ -37,6 +41,15 @@ export default function CartDrawer() {
       dispatch(removeFromCart(item.id));
       notifyInfo(`${item.title} removed from stash.`);
     }
+  };
+
+  const handleCheckoutRedirect = () => {
+  if (status === "authenticated") {
+    router.push("/checkout");
+    return;
+  }
+
+    router.push("/auth/sign-in?redirect=/checkout");
   };
 
   return (
