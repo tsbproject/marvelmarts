@@ -22,16 +22,54 @@ import Image from "next/image";
 import Link from "next/link";
 import { processWalletPurchase } from "@/app/_actions/wallet";
 
+type CheckoutFormData = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  streetAddress: string;
+  apartment: string;
+  city: string;
+  state: string;
+  country: string;
+  useDifferentShipping: boolean;
+  shippingDetails: {
+    firstName: string;
+    lastName: string;
+    streetAddress: string;
+    city: string;
+    state: string;
+  };
+};
+
+type PaystackButtonProps = {
+  formData: CheckoutFormData;
+  items: any[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+  onClose: () => void;
+};
+
 
 const QuickFundModal = dynamic(() => import("../account/customer/_components/QuickFundModal"), {
   ssr: false, // This is the magic line that stops the crash
   loading: () => <div className="hidden" /> // Or a spinner
 });
 
-const PaystackButton = dynamic(() => import("@/app/_components/PaystackWrapper"), {
-  ssr: false,
-  loading: () => <div className="w-full bg-neutral-gray/10 py-7 rounded-[2rem] animate-pulse" />,
-});
+const PaystackButton = dynamic<PaystackButtonProps>(
+  () => import("@/app/_components/PaystackWrapper").then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full bg-neutral-gray/10 py-7 rounded-[2rem] animate-pulse" />
+    ),
+  }
+);
+
+
+
+
 
 export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
@@ -190,6 +228,10 @@ export default function CheckoutPage() {
   const shippingFee = 2500;
   const grandTotal = subtotal + shippingFee;
 
+  const handlePaymentClose = useCallback(() => {
+  notifyError("Payment Cancelled");
+}, [notifyError]);
+
  if (!mounted || status === "loading" || status === "unauthenticated") {
   return null;
 }
@@ -223,7 +265,9 @@ export default function CheckoutPage() {
     setIsInitializing(false); // Also reset the modal's internal loader
   }
 };
-  
+
+
+
 
 return (
     <div className="bg-neutral-white min-h-screen pb-20 pt-10">
@@ -347,7 +391,7 @@ return (
                   subtotal={subtotal}
                   shipping={shippingFee}
                   total={grandTotal}
-                  onClose={() => notifyError("Payment Cancelled")}
+                  onClose={handlePaymentClose}
                 />
                 )}
                 
@@ -403,7 +447,7 @@ return (
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4 items-center">
                     <div className="relative w-16 h-16 bg-white rounded-xl shrink-0 shadow-sm border border-white">
-                      <Image src={item.imageUrl || "/placeholder-product.png"} alt={item.title} fill className="object-contain p-2" />
+                      <Image src={item.imageUrl || "/placeholder-image.png"} alt={item.title} fill className="object-contain p-2" />
                     </div>
                     <div className="flex-1">
                       <h4 className="text-xs font-black uppercase italic text-accent-navy leading-tight">{item.title}</h4>

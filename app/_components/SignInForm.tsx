@@ -35,66 +35,66 @@
 //   const callbackUrl = searchParams.get("callbackUrl");
 //   const intendedPath = redirectParam || callbackUrl;
 
-//   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-//     e.preventDefault();
-//     setError("");
-//     setLoading(true);
+  // const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   setError("");
+  //   setLoading(true);
 
-//     const res = await signIn("credentials", {
-//       redirect: false,
-//       identifier,
-//       password,
-//     });
+  //   const res = await signIn("credentials", {
+  //     redirect: false,
+  //     identifier,
+  //     password,
+  //   });
 
-//     if (res?.error) {
-//       setError("Invalid credentials. Please try again.");
-//       setLoading(false);
-//       return;
-//     }
+  //   if (res?.error) {
+  //     setError("Invalid credentials. Please try again.");
+  //     setLoading(false);
+  //     return;
+  //   }
 
-//     const session = await getSession();
-//     if (!session) {
-//       setError("Authorization failed. Please try again.");
-//       setLoading(false);
-//       return;
-//     }
+  //   const session = await getSession();
+  //   if (!session) {
+  //     setError("Authorization failed. Please try again.");
+  //     setLoading(false);
+  //     return;
+  //   }
 
-//     const singleRole = session.user?.role;
-//     const multiRoles = session.user?.roles;
-//     const highestRole = getHighestRole(singleRole, multiRoles);
+  //   const singleRole = session.user?.role;
+  //   const multiRoles = session.user?.roles;
+  //   const highestRole = getHighestRole(singleRole, multiRoles);
 
-//     if (highestRole === "SUPER_ADMIN" || highestRole === "ADMIN") {
-//       dispatch(setViewMode("ADMIN"));
-//     } else if (highestRole === "VENDOR") {
-//       dispatch(setViewMode("VENDOR"));
-//     } else {
-//       dispatch(setViewMode("CUSTOMER"));
-//     }
+  //   if (highestRole === "SUPER_ADMIN" || highestRole === "ADMIN") {
+  //     dispatch(setViewMode("ADMIN"));
+  //   } else if (highestRole === "VENDOR") {
+  //     dispatch(setViewMode("VENDOR"));
+  //   } else {
+  //     dispatch(setViewMode("CUSTOMER"));
+  //   }
 
-//     const allowedLanding: Record<string, string> = {
-//       SUPER_ADMIN: "/dashboard/admins",
-//       ADMIN: "/dashboard/admins",
-//       VENDOR: "/account/vendor",
-//       CUSTOMER: "/account/customer",
-//     };
+  //   const allowedLanding: Record<string, string> = {
+  //     SUPER_ADMIN: "/dashboard/admins",
+  //     ADMIN: "/dashboard/admins",
+  //     VENDOR: "/account/vendor",
+  //     CUSTOMER: "/account/customer",
+  //   };
 
-//     const safeSharedRoutes = ["/checkout"];
+  //   const safeSharedRoutes = ["/checkout"];
 
-//     let redirectPath = allowedLanding[highestRole];
+  //   let redirectPath = allowedLanding[highestRole];
 
-//     if (
-//       intendedPath &&
-//       (
-//         safeSharedRoutes.includes(intendedPath) ||
-//         intendedPath.startsWith(allowedLanding[highestRole])
-//       )
-//     ) {
-//       redirectPath = intendedPath;
-//     }
+  //   if (
+  //     intendedPath &&
+  //     (
+  //       safeSharedRoutes.includes(intendedPath) ||
+  //       intendedPath.startsWith(allowedLanding[highestRole])
+  //     )
+  //   ) {
+  //     redirectPath = intendedPath;
+  //   }
 
-//     setLoading(false);
-//     router.push(redirectPath);
-//   };
+  //   setLoading(false);
+  //   router.push(redirectPath);
+  // };
 
 //   return (
 //     <div className="w-full max-w-[700px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
@@ -263,6 +263,7 @@ import {
 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { setViewMode } from "@/store/appSlice";
+import { email } from "zod";
 
 export default function SignInForm() {
   const router = useRouter();
@@ -290,25 +291,25 @@ export default function SignInForm() {
   const callbackUrl = searchParams.get("callbackUrl");
   const intendedPath = redirectParam || callbackUrl;
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const res = await signIn("credentials", {
-      redirect: false,
-      identifier,
-      password,
-    });
+  const result = await signIn("credentials", {
+  identifier: identifier.trim(),
+  password: password.trim(), 
+  redirect: false,
+  callbackUrl: "/",
+});
 
-    if (res?.error) {
+    if (result?.error) {
       setError("Invalid credentials. Please try again.");
       setLoading(false);
       return;
     }
 
     const session = await getSession();
-
     if (!session) {
       setError("Authorization failed. Please try again.");
       setLoading(false);

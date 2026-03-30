@@ -339,7 +339,7 @@ export default function CustomerRegistrationPage() {
         body: JSON.stringify({
           name: sanitize(name),
           email: sanitize(email),
-          password,
+          password: password.trim(), 
         }),
       });
 
