@@ -169,6 +169,7 @@ import { SessionProvider as NextAuthSessionProvider, useSession } from "next-aut
 import { SessionProvider as CustomSessionProvider } from "@/app/_context/useSessionContext";
 import { NotificationProvider } from "@/app/_context/NotificationContext";
 import { LoadingOverlayProvider } from "@/app/_context/LoadingOverlayContext";
+import InactivityManager from "@/app/_components/InactivityManager";
 import Header from "@/app/_components/Header";
 import Footer from "@/app/_components/Footer";
 import NextTopLoader from "nextjs-toploader";
@@ -247,6 +248,8 @@ export default function ClientLayout({
     <Provider store={store}>
       <NextAuthSessionProvider session={session}>
         <ReduxStateSync onReady={() => setAuthReady(true)} />
+           <InactivityManager />
+
 
         <CustomSessionProvider>
           <NotificationProvider>

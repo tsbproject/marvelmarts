@@ -107,7 +107,7 @@ export default function ThankYouPage() {
         className="max-w-lg w-full bg-white rounded-[2.5rem] sm:rounded-[3.5rem] p-8 sm:p-12 lg:p-16 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.08)] border border-gray-100 text-center relative overflow-hidden"
       >
         {/* Aesthetic Background Detail */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-primary via-blue-400 to-brand-primary" />
+        <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-brand-primary via-blue-400 to-brand-primary" />
         
         <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-50 text-green-500 rounded-[2rem] flex items-center justify-center mx-auto mb-8 sm:mb-10 shadow-inner">
           <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
@@ -134,7 +134,7 @@ export default function ThankYouPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <Link 
-            href="/dashboard/user/orders" 
+            href="/account/customer/orders" 
             className="w-full py-4 sm:py-5 bg-accent-navy text-white rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-brand-primary transition-all shadow-xl shadow-accent-navy/20 active:scale-95"
           >
             <Package className="w-4 h-4" /> Track Status

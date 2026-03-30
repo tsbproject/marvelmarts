@@ -5,6 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { clearCart } from "@/store/cartSlice";
 import Link from "next/link";
 import Image from "next/image";
 
