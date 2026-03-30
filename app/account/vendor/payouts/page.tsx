@@ -54,31 +54,32 @@ useEffect(() => {
 }, [dispatch, status, session?.user?.id]);
 
         // REAL-TIME PUSHER LISTENER
-        useEffect(() => {
-          if (!user?.id) return;
+       useEffect(() => {
+          if (status !== "authenticated" || !session?.user?.id) return;
 
+          const channel = pusherClient.subscribe(`vendor-${session.user.id}`);
 
- 
-    const channel = pusherClient.subscribe(`vendor-${user.id}`);
+          channel.bind("payout-updated", (data: any) => {
+            if (data.status === "APPROVED") {
+              notifySuccess(`PAYOUT OF ${formatNaira(data.amount)} APPROVED!`);
+            } else {
+              notifyError(`PAYOUT REJECTED: ${data.remarks || "Please contact support."}`);
+            }
 
-    channel.bind("payout-updated", (data: any) => {
-      if (data.status === "APPROVED") {
-        notifySuccess(`PAYOUT OF ${formatNaira(data.amount)} APPROVED!`);
-      } else {
-        notifyError(`PAYOUT REJECTED: ${data.remarks || "Please contact support."}`);
-      }
-      
-      // Refresh financial data immediately
-      dispatch(fetchVendorProfile());
-      dispatch(fetchVendorPayouts());
-    });
+           if (session?.user?.id) {
+              dispatch(fetchVendorProfile());
+              dispatch(fetchVendorPayouts());
+            }
+          });
 
-    return () => {
-      pusherClient.unsubscribe(`vendor-${user.id}`);
-    };
-  }, [user?.id, dispatch, notifySuccess, notifyError]);
+          return () => {
+            pusherClient.unsubscribe(`vendor-${session.user.id}`);
+          };
+        }, [status, session?.user?.id, dispatch, notifySuccess, notifyError]);
 
-  const handleManualRefresh = () => {
+  
+
+const handleManualRefresh = () => {
     dispatch(fetchVendorProfile());
     dispatch(fetchVendorPayouts());
     notifySuccess("FINANCIAL DATA REFRESHED");
