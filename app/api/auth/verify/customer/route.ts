@@ -1,12 +1,112 @@
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/app/lib/prisma";
+// import { UserRole } from "@prisma/client";
+// import jwt from "jsonwebtoken";
+
+// export async function POST(req: Request) {
+//   try {
+//     const { uid, code } = await req.json();
+
+//     const verification = await prisma.verificationCode.findUnique({
+//       where: { id: uid },
+//     });
+
+//     if (!verification || verification.used) {
+//       return NextResponse.json({ error: "Invalid or expired link." }, { status: 400 });
+//     }
+
+//     if (verification.code !== code.trim()) {
+//       return NextResponse.json({ error: "Incorrect verification code." }, { status: 400 });
+//     }
+
+//     if (new Date() > verification.expiresAt) {
+//       return NextResponse.json({ error: "Code has expired." }, { status: 400 });
+//     }
+
+//     const createdUser = await prisma.$transaction(async (tx) => {
+//       const user = await tx.user.create({
+//         data: {
+//           name: verification.name,
+//           email: verification.email,
+//           passwordHash: verification.hashedPassword,
+//           IsVerified: true,
+//           role: UserRole.CUSTOMER,
+//           customerProfile: {
+//             create: {},
+//           },
+//         },
+//       });
+
+//       await tx.verificationCode.update({
+//         where: { id: uid },
+//         data: { used: true },
+//       });
+
+//       return user;
+//     });
+
+//     const autoLoginToken = jwt.sign(
+//       {
+//         purpose: "verified-login",
+//         uid,
+//         userId: createdUser.id,
+//         email: createdUser.email,
+//       },
+//       process.env.NEXTAUTH_SECRET!,
+//       { expiresIn: "10m" }
+//     );
+
+//     return NextResponse.json(
+//       {
+//         success: true,
+//         message: "Account verified!",
+//         autoLoginToken,
+//         redirectTo: "/checkout",
+//       },
+//       { status: 201 }
+//     );
+ 
+//   } catch (err: any) {
+//     console.error("❌ VERIFICATION_CRASH:", err.message);
+
+//     if (err.message.includes("Unique constraint")) {
+//       return NextResponse.json({ error: "Email already registered." }, { status: 400 });
+//     }
+
+//     return NextResponse.json(
+//       { error: "Internal Server Error", details: err.message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { UserRole } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
     const { uid, code } = await req.json();
+    const normalizedCode = String(code || "").trim();
 
-    // 1. Fetch verification record
+    if (!uid || !normalizedCode) {
+      return NextResponse.json(
+        { error: "Verification ID and code are required." },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.NEXTAUTH_SECRET) {
+      return NextResponse.json(
+        { error: "Server configuration error." },
+        { status: 500 }
+      );
+    }
+
     const verification = await prisma.verificationCode.findUnique({
       where: { id: uid },
     });
@@ -15,7 +115,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid or expired link." }, { status: 400 });
     }
 
-    if (verification.code !== code.trim()) {
+    if (verification.code !== normalizedCode) {
       return NextResponse.json({ error: "Incorrect verification code." }, { status: 400 });
     }
 
@@ -23,41 +123,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Code has expired." }, { status: 400 });
     }
 
-    // 2. Database Transaction with CORRECT field names
-    await prisma.$transaction(async (tx) => {
-      // Create the user using your specific schema fields
+    const createdUser = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           name: verification.name,
           email: verification.email,
-          passwordHash: verification.hashedPassword, // Fixed to match your schema
-          IsVerified: true,                          // Fixed: Capital 'I' to match your schema
+          passwordHash: verification.hashedPassword,
+          IsVerified: true,
           role: UserRole.CUSTOMER,
           customerProfile: {
-            create: {} // Creates the linked profile you shared earlier
-          }
-        }
+            create: {},
+          },
+        },
       });
 
-      // Mark the code as used so it can't be reused
       await tx.verificationCode.update({
         where: { id: uid },
         data: { used: true },
       });
+
+      return user;
     });
 
-    return NextResponse.json({ success: true, message: "Account verified!" }, { status: 201 });
+    const autoLoginToken = jwt.sign(
+      {
+        purpose: "verified-login",
+        uid,
+        userId: createdUser.id,
+        email: createdUser.email,
+      },
+      process.env.NEXTAUTH_SECRET,
+      { expiresIn: "10m" }
+    );
 
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Account verified!",
+        autoLoginToken,
+        redirectTo: "/checkout",
+      },
+      { status: 201 }
+    );
   } catch (err: any) {
-    console.error("❌ VERIFICATION_CRASH:", err.message);
-    
-    // Check for unique constraint (email already exists)
-    if (err.message.includes("Unique constraint")) {
+    console.error("❌ VERIFICATION_CRASH:", err);
+
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
       return NextResponse.json({ error: "Email already registered." }, { status: 400 });
     }
 
     return NextResponse.json(
-      { error: "Internal Server Error", details: err.message },
+      { error: "Internal Server Error", details: err?.message || "Unknown error" },
       { status: 500 }
     );
   }

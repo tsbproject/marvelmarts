@@ -1,10 +1,8 @@
-
-
-
 import NextAuth, { type NextAuthOptions, type DefaultSession, type DefaultUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { UserRole, VendorStatus } from "@prisma/client";
 
 /* --- 1. Constants & Defaults --- */
@@ -58,6 +56,7 @@ declare module "next-auth" {
     identityDoc?: string | null;
     businessDoc?: string | null;
     locationDoc?: string | null;
+    user?: never;
   }
 }
 
@@ -133,62 +132,130 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/auth/sign-in", error: "/auth/error" },
 
   providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: { identifier: { label: "Email", type: "text" }, password: { label: "Password", type: "password" } },
-      async authorize(credentials) {
-      try {
-        if (!credentials?.identifier || !credentials?.password) return null;
-        const identifier = credentials.identifier.toLowerCase().trim();
-        const password = credentials.password;
+  CredentialsProvider({
+    name: "Credentials",
+    credentials: {
+      identifier: { label: "Email", type: "text" },
+      password: { label: "Password", type: "password" },
+            },
+            async authorize(credentials, req) {
+              try {
+                if (!credentials?.identifier || !credentials?.password) return null;
 
-        const user = await prisma.user.findFirst({
-          where: { email: { equals: identifier, mode: "insensitive" } },
-          include: { 
-            adminProfile: true, 
-            vendorProfile: true 
-          },
-        });
+                const identifier = credentials.identifier.toLowerCase().trim();
+                const password = credentials.password;
 
-        if (!user || !user.passwordHash) return null;
+                const user = await prisma.user.findFirst({
+                  where: { email: { equals: identifier, mode: "insensitive" } },
+                  include: {
+                    adminProfile: true,
+                    vendorProfile: true,
+                  },
+                });
 
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) return null;
+              
 
-        // Use UserRole type from Prisma
-        const roles = (user.roles?.length ? user.roles : ["CUSTOMER"]) as UserRole[];
-        const role: UserRole = user.role ?? roles[0] ?? "CUSTOMER";
+                if (!user || !user.passwordHash) return null;
 
-        // This object structure must match your 'declare module "next-auth"' block
-        const userData = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role,
-          roles,
-          permissions: normalizePermissions(user.permissions, user.adminProfile?.permissions) as Record<string, boolean>,
-          vendorStatus: user.vendorProfile?.status,
-          vendorProfileId: user.vendorProfile?.id,
-          isSuspended: user.vendorProfile?.isSuspended || false,
-          balance: Number(user.vendorProfile?.balance || 0),
-          rejectionReason: user.vendorProfile?.rejectionReason || null,
-          identityDoc: user.vendorProfile?.identityDoc || null,
-          businessDoc: user.vendorProfile?.businessDoc || null,
-          locationDoc: user.vendorProfile?.locationDoc || null,
-        };
+                const isValid = await bcrypt.compare(password, user.passwordHash);
+                if (!isValid) return null;
 
-        // We return it nested inside 'user' because your Type Error specifically asked for it
-        return {
-          ...userData,
-          user: userData, 
-        };
-      } catch (error) {
-        console.error("Authorize Error:", error);
-        return null;
-      }
-    }
-    }),
-  ],
+                const roles = (user.roles?.length ? user.roles : ["CUSTOMER"]) as UserRole[];
+                const role: UserRole = user.role ?? roles[0] ?? "CUSTOMER";
+
+                const userData = {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  role,
+                  roles,
+                  permissions: normalizePermissions(
+                    user.permissions,
+                    user.adminProfile?.permissions
+                  ) as Record<string, boolean>,
+                  vendorStatus: user.vendorProfile?.status,
+                  vendorProfileId: user.vendorProfile?.id,
+                  isSuspended: user.vendorProfile?.isSuspended || false,
+                  balance: Number(user.vendorProfile?.balance || 0),
+                  rejectionReason: user.vendorProfile?.rejectionReason || null,
+                  identityDoc: user.vendorProfile?.identityDoc || null,
+                  businessDoc: user.vendorProfile?.businessDoc || null,
+                  locationDoc: user.vendorProfile?.locationDoc || null,
+                };
+
+                return userData;
+              } catch (error) {
+                console.error("Authorize Error:", error);
+                return null;
+              }
+            },
+          }),
+
+          CredentialsProvider({
+            id: "verified-login",
+            name: "Verified Login",
+            credentials: {
+              token: { label: "Token", type: "text" },
+            },
+            async authorize(credentials, req) {
+              try {
+                if (!credentials?.token) return null;
+
+                const decoded = jwt.verify(
+                  credentials.token,
+                  process.env.NEXTAUTH_SECRET!
+                ) as {
+                  purpose: string;
+                  uid: string;
+                  userId: string;
+                  email: string;
+                };
+
+                if (decoded.purpose !== "verified-login") return null;
+
+                const user = await prisma.user.findUnique({
+                  where: { id: decoded.userId },
+                  include: {
+                    adminProfile: true,
+                    vendorProfile: true,
+                  },
+                });
+
+                
+
+                if (!user) return null;
+                if (user.email.toLowerCase() !== decoded.email.toLowerCase()) return null;
+
+                const roles = (user.roles?.length ? user.roles : ["CUSTOMER"]) as UserRole[];
+                const role: UserRole = user.role ?? roles[0] ?? "CUSTOMER";
+
+                return {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  role,
+                  roles,
+                  permissions: normalizePermissions(
+                    user.permissions,
+                    user.adminProfile?.permissions
+                  ) as Record<string, boolean>,
+                  vendorStatus: user.vendorProfile?.status,
+                  vendorProfileId: user.vendorProfile?.id,
+                  isSuspended: user.vendorProfile?.isSuspended || false,
+                  balance: Number(user.vendorProfile?.balance || 0),
+                  rejectionReason: user.vendorProfile?.rejectionReason || null,
+                  identityDoc: user.vendorProfile?.identityDoc || null,
+                  businessDoc: user.vendorProfile?.businessDoc || null,
+                  locationDoc: user.vendorProfile?.locationDoc || null,
+                };
+              } catch (error) {
+                console.error("Verified Login Authorize Error:", error);
+                return null;
+              }
+            },
+          }),
+          
+        ],
 
   callbacks: {
     async jwt({ token, user, trigger }) {
