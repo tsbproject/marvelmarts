@@ -22,6 +22,7 @@ model User {
   role               UserRole?
   walletBalance      Float               @default(0)
   phone              String?
+  paymentTypes       PaymentTypes[]
   accounts           Account[]
   addresses          Address[]
   adminProfile       AdminProfile?
@@ -32,7 +33,6 @@ model User {
   notifications      Notification[]
   orders             Order[]
   passwordResetToken PasswordResetToken?
-  paymentTypes       PaymentTypes[]
   paymentMethods     PaymentMethod[]
   payouts            Payout[]
   reviews            Review[]
@@ -258,68 +258,63 @@ model VendorVerification {
 }
 
 model Category {
-  id              String   @id @default(cuid())
+  id              String     @id @default(cuid())
   name            String
-  slug            String   @unique
+  slug            String     @unique
   parentId        String?
-  position        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  position        Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   imageUrl        String?
   metaDescription String?
   metaTitle       String?
-  isFeatured      Boolean  @default(false)
-
-  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryToCategory")
-
-  products        Product[] @relation("ProductCategories")
-  primaryProducts Product[] @relation("PrimaryProductCategory")
+  isFeatured      Boolean    @default(false)
+  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryToCategory")
+  primaryProducts Product[]  @relation("PrimaryProductCategory")
+  products        Product[]  @relation("ProductCategories")
 }
 
 model Product {
-  id                String        @id @default(cuid())
+  id                String         @id @default(cuid())
   title             String
-  slug              String        @unique
+  slug              String         @unique
   description       String
   brand             String?
-  price             Decimal       @db.Decimal(10, 2)
-  discountPrice     Decimal?      @db.Decimal(10, 2)
-  stock             Int           @default(0)
-  rating            Float         @default(0)
-  ratingCount       Int           @default(0)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  price             Decimal        @db.Decimal(10, 2)
+  discountPrice     Decimal?       @db.Decimal(10, 2)
+  stock             Int            @default(0)
+  rating            Float          @default(0)
+  ratingCount       Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
   categoryId        String?
-  isFeatured        Boolean       @default(false)
-  isPublished       Boolean       @default(true)
-  lowStockThreshold Int?          @default(5)
+  isFeatured        Boolean        @default(false)
+  isPublished       Boolean        @default(true)
+  lowStockThreshold Int?           @default(5)
   metaDescription   String?
   metaTitle         String?
-  status            ProductStatus @default(ACTIVE)
+  status            ProductStatus  @default(ACTIVE)
   sku               String?
   tags              String[]
-  isFlashSale       Boolean       @default(false)
-  isNewArrival      Boolean       @default(false)
+  isFlashSale       Boolean        @default(false)
+  isNewArrival      Boolean        @default(false)
   shippingMethod    String?
   weight            Float?
-  isTrending        Boolean       @default(false)
-  salesCount        Int           @default(0)
+  isTrending        Boolean        @default(false)
+  salesCount        Int            @default(0)
   vendorProfileId   String
   boostUntil        DateTime?
-
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-
-  category   Category?  @relation("PrimaryProductCategory", fields: [categoryId], references: [id])
-  categories Category[] @relation("ProductCategories")
-
-  vendorProfile VendorProfile  @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
-  images        ProductImage[]
-  reviews       Review[]
-  variants      Variant[]
-  wishlists     Wishlist[]
-  flashSales    FlashSale[]    @relation("ProductToFlashSale")
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  category          Category?      @relation("PrimaryProductCategory", fields: [categoryId], references: [id])
+  vendorProfile     VendorProfile  @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  images            ProductImage[]
+  reviews           Review[]
+  variants          Variant[]
+  wishlists         Wishlist[]
+  categories        Category[]     @relation("ProductCategories")
+  flashSales        FlashSale[]    @relation("ProductToFlashSale")
 }
 
 model ProductImage {
