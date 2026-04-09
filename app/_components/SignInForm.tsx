@@ -354,7 +354,7 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="w-full max-w-[700px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
+    <div className="w-full max-w-[1200px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
       <button
         type="button"
         onClick={() => router.back()}
