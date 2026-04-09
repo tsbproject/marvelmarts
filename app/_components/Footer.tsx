@@ -84,7 +84,7 @@ export default function Footer({ settings }: FooterProps) {
       <div className="max-w-[1440px] mx-auto px-6 ">
         
         {/* Newsletter Section */}
-        <div className="bg-[#F7931E] rounded-[3rem] p-1 md:p-16 mb-24 xs:px-15 xxs:px-10 shadow-2xl shadow-orange-950/30 border-b-8 border-[#1E1E1E]/10">
+        <div className="bg-[#F7931E] rounded-[3rem] p-6 md:p-16 mb-24 xs:px-15 xxs:px-10 shadow-2xl shadow-orange-950/30 border-b-8 border-[#1E1E1E]/10">
           <div className="flex flex-col xl:flex-row items-center justify-between gap-12">
             <div className="max-w-4xl text-center xl:text-left">
               <h3 className="text-2xl md:text-5xl 2xl:text-5xl lg:text-6xl font-black uppercase tracking-tighter italic text-[#1E1E1E] leading-[0.9]">
@@ -195,7 +195,7 @@ export default function Footer({ settings }: FooterProps) {
             <h4 className="font-black uppercase text-brand-primary tracking-[0.4em] mb-10">
               Explore 
             </h4>
-            <ul className="space-y-6 font-bold text-blue-100/90">
+            <ul className="space-y-4 text-xs lg:text-sm font-bold text-blue-100/90">
               <li><Link href="/shop" className="hover:text-[#F7931E] transition-all">All Products</Link></li>
               <li><Link href="/vendors" className="hover:text-[#F7931E] transition-all">Top Vendors</Link></li>
               <li><Link href="/auth/register/vendor-registration" className="hover:text-[#F7931E] transition-all">Sell on MarvelMarts</Link></li>
@@ -207,7 +207,7 @@ export default function Footer({ settings }: FooterProps) {
             <h4 className="font-black uppercase tracking-[0.4em] mb-10 text-brand-primary">
               Assistance
             </h4>
-            <ul className="space-y-6 font-bold text-blue-100/90">
+            <ul className="space-y-4 text-xs lg:text-sm font-bold text-blue-100/90">
               <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
               <li><Link href="/return-policy" className="hover:text-[#F7931E] transition-all">Return Policy</Link></li>
               <li><Link href="/privacy-policy" className="hover:text-[#F7931E] transition-all">Privacy Policy</Link></li>
@@ -219,15 +219,15 @@ export default function Footer({ settings }: FooterProps) {
           <div className="bg-white/5 border-2 border-white/10 p-10 rounded-[3rem] space-y-8 h-fit">
             <div className="flex items-center gap-4">
               <div className="bg-[#F7931E] p-3 rounded-xl text-[#002B5B]">
-                <ShieldCheck size={28} />
+                <ShieldCheck size={25} />
               </div>
-              <span className="text-sm font-black uppercase tracking-[0.2em] text-[#F7931E]">
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-[#F7931E]">
                 Buyer Protected
               </span>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex flex-col gap-1">
-                 <span className="text-sm uppercase tracking-[0.3em] text-brand-primary">Hotline</span>
+                 <span className="text-xs uppercase tracking-[0.3em] text-brand-primary">Hotline</span>
                  {/* Aligned to 16px as requested */}
                  <span className="text-[16px] text-neutral-white font-bold tracking-tight">
                    {settings?.supportPhone ?? brandDefaults.supportPhone}
