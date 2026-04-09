@@ -10,7 +10,7 @@ export default function AboutSection() {
           
           {/* Left: Branding & Narrative */}
           <div className="w-full lg:w-full">
-            <h2 className="text-2xl lg:text-3xl font-extrabold text-[#000080] mb-6 tracking-tight">
+            <h2 className="xxs:text-[20px] text-2xl lg:text-3xl font-extrabold text-[#000080] mb-6 tracking-tight">
               Redefining the Marketplace
             </h2>
             <p className="text-sm md:text-md text-slate-600 leading-relaxed mb-6">
