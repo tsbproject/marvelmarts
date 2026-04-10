@@ -200,6 +200,7 @@ export default function Footer({ settings }: FooterProps) {
               <li><Link href="/vendors" className="hover:text-[#F7931E] transition-all">Top Vendors</Link></li>
               <li><Link href="/auth/register/vendor-registration" className="hover:text-[#F7931E] transition-all">Sell on MarvelMarts</Link></li>
               <li><Link href="/orders/track-order" className="hover:text-[#F7931E] transition-all">Tracking Your Order</Link></li>
+              <li><Link href="/about-us" className="hover:text-[#F7931E] transition-all">About MarvelMarts</Link></li>
             </ul>
           </div>
 
