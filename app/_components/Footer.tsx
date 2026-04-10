@@ -211,6 +211,7 @@ export default function Footer({ settings }: FooterProps) {
             <ul className="space-y-4 text-xs lg:text-sm font-bold text-blue-100/90">
               <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Help Center</Link></li>
               <li><Link href="/return-policy" className="hover:text-[#F7931E] transition-all">Return Policy</Link></li>
+              <li><Link href="/terms-and-conditions" className="hover:text-[#F7931E] transition-all">Terms & Condition</Link></li>
               <li><Link href="/privacy-policy" className="hover:text-[#F7931E] transition-all">Privacy Policy</Link></li>
               <li><Link href="/data-deletion" className="hover:text-[#F7931E] transition-all">Data Deletion</Link></li>
               <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
