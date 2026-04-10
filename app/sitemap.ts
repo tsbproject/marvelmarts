@@ -68,9 +68,9 @@ export default async function sitemap() {
   ];
 
   // Product صفحات
-  const productUrls = Array.isArray(products)
+  const productsUrls = Array.isArray(products)
     ? products.map((p) => ({
-        url: `${SITE_URL}/product/${p.slug}`,
+        url: `${SITE_URL}/products/${p.slug}`,
         lastModified: p.updatedAt
           ? new Date(p.updatedAt)
           : new Date(),
@@ -80,9 +80,9 @@ export default async function sitemap() {
     : [];
 
   // Category pages
-  const categoryUrls = Array.isArray(categories)
+  const categoriesUrls = Array.isArray(categories)
     ? categories.map((c) => ({
-        url: `${SITE_URL}/category/${c.slug}`,
+        url: `${SITE_URL}/categories/${c.slug}`,
         lastModified: c.updatedAt
           ? new Date(c.updatedAt)
           : new Date(),
@@ -91,5 +91,5 @@ export default async function sitemap() {
       }))
     : [];
 
-  return [...staticPages, ...productUrls, ...categoryUrls];
+  return [...staticPages, ...productsUrls, ...categoriesUrls];
 }
