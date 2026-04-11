@@ -60,7 +60,7 @@ export default async function sitemap() {
       priority: 0.7,
     },
     {
-      url: `${SITE_URL}/terms-and-condtions`,
+      url: `${SITE_URL}/terms-and-conditions`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.7,
