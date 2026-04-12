@@ -129,7 +129,7 @@ export default async function HomePage() {
         </div>
       )}
       
-      <div className="max-w-[1400px] mx-auto space-y-24 px-4 md:px-10 pb-20">
+      <div className="max-w-[1400px] mx-auto space-y-1 px-4 md:px-10 pb-20">
         
         {settings.showFlashSales && flashProducts.length > 0 && (
           <section>

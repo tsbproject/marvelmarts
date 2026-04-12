@@ -136,7 +136,7 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     dispatch(addToCart({ product, quantity: 1 }));
-    notifySuccess(`${product.title} added to your stash!`);
+    notifySuccess(`${product.title} added to your cart!`);
   };
 
   if (!mounted) {
@@ -187,14 +187,14 @@ export default function ProductCard({
     {/* 2. IMAGE SECTION - Reduced Height */}
     <div
       className={`relative overflow-hidden rounded-[1.6rem] bg-gray-50/50 shrink-0 transition-all ${
-        isList ? "w-65 h-65" : "w-full h-65"   
+        isList ? "w-65  h-65" : "w-65 h-65"   
       }`}
     >
       <Image
         src={getValidImage()}
         alt={product.title}
         fill
-        className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-in-out"
+        className="object-cover p-6 group-hover:scale-110 transition-transform duration-700 ease-in-out"
       />
 
       {/* MOBILE WISHLIST */}
@@ -256,9 +256,9 @@ export default function ProductCard({
         )}
       </div>
 
-      {/* TITLE - Reduced min-height */}
+      {/* TITLE */}
       <h3 className={`font-bold text-slate-800 leading-tight line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors ${
-        isList ? "text-lg" : "text-[14px] min-h-[38px]"
+        isList ? "text-lg" : "text-[10px] min-h-[38px]"
       }`}>
         {product.title}
       </h3>
@@ -285,7 +285,7 @@ export default function ProductCard({
 
       {/* PRICE DISPLAY */}
       <div className={`flex items-baseline gap-2 mb-3 ${isList ? "" : "justify-center"}`}>
-        <span className="text-lg font-black text-accent-navy tracking-tighter">
+        <span className="text-md lg:text-lg font-black text-accent-navy tracking-tighter">
           {formatNaira(displayPrice)}
         </span>
         {hasRealDiscount && (

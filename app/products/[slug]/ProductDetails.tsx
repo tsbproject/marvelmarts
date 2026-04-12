@@ -164,89 +164,135 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
     window.open(url, "_blank", "noopener,noreferrer,width=700,height=600");
   };
 
-  // 1. Dynamic Follower State initialized from DB
-  const [followerCount, setFollowerCount] = useState(product.vendorProfile?.followerCount ?? 0);
+
+const [followerCount, setFollowerCount] = useState(product.vendorProfile?.followerCount ?? 0);
+const [vendorStats, setVendorStats] = useState({
+  shippingScore: product.vendorProfile?.shippingScore ?? 100,
+  qualityScore: product.vendorProfile?.qualityScore ?? 100,
+  avgRating: product.vendorProfile?.avgRating ?? 5,
+  cancellationRate: product.vendorProfile?.cancellationRate ?? 0,
+});
+
+const vendorMetrics = [
+  {
+    icon: <Truck size={12} />,
+    label: "Shipping",
+    val: `${vendorStats.shippingScore}%`,
+    color: "text-green-500",
+  },
+  {
+    icon: <PackageCheck size={12} />,
+    label: "Quality",
+    val: `${vendorStats.qualityScore}%`,
+    color: "text-[#F7931E]",
+  },
+  {
+    icon: <ThumbsUp size={12} />,
+    label: "Rating",
+    val: Number(vendorStats.avgRating).toFixed(1),
+    color: "text-blue-500",
+  },
+  {
+    icon: <AlertTriangle size={12} />,
+    label: "Cancel",
+    val: `${vendorStats.cancellationRate}%`,
+    color: "text-red-500",
+  },
+];
 
 
-  // 2. Map Dynamic Metrics from the product object
-  const vendorMetrics = [
-    { 
-      icon: <Truck size={12}/>, 
-      label: "Shipping", 
-      val: `${product.vendorProfile?.shippingScore ?? 100}%`, 
-      color: "text-green-500" 
-    },
-    { 
-      icon: <PackageCheck size={12}/>, 
-      label: "Quality", 
-      val: `${product.vendorProfile?.qualityScore ?? 100}%`, 
-      color: "text-[#F7931E]" 
-    },
-    { 
-      icon: <ThumbsUp size={12}/>, 
-      label: "Rating", 
-      val: product.vendorProfile?.avgRating?.toFixed(1) ?? "5.0", 
-      color: "text-blue-500" 
-    },
-    { 
-      icon: <AlertTriangle size={12}/>, 
-      label: "Cancel", 
-      val: `${product.vendorProfile?.cancellationRate ?? 0}%`, 
-      color: "text-red-500" 
-    },
-  ];
 
-  const handleFollowToggle = async () => {
-    // Optimistic Update
-    const becomingFollower = !isFollowing;
-    setIsFollowing(becomingFollower);
-    setFollowerCount(prev => becomingFollower ? prev + 1 : prev - 1);
 
-    try {
-      // TODO: Add your API call here
-      // await fetch('/api/vendor/follow', { method: 'POST', body: JSON.stringify({ vendorId: product.vendorProfileId }) });
-      notifySuccess(becomingFollower ? "Store added to your favorites" : "Unfollowed");
-    } catch (error) {
-      // Revert on error
-      setIsFollowing(!becomingFollower);
-      setFollowerCount(prev => becomingFollower ? prev - 1 : prev + 1);
-      notifyError("Action failed. Try again.");
+
+const [isVendorLoading, setIsVendorLoading] = useState(false);
+
+
+ const fetchVendorLiveData = async () => {
+  if (!product.vendorProfileId) return;
+
+  try {
+    setIsVendorLoading(true);
+
+    const res = await fetch(`/api/vendors/${product.vendorProfileId}/live-stats`, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      console.error("Vendor live data fetch failed:", {
+        status: res.status,
+        statusText: res.statusText,
+        data,
+        vendorProfileId: product.vendorProfileId,
+      });
+      return;
     }
-  };
 
-//   // Mock Vendor Metrics
-//   const scores = { shippingSpeed: 98, qualityScore: 94, customerRating: 4.9, cancellationRate: 1 };
+    setFollowerCount(data?.followerCount ?? 0);
+    setIsFollowing(Boolean(data?.isFollowing));
+    setVendorStats({
+      shippingScore: data?.shippingScore ?? 100,
+      qualityScore: data?.qualityScore ?? 100,
+      avgRating: data?.avgRating ?? 5,
+      cancellationRate: data?.cancellationRate ?? 0,
+    });
+  } catch (error) {
+    console.error("Vendor live data error:", error);
+  } finally {
+    setIsVendorLoading(false);
+  }
+};
 
-//   // 1. Add this state at the top with your other states
-// const [followerCount, setFollowerCount] = useState(product.vendorProfile?.followerCount || 1240); // Default/Mock count
 
-// // 2. Define your dynamic metrics array (Replace mock values with real data as needed)
-// const vendorMetrics = [
-//   { 
-//     icon: <Truck size={12}/>, 
-//     label: "Shipping", 
-//     val: `${product.vendorProfile?.shippingScore || 98}%`, 
-//     color: "text-green-500" 
-//   },
-//   { 
-//     icon: <PackageCheck size={12}/>, 
-//     label: "Quality", 
-//     val: `${product.vendorProfile?.qualityScore || 94}%`, 
-//     color: "text-[#F7931E]" 
-//   },
-//   { 
-//     icon: <ThumbsUp size={12}/>, 
-//     label: "Rating", 
-//     val: product.vendorProfile?.avgRating || 4.9, 
-//     color: "text-blue-500" 
-//   },
-//   { 
-//     icon: <AlertTriangle size={12}/>, 
-//     label: "Cancel", 
-//     val: `${product.vendorProfile?.cancellationRate || 1}%`, 
-//     color: "text-red-500" 
-//   },
-// ];
+      useEffect(() => {
+        fetchVendorLiveData();
+      }, [product.vendorProfileId]);
+
+  
+      const handleFollowToggle = async () => {
+        if (!product.vendorProfileId) return;
+
+        const previousFollowing = isFollowing;
+        const previousCount = followerCount;
+
+        const becomingFollower = !previousFollowing;
+
+        setIsFollowing(becomingFollower);
+        setFollowerCount((prev) => Math.max(0, becomingFollower ? prev + 1 : prev - 1));
+
+        try {
+          const res = await fetch(`/api/vendors/${product.vendorProfileId}/follow`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              action: becomingFollower ? "follow" : "unfollow",
+            }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data?.error || "Failed to update follow status");
+          }
+
+          setIsFollowing(Boolean(data.isFollowing));
+          setFollowerCount(data.followerCount ?? 0);
+
+          notifySuccess(data.isFollowing ? "Store added to your favorites" : "Unfollowed");
+        } catch (error: any) {
+          setIsFollowing(previousFollowing);
+          setFollowerCount(previousCount);
+          notifyError(error?.message || "Action failed. Try again.");
+        }
+      };
+
+
+
+
 
   return (
     <div className="bg-[#F8F8F8] min-h-screen pb-20">
@@ -274,7 +320,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
               </div>
             </div>
 
-            {/* RESTORED: CATEGORIES AND TAGS */}
+            {/* CATEGORIES AND TAGS */}
             {(uniqueCategories.length > 0 || uniqueTags.length > 0) && (
               <div className="mb-8 flex flex-col gap-4">
                 {uniqueCategories.length > 0 && (
@@ -300,7 +346,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
               </div>
             )}
 
-            {/* RESTORED: SOCIAL MEDIA SHARE */}
+            {/* SOCIAL MEDIA SHARE */}
             <div className="mb-8">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E] mb-3 flex items-center gap-2"><Share2 size={12} /> Share Product</p>
               <div className="flex flex-wrap gap-3">
@@ -321,7 +367,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E]">
+                        <span className="text-[8px] lg:text-[9px] font-black uppercase tracking-[0.2em] text-[#F7931E]">
                           Distributed by
                         </span>
                         {/* Displaying the dynamic Follower Count */}
@@ -333,7 +379,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
                         href={`/store/${product.vendorProfile.store?.slug || product.vendorProfileId}`} 
                         className="flex items-center gap-1.5"
                       >
-                        <span className="font-black italic uppercase text-lg text-[#002B5B] hover:text-[#F7931E] transition-colors">
+                        <span className="font-black italic uppercase text-xs lg:text-lg text-[#002B5B] hover:text-[#F7931E] transition-colors">
                           {product.vendorProfile.storeName}
                         </span>
                         {product.vendorProfile.isVerified && (
@@ -343,18 +389,13 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={() => {
-                      const newStatus = !isFollowing;
-                      setIsFollowing(newStatus);
-                      setFollowerCount(prev => newStatus ? prev + 1 : prev - 1);
-                      notifySuccess(newStatus ? "Following Store" : "Unfollowed");
-                    }} 
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
-                      isFollowing ? 'bg-gray-100 text-[#4B4B4B]' : 'bg-[#002B5B] text-white'
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center gap-2 px-3 lg:px-5 py-3 lg:py-3 rounded-xl font-black uppercase text-[8px] lg:text-[10px] tracking-widest transition-all ${
+                      isFollowing ? "bg-gray-100 text-[#4B4B4B]" : "bg-[#002B5B] text-white"
                     }`}
                   >
-                    {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />} 
+                    {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
                     {isFollowing ? "Following" : "Follow"}
                   </button>
                 </div>
@@ -414,7 +455,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
 
         <ProductTabs product={product} />
 
-        {/* RESTORED: FIELD REPORTS (REVIEWS) SECTION */}
+        {/* FIELD REPORTS (REVIEWS) SECTION */}
         <div id="field-reports" className="mt-32 border-t border-gray-100 pt-20">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
             <div className="lg:col-span-2"><ReviewList /></div>
@@ -422,7 +463,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
           </div>
         </div>
         
-        {/* RESTORED: RELATED PRODUCTS SECTION */}
+        {/* RELATED PRODUCTS SECTION */}
         <div className="mt-32">
           <h2 className="text-xl xl:text-2xl 2xl:text-4xl font-black italic uppercase text-[#002B5B] tracking-tighter mb-12">Related <span className="text-[#F7931E]">Product</span></h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -442,7 +483,7 @@ export default function ProductDetails({ product, similarItems }: ProductDetails
   );
 }
 
-// RESTORED UI COMPONENTS
+//UI COMPONENTS
 function Metric({ icon, label, val, color }: any) {
   return (
     <div className="flex flex-col items-center p-3 bg-gray-50 rounded-2xl border border-gray-100">

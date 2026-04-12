@@ -42,6 +42,8 @@ model User {
   wallet             Wallet?
   wishlists          Wishlist[]
   conversations      Conversation[]      @relation("UserConversations")
+
+  vendorFollows VendorFollow[]
 }
 
 model VerificationCode {
@@ -131,6 +133,10 @@ model VendorProfile {
   withdrawal      Withdrawal[]
 
   marketplaceTransactions MarketplaceTransaction[]
+
+  vendorFollows VendorFollow[]
+
+ 
 }
 
 model VendorOnboarding {
@@ -165,6 +171,19 @@ model VendorBoost {
   exhaustedAlertSent Boolean       @default(false)
   lowCreditAlertSent Boolean       @default(false)
   vendorProfile      VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+}
+
+
+model VendorFollow {
+  id              String   @id @default(cuid())
+  userId          String
+  vendorProfileId String
+  createdAt       DateTime @default(now())
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorProfile   VendorProfile   @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vendorProfileId])
 }
 
 model CreditTransaction {

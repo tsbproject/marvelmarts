@@ -1,7 +1,4 @@
 
-
-
-
 // app/_components/home/FeaturedCategoriesHome.tsx
 import Link from "next/link";
 import Image from "next/image";
@@ -38,7 +35,7 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
               Category Registry
             </span>
           </div>
-          <h2 className="text-sm md:text-2xl font-black uppercase italic tracking-tighter text-accent-navy">
+          <h2 className="text-sm md:text-xl font-black uppercase italic tracking-tighter text-accent-navy">
             Featured <span className="text-brand-primary">Categories</span>
           </h2>
         </div>
