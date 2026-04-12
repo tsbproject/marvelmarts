@@ -82,6 +82,19 @@ model VendorProfile {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   isVerified      Boolean             @default(false)
+
+
+  followerCount    Int      @default(0)
+  shippingScore    Int      @default(100) // Percentage
+  qualityScore     Int      @default(100) // Percentage
+  avgRating        Float    @default(5.0)
+  cancellationRate Int      @default(0)   // Percentage
+
+
+
+
+
+
   bio             String?
   coverUrl        String?
   logoUrl         String?
@@ -116,6 +129,8 @@ model VendorProfile {
   score           VendorScore?
   store           VendorStore?
   withdrawal      Withdrawal[]
+
+  marketplaceTransactions MarketplaceTransaction[]
 }
 
 model VendorOnboarding {
@@ -168,9 +183,22 @@ model CreditTransaction {
 model VendorScore {
   id              String        @id @default(cuid())
   vendorProfileId String        @unique
-  score           Int           @default(0)
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+
+  commissionRate  Float         @default(0.10)
+  
+  rating          Float         @default(0.0)
+  fulfillmentRate Int           @default(100)
+  reviewsCount    Int           @default(0)
   tier            VendorTier    @default(BRONZE)
-  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  
+  updatedAt       DateTime      @updatedAt
+}
+
+enum VendorTier {
+  BRONZE
+  SILVER
+  GOLD
 }
 
 model Dispute {
@@ -196,6 +224,29 @@ model Withdrawal {
   updatedAt       DateTime      @updatedAt
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
 }
+
+
+model MarketplaceTransaction {
+  id                String            @id @default(cuid())
+  orderId           String            @unique
+  vendorProfileId   String
+  vendorProfile     VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  
+  // The Financial Split
+  grossAmount       Float             // Total paid by Customer (e.g., ₦10,000)
+  platformFee       Float             // Subtracted Commission (e.g., ₦1,000)
+  netAmount         Float             // Actual Vendor Payout (e.g., ₦9,000)
+  
+  commissionRate    Float             // Snapshot of the rate used (e.g., 0.10)
+  vendorTier        VendorTier        // Tier at time of sale (BRONZE/SILVER/GOLD)
+  
+  status            TransactionStatus @default(SUCCESS)
+  reference         String            @unique 
+  createdAt         DateTime          @default(now())
+
+  @@index([vendorProfileId])
+}
+
 
 model Payout {
   id              String        @id @default(cuid())
@@ -709,11 +760,7 @@ enum BoostPlan {
   ULTRA
 }
 
-enum VendorTier {
-  BRONZE
-  SILVER
-  GOLD
-}
+
 
 enum DisputeStatus {
   OPEN
@@ -783,4 +830,9 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
+ 
 }
+
+
+
+

@@ -17,6 +17,7 @@
   import { PendingApprovalView } from "./verification/_components/PendingApprovalView";
   import RevenueChart from "./_components/RevenueChart"; 
   import BoostButton from "./_components/BoostButton";
+  import VendorInsights from "./_components/VendorInsights";
 
 
   interface PendingApprovalViewProps {
@@ -25,12 +26,12 @@
 
   export default async function VendorDashboardPage() {
     const session = await getServerSession(authOptions);
+
+
+    
     
 
-    // 1. Ensure user is logged in and role is allowed
-      // if (!session || !(["VENDOR", "ADMIN", "SUPER_ADMIN"] as string[]).includes(session.user.role as string)) {
-      //   redirect("/auth/sign-in");
-      // }
+    
 
       const allowedRoles = ["VENDOR", "ADMIN", "SUPER_ADMIN"];
 
@@ -53,6 +54,21 @@
           }
         });
 
+       // Place this right after you check if vendorData exists
+        if (vendorData && !vendorData.score) {
+          await prisma.vendorScore.create({
+            data: {
+              vendorProfileId: vendorData.id,
+              commissionRate: 0.10, // Default baseline
+              tier: "BRONZE",
+              rating: 0,
+              fulfillmentRate: 100,
+              reviewsCount: 0,
+            },
+          });
+          
+
+}
       
 
         if (!vendorData) redirect("/auth/register/vendor-registration");
@@ -90,6 +106,17 @@
 
           // 3 Suspension check (DO NOT block dashboard)
           const isSuspended = vendorData.isSuspended;
+
+
+
+
+          // Derive insights data from your existing vendorData and counts
+            const insightStats = {
+              rating: vendorData.score?.rating || 0,
+              totalSales: vendorData.products.reduce((acc, p) => acc + (p.salesCount || 0), 0),
+              fulfillmentRate: vendorData.score?.fulfillmentRate || 100, // Default to 100 if new
+              reviewsCount: vendorData.score?.reviewsCount || 0,
+            };
 
 
 
@@ -220,7 +247,7 @@
                           text-[8px] xxs:text-[9px] xs:text-[10px] md:text-xs
                         "
                       >
-                        <ExternalLink size={14} className="flex-shrink-0 opacity-60" />
+                        <ExternalLink size={14} className="shrink-0 opacity-60" />
                         <span className="whitespace-nowrap">View Public Store</span>
                       </Link>
                         <BusinessToggleAction />
@@ -284,6 +311,14 @@
                 );
               })}
             </div>
+
+            {/* 2. VENDOR INSIGHTS (New Implementation) */}
+              {/* This serves as the 'Intelligence' bridge between raw stats and the graph */}
+              {!showOnboardingSteps && (
+                <div className="animate-in fade-in slide-in-from-top-4 duration-700 delay-200">
+                  <VendorInsights stats={insightStats} />
+                </div>
+              )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">

@@ -1,15 +1,10 @@
-
-
-
-
-
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Eye, ShoppingCart, Heart, Edit3,
-  Rocket, Store, CheckCircle2, Zap
+  Rocket, Store, CheckCircle2, Zap, Star
 } from "lucide-react";
 import { formatNaira } from "@/app/lib/FormatNaira";
 import { SerializedProduct } from "@/types/product";
@@ -53,11 +48,7 @@ export default function ProductCard({
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // const getValidImage = () => {
-  //     if (product.imageUrl && product.imageUrl.trim() !== "") return product.imageUrl;
-  //     if (product.images && product.images[0]?.url) return product.images[0].url;
-  //     return "/placeholder-product.png";
-  //   };
+
 
 
           const getValidImage = () => {
@@ -172,187 +163,160 @@ export default function ProductCard({
   // const daysLeft = getDaysRemaining(product.boostUntil);
   const isBoosted = daysLeft > 0;
 
-  return (
+
+ return (
+  <div
+    onClick={() => {
+      const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
+      if (slug) {
+        setLoading(true);
+        router.push(`/products/${slug}`);
+      }
+    }}
+    className={`bg-white border border-gray-50 rounded-[2rem] overflow-hidden p-3 shadow-sm hover:shadow-2xl transition-all duration-500 group relative cursor-pointer flex ${
+      isList ? "flex-row items-center gap-6" : "flex-col items-center"
+    }`}
+  >
+    {/* 1. SALES BADGE */}
+    {discountPercentage && !isOwner && (
+      <div className="absolute top-4 left-4 z-30 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-white/20">
+        {discountPercentage}% OFF
+      </div>
+    )}
+
+    {/* 2. IMAGE SECTION - Reduced Height */}
     <div
-      onClick={() => {
-        const slug = typeof product.slug === 'string' ? product.slug : (product.slug as any)?.current;
-        if (slug) {
-          setLoading(true);
-          router.push(`/products/${slug}`);
-        }
-      }}
-      className={`bg-white border border-gray-100 rounded-[2rem] overflow-hidden p-3 shadow-sm hover:shadow-xl transition-all group relative cursor-pointer active:bg-gray-50 flex ${
-        isList ? "flex-row items-center gap-4" : "flex-col items-center"
+      className={`relative overflow-hidden rounded-[1.6rem] bg-gray-50/50 shrink-0 transition-all ${
+        isList ? "w-65 h-65" : "w-full h-65"   
       }`}
     >
-      {/* Sales Label */}
-      {discountPercentage && !isOwner && (
-        <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-[9px] font-black w-9 h-9 flex items-center justify-center rounded-full shadow-lg uppercase tracking-tighter">
-          -{discountPercentage}%
-        </div>
-      )}
+      <Image
+        src={getValidImage()}
+        alt={product.title}
+        fill
+        className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-in-out"
+      />
 
-      {isOwner && isBoosted && (
-        <div className="absolute top-4 right-4 z-20 bg-[#F7931E] text-[#002B5B] text-[8px] font-black w-9 h-9 flex flex-col items-center justify-center rounded-full shadow-lg uppercase tracking-tighter border border-white/20 animate-in zoom-in duration-300">
-          <Zap size={10} fill="currentColor" className="animate-pulse mb-[1px]" />
-          <span>{daysLeft}D</span>
-        </div>
-      )}
-
-      {/* Image Section */}
-        <div
-          className={`relative overflow-hidden rounded-[1.4rem] bg-[#F8FAFC] shrink-0 transition-all ${
-            isList ? "w-32 h-32" : "w-full h-56"
+      {/* MOBILE WISHLIST */}
+      {!isOwner && (
+        <button
+          onClick={handleWishlistToggle}
+          className={`absolute top-4 right-4 z-30 md:hidden flex h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all ${
+            isWishlisted ? "bg-red-500 text-white" : "bg-white/80 backdrop-blur-sm text-slate-900"
           }`}
         >
-          <Image
-            src={getValidImage()}
-            alt={product.title?.trim() ? `${product.title} product image` : "Product image"}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-          />
+          <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+        </button>
+      )}
 
-          {/* Mobile Wishlist Button */}
-          {!isOwner && (
-            <button
-              type="button"
-              onClick={handleWishlistToggle}
-              className={`absolute top-3 right-3 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all active:scale-95 ${
-                isWishlisted ? "bg-red-500 text-white" : "bg-white text-slate-900"
-              }`}
-              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            >
-              <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
-            </button>
-          )}
-
-          {/* Actions Overlay */}
-          <div className="absolute inset-0 z-20 bg-slate-900/40 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] md:flex">
-            {isOwner ? (
-              <div className="flex flex-col gap-2 w-full px-4">
-                <Link
-                  href={`/account/vendor/products/edit/${product.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-2 py-2 bg-brand-primary text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-                >
-                  <Edit3 size={12} /> Edit
-                </Link>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="flex items-center justify-center gap-2 py-2 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
-                >
-                  <Rocket size={12} className={isBoosted ? "text-green-500" : "text-[#F7931E]"} />
-                  {isBoosted ? "Extend" : "Boost"}
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (onQuickView) onQuickView(product);
-                  }}
-                  className="p-3 bg-white rounded-full text-slate-900 shadow-xl hover:bg-brand-primary hover:scale-110 transition-all"
-                >
-                  <Eye size={18} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleWishlistToggle}
-                  className={`hidden md:flex p-3 rounded-full shadow-xl transition-all hover:scale-110 ${
-                    isWishlisted ? "bg-red-500 text-white" : "bg-white text-slate-900"
-                  }`}
-                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                >
-                  <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-      {/* Content Section */}
-      <div className={`flex-1 flex flex-col w-full ${isList ? "text-left items-start py-1" : "text-center items-center mt-3 px-1"}`}>
-          
-          {/* SMALL TRENDING INDICATOR */}
-            {isOwner && isBoosted && (
-              <div className="flex items-center gap-1 mb-1 animate-pulse">
-                <span className="text-[7px] font-black text-green-600 uppercase tracking-widest italic">
-                  Trending Engine Active
-                </span>
-              </div>
-            )}
-        
-        {/* STORE & BRAND LINE */}
-        <div className="flex items-center justify-center gap-2 mb-1 overflow-hidden w-full">
-          <p className="text-[9px] font-black text-brand-primary uppercase tracking-widest truncate">
-            {product.brand || "Premium"}
-          </p>
-          {!isOwner && product.vendorProfile?.storeName && (
-            <>
-              <span className="w-1 h-1 bg-gray-300 rounded-full" />
-              <Link
-               
-                href={`/store/${product.vendorProfile?.store?.slug || product.vendorProfileId}`} 
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 group/store"
-              >
-                <Store size={10} className="text-gray-400 group-hover/store:text-slate-900" />
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter group-hover/store:text-slate-900 truncate">
-                  {product.vendorProfile?.storeName}
-                </span>
-                {product.vendorProfile?.isVerified && (
-                  <CheckCircle2 size={10} className="text-blue-500 fill-blue-50" />
-                )}
-              </Link>
-            </>
-          )}
-        </div>
-
-        <h3 className={`font-black  italic uppercase text-brand-primary leading-tight line-clamp-2 mb-2 ${isList ? "text-xs" : "text-[12px] h-10 px-1"}`}>
-          {product.title}
-        </h3>
-
-        {/* PRICE DISPLAY SECTION */}
-        <div className="flex items-center gap-2 mb-3 min-h-[24px]">
-          <p className="text-xs font-black text-accent-navy italic tracking-tighter whitespace-nowrap">
-            {formatNaira(displayPrice)}
-          </p>
-
-          {hasRealDiscount && (
-            <p className="text-[10px] text-gray-400 line-through font-bold whitespace-nowrap">
-              {formatNaira(rawPrice)}
-            </p>
-          )}
-        </div>
-
-        {/* FOOTER ACTIONS */}
-        {!isOwner ? (
-          <button
-            onClick={handleAddToCart}
-            className={`${isList ? "w-auto px-8" : "w-full"} bg-accent-navy hover:bg-brand-primary text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 active:scale-95`}
-          >
-            <ShoppingCart size={14} /> Add to Cart
-          </button>
-        ) : (
-          <button
-            onClick={handleToggleStatus}
-            className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50 w-full justify-center hover:bg-gray-50 rounded-lg transition-colors group/status"
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${product.isPublished ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)] animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-[8px] font-black uppercase text-gray-400 tracking-tighter group-hover/status:text-slate-900 transition-colors">
-              {product.isPublished ? 'Live' : 'Draft'}
-            </span>
-          </button>
-        )}
+      {/* DESKTOP HOVER OVERLAY */}
+      <div className="absolute inset-0 z-20 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex items-center justify-center gap-3">
+        <button
+          onClick={(e) => { e.stopPropagation(); onQuickView?.(product); }}
+          className="p-4 bg-white rounded-full text-slate-900 shadow-2xl hover:bg-brand-primary hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-300"
+        >
+          <Eye size={20} />
+        </button>
+        <button
+          onClick={handleWishlistToggle}
+          className={`p-4 rounded-full shadow-2xl transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 delay-75 ${
+            isWishlisted ? "bg-red-500 text-white" : "bg-white text-slate-900 hover:bg-red-50"
+          }`}
+        >
+          <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
+        </button>
       </div>
     </div>
-  );
+
+    {/* 3. CONTENT SECTION - Tighter Vertical Spacing */}
+    <div className={`flex-1 flex flex-col w-full relative ${isList ? "text-left py-1" : "text-center mt-3 px-2"}`}>
+      
+      {/* BRAND & STORE */}
+      <div className={`flex items-center gap-2 mb-1 ${isList ? "" : "justify-center"}`}>
+        <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">
+          {product.brand || "Original"}
+        </span>
+        
+        {!isOwner && product.vendorProfile?.storeName && (
+          <>
+            <span className="w-1 h-1 bg-gray-300 rounded-full" />
+            <Link
+              href={`/store/${product.vendorProfile?.store?.slug || product.vendorProfileId}`} 
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 group/store overflow-hidden"
+            >
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter group-hover/store:text-slate-900 transition-colors truncate">
+                {product.vendorProfile?.storeName}
+              </span>
+              {product.vendorProfile?.isVerified && (
+                <CheckCircle2 size={10} className="text-blue-500" />
+              )}
+            </Link>
+          </>
+        )}
+      </div>
+
+      {/* TITLE - Reduced min-height */}
+      <h3 className={`font-bold text-slate-800 leading-tight line-clamp-2 mb-1 group-hover:text-brand-primary transition-colors ${
+        isList ? "text-lg" : "text-[14px] min-h-[38px]"
+      }`}>
+        {product.title}
+      </h3>
+
+      {/* STAR RATING */}
+      <div className={`flex items-center gap-1 mb-2 ${isList ? "" : "justify-center"}`}>
+        <div className="flex items-center">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              size={10}
+              className={`${
+                star <= (product.rating || 5) 
+                  ? "text-[#F7931E] fill-[#F7931E]" 
+                  : "text-gray-200 fill-gray-200"
+              }`}
+            />
+          ))}
+        </div>
+        <span className="text-[9px] font-bold text-gray-400 mt-0.5">
+          ({product.reviewCount || 0})
+        </span>
+      </div>
+
+      {/* PRICE DISPLAY */}
+      <div className={`flex items-baseline gap-2 mb-3 ${isList ? "" : "justify-center"}`}>
+        <span className="text-lg font-black text-accent-navy tracking-tighter">
+          {formatNaira(displayPrice)}
+        </span>
+        {hasRealDiscount && (
+          <span className="text-[11px] text-gray-400 line-through font-medium">
+            {formatNaira(rawPrice)}
+          </span>
+        )}
+      </div>
+
+      {/* ADD TO CART BUTTON - Slightly more compact */}
+      {!isOwner && (
+        <div className={`transition-all duration-500 ${isList ? "static" : "absolute inset-x-0 -bottom-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-[-10px] z-40"}`}>
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-accent-navy hover:bg-brand-primary text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95 border border-white/10"
+          >
+            <ShoppingCart size={16} /> Add To Cart
+          </button>
+        </div>
+      )}
+
+      {/* OWNER STATUS FOOTER */}
+      {isOwner && (
+        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-center gap-3">
+          <div className={`w-2 h-2 rounded-full ${product.isPublished ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className="text-[10px] font-bold uppercase text-gray-500">
+            {product.isPublished ? 'Live on Mart' : 'Draft Mode'}
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+);
 }
