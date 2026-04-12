@@ -243,7 +243,7 @@ if (!storeData) {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-6 py-4 flex items-center gap-8 overflow-x-auto no-scrollbar">
           <StatItem icon={<Package size={16} />} label="Products" value={products.length} />
-          <StatItem icon={<Star size={16} />} label="Reputation" value={`${vendor.score?.score || 0}%`} />
+          <StatItem icon={<Star size={16} />} label="Reputation" value={`${vendor.qualityScore || 0}%`} />
           <StatItem icon={<ShieldCheck size={16} />} label="Joined" value={new Date(vendor.createdAt).getFullYear()} />
           <StatItem icon={<Store size={16} />} label="Status" value={vendor.isVerified ? "Verified" : "Standard"} />
         </div>
