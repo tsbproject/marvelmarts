@@ -425,7 +425,7 @@ const [isVendorLoading, setIsVendorLoading] = useState(false);
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <div className={`h-2 w-2 rounded-full animate-pulse ${currentMaxStock > 5 ? 'bg-green-500' : 'bg-[#F7931E]'}`} />
-                <p className="text-[#4B4B4B] text-[10px] font-black uppercase tracking-widest">{currentMaxStock > 0 ? `In Stock: ${currentMaxStock} Units Secure` : "Out of Stock"}</p>
+                <p className="text-[#4B4B4B] text-[10px] font-black uppercase tracking-widest">{currentMaxStock > 0 ? `In Stock: ${currentMaxStock} Units Available` : "Out of Stock"}</p>
               </div>
             </div>
 

@@ -131,7 +131,7 @@ export default function CartDrawer() {
                               src={
                                 item.imageUrl && item.imageUrl !== "/images/placeholder.jpg"
                                   ? item.imageUrl
-                                  : "/logo.png" // Use your actual logo file in public/logo.png
+                                  : "/placeholder-image.png" // Use your actual logo file in public/logo.png
                               }
                               alt={item.title}
                               width={80}

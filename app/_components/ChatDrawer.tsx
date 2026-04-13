@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import Image from "next/image";
 import VendorChatPage from "../account/customer/messages/[id]/page"; 
 
 interface ChatDrawerProps {
@@ -32,16 +33,39 @@ export default function ChatDrawer({ isOpen, onClose, conversationId, productCon
       />
       
       {/* Sliding Drawer */}
-      <div className="fixed right-10 top-50 h-200 w-full max-w-lg bg-white shadow-2xl z-[999] animate-in slide-in-from-right duration-300 flex flex-col border-l border-gray-200">
+      <div className="fixed right-3 lg:right-10 top-1 lg:top-2 bottom-50 h-110 lg:h-160 w-78 lg:w-full max-w-lg bg-white shadow-2xl z-[999] animate-in slide-in-from-right duration-300 flex flex-col border-l border-gray-200">
         
+     
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-[#002B5B] text-white shrink-0">
-          <div className="flex flex-col">
-            <h3 className="font-black uppercase italic text-xs tracking-[0.2em]">Secure Live Chat</h3>
-            <p className="text-[9px] text-[#F7931E] font-bold uppercase tracking-widest opacity-80">
-              {productContext ? `RE: ${productContext.name}` : 'Link Active'}
-            </p>
+          
+          {/* LEFT SIDE: Logo + Text */}
+          <div className="flex items-center gap-3">
+            
+            {/* Logo */}
+            <div className="w-8 h-8 relative flex-shrink-0">
+              <Image
+                src="/logo.png"
+                alt="MarvelMarts Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            {/* Text */}
+            <div className="flex flex-col leading-tight">
+              <h3 className="font-black uppercase italic text-xs tracking-[0.2em]">
+                Secure Live Chat
+              </h3>
+              <p className="text-[9px] text-[#F7931E] font-bold uppercase tracking-widest opacity-80">
+                {productContext ? `RE: ${productContext.name}` : "Link Active"}
+              </p>
+            </div>
+
           </div>
+
+          {/* CLOSE BUTTON */}
           <button 
             onClick={onClose} 
             className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-90"
@@ -62,7 +86,7 @@ export default function ChatDrawer({ isOpen, onClose, conversationId, productCon
         {/* Footer */}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-center shrink-0">
           <p className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-400">
-            MarvelMarts Encryption Protocol v2.6
+            MarvelMarts Encryption Live Chat v2.6
           </p>
         </div>
       </div>
