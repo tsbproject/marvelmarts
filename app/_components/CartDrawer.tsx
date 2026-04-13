@@ -75,7 +75,7 @@ export default function CartDrawer() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 bg-accent-navy/40 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-accent-navy/40 backdrop-blur-sm z-[200]"
             />
 
             <motion.div

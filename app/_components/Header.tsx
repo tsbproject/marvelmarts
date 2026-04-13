@@ -1,5 +1,3 @@
-
-
 // "use client";
 
 // import { useState } from "react";
@@ -23,84 +21,126 @@
 //   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
 //   return (
-//     <header className="bg-accent-navy h-36 xs:h-40 lg:h-56 shadow p-4 relative z-[1001] transition-all">
-      
-//       {/* --- MOBILE LAYOUT (Applied for xxs, xs, sm, md up to 899px) --- */}
-//       <div className="lg:hidden flex flex-col justify-between w-full h-full">
-//         {/* Top Row: Hamburger, Logo, and Actions */}
-//         <div className="flex items-center justify-between w-full">
-//           {/* Grouping Hamburger and Logo to the left */}
-//           <div className="flex items-center gap-2 xs:gap-4 min-w-0">
-//             <div className="flex-shrink-0">
-//               <HamburgerMenu categories={initialCategories} />
-//             </div>
-//             {/* min-w-0 is critical for Firefox to handle the logo scaling on xxs screens */}
-//             <div className="min-w-0 flex-shrink">
-//               <Logo />
-//             </div>
-//           </div>
-
-//           {/* Action Icons to the right */}
-//           <div className="flex items-center gap-3 xs:gap-5 flex-shrink-0">
-//             <HelpMenu />
-//             <CartDrawer />
-//           </div>
-//         </div>
-
-//         {/* Bottom Row: Mobile Search Bar */}
-//         <div className="w-full pb-1 xxs:mt-4">
-//           <SearchBar />
-//         </div>
-//       </div>
-
-//       {/* --- DESKTOP LAYOUT (900px and above) --- */}
-      
-//       {/* Logo - Desktop */}
-//       <div className="hidden lg:block absolute lg:left-20 lg:top-2 xl:left-8 xl:top-10 2xl:left-8 2xl:top-8">
+//     <header className="bg-accent-navy h-36 md:h-56 2xl:h-50 shadow p-4 relative z-[1001]">
+//       {/* Logo */}
+//       <div
+//         className="
+//           absolute
+//           xs:left-10
+//           sm:left-20 sm:top-7
+//           md:left-28 md:top-3
+//           lg:left-20 lg:top-2
+//           xl:left-8 xl:top-10
+//           2xl:left-8 2xl:top-8
+//         "
+//       >
 //         <Logo />
 //       </div>
 
 //       {/* Search Bar - Desktop */}
-//       <div className="absolute top-15 left-30 hidden lg:block xl:top-25 xl:left-57 2xl:top-20 2xl:left-50">
+//       <div className="absolute 
+//                       top-15 left-30 hidden lg:block
+//                       xl:top-25   xl:left-57
+//                       2xl:top-20  2xl:left-50
+//                       "
+                                      
+//       >
+                          
 //         <SearchBar />
 //       </div>
 
-//       {/* Category Menu - Desktop */}
+//       {/* Category Menu - Desktop Topbar */}
 //       <div className="absolute bottom-0 left-0 w-full hidden lg:block">
 //         <CategoryMenu initialCategories={initialCategories} />
 //       </div>
 
-//       {/* Desktop Navigation Area */}
-//       <div className="absolute right-8 -top-1 2xl:-top-15 2xl:right-11 xl:-top-11 hidden lg:flex items-center gap-6 z-20">
+//       {/* Mobile Hamburger */}
+//       <div
+//         className="
+//           absolute -top-1   lg:hidden
+//           xxs:top-12
+//           xs:top-12
+//           sm:right-100 sm:top-15
+//           md:right-120 md:top-15
+//           lg:right-20 lg:top-4
+//         "
+//       >
+//         <HamburgerMenu categories={initialCategories} />
+//       </div>
+
+//       {/* HelpMenu - Mobile */}
+//       <div
+//         className="
+//           absolute visible lg:invisible
+//           xxs:left-60 xxs:top-20
+//           xs:left-72 xs:top-20
+//           sm:left-85 sm:top-20
+//           md:left-110 md:top-25
+//           lg:left-72 lg:top-5
+//           xl:left-72 xl:top-0
+//         "
+//       >
+//         <HelpMenu />
+//       </div>
+
+//       {/* CartDrawer - Mobile */}
+//       <div
+//         className="
+//           absolute visible xl:invisible
+//           xxs:left-72 xxs:top-20
+//           xs:left-87 xs:top-20
+//           sm:left-107 sm:top-20
+//           md:left-130 md:top-27
+//           lg:left-80 lg:top-5
+          
+//         "
+//       >
+//         <CartDrawer />
+//       </div>
+
+//       {/* RIGHT CORNER AREA FOR ALL ICONS */}
+//       <div className="absolute right-8 -top-1 2xl:-top-15 2xl:right-11 xl:-top-11
+//       flex items-center gap-6 z-20 invisible lg:visible">
 //         <NavigationRight />
 //       </div>
 
-//       {/* Account Menu - Desktop */}
-//       <div className="absolute right-60 top-24 2xl:top-13 xl:top-16 hidden lg:flex items-center">
+//       <div className="absolute right-60 top-24 2xl:top-13 xl:top-16 flex items-center invisible lg:visible">
 //         <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
 //         <button
 //           className="flex items-center gap-2 text-lg font-semibold text-gray-800"
 //           onClick={() => setUserMenuOpen(true)}
 //         >
-//           <User className="w-8 h-8 2xl:w-5 2xl:h-5 rounded-full text-brand-primary" />
+//           <User className="w-8 h-8 2xl:w-5 2xl:h-5  rounded-full  text-brand-primary" />
 //           <span className="text-white text-base 2xl:text-[13px] mt-1">Account</span>
 //         </button>
 //       </div>
-      
-//       {/* Vendor Registration Button - Desktop */}
+     
+     
 //       <Link href="/auth/register/vendor-registration">
-//         <button className="absolute 2xl:top-22 2xl:left-[65rem] xl:top-35 xl:left-[50rem] hidden lg:flex items-center gap-2 
-//           bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm
-//           hover:shadow-md hover:border-brand-primary hover:bg-brand-primary hover:text-white
-//           text-accent-navy text-[10px] font-black uppercase tracking-widest 
-//           rounded-full py-2.5 px-6 transition-all duration-300 active:scale-95 group">
-//           <Store size={14} className="text-brand-primary group-hover:text-white transition-colors" />
-//           <span>Register Merchant Account</span>
-//         </button>
-//       </Link>
+//   <button className="absolute 
+//                     2xl:top-22 2xl:left-[65rem]    hidden lg:flex items-center gap-2 
+//     bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm
+//     hover:shadow-md hover:border-brand-primary hover:bg-brand-primary hover:text-white
+//     text-accent-navy text-[10px] font-black uppercase tracking-widest 
+//     rounded-full py-2.5 px-6 transition-all duration-300 active:scale-95 group
+
+//      xl:top-35 xl:left-[50rem]
+    
+//     "
+    
+//     >
+    
+//     <Store size={14} className="text-brand-primary group-hover:text-white transition-colors" />
+//     <span>Register Merchant Account</span>
+//   </button>
+// </Link>
 //     </header>
 //   );
 // }
+
+
+
+
 
 
 
@@ -128,10 +168,8 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    /* Height stays mobile-friendly until xl (1100px based on your breakpoints). 
-       Using xl:overflow-visible allows desktop elements to hang outside if needed.
-    */
-    <header className="bg-accent-navy h-40 xs:h-44 xl:h-56 shadow p-4 relative z-[1001] transition-all overflow-hidden xl:overflow-visible">
+    
+    <header className="bg-accent-navy h-40 xs:h-44 xl:h-56 shadow p-4 relative  transition-all  xl:overflow-visible z-[1001]">
       
       {/* --- MOBILE & TABLET LAYOUT (Active until 1099px) --- */}
       <div className="xl:hidden flex flex-col justify-between w-full h-full pb-2">
@@ -147,14 +185,14 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
             </div>
           </div>
 
-          <div className="flex items-center  gap-3 xs:gap-5 lg:gap-10 lg:mr-10 flex-shrink-0">
+          <div className="flex items-center  gap-3 xs:gap-5 lg:gap-10 lg:mr-10 flex-shrink-0 z-[2001]">
             <HelpMenu />
             <CartDrawer />
           </div>
         </div>
 
         {/* Bottom Row Search Bar */}
-        <div className="w-full xxs:mt-5 xs:mt-7 sm:mt-7">
+        <div className="w-full xxs:mt-5 xs:mt-7 sm:mt-7 z-1001">
           <SearchBar />
         </div>
       </div>
