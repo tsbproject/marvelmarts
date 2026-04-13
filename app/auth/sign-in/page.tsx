@@ -24,11 +24,11 @@ export default function SignInPage() {
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3">
             <Image 
-              src="/logo.png" 
+              src="/images/login.jpg" 
               alt="MarvelMarts Logo" 
               width={180} 
               height={50} 
-              className="object-contain"
+              className="object-cover w-600"
               priority
             />
           </Link>

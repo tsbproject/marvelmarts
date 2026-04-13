@@ -91,7 +91,7 @@ export default function SearchBar() {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => query.length >= 2 && setShowDropdown(true)}
             placeholder="Search products, brands, or stores..."
-            className="w-full pl-14 pr-24 py-4 rounded-full outline-none transition-all duration-300 shadow-2xl bg-white/20 backdrop-blur-xl text-brand-primary lg:text-white placeholder:text-brand-primary/40 lg:placeholder:text-white/30 text-md xl:text-lg border border-brand-primary lg:border-accent-navy focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full pl-14 pr-24 py-4 rounded-full outline-none transition-all duration-300 shadow-2xl bg-white/20 backdrop-blur-xl text-white lg:text-white placeholder:text-gray/40 lg:placeholder:text-white/30 text-[10px] lg:text-md xl:text-lg lg:border-accent-navy focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
           />
            <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
 //             {isSearching ? (
