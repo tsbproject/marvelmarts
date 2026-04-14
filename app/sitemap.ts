@@ -35,12 +35,12 @@ export default async function sitemap() {
       changeFrequency: "daily",
       priority: 0.9,
     },
-    // {
-    //   url: `${SITE_URL}/contact`,
-    //   lastModified: new Date(),
-    //   changeFrequency: "monthly",
-    //   priority: 0.7,
-    // },
+    {
+      url: `${SITE_URL}/contact-us`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     {
       url: `${SITE_URL}/about-us`,
       lastModified: new Date(),

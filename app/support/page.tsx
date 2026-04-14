@@ -10,6 +10,10 @@ import {
   User, 
   LifeBuoy,
   ArrowUpRight,
+  RotateCcw,
+  Store,
+  Banknote,
+  ShoppingBag,
   Zap,
   Lock
 } from "lucide-react";
@@ -17,9 +21,13 @@ import SupportDrawer from "@/app/_components/SupportDrawer";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
 const categoryIcons: Record<string, any> = {
+  "Order": ShoppingBag, 
   "Shipping": Package,
   "Payments": CreditCard,
   "Account": User,
+  "Returns": RotateCcw,
+  "Vendor": Store,
+  "Refund": Banknote,
   "Security": ShieldCheck,
   "Default": LifeBuoy
 };
@@ -64,15 +72,15 @@ export default function SupportLandingPage() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">MarvelMarts Help Center</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter text-white">
-            Precision <span className="text-[#F7931E]">Assistance.</span>
+          <h1 className="text-sm md:text-4xl font-black mb-8 tracking-tighter text-white">
+            Meticulous  <span className="text-[#F7931E]">Support.</span>
           </h1>
           
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40" size={22} />
             <input 
               type="text"
-              placeholder="Search secure database (e.g. 'escrow', 'API keys')..."
+              placeholder="Search for relevant support article ..."
               className="w-full h-20 pl-16 pr-8 rounded-[2rem] bg-white/10 border border-white/20 text-white text-lg backdrop-blur-xl shadow-2xl focus:ring-4 focus:ring-[#F7931E]/30 outline-none transition-all placeholder:text-white/30"
             />
           </div>
@@ -144,7 +152,7 @@ export default function SupportLandingPage() {
             Every interaction on MarvelMarts is protected by industrial-grade security protocols.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/support/contact" className="px-12 py-5 bg-[#002B5B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+            <Link href="/contact-us" className="px-12 py-5 bg-[#002B5B] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
               Ticket Submission
             </Link>
             <button 

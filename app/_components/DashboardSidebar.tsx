@@ -146,6 +146,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
           hasChildren: true,
           children: [
             { label: "Articles", href: "/dashboard/admins/support/articles", icon: <LifeBuoy size={16} /> },
+            { label: "Create Article", href: "/dashboard/admins/support/articles/new", icon: <LifeBuoy size={16} /> },
             { label: "Tickets",   href: "/dashboard/admins/support/tickets",   icon: <LifeBuoy size={16} /> },
             { label: "Refunds",   href: "/dashboard/admins/support/refunds",   icon: <LifeBuoy size={16} /> },
             { label: "Live Chat", href: "/dashboard/admins/support/messages",  icon: <MessageCircle size={16} /> },

@@ -17,7 +17,7 @@ export default async function AdminSupportPage() {
           <p className="text-gray-500 font-medium">Manage your knowledge base and track user satisfaction.</p>
         </div>
         <Link 
-          href="/dashboard/admins/support/new" 
+          href="/dashboard/admins/support/articles/new" 
           className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
         >
           <Plus size={20} />
@@ -107,7 +107,7 @@ export default async function AdminSupportPage() {
 
                       {/* Edit Page */}
                       <Link 
-                        href={`/dashboard/admins/support/edit/${article.id}`} 
+                        href={`/dashboard/admins/support/articles/edit/${article.id}`} 
                         className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                         title="Edit Article"
                       >
