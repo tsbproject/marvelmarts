@@ -13,5 +13,9 @@ export default async function EditArticlePage({
     where: { id: id },
   });
 
+  if (!article) {
+    notFound();
+  }
+
   return <EditArticleForm article={article} />;
 }
