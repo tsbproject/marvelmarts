@@ -214,6 +214,7 @@ export default function Footer({ settings }: FooterProps) {
               <li><Link href="/terms-and-conditions" className="hover:text-[#F7931E] transition-all">Terms & Condition</Link></li>
               <li><Link href="/privacy-policy" className="hover:text-[#F7931E] transition-all">Privacy Policy</Link></li>
               <li><Link href="/data-deletion" className="hover:text-[#F7931E] transition-all">Data Deletion</Link></li>
+              <li><Link href="/faqs" className="hover:text-[#F7931E] transition-all">FAQS</Link></li>
               <li><Link href="/support" className="hover:text-[#F7931E] transition-all">Live Chat</Link></li>
             </ul>
           </div>
