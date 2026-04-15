@@ -83,19 +83,25 @@ import { useNotification } from "@/app/_context/NotificationContext";
 
 interface Participant {
   id: string;
-  name: string;
+  name: string | null;
   role: string;
+  vendorProfile?: {
+    id: string;
+  } | null;
 }
 
 interface ChatMessagePreview {
-  content: string;
+  id?: string;
+  content: string | null;
+  createdAt?: string | Date;
+  senderName?: string | null;
 }
 
 interface ConversationItem {
   id: string;
   type: string;
   status?: "OPEN" | "CLOSED";
-  updatedAt?: string;
+  updatedAt?: string | Date;
   participants?: Participant[];
   messages?: ChatMessagePreview[];
 }
