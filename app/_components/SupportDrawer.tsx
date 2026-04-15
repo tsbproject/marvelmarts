@@ -1,10 +1,7 @@
-
-
-
-
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import Image from 'next/image';
 import { 
   MessageCircle, X, Send, 
   ShieldCheckIcon, 
@@ -16,7 +13,7 @@ import {
 import { pusherClient } from "@/app/lib/pusherClient";
 import { format } from "date-fns";
 
-// ADDED: Props interface to allow external control
+// Props interface to allow external control
 interface SupportDrawerProps {
   isOpen?: boolean;
   onClose?: () => void;
@@ -35,9 +32,9 @@ interface SupportDrawerProps {
   onClose?: () => void;
 }
 
-interface Props {
-  visible: boolean;
-}
+// interface Props {
+//   visible: boolean;
+// }
 export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: SupportDrawerProps) {
   // INTERNAL STATE: Used if no props are provided
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -60,14 +57,30 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
     isVendor: false,
   });
 
+      const dedupeMessages = (list: Message[]) => {
+          const seen = new Map<string, Message>();
+
+          for (const msg of list) {
+            if (!msg?.id) continue;
+            seen.set(msg.id, msg);
+          }
+
+          return Array.from(seen.values()).sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        };
+        
+        const safeMessages = useMemo(() => dedupeMessages(messages), [messages]);
+
   // Toggle Function: Respects the onClose prop if it exists
-  const handleToggle = () => {
-    if (onClose && isOpen) {
-      onClose();
-    } else {
-      setInternalIsOpen(!internalIsOpen);
-    }
-  };
+      const handleToggle = () => {
+      if (externalIsOpen !== undefined) {
+        onClose?.();
+      } else {
+        setInternalIsOpen(!internalIsOpen);
+      }
+    };
 
   // 1. Fetch Wait Time Logic
   useEffect(() => {
@@ -90,15 +103,19 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
     if (!conversationId) return;
 
     const channel = pusherClient.subscribe(conversationId);
-    
-    channel.bind("new-message", (msg: Message) => {
+
+    const handleNewMessage = (msg: Message) => {
       setMessages((prev) => {
-        if (prev.find(m => m.id === msg.id)) return prev;
+        const exists = prev.some((m) => m.id === msg.id);
+        if (exists) return prev;
         return [...prev, msg];
       });
-    });
+    };
+
+    channel.bind("new-message", handleNewMessage);
 
     return () => {
+      channel.unbind("new-message", handleNewMessage);
       pusherClient.unsubscribe(conversationId);
     };
   }, [conversationId]);
@@ -131,7 +148,7 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
         const msgRes = await fetch(`/api/admins/conversations/${newConvId}/messages`);
         if (msgRes.ok) {
           const msgData = await msgRes.json();
-          setMessages(msgData.messages || []);
+          setMessages(dedupeMessages(msgData.messages || []));
           setStep("CHAT");
         } else {
           setStep("CHAT"); 
@@ -148,22 +165,45 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !conversationId) return;
+  e.preventDefault();
+  if (!chatInput.trim() || !conversationId) return;
 
-    const content = chatInput;
-    setChatInput("");
+  const content = chatInput.trim();
 
-    try {
-      await fetch(`/api/admins/conversations/${conversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-    } catch (err) {
-      console.error("Message delivery failed:", err);
-    }
+  const tempMessage: Message = {
+    id: `temp-${Date.now()}`,
+    content,
+    senderId: `public-${conversationId}`,
+    senderName: formData.name || "You",
+    createdAt: new Date().toISOString(),
   };
+
+  setMessages((prev) => [...prev, tempMessage]);
+  setChatInput("");
+
+  try {
+    const res = await fetch(`/api/admins/conversations/${conversationId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to send message");
+    }
+
+    const savedMessage = data.message ?? data;
+
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === tempMessage.id ? savedMessage : msg))
+    );
+  } catch (err) {
+    console.error("Message delivery failed:", err);
+    setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+  }
+};
 
   const handleCloseChat = () => {
     if (window.confirm("End this support session? Your message history will be preserved.")) {
@@ -191,9 +231,16 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
         <div className="bg-accent-navy p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-accent-navy">
-                <ShieldCheckIcon size={20} />
-              </div>
+              {/* Logo */}
+                <div className="w-8 h-8 relative flex-shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="MarvelMarts Logo"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
               <div>
                 <h4 className="font-black uppercase text-xs tracking-widest">Support Hub</h4>
                 <p className="text-[10px] opacity-70 font-bold uppercase flex items-center gap-1">
@@ -224,7 +271,7 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-accent-navy/5 outline-none text-black"
-                  placeholder="tayo@example.com"
+                  placeholder="yourname@example.com"
                 />
               </div>
 
@@ -238,7 +285,7 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-accent-navy/5 outline-none text-black"
-                  placeholder={formData.isVendor ? "Marvelous Store" : "Tayo Bolarinwa"}
+                  placeholder={formData.isVendor ? "Marvelous Store" : " Your full name"}
                 />
               </div>
 
@@ -263,27 +310,35 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
                 disabled={loading}
                 className="w-full bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest mt-6 hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : "Secure Initialize"}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : "Start Chatting"}
               </button>
             </form>
           ) : (
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar">
-                {messages.map((msg, idx) => {
-                  const isMe = msg.senderId !== "SYSTEM" && !msg.senderName.toLowerCase().includes("support");
-                  return (
-                    <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] font-medium leading-relaxed ${
-                        isMe ? "bg-accent-navy text-white rounded-tr-none" : "bg-gray-100 text-gray-700 rounded-tl-none"
-                      }`}>
-                        {msg.content}
-                        <p className="text-[7px] mt-1 opacity-50 text-right uppercase">
-                          {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : "Just now"}
-                        </p>
+                {safeMessages.map((msg, idx) => {
+                    const senderName = msg.senderName || "";
+                    const isMe =
+                      msg.senderId !== "SYSTEM" &&
+                      !senderName.toLowerCase().includes("support");
+
+                    return (
+                      <div key={msg.id || `fallback-${idx}`} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                        <div
+                          className={`max-w-[85%] p-3 rounded-2xl text-[11px] font-medium leading-relaxed ${
+                            isMe
+                              ? "bg-accent-navy text-white rounded-tr-none"
+                              : "bg-gray-100 text-gray-700 rounded-tl-none"
+                          }`}
+                        >
+                          {msg.content}
+                          <p className="text-[7px] mt-1 opacity-50 text-right uppercase">
+                            {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : "Just now"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
                 <div ref={scrollRef} />
               </div>
 
@@ -306,3 +361,4 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
     </>
   );
 }
+
