@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -693,6 +694,10 @@ model Conversation {
   endedAt          DateTime?
   endedById        String?
   endedByRole      String?
+
+  deletedForUserIds String[]          @default([])
+
+  deletedByParticipantIds String[]    @default([])
 
   messages         Message[]
   participants     User[]             @relation("UserConversations")

@@ -92,18 +92,88 @@ export async function POST(
   }
 }
 
+// export async function GET(
+//   req: NextRequest,
+//   { params }: { params: Promise<{ conversationId: string }> }
+// ) {
+//   try {
+//     const { conversationId } = await params;
+
+//     const conversation = await prisma.conversation.findUnique({
+//       where: { id: conversationId },
+//       select: {
+//         id: true,
+//         status: true,
+//         participants: {
+//           select: {
+//             id: true,
+//             name: true,
+//             role: true,
+//             vendorProfile: {
+//               select: { id: true },
+//             },
+//           },
+//         },
+//       },
+//     });
+
+//     if (!conversation) {
+//       return NextResponse.json(
+//         { error: "Conversation not found" },
+//         { status: 404 }
+//       );
+//     }
+
+//     const messages = await prisma.message.findMany({
+//       where: { conversationId },
+//       orderBy: { createdAt: "asc" },
+//     });
+
+//     return NextResponse.json({
+//       messages,
+//       participants: conversation.participants,
+//       conversation: {
+//         id: conversation.id,
+//         status: conversation.status,
+//       },
+//     });
+//   } catch (error) {
+//     return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
+//   }
+// }
+
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", debug: "no-session-user" },
+        { status: 401 }
+      );
+    }
+
     const { conversationId } = await params;
+
+    const userId =
+      (session.user as any)?.id || (session.user as any)?.sub || null;
+
+    const isAdmin =
+      session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN" ||
+      session.user.permissions?.manageMessages === true;
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: {
         id: true,
         status: true,
+        participantIds: true,
+        deletedByParticipantIds: true,
         participants: {
           select: {
             id: true,
@@ -119,7 +189,52 @@ export async function GET(
 
     if (!conversation) {
       return NextResponse.json(
-        { error: "Conversation not found" },
+        {
+          error: "Conversation not found",
+          debug: "conversation-not-found",
+          conversationId,
+        },
+        { status: 404 }
+      );
+    }
+
+    const participantIds = conversation.participantIds ?? [];
+    const deletedByParticipantIds = conversation.deletedByParticipantIds ?? [];
+
+    const isParticipant = !!userId && participantIds.includes(userId);
+    const isDeletedForUser = !!userId && deletedByParticipantIds.includes(userId);
+
+    console.log("GET_CONVERSATION_DEBUG", {
+      conversationId,
+      userId,
+      role: session.user.role,
+      isAdmin,
+      participantIds,
+      deletedByParticipantIds,
+      isParticipant,
+      isDeletedForUser,
+    });
+
+    if (!isParticipant && !isAdmin) {
+      return NextResponse.json(
+        {
+          error: "Forbidden",
+          debug: "not-participant-and-not-admin",
+          userId,
+          isAdmin,
+        },
+        { status: 403 }
+      );
+    }
+
+    if (isDeletedForUser) {
+      return NextResponse.json(
+        {
+          error: "Conversation not available",
+          debug: "conversation-deleted-for-user",
+          userId,
+          conversationId,
+        },
         { status: 404 }
       );
     }
@@ -138,6 +253,13 @@ export async function GET(
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
+    console.error("GET_CONVERSATION_ERROR:", error);
+    return NextResponse.json(
+      {
+        error: "Fetch failed",
+        debug: error instanceof Error ? error.message : "unknown-error",
+      },
+      { status: 500 }
+    );
   }
 }

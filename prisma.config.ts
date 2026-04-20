@@ -1,38 +1,36 @@
+// import 'dotenv/config'
+// import { defineConfig, env } from "prisma/config";
+
+// export default defineConfig({
+//   schema: 'prisma/schema.prisma',
+//   migrations: { 
+//     path: 'prisma/migrations',
+     
+//   },
+//   datasource: { 
+//     url: env("DIRECT_URL"),
+   
+//   }
+// });
+
+
+
+
+
+
 import 'dotenv/config'
-import { defineConfig, env } from "prisma/config";
+import { defineConfig, env } from 'prisma/config'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  migrations: { 
+  migrations: {
     path: 'prisma/migrations',
-     
   },
-  datasource: { 
-    url: env("DIRECT_URL"),
-   
-  }
-});
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+})
+        
 
 
 
-// import { PrismaClient } from "@prisma/client";
-// import { PrismaPg } from "@prisma/adapter-pg";
-
-// const globalForPrisma = globalThis as unknown as {
-//   prisma: PrismaClient | undefined;
-// };
-
-// const adapter = new PrismaPg({
-//   connectionString: process.env.DATABASE_URL!,
-// });
-
-// export const prisma =
-//   globalForPrisma.prisma ??
-//   new PrismaClient({
-//     adapter,
-//     log: ["error", "warn"],
-//   });
-
-// if (process.env.NODE_ENV !== "production") {
-//   globalForPrisma.prisma = prisma;
-// }

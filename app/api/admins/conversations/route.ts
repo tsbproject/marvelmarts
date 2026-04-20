@@ -19,8 +19,13 @@ export async function GET(req: Request) {
         participantIds: {
           has: session.user.id,
         },
+        NOT: {
+          deletedByParticipantIds: {
+            has: session.user.id,
+          },
+        },
         ...(type && { type: type as any }),
-      },
+      }
       include: {
         participants: {
           select: {
