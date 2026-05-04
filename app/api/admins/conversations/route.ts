@@ -25,7 +25,7 @@ export async function GET(req: Request) {
           },
         },
         ...(type && { type: type as any }),
-      }
+      },
       include: {
         participants: {
           select: {
