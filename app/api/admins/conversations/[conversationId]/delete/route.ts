@@ -78,7 +78,7 @@ export async function PATCH(
       },
     });
 
-    const allParticipantsDeleted = updatedConversation.participantIds.every((id) =>
+    const allParticipantsDeleted = updatedConversation.participantIds.every((id: any) =>
       updatedConversation.deletedByParticipantIds.includes(id)
     );
 
