@@ -11,13 +11,13 @@ export const dynamic = "force-dynamic";
 const vendorRegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  storeName: z.string().min(1),
-  storePhone: z.string().min(1),
-  storeAddress: z.string().min(1),
-  state: z.string().min(1),
-  country: z.string().default("Nigeria"),
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  storeName: z.string().trim().min(1, "Store name is required"),
+  storePhone: z.string().trim().min(10, "Business phone is required"),
+  storeAddress: z.string().trim().min(5, "Store address is required"),
+  state: z.string().trim().min(1, "State is required"),
+  country: z.string().trim().default("Nigeria"),
   isReapplication: z.boolean().optional(),
 });
 

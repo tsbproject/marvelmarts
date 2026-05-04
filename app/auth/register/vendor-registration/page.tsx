@@ -73,7 +73,7 @@ export default function VendorRegistration() {
   const [isVerified, setIsVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // --- PRE-FILL LOGIC ---
+ 
   // --- PRE-FILL LOGIC --- 
 useEffect(() => {
   async function fetchExistingData() {
@@ -84,6 +84,7 @@ useEffect(() => {
         email: session.user.email || prev.email,
         firstName: session.user.name?.split(" ")[0] || prev.firstName,
         lastName: session.user.name?.split(" ")[1] || prev.lastName,
+        
       }));
       // Do NOT set isVerified here, because session user might just be CUSTOMER
     }
@@ -198,8 +199,9 @@ useEffect(() => {
   async function handleSubmit(e: React.FormEvent) {
   e.preventDefault();
 
-  // Use your global Notification helpers
   if (!isVerified) return notifyError("Please verify your email first");
+  if (!formData.storePhone.trim()) return notifyError("Business phone is required");
+  if (!formData.storeAddress.trim()) return notifyError("Store address is required");
   if (formData.password !== formData.confirmPassword) return notifyError("Passwords do not match");
   
   setLoading(prev => ({ ...prev, submit: true }));
@@ -217,15 +219,15 @@ useEffect(() => {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      // 1. Notify the user
-      notifySuccess(isReapplying ? "Application resubmitted!" : "Account created! Please sign in to continue.");
-      
-      // 2. IMPORTANT: Redirect to sign-in, not the dashboard.
-      // This ensures the next time they log in, NextAuth fetches the new VENDOR role.
+      notifySuccess(
+        isReapplying
+          ? "Application resubmitted!"
+          : "Account created! Please sign in to continue."
+      );
+
       setTimeout(() => {
         router.push("/auth/sign-in");
       }, 2000);
-
     } else {
       notifyError(data.error || "Registration failed. Check your inputs.");
     }
@@ -235,16 +237,6 @@ useEffect(() => {
     setLoading(prev => ({ ...prev, submit: false }));
   }
 }
-  if (loading.initial) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <RefreshCcw className="animate-spin text-brand-primary" size={48} />
-          <p className="font-black text-sm  text-accent-navy animate-pulse">SETTING UP MERCHANT PORTAL...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-neutral-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-4">
@@ -340,42 +332,42 @@ useEffect(() => {
                   />
                   {!isVerified && (
                   <button
-  type="button"
-  onClick={handleSendCode}
-  disabled={loading.code}
-  className="
-    /* Layout & Sizing */
-    flex items-center justify-center
-    min-w-[120px] sm:min-w-[140px]
-    h-[50px] sm:h-[60px]
-    px-6 sm:px-8
-    
-    /* Typography */
-    font-black uppercase tracking-widest
-    text-[9px] sm:text-[10px]
-    
-    /* Styling */
-    bg-accent-navy text-neutral-white 
-    rounded-2xl 
-    transition-all duration-200
-    
-    /* Interaction */
-    hover:bg-brand-black 
-    active:scale-[0.98]
-    disabled:opacity-50 
-    disabled:cursor-not-allowed
-    disabled:hover:bg-accent-navy
-  "
->
-  {loading.code ? (
-    <div className="flex items-center gap-2">
-      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-      <span>Sending...</span>
-    </div>
-  ) : (
-    "Send Code"
-  )}
-</button>
+                    type="button"
+                    onClick={handleSendCode}
+                    disabled={loading.code}
+                    className="
+                      /* Layout & Sizing */
+                      flex items-center justify-center
+                      min-w-[120px] sm:min-w-[140px]
+                      h-[50px] sm:h-[60px]
+                      px-6 sm:px-8
+                      
+                      /* Typography */
+                      font-black uppercase tracking-widest
+                      text-[9px] sm:text-[10px]
+                      
+                      /* Styling */
+                      bg-accent-navy text-neutral-white 
+                      rounded-2xl 
+                      transition-all duration-200
+                      
+                      /* Interaction */
+                      hover:bg-brand-black 
+                      active:scale-[0.98]
+                      disabled:opacity-50 
+                      disabled:cursor-not-allowed
+                      disabled:hover:bg-accent-navy
+                    "
+                  >
+                    {loading.code ? (
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>Sending...</span>
+                      </div>
+                    ) : (
+                      "Send Code"
+                    )}
+                  </button>
                   )}
                 </div>
               </div>
@@ -452,13 +444,14 @@ useEffect(() => {
                   <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
                     <Smartphone size={16} className="text-brand-primary" /> Business Phone
                   </label>
-                  <input
-                    type="tel"
-                    placeholder="080 0000 0000"
-                    value={formData.storePhone}
-                    onChange={(e) => setField("storePhone", e.target.value)}
-                    className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
-                  />
+                 <input
+                  type="tel"
+                  placeholder="080 0000 0000"
+                  value={formData.storePhone}
+                  onChange={(e) => setField("storePhone", e.target.value)}
+                  required
+                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
+/>
                 </div>
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
@@ -482,6 +475,7 @@ useEffect(() => {
                   placeholder="Street address, Suite/Shop number..."
                   value={formData.storeAddress}
                   onChange={(e) => setField("storeAddress", e.target.value)}
+                  required
                   className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
                 />
               </div>
@@ -495,13 +489,24 @@ useEffect(() => {
                   Back
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  disabled={!formData.storeName || !formData.state}
-                  className="flex-[2] py-5 bg-brand-primary text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-                >
-                  Final Step <ChevronRight size={24} />
-                </button>
+                type="button"
+                onClick={() => {
+                  if (!formData.storeName.trim()) return notifyError("Store name is required");
+                  if (!formData.storePhone.trim()) return notifyError("Business phone is required");
+                  if (!formData.storeAddress.trim()) return notifyError("Store address is required");
+                  if (!formData.state.trim()) return notifyError("Operating state is required");
+                  setStep(3);
+                }}
+                disabled={
+                  !formData.storeName.trim() ||
+                  !formData.storePhone.trim() ||
+                  !formData.storeAddress.trim() ||
+                  !formData.state.trim()
+                }
+                className="flex-[2] py-5 bg-brand-primary text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                Final Step <ChevronRight size={24} />
+              </button>
               </div>
             </div>
           )}

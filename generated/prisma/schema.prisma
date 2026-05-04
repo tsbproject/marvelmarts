@@ -10,7 +10,7 @@ datasource db {
 model User {
   id                 String              @id @default(cuid())
   email              String              @unique
-  phoneNumber        String?  
+  phoneNumber        String?
   passwordHash       String?
   image              String?
   createdAt          DateTime            @default(now())
@@ -74,31 +74,25 @@ model AdminProfile {
 }
 
 model VendorProfile {
-  id              String              @id @default(cuid())
-  userId          String              @unique
-  firstName       String
-  lastName        String
-  phoneNumber     String
-  storeName       String
-  storePhone      String
-  storeAddress    String
-  country         String
-  state           String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  isVerified      Boolean             @default(false)
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  firstName    String
+  lastName     String
+  phoneNumber  String
+  storeName    String
+  storePhone   String
+  storeAddress String
+  country      String
+  state        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isVerified   Boolean  @default(false)
 
-
-  followerCount    Int      @default(0)
-  shippingScore    Int      @default(100) // Percentage
-  qualityScore     Int      @default(100) // Percentage
-  avgRating        Float    @default(5.0)
-  cancellationRate Int      @default(0)   // Percentage
-
-
-
-
-
+  followerCount    Int   @default(0)
+  shippingScore    Int   @default(100) // Percentage
+  qualityScore     Int   @default(100) // Percentage
+  avgRating        Float @default(5.0)
+  cancellationRate Int   @default(0) // Percentage
 
   bio             String?
   coverUrl        String?
@@ -138,8 +132,6 @@ model VendorProfile {
   marketplaceTransactions MarketplaceTransaction[]
 
   vendorFollows VendorFollow[]
-
- 
 }
 
 model VendorOnboarding {
@@ -176,15 +168,14 @@ model VendorBoost {
   vendorProfile      VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 
-
 model VendorFollow {
   id              String   @id @default(cuid())
   userId          String
   vendorProfileId String
   createdAt       DateTime @default(now())
 
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vendorProfile   VendorProfile   @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
   @@unique([userId, vendorProfileId])
 }
@@ -207,14 +198,14 @@ model VendorScore {
   vendorProfileId String        @unique
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
 
-  commissionRate  Float         @default(0.10)
-  
-  rating          Float         @default(0.0)
-  fulfillmentRate Int           @default(100)
-  reviewsCount    Int           @default(0)
-  tier            VendorTier    @default(BRONZE)
-  
-  updatedAt       DateTime      @updatedAt
+  commissionRate Float @default(0.10)
+
+  rating          Float      @default(0.0)
+  fulfillmentRate Int        @default(100)
+  reviewsCount    Int        @default(0)
+  tier            VendorTier @default(BRONZE)
+
+  updatedAt DateTime @updatedAt
 }
 
 enum VendorTier {
@@ -247,28 +238,26 @@ model Withdrawal {
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
 }
 
-
 model MarketplaceTransaction {
-  id                String            @id @default(cuid())
-  orderId           String            @unique
-  vendorProfileId   String
-  vendorProfile     VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
-  
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  vendorProfileId String
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+
   // The Financial Split
-  grossAmount       Float             // Total paid by Customer (e.g., ₦10,000)
-  platformFee       Float             // Subtracted Commission (e.g., ₦1,000)
-  netAmount         Float             // Actual Vendor Payout (e.g., ₦9,000)
-  
-  commissionRate    Float             // Snapshot of the rate used (e.g., 0.10)
-  vendorTier        VendorTier        // Tier at time of sale (BRONZE/SILVER/GOLD)
-  
-  status            TransactionStatus @default(SUCCESS)
-  reference         String            @unique 
-  createdAt         DateTime          @default(now())
+  grossAmount Float // Total paid by Customer (e.g., ₦10,000)
+  platformFee Float // Subtracted Commission (e.g., ₦1,000)
+  netAmount   Float // Actual Vendor Payout (e.g., ₦9,000)
+
+  commissionRate Float // Snapshot of the rate used (e.g., 0.10)
+  vendorTier     VendorTier // Tier at time of sale (BRONZE/SILVER/GOLD)
+
+  status    TransactionStatus @default(SUCCESS)
+  reference String            @unique
+  createdAt DateTime          @default(now())
 
   @@index([vendorProfileId])
 }
-
 
 model Payout {
   id              String        @id @default(cuid())
@@ -672,37 +661,35 @@ model SiteSettings {
   @@map("site_settings")
 }
 
-
-
 enum ConversationStatus {
   OPEN
   CLOSED
 }
 
 model Conversation {
-  id               String             @id @default(cuid())
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  participantIds   String[]
-  type             ConversationType   @default(CUSTOMER_VENDOR)
-  subject          String?
-  status           ConversationStatus @default(OPEN)
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  participantIds String[]
+  type           ConversationType   @default(CUSTOMER_VENDOR)
+  subject        String?
+  status         ConversationStatus @default(OPEN)
 
-  isGuest          Boolean            @default(false)
+  isGuest          Boolean @default(false)
   visitorName      String?
   visitorEmail     String?
-  guestAccessToken String?            @unique
+  guestAccessToken String? @unique
 
-  endedAt          DateTime?
-  endedById        String?
-  endedByRole      String?
+  endedAt     DateTime?
+  endedById   String?
+  endedByRole String?
 
-  deletedForUserIds String[]          @default([])
+  deletedForUserIds String[] @default([])
 
-  deletedByParticipantIds String[]    @default([])
+  deletedByParticipantIds String[] @default([])
 
-  messages         Message[]
-  participants     User[]             @relation("UserConversations")
+  messages     Message[]
+  participants User[]    @relation("UserConversations")
 }
 
 model Message {
@@ -804,8 +791,6 @@ enum BoostPlan {
   ULTRA
 }
 
-
-
 enum DisputeStatus {
   OPEN
   RESOLVED
@@ -874,9 +859,4 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
- 
 }
-
-
-
-

@@ -28,7 +28,7 @@ export default function SignInPage() {
               alt="MarvelMarts Logo" 
               width={180} 
               height={50} 
-              className="object-cover w-600"
+              className="object-cover w-600 rounded-2xl"
               priority
             />
           </Link>

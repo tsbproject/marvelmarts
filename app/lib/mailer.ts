@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 // 1. BRAND CONFIGURATION
 const COLORS = {
@@ -13,17 +14,77 @@ const COLORS = {
   green: "#16A34A"
 };
 
-const LOGO_URL = "https://marvelmarts.vercel.app/logo.png";
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://marvelmarts.vercel.app";
+const LOGO_URL = "https://marvelmarts.com/logo.png";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
 // 2. TRANSPORTER SETUP
-const transporter = nodemailer.createTransport({
-  service: "gmail",
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS,
+//   },
+// });
+
+export const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === "true",
+  
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
+
+
+
+// const resendApiKey = process.env.RESEND_API_KEY;
+// const defaultFrom =
+//   process.env.EMAIL_FROM || "MarvelMarts <noreply@marvelmarts.com>";
+
+// if (!resendApiKey) {
+//   throw new Error("Missing RESEND_API_KEY in environment variables");
+// }
+
+// export const resend = new Resend(resendApiKey);
+
+// type SendEmailParams = {
+//   to: string | string[];
+//   subject: string;
+//   html: string;
+//   text?: string;
+//   from?: string;
+//   replyTo?: string;
+// };
+
+// export async function sendEmail({
+//   to,
+//   subject,
+//   html,
+//   text,
+//   from,
+//   replyTo,
+// }: SendEmailParams) {
+//   const { data, error } = await resend.emails.send({
+//     from: from || defaultFrom,
+//     to: Array.isArray(to) ? to : [to],
+//     subject,
+//     html,
+//     text,
+//     replyTo,
+//   });
+
+//   if (error) {
+//     console.error("📧 Email Dispatch Failed:", error);
+//     throw new Error(error.message || "Failed to send email");
+//   }
+
+//   return data;
+// }
+
+
+
 
 // 3. THE MASTER LAYOUT WRAPPER
 // This function wraps any "body" content in the official MarvelMarts frame.
@@ -75,7 +136,7 @@ const wrapLayout = (content: string, previewText: string = "Notification from Ma
 async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   try {
     return await transporter.sendMail({
-      from: `"MarvelMarts" <${process.env.EMAIL_USER}>`,
+      from: `"MarvelMarts" <${process.env.EMAIL_FROM}>`,
       to,
       subject,
       html,
@@ -85,6 +146,8 @@ async function sendEmail({ to, subject, html }: { to: string; subject: string; h
     throw error;
   }
 }
+
+
 
 // --- 5. EXPORTED EMAIL FUNCTIONS ---
 
@@ -566,7 +629,7 @@ export const sendPayoutStatusEmail = async (
     </div>
 
     <div style="text-align: center; margin-top: 35px;">
-      <a href="https://marvelmarts.vercel.app/account/vendor/payouts" 
+      <a href="https://marvelmarts.com/account/vendor/payouts" 
          class="main-button"
          style="background-color: ${COLORS.navy}; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
         VIEW WITHDRAWAL LOGS
@@ -580,7 +643,7 @@ export const sendPayoutStatusEmail = async (
 
   // 3. Send via your existing transport logic
   return await transporter.sendMail({
-    from: `"MarvelMarts Treasury" <${process.env.EMAIL_USER}>`,
+    from: `"MarvelMarts Treasury" <${process.env.SMTP_HOST}>`,
     to,
     subject: `PAYOUT ${status}: ${formattedAmount}`,
     html,
@@ -639,7 +702,7 @@ export async function sendVendorActionEmail({
       }
     </p>
     
-    <a href="https://marvelmarts.vercel.app/account/vendore" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+    <a href="https://marvelmarts.com/account/vendor" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
       ${isRestore ? "Access My Store" : "Open My Dashboard"}
     </a>
   `;
@@ -682,7 +745,7 @@ export async function sendAdminAlert({
       <p style="margin: 0; color: ${COLORS.black}; font-size: 14px; line-height: 1.5;">${details}</p>
     </div>
 
-    <a href="https://marvelmarts.vercel.app/dashboard/admins" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 13px; text-transform: uppercase;">
+    <a href="https://marvelmarts.com/dashboard/admins" class="main-button" style="display: inline-block; background-color: ${COLORS.navy}; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 13px; text-transform: uppercase;">
       Review in Admin Panel
     </a>
   `;
@@ -716,7 +779,7 @@ export async function sendNewMessageEmail(
       </div>
 
       <div style="margin-top: 30px;">
-        <a href="https://marvelmarts.vercel.app/account/messages/${conversationId}" 
+        <a href="https://marvelmarts.com/account/messages/${conversationId}" 
            style="background-color: #F7931E; color: white; padding: 12px 25px; text-decoration: none; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 12px;">
            View Transmission
         </a>

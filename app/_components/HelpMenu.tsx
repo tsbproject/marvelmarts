@@ -20,9 +20,9 @@ import SupportDrawer from "@/app/_components/SupportDrawer";
 const defaultItems = [
   { label: "Track My Order", description: "Real-time delivery updates", href: "/orders/track-order", icon: Package, color: "text-blue-500" },
   { label: "Help Center", description: "Browse guides & tutorials", href: "/support", icon: LifeBuoy, color: "text-purple-500" },
-  { label: "Contact Us", description: "24/7 Customer support", href: "/support/contact", icon: MessageCircle, color: "text-green-500" },
+  { label: "Contact Us", description: "24/7 Customer support", href: "/contact-us", icon: MessageCircle, color: "text-green-500" },
   { label: "FAQs", description: "Quick answers to common questions", href: "/faqs", icon: FileText, color: "text-orange-500" },
-  { label: "Return Policy", description: "30-day money back guarantee", href: "/support/returns", icon: RefreshCcw, color: "text-red-500" },
+  { label: "Return Policy", description: "30-day money back guarantee", href: "/return-policy", icon: RefreshCcw, color: "text-red-500" },
 ];
 
 const listVariants: Variants = {
