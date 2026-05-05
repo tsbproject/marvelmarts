@@ -46,7 +46,7 @@
     "app/api/auth/forgot-password",
     "app/_components/UserMenu.tsx",
     ".next/dev/types/**/*.ts"
-, "app/_components/SearchBar.tsxx", "next-sitemap.config.js", "app/dashboard/admins/[id]/page.tsx", "app/account/vendor/settings/store-setup", "app/dashboard/admins/settings/page.tsxxx", "prisma/seed.cjs", "ren prisma.config.ts prisma.config.bak"  ],
+, "app/_components/SearchBar.tsxx", "next-sitemap.config.js", "app/dashboard/admins/[id]/page.tsx", "app/account/vendor/settings/store-setup", "app/dashboard/admins/settings/page.tsxxx", "prisma/seed.cjs", "ren prisma.config.ts prisma.config.bak", "prisma.config.ts"  ],
   "exclude": [
     "node_modules"
   ]
