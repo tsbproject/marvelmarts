@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       lastName, 
       storeName,
       phoneNumber,     
+      storePhone,
       storeAddress, 
       state, 
       country,
