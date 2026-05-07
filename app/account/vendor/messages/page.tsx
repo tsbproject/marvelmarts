@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import Link from "next/link";
 import { useNotification } from "@/app/_context/NotificationContext";
 
@@ -20,6 +20,7 @@ export default function VendorInbox({ vendorProfileId }: { vendorProfileId: stri
   const [loading, setLoading] = useState(true);
   const { data: session, status: authStatus } = useSession();
   const { notifyError } = useNotification();
+  const pusherClient = getPusherClient();
 
   const fetchConversations = useCallback(async () => {
     if (authStatus !== "authenticated") return;

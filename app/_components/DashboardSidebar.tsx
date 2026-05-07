@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useMemo, useState, memo, useEffect } from "react"; 
-import { pusherClient } from "@/app/lib/pusherClient"; 
+import { getPusherClient } from "@/app/lib/pusherClient"; 
 import {
   LayoutDashboard, Users, Newspaper, ShieldCheck, Package, ShoppingCart, Layers,
   LifeBuoy, Settings, ChevronDown, Store, Mail, Activity, StarHalf,
@@ -38,6 +38,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
   const isSuperAdmin = userRole === "SUPER_ADMIN";
   const isAdmin = userRole === "ADMIN";
   const userPermissions = permissions ?? propUser?.permissions ?? {};
+  const pusherClient = getPusherClient();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);

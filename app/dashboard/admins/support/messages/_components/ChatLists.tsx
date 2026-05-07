@@ -1,10 +1,7 @@
-
-
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { User } from "lucide-react";
@@ -44,6 +41,7 @@ export default function ChatList({
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("id");
   const { notifySuccess } = useNotification();
+  const pusherClient = getPusherClient();
 
   useEffect(() => {
     setConversations(initialConversations);

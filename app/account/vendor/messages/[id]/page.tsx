@@ -226,7 +226,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import { Send, ArrowLeft, Check, CheckCheck, PhoneOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -272,6 +272,7 @@ export default function VendorChatThread() {
   const [endingChat, setEndingChat] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pusherClient = getPusherClient();
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });

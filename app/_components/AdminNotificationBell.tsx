@@ -14,7 +14,7 @@ import {
   markAsRead, 
   clearNotifications 
 } from "@/store/notificationSlice";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -38,6 +38,7 @@ export default function AdminNotificationBell() {
   
   const notifications = useSelector((state: RootState) => state.adminNotifications.notifications);
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const pusherClient = getPusherClient();
 
   // 1. INITIALIZE SETTINGS
   useEffect(() => {
@@ -59,20 +60,23 @@ export default function AdminNotificationBell() {
     const systemChannel = pusherClient.subscribe("admin-system");
 
     let userChannel: any = null;
-    if (session?.user?.id) {
-      userChannel = pusherClient.subscribe(`user-${session.user.id}`);
-      
-      userChannel.bind("new-message", (data: any) => {
-        playNotifySound();
-        dispatch(addNotification({
-          type: "message",
-          title: "New Message",
-          message: data.content?.substring(0, 40) + "...",
-          link: `/account/vendor/messages/${data.conversationId}`,
-        }));
-        notifySuccess(`New transmission from ${data.senderName}`);
-      });
-    }
+
+      if (session?.user?.id) {
+        userChannel = pusherClient.subscribe(`user-${session.user.id}`);
+
+        userChannel.bind("new-message", (data: any) => {
+          playNotifySound();
+
+          dispatch(addNotification({
+            type: "message",
+            title: "New Message",
+            message: data.content?.substring(0, 40) + "...",
+            link: `/account/vendor/messages/${data.conversationId}`,
+          }));
+
+          notifySuccess(`New transmission from ${data.senderName}`);
+        });
+      }
 
     orderChannel.bind("new-refund-request", (data: any) => {
       playNotifySound();
@@ -115,8 +119,13 @@ export default function AdminNotificationBell() {
       pusherClient.unsubscribe("admin-system");
       if (session?.user?.id) pusherClient.unsubscribe(`user-${session.user.id}`);
     };
+  
+  
   }, [dispatch, notifySuccess, notifyError, session?.user?.id]);
 
+ 
+ 
+ 
   const getIcon = (type: string) => {
     switch (type) {
       case 'refund': return <RotateCcw size={16} />;

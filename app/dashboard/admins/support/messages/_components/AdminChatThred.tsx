@@ -1,13 +1,9 @@
-
-
-
-
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import {
   Send,
   ShieldCheck,
@@ -83,6 +79,7 @@ export default function AdminChatThread({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEndingChat, setIsEndingChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pusherClient = getPusherClient();
 
   const { notifyError, notifySuccess } = useNotification();
 

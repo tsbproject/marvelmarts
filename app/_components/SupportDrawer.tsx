@@ -10,7 +10,7 @@ import {
   Loader2,
   Clock
 } from "lucide-react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import { format } from "date-fns";
 
 // Props interface to allow external control
@@ -49,6 +49,7 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
   const [chatInput, setChatInput] = useState("");
   const [waitTime, setWaitTime] = useState<number>(5);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pusherClient = getPusherClient();
 
   // Form State
   const [formData, setFormData] = useState({

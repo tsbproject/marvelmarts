@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageSquare } from "lucide-react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 
 interface MessageBadgeProps {
   vendorProfileId: string;
@@ -15,7 +15,9 @@ export default function VendorMessageBadge({
   vendorProfileId, 
   initialUnreadCount 
 }: MessageBadgeProps) {
+  
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const pusherClient = getPusherClient();
 
   // Sync state if initialUnreadCount changes from server-side re-validation
   useEffect(() => {

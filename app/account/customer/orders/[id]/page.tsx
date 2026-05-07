@@ -9,7 +9,7 @@ import DashboardHeader from "@/app/_components/DashboardHeader";
 import OrderActions from "../../_components/OrderActions";
 import Link from "next/link";
 import { ArrowLeft, Package, ShoppingBag } from "lucide-react";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import { useNotification } from "@/app/_context/NotificationContext";
 import CustomerRefundModal from "@/app/_components/CustomerRefundModal";
 import OrderCancelModal from "@/app/_components/OrderCancelModal";
@@ -25,6 +25,7 @@ export default function OrderDetailsPage() {
 
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const pusherClient = getPusherClient();
 
   const user = useSelector((state: RootState) => state.auth.user);
   const order = useSelector((state: RootState) =>
