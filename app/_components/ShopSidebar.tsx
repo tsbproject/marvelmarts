@@ -62,7 +62,7 @@ export default function ShopSidebar({ categories }: SidebarProps) {
         <ul className="space-y-1 py-2">
           {categories.map((cat) => (
             <li key={cat.id}>
-              <Link href={`/shop?category=${cat.slug}`} className="flex items-center gap-2 p-2 text-lg font-bold text-neutral-gray hover:text-brand-primary transition-all">
+              <Link href={`/shop?category=${cat.slug}`} className="flex items-center gap-2 p-2 text-xs md:text-sm font-bold text-neutral-gray hover:text-brand-primary transition-all">
                 <Circle className="w-1.5 h-1.5 fill-brand-primary" /> {cat.name.toUpperCase()}
               </Link>
             </li>
