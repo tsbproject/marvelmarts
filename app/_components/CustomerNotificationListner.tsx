@@ -4,13 +4,14 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useDispatch } from "react-redux";
 import { addCustomerNotification } from "@/store/customerNotificationSlice";
-import { pusherClient } from "@/app/lib/pusherClient";
+import { getPusherClient } from "@/app/lib/pusherClient";
 import { useNotification } from "@/app/_context/NotificationContext";
 
 export default function CustomerNotificationListener() {
   const { data: session } = useSession();
   const dispatch = useDispatch();
   const { notifySuccess, notifyError } = useNotification();
+  const pusherClient = getPusherClient();
 
   useEffect(() => {
     if (!session?.user?.id) return;
