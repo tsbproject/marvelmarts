@@ -98,7 +98,7 @@ export default async function ShopPage({
           <p className="text-brand-primary font-black uppercase tracking-[0.4em] text-[10px] mb-4">
             Elite Products Selection
           </p>
-          <h1 className="text-5xl md:text-7xl font-black italic uppercase text-white tracking-tighter leading-none">
+          <h1 className="text-md md:text-2xl font-black italic uppercase text-white tracking-tighter leading-none">
             MarvelMarts <span className="text-brand-primary">Armory</span>
           </h1>
         </div>
