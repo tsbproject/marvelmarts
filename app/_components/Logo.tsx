@@ -4,8 +4,8 @@ import Link from "next/link"
 
 export default function Logo() {
     return(
-        <div className="relative -top-5 xs:top-4 xs:left-10 left-2 xs:w-20 
-        xs-h-auto xxs:w-20 xxs:h-auto xxs:top-4 xxs:left-12 w-30 md:w-100 2xl:-top-4 2xl:-left-10 h-auto">
+        <div className="relative -top-5 xs:top-4 xs:left-10 left-2 xs:w-35 
+        xs-h-auto xxs:w-35 xxs:h-auto xxs:top-2 xxs:left-8 w-30 md:w-100 2xl:-top-4 2xl:-left-10 h-auto">
         <Link href="/">
           <img 
           src="/logo1-white.png"
@@ -15,7 +15,7 @@ export default function Logo() {
         //    style={{ width: 'auto', height: 'auto' }}
           //  priority
           //  quality={100}
-           className="object-contain w-60"
+           className="object-contain w-60 "
           />
 
           </Link>
