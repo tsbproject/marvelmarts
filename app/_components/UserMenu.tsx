@@ -21,6 +21,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -53,28 +54,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   const viewMode = useSelector((state: RootState) => state.app?.viewMode || "CUSTOMER");
   
   
-  /**
-   * INSTANT UPDATE LOGIC:
-   * Syncs Redux with the session role immediately after login to show Vendor Switcher
-   */
-//   useEffect(() => {
-//   if (status === "authenticated" && session?.user?.role) {
-//     const sessionRole = session.user.role as "CUSTOMER" | "VENDOR";
-
-//     dispatch(setViewMode(sessionRole));
-//   }
-// }, [status, session?.user?.role, dispatch]);
-
-
-//   /**
-//    * REFRESH ON OPEN:
-//    * Triggers a silent session update whenever the menu opens to catch status changes
-//    */
-//   useEffect(() => {
-//     if (open && status === "authenticated") {
-//       update();
-//     }
-//   }, [open, status, update]);
+ 
 
   // Checking actual permissions from the session
   const vendorStatus = session?.user?.vendorStatus;
@@ -206,8 +186,18 @@ const handleClick = async (item: MenuItem) => {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-8">
               <div>
-                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter italic">
-                  MarvelMarts<span className="text-orange-500">.</span>
+                <img
+                  src="/logo1-blue.png"
+                  alt="Marvelmarts logo"
+                  width={100}
+                  height={60}
+                //    style={{ width: 'auto', height: 'auto' }}
+                    // priority
+                    // quality={100}
+                    className="object-contain w-50"
+                  />
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-tighter italic">
+                 <span className="text-orange-500"></span>
                 </h2>
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                   {viewMode === "VENDOR" ? "Merchant Console" : "Account Menu"}

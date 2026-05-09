@@ -11,7 +11,7 @@ import { getPusherClient } from "@/app/lib/pusherClient";
 import {
   LayoutDashboard, Users, Newspaper, ShieldCheck, Package, ShoppingCart, Layers,
   LifeBuoy, Settings, ChevronDown, Store, Mail, Activity, StarHalf,
-  Flame, ArrowLeftRight, Heart, MapPin, DownloadIcon, CreditCard, MessageCircle, Lock
+  Flame, ArrowLeftRight, Heart, MapPin, DownloadIcon, CreditCard, MessageCircle, Lock, BarChart3,
 } from "lucide-react";
 import { SectionLink } from "@/types/dashboard";
 
@@ -108,6 +108,7 @@ const DashboardSidebar = memo(({ children, sections, role: propRole, user: propU
         { label: "Store Settings", href: "/account/vendor/store-settings", icon: <Settings size={20} />, visible: true },
         { label: "Wallet and Payout", href: "/account/vendor/payouts", icon: <Settings size={20} />, visible: true },
         { label: "Live Chat", href: "/account/vendor/messages", icon: <MessageCircle size={20} />, visible: true },
+        { label: "Analytics", href: "/account/vendor/analytics", icon: <BarChart3 size={20} />, visible: true },
       ];
 
       if (vendorLocked) {

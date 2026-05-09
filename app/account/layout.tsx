@@ -22,6 +22,7 @@ import {
   ChartArea,
   CreditCard,
   Clock,
+  BarChart3,
 } from "lucide-react";
 import { UserRole } from "@prisma/client";
 
@@ -45,6 +46,7 @@ const DASHBOARD_CONFIG = {
       { label: "My Products", href: "/account/vendor/products", icon: <Package size={16} /> },
       { label: "Settings", href: "/account/vendor/store-settings", icon: <Settings size={16} /> },
       { label: "Live Chat", href: "/account/vendor/messages", icon: <ChartArea size={16} /> },
+      { label: "Analytics", href: "/account/vendor/analytics", icon: <BarChart3 size={16} /> },
     ],
     Finances: [
       { label: "Sales Orders", href: "/account/vendor/orders", icon: <Truck size={16} /> },
