@@ -1,8 +1,3 @@
-
-
-
-
-
 "use client";
 
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -26,7 +21,7 @@ import CategoryMenu from "./CategoryMenu";
 import { CategoryWithChildren as CategoryTree } from "../layout";
 
 const menuItems = [
-  { label: "Register as a Vendor", href: "/auth/register/vendor-registration", icon: <Store className="w-5 h-5" /> },
+  { label: "Sell On MarvelMarts", href: "/auth/register/vendor-registration", icon: <Store className="w-5 h-5" /> },
   { label: "Marvelmarts FAQs", href: "/faqs", icon: <HelpCircle className="w-5 h-5" /> },
   { label: "Track Orders", href: "/orders/track-order", icon: <Package className="w-5 h-5" />, highlight: true },
   { label: "My Cart", href: "/cart", icon: <ShoppingCart className="w-5 h-5" /> },

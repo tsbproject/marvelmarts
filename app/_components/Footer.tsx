@@ -129,15 +129,15 @@ export default function Footer({ settings }: FooterProps) {
         {/* Main Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24 mb-24">
           
-          <div className="space-y-10 text-center sm:text-left">
+          <div className="space-y-10 text-center sm:text-left ">
             <Link href="/" className="inline-block">
               <Image 
-                src={settings?.footerLogo || "/logo.png"} 
+                src={settings?.footerLogo || "/logo1-white.png"} 
                 alt="MarvelMarts Logo" 
                 width={320} 
                 height={100} 
                 style={{ height: "auto" }}
-                className="max-w-[100px]" 
+                className="max-w-[200px]" 
               />
             </Link>
             <p className="text-neutral-white leading-relaxed font-medium">

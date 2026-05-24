@@ -70,7 +70,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             initial={{ opacity: 0, y: 50, scale: 0.9, x: 20 }}
             animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.9, x: 20 }}
-            className="fixed bottom-8 right-8 z-9999"
+            className="fixed top-8 right-8 z-9999"
           >
             <div className={`${styles[notification.type]} border-2 shadow-2xl rounded-2xl p-5 flex items-center gap-4 min-w-[320px] max-w-[450px]`}>
               <div className="bg-white/20 p-2 rounded-xl">
@@ -79,7 +79,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               
               <div className="flex-1">
                 <p className="text-white font-black uppercase italic tracking-wider text-sm leading-tight">
-                  {notification.type === 'success' ? 'Marvel Success' : notification.type.toUpperCase()}
+                  {notification.type === 'success' ? 'MarvelMarts Success' : notification.type.toUpperCase()}
                 </p>
                 <p className="text-white/90 font-bold text-base mt-0.5">
                   {notification.message}

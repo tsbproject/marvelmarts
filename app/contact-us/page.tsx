@@ -1,202 +1,204 @@
-
-
-
-
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Send, CheckCircle2, ArrowLeft, Loader2, ShieldCheck, Mail, Info } from "lucide-react";
+import { Suspense } from "react";
+
 import Link from "next/link";
-import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-import { useNotification } from "@/app/_context/NotificationContext";
 
-function ContactForm() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const { setLoading: setGlobalLoading } = useLoadingOverlay();
-  const { notifyError, notifySuccess } = useNotification();
-  
-  // URL Context logic
-  const articleRef = searchParams.get("ref");
-  const defaultSubject = searchParams.get("subject") || "";
+import SupportTicketForm from "@/app/_components/support/SupportTicketForm";
 
-  // State Management
-  const [localLoading, setLocalLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [honeypot, setHoneypot] = useState(""); // BOT DEFENSE
+import {
+  ArrowLeft,
+  Loader2,
+  ShieldCheck,
+  Mail,
+  Clock3,
+} from "lucide-react";
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    // 1. SECURITY: Honeypot Validation
-    if (honeypot.length > 0) {
-      console.warn("Bot detected via honeypot.");
-      setSubmitted(true); // Silently succeed to confuse the bot
-      return;
-    }
-
-    setLocalLoading(true);
-    setGlobalLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      email: formData.get("email"),
-      subject: formData.get("subject"),
-      message: formData.get("message"),
-      articleId: articleRef,
-      // Pass honeypot to server for secondary check if needed
-      security_gate: honeypot 
-    };
-
-    try {
-      const res = await fetch("/api/support/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (res.ok) {
-        setSubmitted(true);
-        notifySuccess("Ticket generated successfully. Protocol initiated.");
-      } else {
-        const errData = await res.text();
-        throw new Error(errData || "Failed to transmit ticket.");
-      }
-    } catch (error: any) {
-      notifyError(error.message || "Network disturbance detected. Please retry.");
-    } finally {
-      setLocalLoading(false);
-      setGlobalLoading(false);
-    }
-  }
-
-  if (submitted) {
-    return (
-      <div className="text-center py-20 animate-in fade-in zoom-in duration-500 max-w-xl mx-auto">
-        <div className="inline-flex p-6 bg-[#F7931E]/10 text-[#F7931E] rounded-[2.5rem] mb-8 shadow-inner">
-          <CheckCircle2 size={64} strokeWidth={2.5} />
-        </div>
-        <h1 className="text-5xl font-black text-[#002B5B] mb-6 uppercase tracking-tighter">Message Received.</h1>
-        <p className="text-neutral-500 max-w-md mx-auto mb-10 font-medium leading-relaxed">
-          Your complaint has been logged in our system. Our support officers usually respond within <span className="text-[#002B5B] font-bold">24 duty hours</span>.
-        </p>
-        <button 
-          onClick={() => router.push("/support")}
-          className="bg-[#002B5B] text-white px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95"
-        >
-          Return to HQ
-        </button>
-      </div>
-    );
-  }
-
+function ContactContent() {
   return (
-    <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-12 items-start">
-      {/* Sidebar Info */}
-      <div className="lg:w-1/3 space-y-8">
+    <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-start">
+
+      {/* LEFT SIDEBAR */}
+      <div className="lg:w-[340px] w-full space-y-8 sticky top-28">
+
+        {/* BACK BUTTON */}
         <div>
-          <Link href="/support" className="inline-flex items-center gap-2 text-[10px] font-black text-[#F7931E] uppercase tracking-[0.3em] mb-8 hover:translate-x-[-4px] transition-transform">
-            <ArrowLeft size={16} /> Secure Terminal
+          <Link
+            href="/support"
+            className="
+              inline-flex items-center gap-2
+              text-[10px]
+              font-black
+              text-brand-primary
+              uppercase
+              tracking-[0.3em]
+              mb-8
+              hover:translate-x-[-4px]
+              transition-transform
+            "
+          >
+            <ArrowLeft size={16} />
+            Support Center
           </Link>
-          <h1 className="text-4xl font-black text-[#002B5B] uppercase tracking-tighter mb-4 leading-none">
-            Ticket <br /><span className="text-[#F7931E]">Submission.</span>
+
+          <h1 className="text-sm lg:text-3xl font-black text-accent-navy uppercase tracking-tighter mb-5 leading-none italic">
+            Contact <br />
+
+            <span className="text-brand-primary">
+              Support.
+            </span>
           </h1>
-          <p className="text-neutral-500 font-medium leading-relaxed">
-            Have a critical issue? Log a formal ticket in our encrypted queue.
+
+          <p className="text-neutral-gray font-medium leading-relaxed text-sm">
+            Submit support requests, report technical
+            issues, ask marketplace questions, or
+            contact our assistance team directly.
           </p>
         </div>
 
-        <div className="p-6 bg-white rounded-[2rem] border border-neutral-100 shadow-sm space-y-4">
-          <div className="flex gap-4">
-            <ShieldCheck className="text-[#002B5B] shrink-0" size={20} />
-            <p className="text-[11px] font-bold text-neutral-400 uppercase leading-tight">End-to-end encryption active</p>
+        {/* SUPPORT INFO */}
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 space-y-5">
+
+          <div className="flex items-start gap-4">
+
+            <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+              <ShieldCheck size={20} />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-accent-navy mb-1">
+                Encrypted Support
+              </h3>
+
+              <p className="text-xs text-neutral-gray leading-relaxed">
+                All submissions are securely processed
+                and protected.
+              </p>
+            </div>
           </div>
-          <div className="flex gap-4">
-            <Mail className="text-[#002B5B] shrink-0" size={20} />
-            <p className="text-[11px] font-bold text-neutral-400 uppercase leading-tight">Direct Admin response</p>
+
+          <div className="flex items-start gap-4">
+
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Mail size={20} />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-accent-navy mb-1">
+                Direct Response
+              </h3>
+
+              <p className="text-xs text-neutral-gray leading-relaxed">
+                Support officers typically respond
+                within 24 hours.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+
+            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center shrink-0">
+              <Clock3 size={20} />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-accent-navy mb-1">
+                Ticket Tracking
+              </h3>
+
+              <p className="text-xs text-neutral-gray leading-relaxed">
+                Monitor ticket progress and responses
+                directly from your account.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* HELP CARD */}
+        <div className="bg-gradient-to-br from-accent-navy via-[#0A1E40] to-[#102B5E] rounded-[2rem] p-6 overflow-hidden relative border border-brand-primary/10">
+
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-brand-primary/10 blur-3xl" />
+
+          <div className="relative z-10">
+            <p className="text-[10px] uppercase tracking-[0.25em] font-black text-white/60 mb-3">
+              Priority Assistance
+            </p>
+
+            <h3 className="text-2xl font-black italic text-white mb-4 tracking-tight">
+              Need Immediate Help?
+            </h3>
+
+            <p className="text-sm text-white/70 leading-relaxed">
+              Our support specialists are available to
+              assist with verification, payouts,
+              disputes, technical issues, and account
+              concerns.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Form Card */}
-      <form onSubmit={handleSubmit} className="flex-1 w-full bg-white border border-neutral-100 p-10 rounded-[40px] shadow-2xl shadow-blue-900/5 space-y-8">
-        
-        {/* HONEYPOT FIELD - Hidden from Humans */}
-        <div className="hidden" aria-hidden="true">
-          <input 
-            type="text" 
-            name="marvel_security_confirm" 
-            value={honeypot} 
-            onChange={(e) => setHoneypot(e.target.value)} 
-            tabIndex={-1} 
-            autoComplete="off" 
-          />
-        </div>
+      {/* RIGHT CONTENT */}
+      <div className="flex-1 w-full space-y-8">
 
-        <div className="grid grid-cols-1 gap-8">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black uppercase text-neutral-400 ml-1 tracking-widest">Authentication Email</label>
-            <input 
-              required 
-              type="email" 
-              name="email"
-              placeholder="enter email address..."
-              className="w-full p-5 bg-neutral-50 border-none rounded-2xl focus:ring-2 focus:ring-[#002B5B]/10 focus:bg-white outline-none font-bold text-[#002B5B] transition-all"
-            />
-          </div>
+        {/* HERO */}
+        <div className="bg-gradient-to-br from-accent-navy via-[#0A1E40] to-[#102B5E] rounded-[2.5rem] p-8 lg:p-10 overflow-hidden relative border border-brand-primary/10">
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black uppercase text-neutral-400 ml-1 tracking-widest">Subject Reference</label>
-            <input 
-              required 
-              type="text" 
-              name="subject"
-              defaultValue={defaultSubject}
-              placeholder="e.g. order dispute - Order #number"
-              className="w-full p-5 bg-neutral-50 border-none rounded-2xl focus:ring-2 focus:ring-[#002B5B]/10 focus:bg-white outline-none font-bold text-[#002B5B] transition-all"
-            />
-          </div>
+          <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-brand-primary/10 blur-3xl" />
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black uppercase text-neutral-400 ml-1 tracking-widest">Your Message in detail</label>
-            <textarea 
-              required 
-              name="message"
-              rows={6}
-              placeholder="Provide a detailed breakdown of your request..."
-              className="w-full p-5 bg-neutral-50 border-none rounded-2xl focus:ring-2 focus:ring-[#002B5B]/10 focus:bg-white outline-none font-medium text-[#002B5B] transition-all resize-none"
-            />
+          <div className="relative z-10">
+
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 mb-6">
+              <ShieldCheck
+                size={15}
+                className="text-brand-primary"
+              />
+
+              <span className="text-[10px] uppercase tracking-[0.25em] font-black text-white/80">
+                Secure Support Channel
+              </span>
+            </div>
+
+            <h2 className="text-sm md:text-2xl font-black italic uppercase tracking-wide text-white leading-tight">
+              We’re Here To Help.
+            </h2>
+
+            <p className="mt-6 text-sm md:text-base text-white/70 leading-relaxed max-w-2xl">
+              Use the secure support form below to
+              contact the MarvelMarts support team.
+              Provide complete details to help us
+              resolve your request faster.
+            </p>
           </div>
         </div>
 
-        <button 
-          disabled={localLoading}
-          type="submit"
-          className="w-full flex items-center justify-center gap-3 bg-[#002B5B] text-white p-6 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-[#F7931E] hover:shadow-orange-200 transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
-        >
-          {localLoading ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Submit Ticket</>}
-        </button>
-
-        <div className="flex items-center gap-2 justify-center py-2 opacity-30">
-          <Info size={12} />
-          <span className="text-[9px] font-black uppercase tracking-tighter text-[#002B5B]">Protocol 4.0 Secure Submission</span>
-        </div>
-      </form>
+        {/* REUSABLE SUPPORT FORM */}
+        <SupportTicketForm />
+      </div>
     </div>
   );
 }
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-[#FBFBFB] pt-32 pb-20 px-6">
-      <Suspense fallback={
-        <div className="flex flex-col items-center justify-center p-20 gap-4">
-          <Loader2 className="animate-spin text-[#002B5B]" size={40} />
-          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Booting Form...</p>
-        </div>
-      }>
-        <ContactForm />
+    <div className="min-h-screen bg-[#FBFBFB] pt-32 pb-20 px-4 lg:px-6">
+
+      <Suspense
+        fallback={
+          <div className="flex flex-col items-center justify-center p-20 gap-4">
+
+            <Loader2
+              className="animate-spin text-brand-primary"
+              size={40}
+            />
+
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+              Loading Support Interface...
+            </p>
+          </div>
+        }
+      >
+        <ContactContent />
       </Suspense>
     </div>
   );

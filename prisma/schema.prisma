@@ -596,17 +596,43 @@ model HelpArticle {
 }
 
 model Ticket {
-  id        String   @id @default(cuid())
-  subject   String
-  message   String
-  status    String   @default("OPEN")
-  userEmail String
-  articleId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  notes     String?
+  id          String        @id @default(cuid())
+
+  subject     String
+  message     String
+
+  status      String        @default("OPEN")
+
+  category    String?
+  priority    String?       @default("MEDIUM")
+
+  attachment  String?
+
+  userEmail   String
+
+  articleId   String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  notes       String?
+
+  replies     TicketReply[]
 }
 
+model TicketReply {
+  id          String   @id @default(cuid())
+
+  ticketId    String
+
+  senderType  String
+
+  message     String
+
+  createdAt   DateTime @default(now())
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id])
+}
 model Blog {
   id         String   @id @default(cuid())
   title      String

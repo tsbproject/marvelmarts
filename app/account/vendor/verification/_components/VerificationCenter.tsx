@@ -181,14 +181,24 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
 
                   setTimeout(async () => {
                     try {
-                      await update();
+
+                      await update({
+                        vendorStatus: dbResult?.verificationStatus,
+                      });
+
+                      await new Promise(resolve => setTimeout(resolve, 300));
+
                     } catch (err) {
                       console.error("Session update failed:", err);
                     }
+
+                    router.refresh();
+
                     router.push("/account/vendor/verification");
+
                   }, 1500);
                 }
-              } else {
+                              } else {
                 notifyError(dbResult?.error || "Upload failed");
               }
             } catch (error: any) {

@@ -60,28 +60,145 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   const vendorStatus = session?.user?.vendorStatus;
   const isApprovedVendor = vendorStatus === "APPROVED";
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+  const hasAdminAccess = isAdmin;
   const hasActiveVendorAccess = isApprovedVendor || isAdmin;
+
+  useEffect(() => {
+
+  if (!isAuthenticated) return;
+
+  // AUTO SYNC VIEW MODE
+  if (hasActiveVendorAccess) {
+
+    dispatch(setViewMode("VENDOR"));
+
+  } else {
+
+    dispatch(setViewMode("CUSTOMER"));
+
+  }
+
+}, [
+  hasActiveVendorAccess,
+  isAuthenticated,
+  dispatch,
+]);
 
   const isLoading = status === "loading";
 
   // Build Dynamic Menu Items
-  const menuItems: MenuItem[] = (viewMode === "VENDOR" && hasActiveVendorAccess) ? [
-    { label: "Vendor Dashboard", link: "/account/vendor", icon: <LayoutDashboard size={20} /> },
-    { label: "Manage Products", link: "/account/vendor/products", icon: <Store size={20} /> },
-    { label: "Store Orders", link: "/account/vendor/orders", icon: <ShoppingBag size={20} /> },
-    { label: "Store Settings", link: "/account/vendor/store-settings", icon: <Settings size={20} /> },
-  ] : [
-    { label: "My Dashboard", link: "/account/customer", icon: <Settings size={20} /> },
-    { label: "My Orders", link: "/account/customer/orders", icon: <ShoppingBag size={20} /> },
-    { label: "Wishlist", link: "/account/customer/wishlist", icon: <Heart size={20} /> },
-    { label: "Product Reviews", link: "/reviews", icon: <Star size={20} /> },
-    // { label: "Addresses", link: "/addresses", icon: <MapPin size={20} /> },
-    { label: "Bank Details", link: "/bank-details", icon: <UserIcon size={20} /> },
-  ];
+    let menuItems: MenuItem[] = [];
 
-  if (hasActiveVendorAccess) {
+      if (viewMode === "ADMIN" && hasAdminAccess) {
+
+        menuItems = [
+          {
+            label: "Admin Dashboard",
+            link: "/dashboard/admins",
+            icon: <LayoutDashboard size={20} />,
+          },
+
+          {
+            label: "Manage Vendors",
+            link: "/dashboard/admins/vendors",
+            icon: <Store size={20} />,
+          },
+
+          {
+            label: "Manage Products",
+            link: "/dashboard/admins/products",
+            icon: <ShoppingBag size={20} />,
+          },
+
+          {
+            label: "Support Tickets",
+            link: "/dashboard/admins/support",
+            icon: <ShieldCheck size={20} />,
+          },
+
+          {
+            label: "Admin Settings",
+            link: "/dashboard/admins/settings",
+            icon: <Settings size={20} />,
+          },
+        ];
+
+      } else if (
+        viewMode === "VENDOR" &&
+        hasActiveVendorAccess
+      ) {
+
+        menuItems = [
+          {
+            label: "Vendor Dashboard",
+            link: "/account/vendor",
+            icon: <LayoutDashboard size={20} />,
+          },
+
+          {
+            label: "Manage Products",
+            link: "/account/vendor/products",
+            icon: <Store size={20} />,
+          },
+
+          {
+            label: "Store Orders",
+            link: "/account/vendor/orders",
+            icon: <ShoppingBag size={20} />,
+          },
+
+          {
+            label: "Store Settings",
+            link: "/account/vendor/store-settings",
+            icon: <Settings size={20} />,
+          },
+        ];
+
+      } else {
+
+        menuItems = [
+          {
+            label: "My Dashboard",
+            link: "/account/customer",
+            icon: <Settings size={20} />,
+          },
+
+          {
+            label: "My Orders",
+            link: "/account/customer/orders",
+            icon: <ShoppingBag size={20} />,
+          },
+
+          {
+            label: "Wishlist",
+            link: "/account/customer/wishlist",
+            icon: <Heart size={20} />,
+          },
+
+          {
+            label: "Product Reviews",
+            link: "/reviews",
+            icon: <Star size={20} />,
+          },
+
+          {
+            label: "Bank Details",
+            link: "/bank-details",
+            icon: <UserIcon size={20} />,
+          },
+        ];
+      }
+
+  if  (hasAdminAccess || hasActiveVendorAccess) {
     menuItems.push({
-      label: viewMode === "CUSTOMER" ? "Switch to Vendor Mode" : "Switch to Shopping Mode",
+     label:
+  viewMode === "CUSTOMER"
+    ? (
+        hasAdminAccess
+          ? "Switch to Admin Mode"
+          : "Switch to Vendor Mode"
+      )
+    : "Switch to Shopping Mode",
       link: "toggle_workspace",
       icon: <RefreshCw size={20} />,
       variant: "switcher"
@@ -124,23 +241,42 @@ const handleClick = async (item: MenuItem) => {
   onClose();
 
   // 2. WORKSPACE SWITCHER
-  if (item.variant === "switcher") {
-    const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
+    if (item.variant === "switcher") {
+    const nextMode =
+      viewMode === "CUSTOMER"
+        ? (
+            hasAdminAccess
+              ? "ADMIN"
+              : "VENDOR"
+          )
+        : "CUSTOMER";
+
     setLoading(true);
     
     try {
       dispatch(setViewMode(nextMode));
-      // Pass the new role to the session update
-      await update({ ...session, user: { ...session?.user, role: nextMode } });
+
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          role: nextMode
+        }
+      });
       
       notifySuccess(`Workspace: ${nextMode} Mode Active`);
       
-      // Use window.location for a clean state reset when switching modes
-      window.location.assign(nextMode === "VENDOR" ? "/account/vendor" : "/account/customer");
+      window.location.assign(
+        nextMode === "VENDOR"
+          ? "/account/vendor"
+          : "/account/customer"
+      );
+
     } catch (error) {
       console.error("Switch Error:", error);
       setLoading(false);
     }
+
     return;
   }
 

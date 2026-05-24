@@ -69,6 +69,8 @@ export default function VendorRegistration() {
     state: "", password: "", confirmPassword: "", agree: false,
   });
 
+   
+
   const [loading, setLoading] = useState({ code: false, verify: false, submit: false, initial: true });
   const [isVerified, setIsVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -91,7 +93,7 @@ useEffect(() => {
 
     // 2. Check if the user already has a vendor profile
     try {
-      const res = await fetch("/api/vendor/profile");
+      const res = await fetch("/api/vendors/profile");
       if (res.ok) {
         const data = await res.json();
         if (data.vendor) {
@@ -211,9 +213,13 @@ useEffect(() => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...formData,
-        isReapplication: isReapplying,
-      }),
+          ...formData,
+
+          phoneNumber: formData.storePhone,
+          storePhone: formData.storePhone,
+
+          isReapplication: isReapplying,
+        }),
     });
 
     const data = await res.json();

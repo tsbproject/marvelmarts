@@ -1,8 +1,664 @@
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/lib/auth";
+// import { prisma } from "@/app/lib/prisma";
+// import { redirect } from "next/navigation";
+// import DashboardHeader from "@/app/_components/DashboardHeader";
+
+// import {
+//   TrendingUp,
+//   ArrowLeft,
+//   ShieldCheck,
+//   ShoppingBag,
+//   Package,
+//   Rocket,
+//   Users,
+//   Repeat,
+//   UserPlus,
+//   Percent,
+//   Wallet,
+//   Landmark,
+// } from "lucide-react";
+
+// import Link from "next/link";
+
+// import { formatNaira } from "@/app/lib/FormatNaira";
+// import CustomerInsightsChart from "../_components/CustomerInsightsChart";
+
+// import {
+//   startOfDay,
+//   startOfMonth,
+//   subDays,
+//   format,
+// } from "date-fns";
+
+// import RevenueChart from "../_components/RevenueChart";
+// import VendorInsights from "../_components/VendorInsights";
+
+// export default async function VendorAnalyticsPage() {
+//   const session = await getServerSession(authOptions);
+
+//   const allowedRoles = ["VENDOR", "ADMIN", "SUPER_ADMIN"];
+
+//   if (!session?.user || !allowedRoles.includes(session.user.role as string)) {
+//     redirect("/auth/sign-in");
+//   }
+
+//   const vendorData = await prisma.vendorProfile.findUnique({
+//     where: { userId: session.user.id },
+
+//     include: {
+//       score: true,
+
+//       boost: true,
+
+//       products: {
+//         include: {
+//           images: true,
+//         },
+//       },
+//     },
+//   });
+
+//   if (!vendorData) {
+//     redirect("/auth/register/vendor-registration");
+//   }
+
+//   const today = startOfDay(new Date());
+
+//   const monthStart = startOfMonth(new Date());
+
+//   const thirtyDaysAgo = subDays(today, 30);
+
+//   const revenueStatuses = ["DELIVERED"];
+
+//   const [
+//     todayRevenue,
+//     monthRevenue,
+//     rawRevenueData,
+//     liveProductsCount,
+//     deliveredOrdersCount,
+//     totalCustomers,
+//     repeatCustomers,
+//     newCustomers,
+//     marketplaceTransactions,
+//   ] = await Promise.all([
+//     prisma.order.aggregate({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: { in: revenueStatuses },
+//         createdAt: { gte: today },
+//       },
+
+//       _sum: {
+//         total: true,
+//       },
+//     }),
+
+//     prisma.order.aggregate({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: { in: revenueStatuses },
+//         createdAt: { gte: monthStart },
+//       },
+
+//       _sum: {
+//         total: true,
+//       },
+//     }),
+
+//     prisma.order.findMany({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: { in: revenueStatuses },
+//         createdAt: { gte: thirtyDaysAgo },
+//       },
+
+//       select: {
+//         total: true,
+//         createdAt: true,
+//       },
+
+//       orderBy: {
+//         createdAt: "asc",
+//       },
+//     }),
+
+//     prisma.product.count({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         isPublished: true,
+//       },
+//     }),
+
+//     prisma.order.count({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: "DELIVERED",
+//       },
+//     }),
+
+//     // TOTAL CUSTOMERS
+//     prisma.order.findMany({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: "DELIVERED",
+//       },
+
+//       select: {
+//         userId: true,
+//         createdAt: true,
+//       },
+//     }),
+
+//     // REPEAT CUSTOMERS
+//     prisma.order.groupBy({
+//       by: ["userId"],
+
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: "DELIVERED",
+//       },
+
+//       _count: {
+//         userId: true,
+//       },
+//     }),
+
+//     // NEW CUSTOMERS
+//     prisma.order.count({
+//       where: {
+//         vendorProfileId: vendorData.id,
+//         status: "DELIVERED",
+
+//         createdAt: {
+//           gte: monthStart,
+//         },
+//       },
+//     }),
+//   ]);
+
+
+  
+
+//   // REVENUE GRAPH DATA
+//   const dailyDataMap: Record<string, number> = {};
+
+//   for (let i = 0; i < 30; i++) {
+//     dailyDataMap[format(subDays(today, i), "MMM dd")] = 0;
+//   }
+
+//   rawRevenueData.forEach((order) => {
+//     const dateStr = format(order.createdAt, "MMM dd");
+
+//     if (dailyDataMap[dateStr] !== undefined) {
+//       dailyDataMap[dateStr] += Number(order.total || 0);
+//     }
+//   });
+
+//   const chartData = Object.entries(dailyDataMap)
+//     .map(([date, amount]) => ({
+//       date,
+//       amount,
+//     }))
+//     .reverse();
+
+//   // VENDOR INSIGHTS
+//   const insightStats = {
+//     rating: vendorData.score?.rating || 0,
+
+//     totalSales: vendorData.products.reduce(
+//       (acc, p) => acc + (p.salesCount || 0),
+//       0
+//     ),
+
+//     fulfillmentRate: vendorData.score?.fulfillmentRate || 100,
+
+//     reviewsCount: vendorData.score?.reviewsCount || 0,
+//   };
+
+//   // CUSTOMER INSIGHTS
+//   const uniqueCustomers = new Set(
+//     totalCustomers.map((order) => order.userId)
+//   ).size;
+
+//   const repeatCustomersCount = repeatCustomers.filter(
+//     (customer) => customer._count.userId > 1
+//   ).length;
+
+//   const newCustomersCount = new Set(
+//     totalCustomers
+//       .filter((order) => order.createdAt >= monthStart)
+//       .map((order) => order.userId)
+//   ).size;
+
+//   const retentionRate =
+//     uniqueCustomers > 0
+//       ? ((repeatCustomersCount / uniqueCustomers) * 100).toFixed(1)
+//       : "0";
+
+
+//       const customerChartData = [
+//         {
+//           name: "Customers",
+//           value: uniqueCustomers,
+//         },
+
+//         {
+//           name: "Repeat",
+//           value: repeatCustomersCount,
+//         },
+
+//         {
+//           name: "New",
+//           value: newCustomersCount,
+//         },
+
+//         {
+//           name: "Retention %",
+//           value: Number(retentionRate),
+//         },
+//       ];
+
+//   // COMMISSION BREAKDOWN
+//     const grossRevenue = marketplaceTransactions.reduce(
+//         (acc, tx) => acc + Number(tx.grossAmount || 0),
+//         0
+//       );
+
+//       const totalPlatformCommission = marketplaceTransactions.reduce(
+//         (acc, tx) => acc + Number(tx.platformFee || 0),
+//         0
+//       );
+
+//       const vendorNetEarnings = marketplaceTransactions.reduce(
+//         (acc, tx) => acc + Number(tx.netAmount || 0),
+//         0
+//       );
+
+//       const averageCommissionRate =
+//         marketplaceTransactions.length > 0
+//           ? (
+//               marketplaceTransactions.reduce(
+//                 (acc, tx) => acc + Number(tx.commissionRate || 0),
+//                 0
+//               ) /
+//               marketplaceTransactions.length
+//             ) * 100
+//           : 0;
+
+    
+//   // KPI CARDS
+//   const analyticsCards = [
+//     {
+//       label: "Today Revenue",
+//       value: formatNaira(Number(todayRevenue._sum.total || 0)),
+//       icon: <TrendingUp size={20} />,
+//       color: "bg-green-50 text-green-600",
+//     },
+
+//     {
+//       label: "Monthly Revenue",
+//       value: formatNaira(Number(monthRevenue._sum.total || 0)),
+//       icon: <TrendingUp size={20} />,
+//       color: "bg-brand-primary/10 text-brand-primary",
+//     },
+
+//     {
+//       label: "Live Products",
+//       value: liveProductsCount,
+//       icon: <Package size={20} />,
+//       color: "bg-blue-50 text-blue-600",
+//     },
+
+//     {
+//       label: "Delivered Orders",
+//       value: deliveredOrdersCount,
+//       icon: <ShoppingBag size={20} />,
+//       color: "bg-purple-50 text-purple-600",
+//     },
+
+//     {
+//       label: "Vendor Tier",
+//       value: vendorData.score?.tier || "BRONZE",
+//       icon: <ShieldCheck size={20} />,
+//       color: "bg-orange-50 text-orange-600",
+//     },
+
+//     {
+//       label: "Boost Credits",
+//       value: vendorData.boost?.credits ?? 0,
+//       icon: <Rocket size={20} />,
+//       color: "bg-red-50 text-red-600",
+//     },
+//   ];
+
+//   return (
+//     <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+//       <DashboardHeader
+//         title="Analytics Center"
+//         showLogout={true}
+//       />
+
+//       <div className="p-4 lg:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+//         {/* TOP HEADER */}
+//         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+
+//           <div>
+//             <h1 className="text-2xl md:text-4xl font-black italic uppercase text-accent-navy tracking-tight">
+//               Analytics Center
+//             </h1>
+
+//             <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-neutral-gray mt-2">
+//               Revenue Intelligence & Performance Monitoring
+//             </p>
+//           </div>
+
+//           <Link
+//             href="/account/vendor"
+//             className="
+//               inline-flex items-center gap-2
+//               px-6 py-4
+//               bg-white border border-gray-100
+//               rounded-2xl
+//               text-[10px] font-black uppercase tracking-widest
+//               text-accent-navy
+//               hover:bg-gray-50
+//               transition-all
+//               shadow-sm
+//             "
+//           >
+//             <ArrowLeft size={16} />
+//             Back To Dashboard
+//           </Link>
+//         </div>
+
+//         {/* KPI GRID */}
+//         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+
+//           {analyticsCards.map((card) => (
+//             <div
+//               key={card.label}
+//               className="
+//                 bg-white
+//                 p-6
+//                 rounded-[2rem]
+//                 border border-gray-100
+//                 shadow-sm
+//               "
+//             >
+//               <div
+//                 className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${card.color}`}
+//               >
+//                 {card.icon}
+//               </div>
+
+//               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+//                 {card.label}
+//               </p>
+
+//               <h3 className="text-xl md:text-2xl font-black italic text-accent-navy mt-2 tracking-tight">
+//                 {card.value}
+//               </h3>
+//             </div>
+//           ))}
+//         </div>
+
+    
+//        {/* CUSTOMER INSIGHTS */}
+        // <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+
+        //   <div className="flex items-center justify-between mb-8">
+
+        //     <div>
+        //       <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
+        //         Customer Insights
+        //       </h3>
+
+        //       <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">
+        //         Customer Growth & Retention Metrics
+        //       </p>
+        //     </div>
+
+        //     <Users className="text-brand-primary" />
+        //   </div>
+
+        //   <div className="grid lg:grid-cols-2 gap-8">
+
+        //     {/* LEFT STATS */}
+        //     <div className="grid grid-cols-2 gap-6">
+
+        //       <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+        //         <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+        //           <Users size={20} />
+        //         </div>
+
+        //         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+        //           Total Customers
+        //         </p>
+
+        //         <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+        //           {uniqueCustomers}
+        //         </h3>
+        //       </div>
+
+        //       <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+        //         <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
+        //           <Repeat size={20} />
+        //         </div>
+
+        //         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+        //           Repeat Customers
+        //         </p>
+
+        //         <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+        //           {repeatCustomersCount}
+        //         </h3>
+        //       </div>
+
+        //       <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+        //         <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+        //           <UserPlus size={20} />
+        //         </div>
+
+        //         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+        //           New Customers
+        //         </p>
+
+        //         <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+        //           {newCustomersCount}
+        //         </h3>
+        //       </div>
+
+        //       <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+        //         <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+        //           <Percent size={20} />
+        //         </div>
+
+        //         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+        //           Retention Rate
+        //         </p>
+
+        //         <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+        //           {retentionRate}%
+        //         </h3>
+        //       </div>
+
+        //     </div>
+
+        //     {/* RIGHT CHART */}
+        //     <div className="bg-[#FBFBFB] rounded-[2rem] border border-gray-100 p-6 h-[400px] flex flex-col">
+
+        //       <div className="mb-6">
+        //         <h4 className="text-sm font-black uppercase tracking-wide text-accent-navy italic">
+        //           Customer Analytics
+        //         </h4>
+
+        //         <p className="text-[9px] uppercase tracking-widest font-bold text-neutral-gray mt-1">
+        //           Customer Distribution Overview
+        //         </p>
+        //       </div>
+
+        //       <div className="flex-1">
+        //         <CustomerInsightsChart data={customerChartData} />
+        //       </div>
+
+        //     </div>
+
+        //   </div>
+        // </div>
+//         {/* INSIGHTS */}
+//         <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+//           <VendorInsights stats={insightStats} />
+//         </div>
+
+//         {/* GRAPH */}
+        // <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col h-[520px]">
+
+        //   <div className="flex justify-between items-center mb-8">
+
+        //     <div>
+        //       <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
+        //         Performance Graph
+        //       </h3>
+
+        //       <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">
+        //         Revenue Flow (30 Days)
+        //       </p>
+        //     </div>
+
+        //     <TrendingUp className="text-brand-primary" />
+        //   </div>
+
+        //   <div className="flex-1 w-full bg-[#FBFBFB] rounded-3xl border border-gray-100 overflow-hidden mb-8">
+        //     <RevenueChart data={chartData} />
+        //   </div>
+
+        //   <div className="grid grid-cols-2 border-t border-gray-50 pt-8">
+
+        //     <div>
+        //       <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">
+        //         Total Revenue Today
+        //       </p>
+
+        //       <p className="text-sm md:text-xl font-black text-accent-navy italic">
+        //         {formatNaira(Number(todayRevenue._sum.total || 0))}
+        //       </p>
+        //     </div>
+
+        //     <div className="text-right">
+        //       <p className="text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-2">
+        //         Monthly Revenue
+        //       </p>
+
+        //       <p className="text-sm md:text-xl font-black text-brand-primary italic">
+        //         {formatNaira(Number(monthRevenue._sum.total || 0))}
+        //       </p>
+        //     </div>
+
+        //   </div>
+        // </div>
+
+//         {/* COMMISSION BREAKDOWN */}
+//         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+
+//           <div className="flex items-center justify-between mb-8">
+
+//             <div>
+//               <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
+//                 Commission Breakdown
+//               </h3>
+
+//               <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">
+//                 Revenue Distribution Overview
+//               </p>
+//             </div>
+
+//             <Landmark className="text-brand-primary" />
+//           </div>
+
+//           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+
+//             <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+//               <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
+//                 <Wallet size={20} />
+//               </div>
+
+//               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+//                 Gross Revenue
+//               </p>
+
+//               <h3 className="text-xl font-black italic text-accent-navy mt-2">
+//                 {formatNaira(Number(grossRevenue || 0))}
+//               </h3>
+//             </div>
+
+//             <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+//               <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+//                 <Percent size={20} />
+//               </div>
+
+//               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+//                 Platform Commission
+//               </p>
+
+//               <h3 className="text-xl font-black italic text-accent-navy mt-2">
+//                 {platformCommissionRate}%
+//               </h3>
+//             </div>
+
+//             <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+//               <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
+//                 <Landmark size={20} />
+//               </div>
+
+//               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+//                 Platform Earnings
+//               </p>
+
+//               <h3 className="text-xl font-black italic text-accent-navy mt-2">
+//                 {formatNaira(Number(platformCommission || 0))}
+//               </h3>
+//             </div>
+
+//             <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+//               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mb-4">
+//                 <TrendingUp size={20} />
+//               </div>
+
+//               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+//                 Vendor Net Earnings
+//               </p>
+
+//               <h3 className="text-xl font-black italic text-brand-primary mt-2">
+//                {formatNaira(Number(vendorNetEarnings || 0))}
+//               </h3>
+//             </div>
+
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import DashboardHeader from "@/app/_components/DashboardHeader";
+
 import {
   TrendingUp,
   ArrowLeft,
@@ -10,9 +666,18 @@ import {
   ShoppingBag,
   Package,
   Rocket,
+  Users,
+  Repeat,
+  UserPlus,
+  Percent,
+  Wallet,
+  Landmark,
 } from "lucide-react";
+
 import Link from "next/link";
+
 import { formatNaira } from "@/app/lib/FormatNaira";
+
 import {
   startOfDay,
   startOfMonth,
@@ -22,6 +687,7 @@ import {
 
 import RevenueChart from "../_components/RevenueChart";
 import VendorInsights from "../_components/VendorInsights";
+import CustomerInsightsChart from "../_components/CustomerInsightsChart";
 
 export default async function VendorAnalyticsPage() {
   const session = await getServerSession(authOptions);
@@ -33,12 +699,19 @@ export default async function VendorAnalyticsPage() {
   }
 
   const vendorData = await prisma.vendorProfile.findUnique({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+    },
+
     include: {
       score: true,
+
       boost: true,
+
       products: {
-        include: { images: true },
+        include: {
+          images: true,
+        },
       },
     },
   });
@@ -48,10 +721,18 @@ export default async function VendorAnalyticsPage() {
   }
 
   const today = startOfDay(new Date());
+
   const monthStart = startOfMonth(new Date());
+
   const thirtyDaysAgo = subDays(today, 30);
 
-  const revenueStatuses = ["DELIVERED"];
+  // SAFER STATUS MATCHING
+  const revenueStatuses = [
+    "DELIVERED",
+    "COMPLETED",
+    "SUCCESS",
+    "PAID",
+  ];
 
   const [
     todayRevenue,
@@ -59,40 +740,74 @@ export default async function VendorAnalyticsPage() {
     rawRevenueData,
     liveProductsCount,
     deliveredOrdersCount,
+    totalCustomers,
+    repeatCustomers,
+    marketplaceTransactions,
   ] = await Promise.all([
+
+    // TODAY REVENUE
     prisma.order.aggregate({
       where: {
         vendorProfileId: vendorData.id,
-        status: { in: revenueStatuses },
-        createdAt: { gte: today },
+
+        status: {
+          in: revenueStatuses,
+        },
+
+        createdAt: {
+          gte: today,
+        },
       },
-      _sum: { total: true },
+
+      _sum: {
+        total: true,
+      },
     }),
 
+    // MONTHLY REVENUE
     prisma.order.aggregate({
       where: {
         vendorProfileId: vendorData.id,
-        status: { in: revenueStatuses },
-        createdAt: { gte: monthStart },
+
+        status: {
+          in: revenueStatuses,
+        },
+
+        createdAt: {
+          gte: monthStart,
+        },
       },
-      _sum: { total: true },
+
+      _sum: {
+        total: true,
+      },
     }),
 
+    // REVENUE GRAPH
     prisma.order.findMany({
       where: {
         vendorProfileId: vendorData.id,
-        status: { in: revenueStatuses },
-        createdAt: { gte: thirtyDaysAgo },
+
+        status: {
+          in: revenueStatuses,
+        },
+
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
       },
+
       select: {
         total: true,
         createdAt: true,
       },
+
       orderBy: {
         createdAt: "asc",
       },
     }),
 
+    // LIVE PRODUCTS
     prisma.product.count({
       where: {
         vendorProfileId: vendorData.id,
@@ -100,14 +815,72 @@ export default async function VendorAnalyticsPage() {
       },
     }),
 
+    // DELIVERED ORDERS
     prisma.order.count({
       where: {
         vendorProfileId: vendorData.id,
-        status: "DELIVERED",
+
+        status: {
+          in: revenueStatuses,
+        },
+      },
+    }),
+
+    // CUSTOMER ORDERS
+    prisma.order.findMany({
+      where: {
+        vendorProfileId: vendorData.id,
+
+        status: {
+          in: revenueStatuses,
+        },
+      },
+
+      select: {
+        userId: true,
+        createdAt: true,
+      },
+    }),
+
+    // REPEAT CUSTOMERS
+    prisma.order.groupBy({
+      by: ["userId"],
+
+      where: {
+        vendorProfileId: vendorData.id,
+
+        status: {
+          in: revenueStatuses,
+        },
+      },
+
+      _count: {
+        userId: true,
+      },
+    }),
+
+    // MARKETPLACE TRANSACTIONS
+    prisma.marketplaceTransaction.findMany({
+      where: {
+        vendorProfileId: vendorData.id,
+
+        status: "SUCCESS",
+
+        createdAt: {
+          gte: monthStart,
+        },
+      },
+
+      select: {
+        grossAmount: true,
+        platformFee: true,
+        netAmount: true,
+        commissionRate: true,
       },
     }),
   ]);
 
+  // REVENUE GRAPH
   const dailyDataMap: Record<string, number> = {};
 
   for (let i = 0; i < 30; i++) {
@@ -129,29 +902,127 @@ export default async function VendorAnalyticsPage() {
     }))
     .reverse();
 
+  // VENDOR INSIGHTS
   const insightStats = {
     rating: vendorData.score?.rating || 0,
+
     totalSales: vendorData.products.reduce(
       (acc, p) => acc + (p.salesCount || 0),
       0
     ),
-    fulfillmentRate: vendorData.score?.fulfillmentRate || 100,
-    reviewsCount: vendorData.score?.reviewsCount || 0,
+
+    fulfillmentRate:
+      vendorData.score?.fulfillmentRate || 100,
+
+    reviewsCount:
+      vendorData.score?.reviewsCount || 0,
   };
 
+  // CUSTOMER INSIGHTS
+  const uniqueCustomers = new Set(
+    totalCustomers
+      .filter((order) => order.userId)
+      .map((order) => order.userId)
+  ).size;
+
+  const repeatCustomersCount =
+    repeatCustomers.filter(
+      (customer) => customer._count.userId > 1
+    ).length;
+
+  const newCustomersCount = new Set(
+    totalCustomers
+      .filter(
+        (order) =>
+          order.createdAt >= monthStart &&
+          order.userId
+      )
+      .map((order) => order.userId)
+  ).size;
+
+  const retentionRate =
+    uniqueCustomers > 0
+      ? (
+          (repeatCustomersCount / uniqueCustomers) *
+          100
+        ).toFixed(1)
+      : "0";
+
+  // CUSTOMER CHART
+  const customerChartData = [
+    {
+      name: "Customers",
+      value: uniqueCustomers,
+    },
+
+    {
+      name: "Repeat",
+      value: repeatCustomersCount,
+    },
+
+    {
+      name: "New",
+      value: newCustomersCount,
+    },
+
+    {
+      name: "Retention %",
+      value: Number(retentionRate),
+    },
+  ];
+
+  // COMMISSION BREAKDOWN
+  const grossRevenue =
+    marketplaceTransactions.reduce(
+      (acc, tx) =>
+        acc + Number(tx.grossAmount || 0),
+      0
+    );
+
+  const totalPlatformCommission =
+    marketplaceTransactions.reduce(
+      (acc, tx) =>
+        acc + Number(tx.platformFee || 0),
+      0
+    );
+
+  const vendorNetEarnings =
+    marketplaceTransactions.reduce(
+      (acc, tx) =>
+        acc + Number(tx.netAmount || 0),
+      0
+    );
+
+  const averageCommissionRate =
+    marketplaceTransactions.length > 0
+      ? (
+          marketplaceTransactions.reduce(
+            (acc, tx) =>
+              acc + Number(tx.commissionRate || 0),
+            0
+          ) / marketplaceTransactions.length
+        ) * 100
+      : 0;
+
+  // KPI CARDS
   const analyticsCards = [
     {
       label: "Today Revenue",
-      value: formatNaira(Number(todayRevenue._sum.total || 0)),
+      value: formatNaira(
+        Number(todayRevenue._sum.total || 0)
+      ),
       icon: <TrendingUp size={20} />,
       color: "bg-green-50 text-green-600",
     },
 
     {
       label: "Monthly Revenue",
-      value: formatNaira(Number(monthRevenue._sum.total || 0)),
+      value: formatNaira(
+        Number(monthRevenue._sum.total || 0)
+      ),
       icon: <TrendingUp size={20} />,
-      color: "bg-brand-primary/10 text-brand-primary",
+      color:
+        "bg-brand-primary/10 text-brand-primary",
     },
 
     {
@@ -162,7 +1033,7 @@ export default async function VendorAnalyticsPage() {
     },
 
     {
-      label: "Delivered Orders",
+      label: "Completed Orders",
       value: deliveredOrdersCount,
       icon: <ShoppingBag size={20} />,
       color: "bg-purple-50 text-purple-600",
@@ -170,14 +1041,16 @@ export default async function VendorAnalyticsPage() {
 
     {
       label: "Vendor Tier",
-      value: vendorData.score?.tier || "BRONZE",
+      value:
+        vendorData.score?.tier || "BRONZE",
       icon: <ShieldCheck size={20} />,
       color: "bg-orange-50 text-orange-600",
     },
 
     {
       label: "Boost Credits",
-      value: vendorData.boost?.credits ?? 0,
+      value:
+        vendorData.boost?.credits ?? 0,
       icon: <Rocket size={20} />,
       color: "bg-red-50 text-red-600",
     },
@@ -185,6 +1058,7 @@ export default async function VendorAnalyticsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FBFBFB]">
+
       <DashboardHeader
         title="Analytics Center"
         showLogout={true}
@@ -192,7 +1066,7 @@ export default async function VendorAnalyticsPage() {
 
       <div className="p-4 lg:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-        {/* TOP HEADER */}
+        {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
 
           <div>
@@ -226,6 +1100,7 @@ export default async function VendorAnalyticsPage() {
 
         {/* KPI GRID */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+
           {analyticsCards.map((card) => (
             <div
               key={card.label}
@@ -254,15 +1129,123 @@ export default async function VendorAnalyticsPage() {
           ))}
         </div>
 
-        {/* INSIGHTS */}
+        {/* CUSTOMER INSIGHTS */}
+        { <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+
+          <div className="flex items-center justify-between mb-8">
+
+            <div>
+              <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
+                Customer Insights
+              </h3>
+
+              <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">
+                Customer Growth & Retention Metrics
+              </p>
+            </div>
+
+            <Users className="text-brand-primary" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+
+            {/* LEFT STATS */}
+            <div className="grid grid-cols-2 gap-6">
+
+              <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                  <Users size={20} />
+                </div>
+
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                  Total Customers
+                </p>
+
+                <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+                  {uniqueCustomers}
+                </h3>
+              </div>
+
+              <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+                <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
+                  <Repeat size={20} />
+                </div>
+
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                  Repeat Customers
+                </p>
+
+                <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+                  {repeatCustomersCount}
+                </h3>
+              </div>
+
+              <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                  <UserPlus size={20} />
+                </div>
+
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                  New Customers
+                </p>
+
+                <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+                  {newCustomersCount}
+                </h3>
+              </div>
+
+              <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                  <Percent size={20} />
+                </div>
+
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                  Retention Rate
+                </p>
+
+                <h3 className="text-2xl font-black italic text-accent-navy mt-2">
+                  {retentionRate}%
+                </h3>
+              </div>
+
+            </div>
+
+            {/* RIGHT CHART */}
+            <div className="bg-[#FBFBFB] rounded-[2rem] border border-gray-100 p-6 h-[400px] flex flex-col">
+
+              <div className="mb-6">
+                <h4 className="text-sm font-black uppercase tracking-wide text-accent-navy italic">
+                  Customer Analytics
+                </h4>
+
+                <p className="text-[9px] uppercase tracking-widest font-bold text-neutral-gray mt-1">
+                  Customer Distribution Overview
+                </p>
+              </div>
+
+              <div className="flex-1">
+                <CustomerInsightsChart data={customerChartData} />
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+          }
+        
+        {/* VENDOR INSIGHTS */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-700">
           <VendorInsights stats={insightStats} />
         </div>
 
-        {/* GRAPH */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col h-[520px]">
 
           <div className="flex justify-between items-center mb-8">
+
             <div>
               <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
                 Performance Graph
@@ -300,6 +1283,88 @@ export default async function VendorAnalyticsPage() {
               <p className="text-sm md:text-xl font-black text-brand-primary italic">
                 {formatNaira(Number(monthRevenue._sum.total || 0))}
               </p>
+            </div>
+
+          </div>
+        </div>
+        {/* COMMISSION BREAKDOWN */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+
+          <div className="flex items-center justify-between mb-8">
+
+            <div>
+              <h3 className="text-sm md:text-xl font-black text-accent-navy uppercase tracking-tight italic">
+                Commission Breakdown
+              </h3>
+
+              <p className="text-[9px] font-bold text-neutral-gray uppercase tracking-widest">
+                Revenue Distribution Overview
+              </p>
+            </div>
+
+            <Landmark className="text-brand-primary" />
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+              <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
+                <Wallet size={20} />
+              </div>
+
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                Gross Revenue
+              </p>
+
+              <h3 className="text-xl font-black italic text-accent-navy mt-2">
+                {formatNaira(grossRevenue)}
+              </h3>
+            </div>
+
+            <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <Percent size={20} />
+              </div>
+
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                Average Commission
+              </p>
+
+              <h3 className="text-xl font-black italic text-accent-navy mt-2">
+                {averageCommissionRate.toFixed(0)}%
+              </h3>
+            </div>
+
+            <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
+                <Landmark size={20} />
+              </div>
+
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                Platform Earnings
+              </p>
+
+              <h3 className="text-xl font-black italic text-accent-navy mt-2">
+                {formatNaira(totalPlatformCommission)}
+              </h3>
+            </div>
+
+            <div className="bg-[#FBFBFB] rounded-[2rem] p-6 border border-gray-100">
+
+              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mb-4">
+                <TrendingUp size={20} />
+              </div>
+
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                Vendor Net Earnings
+              </p>
+
+              <h3 className="text-xl font-black italic text-brand-primary mt-2">
+                {formatNaira(vendorNetEarnings)}
+              </h3>
             </div>
 
           </div>

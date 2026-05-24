@@ -14,7 +14,7 @@ const COLORS = {
   green: "#16A34A"
 };
 
-const LOGO_URL = "https://marvelmarts.com/logo.png";
+const LOGO_URL = "https://marvelmarts.com/logo1-white.png";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
 // 2. TRANSPORTER SETUP
@@ -26,62 +26,62 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 //   },
 // });
 
-export const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
+// export const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST,
+//   port: Number(process.env.SMTP_PORT),
+//   secure: process.env.SMTP_SECURE === "true",
   
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS,
+//   },
+// });
 
 
 
-// const resendApiKey = process.env.RESEND_API_KEY;
-// const defaultFrom =
-//   process.env.EMAIL_FROM || "MarvelMarts <noreply@marvelmarts.com>";
+const resendApiKey = process.env.RESEND_API_KEY;
+const defaultFrom =
+  process.env.EMAIL_FROM || "MarvelMarts <noreply@marvelmarts.com>";
 
-// if (!resendApiKey) {
-//   throw new Error("Missing RESEND_API_KEY in environment variables");
-// }
+if (!resendApiKey) {
+  throw new Error("Missing RESEND_API_KEY in environment variables");
+}
 
-// export const resend = new Resend(resendApiKey);
+export const resend = new Resend(resendApiKey);
 
-// type SendEmailParams = {
-//   to: string | string[];
-//   subject: string;
-//   html: string;
-//   text?: string;
-//   from?: string;
-//   replyTo?: string;
-// };
+type SendEmailParams = {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+};
 
-// export async function sendEmail({
-//   to,
-//   subject,
-//   html,
-//   text,
-//   from,
-//   replyTo,
-// }: SendEmailParams) {
-//   const { data, error } = await resend.emails.send({
-//     from: from || defaultFrom,
-//     to: Array.isArray(to) ? to : [to],
-//     subject,
-//     html,
-//     text,
-//     replyTo,
-//   });
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+  from,
+  replyTo,
+}: SendEmailParams) {
+  const { data, error } = await resend.emails.send({
+    from: from || defaultFrom,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html,
+    text,
+    replyTo,
+  });
 
-//   if (error) {
-//     console.error("📧 Email Dispatch Failed:", error);
-//     throw new Error(error.message || "Failed to send email");
-//   }
+  if (error) {
+    console.error("📧 Email Dispatch Failed:", error);
+    throw new Error(error.message || "Failed to send email");
+  }
 
-//   return data;
-// }
+  return data;
+}
 
 
 
@@ -133,19 +133,19 @@ const wrapLayout = (content: string, previewText: string = "Notification from Ma
 `;
 
 // 4. SHARED SEND FUNCTION
-async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  try {
-    return await transporter.sendMail({
-      from: `"MarvelMarts" <${process.env.EMAIL_FROM}>`,
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
-    console.error("📧 Email Dispatch Failed:", error);
-    throw error;
-  }
-}
+// async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+//   try {
+//     return await transporter.sendMail({
+//       from: `"MarvelMarts" <${process.env.EMAIL_FROM}>`,
+//       to,
+//       subject,
+//       html,
+//     });
+//   } catch (error) {
+//     console.error("📧 Email Dispatch Failed:", error);
+//     throw error;
+//   }
+// }
 
 
 
@@ -982,5 +982,602 @@ export async function sendVendorExhaustedCreditsEmail({
     to: email,
     subject: "MarvelMarts: Your Boost Credits Have Been Exhausted",
     html: wrapLayout(content, "Your boost credits have been exhausted"),
+  });
+}
+
+//CUSTOMER SUPPORT MESSAGE NOTIFICATION EMAIL
+
+export async function sendSupportAcknowledgementEmail({
+  to,
+  ticketId,
+  subject,
+  priority,
+}: {
+  to: string;
+  ticketId: string;
+  subject: string;
+  priority: string;
+}) {
+
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+
+      <h1 style="color: ${COLORS.navy}; text-align: center; font-style: italic; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">
+        SUPPORT REQUEST RECEIVED
+      </h1>
+
+      <p style="text-align: center; color: ${COLORS.navy}; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-top: 0;">
+        Ticket #${ticketId}
+      </p>
+
+      <p style="color: #444; font-size: 14px; line-height: 1.6; margin: 30px 0;">
+        Your support request has been received successfully.
+        Our vendor support team is currently reviewing your request and will respond shortly.
+      </p>
+
+      <div style="margin: 20px 0; padding: 25px; background-color: #f9fafb; border: 1px solid #f1f5f9; border-radius: 20px;">
+
+        <p style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
+          Ticket Information
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              SUBJECT
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${subject}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              PRIORITY
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${priority}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              STATUS
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: #16a34a; font-weight: 900; text-align: right;">
+              OPEN
+            </td>
+          </tr>
+        </table>
+
+        <div style="border-top: 2px solid #eeeeee; margin: 20px 0;"></div>
+
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+
+            <td style="font-size: 16px; font-weight: 900; color: ${COLORS.navy}; text-transform: uppercase; font-style: italic;">
+              Estimated Response
+            </td>
+
+            <td style="font-size: 18px; font-weight: 900; color: ${COLORS.navy}; text-align: right;">
+              &lt; 24 Hours
+            </td>
+
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+
+        <a href="https://marvelmarts.com/account/support/tickets"
+          style="background-color: ${COLORS.navy}; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">
+          View My Tickets
+        </a>
+
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Support Ticket Received • ${ticketId}`,
+    html: wrapLayout(
+      content,
+      "Your support request has been received successfully."
+    ),
+  });
+}
+
+//ADMIN SUPPORT MESSAGE NOTIFICATION EMAIL
+
+export async function sendAdminSupportNotification({
+  ticketId,
+  subject,
+  category,
+  priority,
+  email,
+}: {
+  ticketId: string;
+  subject: string;
+  category: string;
+  priority: string;
+  email: string;
+}) {
+
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+
+      <h1 style="color: ${COLORS.navy}; text-align: center; font-style: italic; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">
+        NEW SUPPORT TICKET
+      </h1>
+
+      <p style="text-align: center; color: ${COLORS.navy}; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-top: 0;">
+        Admin Notification
+      </p>
+
+      <p style="color: #444; font-size: 14px; line-height: 1.6; margin: 30px 0;">
+        A new support request has been submitted through the MarvelMarts support system.
+      </p>
+
+      <div style="margin: 20px 0; padding: 25px; background-color: #f9fafb; border: 1px solid #f1f5f9; border-radius: 20px;">
+
+        <p style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
+          Ticket Details
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              TICKET ID
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${ticketId}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              USER EMAIL
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${email}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              SUBJECT
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${subject}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              CATEGORY
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${category}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 10px 0; font-size: 13px; color: #94a3b8; font-weight: 700;">
+              PRIORITY
+            </td>
+
+            <td style="padding: 10px 0; font-size: 13px; color: ${COLORS.navy}; font-weight: 900; text-align: right;">
+              ${priority}
+            </td>
+          </tr>
+
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+
+        <a href="https://marvelmarts.com/admin/tickets"
+          style="background-color: ${COLORS.navy}; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">
+          Review Ticket
+        </a>
+
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: process.env.ADMIN_SUPPORT_EMAIL!,
+    subject: `New Support Ticket • ${priority}`,
+    html: wrapLayout(
+      content,
+      "A new support ticket has been submitted."
+    ),
+  });
+}
+
+// SUPPORT PROGRESS EMAIL
+
+export async function sendSupportProgressEmail({
+  to,
+  ticketId,
+  subject,
+  status,
+  message,
+}: {
+  to: string;
+
+  ticketId: string;
+
+  subject: string;
+
+  status: string;
+
+  message: string;
+}) {
+
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+
+      <h1 style="
+        color: ${COLORS.navy};
+        text-align: center;
+        font-style: italic;
+        font-weight: 900;
+        letter-spacing: -1px;
+        margin-bottom: 5px;
+      ">
+        CASE UPDATE
+      </h1>
+
+      <p style="
+        text-align: center;
+        color: ${COLORS.navy};
+        font-weight: 800;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 0;
+      ">
+        Ticket #${ticketId}
+      </p>
+
+      <p style="
+        color: #444;
+        font-size: 14px;
+        line-height: 1.7;
+        margin: 30px 0;
+      ">
+        Our support team has provided a progress update regarding your request.
+      </p>
+
+      <div style="
+        margin: 20px 0;
+        padding: 25px;
+        background-color: #f9fafb;
+        border: 1px solid #f1f5f9;
+        border-radius: 20px;
+      ">
+
+        <p style="
+          font-size: 10px;
+          font-weight: 900;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 15px;
+        ">
+          Ticket Summary
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0">
+
+          <tr>
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #94a3b8;
+              font-weight: 700;
+            ">
+              SUBJECT
+            </td>
+
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: ${COLORS.navy};
+              font-weight: 900;
+              text-align: right;
+            ">
+              ${subject}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #94a3b8;
+              font-weight: 700;
+            ">
+              CURRENT STATUS
+            </td>
+
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #2563eb;
+              font-weight: 900;
+              text-align: right;
+            ">
+              ${status.replace("_", " ")}
+            </td>
+          </tr>
+
+        </table>
+
+        <div style="
+          border-top: 2px solid #eeeeee;
+          margin: 20px 0;
+        "></div>
+
+        <div>
+
+          <p style="
+            font-size: 10px;
+            font-weight: 900;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+          ">
+            Support Team Message
+          </p>
+
+          <div style="
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.8;
+            font-weight: 500;
+          ">
+            ${message}
+          </div>
+        </div>
+      </div>
+
+      <div style="
+        text-align: center;
+        margin-top: 30px;
+      ">
+
+        <a href="https://marvelmarts.com/vendor/account/support/tickets"
+          style="
+            background-color: ${COLORS.navy};
+            color: #ffffff;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+          ">
+          View Ticket
+        </a>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+
+    subject: `Support Case Update • ${ticketId}`,
+
+    html: wrapLayout(
+      content,
+      "Your support ticket has received a new update."
+    ),
+  });
+}
+
+
+
+//SUPPORT CASE RESOLVE EMAIL
+
+export async function sendSupportResolvedEmail({
+  to,
+  ticketId,
+  subject,
+  message,
+}: {
+  to: string;
+
+  ticketId: string;
+
+  subject: string;
+
+  message: string;
+}) {
+
+  const content = `
+    <div style="font-family: 'Helvetica', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+
+      <h1 style="
+        color: ${COLORS.navy};
+        text-align: center;
+        font-style: italic;
+        font-weight: 900;
+        letter-spacing: -1px;
+        margin-bottom: 5px;
+      ">
+        CASE RESOLVED
+      </h1>
+
+      <p style="
+        text-align: center;
+        color: ${COLORS.navy};
+        font-weight: 800;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 0;
+      ">
+        Ticket #${ticketId}
+      </p>
+
+      <p style="
+        color: #444;
+        font-size: 14px;
+        line-height: 1.7;
+        margin: 30px 0;
+      ">
+        Your support request has been marked as resolved by our support team.
+      </p>
+
+      <div style="
+        margin: 20px 0;
+        padding: 25px;
+        background-color: #f9fafb;
+        border: 1px solid #f1f5f9;
+        border-radius: 20px;
+      ">
+
+        <p style="
+          font-size: 10px;
+          font-weight: 900;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 15px;
+        ">
+          Resolution Summary
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0">
+
+          <tr>
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #94a3b8;
+              font-weight: 700;
+            ">
+              SUBJECT
+            </td>
+
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: ${COLORS.navy};
+              font-weight: 900;
+              text-align: right;
+            ">
+              ${subject}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #94a3b8;
+              font-weight: 700;
+            ">
+              FINAL STATUS
+            </td>
+
+            <td style="
+              padding: 10px 0;
+              font-size: 13px;
+              color: #16a34a;
+              font-weight: 900;
+              text-align: right;
+            ">
+              RESOLVED
+            </td>
+          </tr>
+
+        </table>
+
+        <div style="
+          border-top: 2px solid #eeeeee;
+          margin: 20px 0;
+        "></div>
+
+        <div>
+
+          <p style="
+            font-size: 10px;
+            font-weight: 900;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+          ">
+            Final Support Response
+          </p>
+
+          <div style="
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.8;
+            font-weight: 500;
+          ">
+            ${message}
+          </div>
+        </div>
+      </div>
+
+      <div style="
+        text-align: center;
+        margin-top: 30px;
+      ">
+
+        <a href="https://marvelmarts.com/contact-us"
+          style="
+            background-color: ${COLORS.navy};
+            color: #ffffff;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+          ">
+          Contact Support
+        </a>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+
+    subject: `Support Case Resolved • ${ticketId}`,
+
+    html: wrapLayout(
+      content,
+      "Your support request has been resolved."
+    ),
   });
 }

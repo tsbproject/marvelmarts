@@ -268,61 +268,108 @@ export const authOptions: NextAuthOptions = {
         
 
   callbacks: {
-    async jwt({ token, user, trigger }) {
-      if (user) {
+    async jwt({ token, user, trigger, session }) {
+
+        if (user) {
         token.userId = user.id;
-        token.role = user.role;
-        token.roles = user.roles;
-        token.permissions = user.permissions;
-        token.vendorStatus = user.vendorStatus;
-        token.vendorProfileId = user.vendorProfileId;
-        token.isSuspended = user.isSuspended;
-        token.balance = user.balance;
-        token.rejectionReason = user.rejectionReason;
-        token.identityDoc = user.identityDoc;
-        token.businessDoc = user.businessDoc;
-        token.locationDoc = user.locationDoc;
-        token.lastSync = Math.floor(Date.now() / 1000);
-      }
-
-      // Refresh every hour or on update trigger
-      if (trigger === "update" || (token.userId && (!token.lastSync || Math.floor(Date.now() / 1000) - token.lastSync > 3600))) {
-        const dbUser = await getFreshUserData(token.userId);
-        if (dbUser) {
-          token.role = dbUser.role ?? dbUser.roles?.[0] ?? "CUSTOMER";
-          token.roles = dbUser.roles?.length ? dbUser.roles : ["CUSTOMER"];
-          token.permissions = normalizePermissions(dbUser.permissions, dbUser.adminProfile?.permissions);
-          token.vendorStatus = dbUser.vendorProfile?.status;
-          token.isSuspended = dbUser.vendorProfile?.isSuspended || false;
-          token.balance = Number(dbUser.vendorProfile?.balance || 0);
-          token.rejectionReason = dbUser.vendorProfile?.rejectionReason || null;
-          token.identityDoc = dbUser.vendorProfile?.identityDoc || null;
-          token.businessDoc = dbUser.vendorProfile?.businessDoc || null;
-          token.locationDoc = dbUser.vendorProfile?.locationDoc || null;
-          token.lastSync = Math.floor(Date.now() / 1000);
+              token.role = user.role;
+              token.roles = user.roles;
+              token.permissions = user.permissions;
+              token.vendorStatus = user.vendorStatus;
+              token.vendorProfileId = user.vendorProfileId;
+              token.isSuspended = user.isSuspended;
+              token.balance = user.balance;
+              token.rejectionReason = user.rejectionReason;
+              token.identityDoc = user.identityDoc;
+              token.businessDoc = user.businessDoc;
+              token.locationDoc = user.locationDoc;
+              token.lastSync = Math.floor(Date.now() / 1000);
         }
-      }
 
-      return token;
-    },
+        if (trigger === "update" && session) {
 
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.userId;
-        session.user.role = token.role;
-        session.user.roles = token.roles ?? ["CUSTOMER"];
-        session.user.permissions = token.permissions || {};
-        session.user.vendorStatus = token.vendorStatus;
-        session.user.vendorProfileId = token.vendorProfileId;
-        session.user.isSuspended = token.isSuspended;
-        session.user.balance = token.balance;
-        session.user.rejectionReason = token.rejectionReason;
-        session.user.identityDoc = token.identityDoc;
-        session.user.businessDoc = token.businessDoc;
-        session.user.locationDoc = token.locationDoc;
-      }
-      return session;
-    },
+          if (session.vendorStatus) {
+            token.vendorStatus = session.vendorStatus as VendorStatus;
+          }
+
+        }
+
+        // Refresh every hour or on update trigger
+        if (
+          trigger === "update" ||
+          (
+            token.userId &&
+            (
+              !token.lastSync ||
+              Math.floor(Date.now() / 1000) - token.lastSync > 3600
+            )
+          )
+        ) {
+
+          const dbUser = await getFreshUserData(token.userId);
+
+          if (dbUser) {
+
+            token.role = dbUser.role ?? dbUser.roles?.[0] ?? "CUSTOMER";
+
+            token.roles = dbUser.roles?.length
+              ? dbUser.roles
+              : ["CUSTOMER"];
+
+            token.vendorProfileId = dbUser.vendorProfile?.id;
+
+            token.permissions = normalizePermissions(
+              dbUser.permissions,
+              dbUser.adminProfile?.permissions
+            );
+
+            token.vendorStatus = dbUser.vendorProfile?.status;
+
+            token.isSuspended =
+              dbUser.vendorProfile?.isSuspended || false;
+
+            token.balance = Number(
+              dbUser.vendorProfile?.balance || 0
+            );
+
+            token.rejectionReason =
+              dbUser.vendorProfile?.rejectionReason || null;
+
+            token.identityDoc =
+              dbUser.vendorProfile?.identityDoc || null;
+
+            token.businessDoc =
+              dbUser.vendorProfile?.businessDoc || null;
+
+            token.locationDoc =
+              dbUser.vendorProfile?.locationDoc || null;
+
+            token.lastSync = Math.floor(Date.now() / 1000);
+
+          }
+
+        }
+
+        return token;
+      },
+
+      async session({ session, token }) {
+        if (token && session.user) {
+          session.user.id = token.userId;
+          session.user.role = token.role;
+          session.user.roles = token.roles ?? ["CUSTOMER"];
+          session.user.permissions = token.permissions || {};
+          session.user.vendorStatus = token.vendorStatus;
+          session.user.vendorProfileId = token.vendorProfileId;
+          session.user.isSuspended = token.isSuspended;
+          session.user.balance = token.balance;
+          session.user.rejectionReason = token.rejectionReason;
+          session.user.identityDoc = token.identityDoc;
+          session.user.businessDoc = token.businessDoc;
+          session.user.locationDoc = token.locationDoc;
+        }
+        return session;
+      },
   },
 };
 

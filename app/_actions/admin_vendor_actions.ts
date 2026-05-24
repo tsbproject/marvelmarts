@@ -11,15 +11,19 @@ export async function reviewVendorAccount(
   try {
     if (action === "APPROVE") {
       await prisma.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: {
-          status: "APPROVED",
-          isVerified: true, // This enables the "Verified Badge" on the storefront
-          user: {
-            update: { role: "VENDOR" } // Ensures role foundation is synced
-          }
-        },
-      });
+          where: { id: vendorProfileId },
+          data: {
+            status: "APPROVED",
+            isVerified: true,
+
+            user: {
+              update: {
+                role: "VENDOR",
+                roles: ["CUSTOMER", "VENDOR"],
+              }
+            }
+          },
+        });
     } else {
       await prisma.vendorProfile.update({
         where: { id: vendorProfileId },

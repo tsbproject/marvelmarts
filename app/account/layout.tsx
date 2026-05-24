@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -135,10 +137,49 @@ useEffect(() => {
   }
 }, [isNewOrIncompleteVendor, router]);
 
+
 const vendorLocked =
-  isVendorZone &&
-  !isAdmin &&
-  (vendorStatus !== "APPROVED" || isSuspended);
+  authStatus === "loading"
+    ? true
+    : (
+        isVendorZone &&
+        !isAdmin &&
+        session?.user?.vendorStatus &&
+        (
+          vendorStatus !== "APPROVED" ||
+          isSuspended
+        )
+      );
+
+    const sessionReady =
+      authStatus === "authenticated" &&
+      !!session?.user &&
+      (
+        activeZone !== "VENDOR" ||
+        (
+          !!session?.user?.vendorProfileId &&
+          !!session?.user?.vendorStatus
+        )
+      );
+
+      // if (!sessionReady) {
+      //   return (
+      //     <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center">
+      //       <div className="flex flex-col items-center gap-3">
+      //         <div className="animate-spin text-[#F7931E]">
+      //           <RefreshCw size={24} />
+      //         </div>
+
+      //         <div className="font-black text-[#002B5B] uppercase tracking-widest text-[10px]">
+      //           Syncing Vendor Dashboard...
+      //         </div>
+      //       </div>
+      //     </div>
+      //   );
+      // }
+
+
+
 
 const showSuspendedBanner = isVendorZone && isSuspended;
 
@@ -181,7 +222,7 @@ const showReviewBanner =
             user={session?.user}
             sections={DASHBOARD_CONFIG[activeZone]}
             vendorLocked={vendorLocked}
-            roles={"VENDOR"}
+            // roles={"VENDOR"}
           />
         </aside>
       )}
