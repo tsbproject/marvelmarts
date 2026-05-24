@@ -23,7 +23,7 @@ import { CategoryWithChildren as CategoryTree } from "../layout";
 const menuItems = [
   { label: "Sell On MarvelMarts", href: "/auth/register/vendor-registration", icon: <Store className="w-5 h-5" /> },
   { label: "Marvelmarts FAQs", href: "/faqs", icon: <HelpCircle className="w-5 h-5" /> },
-  { label: "Track Orders", href: "/orders/track-order", icon: <Package className="w-5 h-5" />, highlight: true },
+  { label: "Track Orders", href: "/track-order", icon: <Package className="w-5 h-5" />, highlight: true },
   { label: "My Cart", href: "/cart", icon: <ShoppingCart className="w-5 h-5" /> },
   { label: "Languages", href: "#", icon: <Globe className="w-5 h-5" />, hasSubmenu: true },
   { label: "Wishlist", href: "/wishlist", icon: <Heart className="w-5 h-5 text-red-500" /> },
@@ -105,9 +105,16 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
               {/* Branding Header */}
               <div className="flex items-center justify-between px-6 py-5 bg-neutral-white border-b border-gray-100">
                 <div>
-                  <h2 className="text-xl font-black text-accent-navy tracking-tight italic">
-                    MARVELMARTS
-                  </h2>
+                  <img
+                    src="/logo1-blue.png"
+                    alt="Marvelmarts logo"
+                    width={100}
+                    height={60}
+                  //    style={{ width: 'auto', height: 'auto' }}
+                      // priority
+                      // quality={100}
+                    className="object-contain w-50"
+                  />
                   <p className="text-[10px] text-neutral-gray uppercase tracking-widest font-bold">
                     Premium Marketplace
                   </p>
@@ -198,7 +205,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                                   <div className="p-2 bg-accent-navy/5 rounded-lg text-accent-navy">
                                     {item.icon}
                                   </div>
-                                  <span className="text-md">{item.label}</span>
+                                  <span className="text-sm">{item.label}</span>
                                 </div>
                                 <ChevronRight
                                   className={`w-4 h-4 transition-transform duration-300 ${
@@ -221,7 +228,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                                 <div className={`p-2 rounded-lg ${item.highlight ? "bg-neutral-white/20 text-neutral-white" : "bg-accent-navy/5 text-accent-navy"}`}>
                                   {item.icon}
                                 </div>
-                                <span className="text-[13px] font-bold">
+                                <span className="text-[10px] font-bold">
                                   {item.label}
                                 </span>
                               </div>
