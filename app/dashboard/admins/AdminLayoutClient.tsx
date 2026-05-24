@@ -860,17 +860,10 @@ export default function AdminLayoutClient({
             <MobileTopbar
               role={currentRole}
               sections={sections}
-              isSuperAdmin={
-                isSuperAdmin
-              }
-              todayRevenue={
-                todayRevenue
-              }
+              isSuperAdmin={isSuperAdmin}
+              todayRevenue={todayRevenue}
               user={user}
-              permissions={
-                permissions
-              }
-            />
+              permissions={permissions} roles={"CUSTOMER"}            />
 
           </div>
 
