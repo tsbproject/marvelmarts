@@ -9,7 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-export default function CustomerInsightsChart({ data }) {
+export default function CustomerInsightsChart({ data }: { data: { name: string; value: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
 
