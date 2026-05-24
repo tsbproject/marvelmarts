@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
 // 1. BRAND CONFIGURATION
@@ -26,22 +26,23 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 //   },
 // });
 
-export const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
+// export const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST,
+//   port: Number(process.env.SMTP_PORT),
+//   secure: process.env.SMTP_SECURE === "true",
   
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS,
+//   },
+// });
 
 
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFrom =
-  process.env.EMAIL_FROM || "MarvelMarts <noreply@marvelmarts.com>";
+  process.env.RESEND_FROM_EMAIL ||
+  "MarvelMarts <noreply@marvelmarts.com>";
 
 if (!resendApiKey) {
   throw new Error("Missing RESEND_API_KEY in environment variables");
@@ -586,7 +587,7 @@ export async function sendAdminOrderNotification(order: any) {
   });
 }
 
-// ... (Your existing COLORS, LOGO_URL, and wrapLayout are already here)
+
 
 export const sendPayoutStatusEmail = async (
   to: string, 
@@ -642,12 +643,16 @@ export const sendPayoutStatusEmail = async (
   const html = wrapLayout(content, previewText);
 
   // 3. Send via your existing transport logic
-  return await transporter.sendMail({
-    from: `"MarvelMarts Treasury" <${process.env.SMTP_HOST}>`,
-    to,
-    subject: `PAYOUT ${status}: ${formattedAmount}`,
-    html,
-  });
+  return await sendEmail({
+      to,
+
+      subject: `PAYOUT ${status}: ${formattedAmount}`,
+
+      html,
+
+      from:
+        "MarvelMarts Treasury <noreply@marvelmarts.com>",
+    });
 };
 
 
