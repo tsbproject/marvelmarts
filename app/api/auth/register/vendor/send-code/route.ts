@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { VerificationType } from "@prisma/client";
 import crypto from "crypto";
-import { sendVerificationEmailWithNodemailer } from "@/app/lib/mailer";
+import { sendVerificationEmail } from "@/app/lib/mailer";
 
 export async function POST(req: Request) {
   try {
@@ -34,13 +34,19 @@ export async function POST(req: Request) {
     });
 
     // 3. Send Mail
-    await sendVerificationEmailWithNodemailer(
-      email, 
-      code, 
-      verification.id, 
-      firstName || "Valued Merchant", 
-      "VENDOR"
-    );
+   await sendVerificationEmail({
+            email,
+
+            code,
+
+            uid: verification.id,
+
+            name:
+              firstName ||
+              "Valued Merchant",
+
+            type: "VENDOR",
+          });
 
     return NextResponse.json({ 
       success: true, 

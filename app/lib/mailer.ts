@@ -89,46 +89,307 @@ export async function sendEmail({
 
 // 3. THE MASTER LAYOUT WRAPPER
 // This function wraps any "body" content in the official MarvelMarts frame.
-const wrapLayout = (content: string, previewText: string = "Notification from MarvelMarts") => `
+const wrapLayout = (
+  content: string,
+  previewText: string =
+    "Notification from MarvelMarts"
+) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <style>
-    body { margin: 0; padding: 0; background-color: ${COLORS.ghost}; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
-    .main-button:hover { background-color: #001f41 !important; }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: ${COLORS.ghost};
+      font-family:
+        'Segoe UI',
+        Tahoma,
+        Arial,
+        sans-serif;
+    }
+
+    .main-button:hover {
+      background-color:
+        #001f41 !important;
+    }
+
+    a {
+      transition: all 0.2s ease;
+    }
   </style>
 </head>
+
 <body>
-  <div style="display: none; max-height: 0px; overflow: hidden;">${previewText}</div>
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: ${COLORS.ghost}; padding: 20px 0;">
+
+  <!-- PREVIEW TEXT -->
+  <div
+    style="
+      display: none;
+      max-height: 0px;
+      overflow: hidden;
+      opacity: 0;
+    "
+  >
+    ${previewText}
+  </div>
+
+  <table
+    border="0"
+    cellpadding="0"
+    cellspacing="0"
+    width="100%"
+    style="
+      background-color:
+        ${COLORS.ghost};
+      padding: 20px 0;
+    "
+  >
+
     <tr>
+
       <td align="center">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+        <table
+          border="0"
+          cellpadding="0"
+          cellspacing="0"
+          width="100%"
+          style="
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow:
+              0 4px 12px
+              rgba(0,0,0,0.05);
+          "
+        >
+
+          <!-- HEADER -->
           <tr>
-            <td align="center" style="background-color: ${COLORS.navy}; padding: 40px 20px;">
-              <img src="${LOGO_URL}" alt="MarvelMarts" width="200" style="display: block;" />
-              <p style="color: #ffffff; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-top: 15px; opacity: 0.8;">Official Notification</p>
+
+            <td
+              align="center"
+              style="
+                background-color:
+                  ${COLORS.navy};
+                padding: 40px 20px;
+              "
+            >
+
+              <img
+                src="${LOGO_URL}"
+                alt="MarvelMarts"
+                width="200"
+                style="display: block;"
+              />
+
+              <p
+                style="
+                  color: #ffffff;
+                  font-size: 10px;
+                  text-transform: uppercase;
+                  letter-spacing: 2px;
+                  margin-top: 15px;
+                  opacity: 0.8;
+                "
+              >
+                Official Notification
+              </p>
+
+              <!-- SLOGAN -->
+              <p
+                style="
+                  color: rgba(255,255,255,0.75);
+                  font-size: 12px;
+                  margin-top: 10px;
+                  line-height: 1.7;
+                  max-width: 420px;
+                "
+              >
+                Africa's trusted digital marketplace
+                for seamless buying, selling,
+                and business growth.
+              </p>
+
             </td>
+
           </tr>
+
+          <!-- CONTENT -->
           <tr>
-            <td style="padding: 40px 30px; color: ${COLORS.black}; line-height: 1.6;">
+
+            <td
+              style="
+                padding: 40px 30px;
+                color: ${COLORS.black};
+                line-height: 1.6;
+              "
+            >
+
               ${content}
+
             </td>
+
           </tr>
+
+          <!-- FOOTER -->
           <tr>
-            <td align="center" style="background-color: #F9FAFB; padding: 30px; border-top: 1px solid #EEEEEE; color: ${COLORS.gray}; font-size: 13px;">
-              <p style="margin: 0; font-weight: bold; color: ${COLORS.navy};">MarvelMarts HQ</p>
-              <p style="margin: 5px 0;">Lekki, Lagos, Nigeria</p>
-              <p style="margin: 5px 0;"><a href="mailto:support@marvelmarts.com" style="color: ${COLORS.navy}; text-decoration: none;">support@marvelmarts.com</a></p>
-              <p style="margin-top: 20px; font-size: 11px; opacity: 0.6;">&copy; 2026 MarvelMarts. All rights reserved.</p>
+
+            <td
+              align="center"
+              style="
+                background-color: #F9FAFB;
+                padding: 35px 30px;
+                border-top:
+                  1px solid #EEEEEE;
+                color: ${COLORS.gray};
+                font-size: 13px;
+              "
+            >
+
+              <!-- COMPANY -->
+              <p
+                style="
+                  margin: 0;
+                  font-weight: bold;
+                  color: ${COLORS.navy};
+                  font-size: 15px;
+                "
+              >
+                MarvelMarts HQ
+              </p>
+
+              <p
+                style="
+                  margin: 6px 0 14px;
+                "
+              >
+                Lekki, Lagos, Nigeria
+              </p>
+
+              <!-- CONTACT -->
+              <p style="margin: 5px 0;">
+
+                <a
+                  href="mailto:support@marvelmarts.com"
+                  style="
+                    color: ${COLORS.navy};
+                    text-decoration: none;
+                    font-weight: 600;
+                  "
+                >
+                  support@marvelmarts.com
+                </a>
+
+              </p>
+
+              <!-- QUICK LINKS -->
+              <div
+                style="
+                  margin-top: 25px;
+                  margin-bottom: 10px;
+                "
+              >
+
+                <a
+                  href="https://marvelmarts.com"
+                  style="
+                    color: ${COLORS.navy};
+                    text-decoration: none;
+                    font-weight: 700;
+                    margin: 0 10px;
+                    display: inline-block;
+                  "
+                >
+                  Website
+                </a>
+
+                <span style="color:#D1D5DB;">
+                  |
+                </span>
+
+                <a
+                  href="https://marvelmarts.com/support"
+                  style="
+                    color: ${COLORS.navy};
+                    text-decoration: none;
+                    font-weight: 700;
+                    margin: 0 10px;
+                    display: inline-block;
+                  "
+                >
+                  Help Center
+                </a>
+
+                <span style="color:#D1D5DB;">
+                  |
+                </span>
+
+                <a
+                  href="https://marvelmarts.com/contact-us"
+                  style="
+                    color: ${COLORS.navy};
+                    text-decoration: none;
+                    font-weight: 700;
+                    margin: 0 10px;
+                    display: inline-block;
+                  "
+                >
+                  Contact Us
+                </a>
+
+              </div>
+
+              <!-- FOOTER SLOGAN -->
+              <p
+                style="
+                  margin-top: 22px;
+                  font-size: 12px;
+                  line-height: 1.8;
+                  color: ${COLORS.gray};
+                  max-width: 430px;
+                "
+              >
+                MarvelMarts is building the future
+                of digital commerce in Africa —
+                empowering businesses and customers
+                through secure, modern,
+                and seamless online experiences.
+              </p>
+
+              <!-- COPYRIGHT -->
+              <p
+                style="
+                  margin-top: 24px;
+                  font-size: 11px;
+                  opacity: 0.6;
+                "
+              >
+                &copy; 2026 MarvelMarts.
+                All rights reserved.
+              </p>
+
             </td>
+
           </tr>
+
         </table>
+
       </td>
+
     </tr>
+
   </table>
+
 </body>
 </html>
 `;
@@ -153,23 +414,264 @@ const wrapLayout = (content: string, previewText: string = "Notification from Ma
 // --- 5. EXPORTED EMAIL FUNCTIONS ---
 
 // AUTH: Verification
-export async function sendVerificationEmailWithNodemailer(email: string, code: string, uid: string, name: string, type: "CUSTOMER" | "VENDOR") {
-  const isVendor = type === "VENDOR";
-  const verifyLink = `${BASE_URL}/auth/verify/verify-${isVendor ? 'vendor' : 'customer'}?uid=${uid}`;
+
+export async function sendVerificationEmail({
+  email, code, uid, name, type,
+}: {
+  email: string;
+
+  code: string;
+
+  uid: string;
+
+  name: string;
+
+  type: "CUSTOMER" | "VENDOR";
+}) {
+
+  const isVendor =
+    type === "VENDOR";
+
+ const verifyLink =
+  `${BASE_URL}/auth/verify/verify-${
+    isVendor
+      ? "vendor"
+      : "customer"
+  }?uid=${uid}`;
+  
+  
   const content = `
-    <h2>Hello ${name},</h2>
-    <p>Thank you for joining MarvelMarts! Please use the code below to verify your account:</p>
-    <div style="background: ${COLORS.ghost}; padding: 30px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: ${COLORS.navy}; border-radius: 12px; margin: 20px 0;">
-      ${code}
+    <div style="
+      font-family: Helvetica, Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+    ">
+
+      <!-- HEADER -->
+      <div style="text-align:center; margin-bottom:30px;">
+
+        <h1 style="
+          color: ${COLORS.navy};
+          font-size: 34px;
+          font-weight: 900;
+          font-style: italic;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+          letter-spacing: -1px;
+        ">
+          Verify Your Identity
+        </h1>
+
+        <p style="
+          color: ${COLORS.gray};
+          font-size: 13px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          margin-top:0;
+        ">
+          Secure Account Verification
+        </p>
+
+      </div>
+
+      <!-- INTRO -->
+      <p style="
+        font-size: 15px;
+        color: ${COLORS.black};
+        line-height: 1.7;
+      ">
+        Hello <strong>${name}</strong>,
+      </p>
+
+      <p style="
+        font-size: 15px;
+        color: ${COLORS.black};
+        line-height: 1.7;
+      ">
+        Welcome to <strong>MarvelMarts</strong>.
+        Enter this verification code inside the app to confirm your email address and unlock all platform features.
+      </p>
+
+      <!-- CODE BOX -->
+      <div style="
+       background: ${COLORS.navy};
+        padding: 35px 20px;
+        text-align: center;
+        border-radius: 20px;
+        margin: 35px 0;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      ">
+
+        <p style="
+          color: rgba(255,255,255,0.7);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-bottom: 15px;
+        ">
+          Verification Code
+        </p>
+
+        <div style="
+          color: white;
+          font-size: 38px;
+          font-weight: 900;
+          letter-spacing: 10px;
+          font-family: monospace;
+        ">
+          ${code}
+        </div>
+
+      </div>
+
+      <!-- CTA -->
+      <div style="
+        text-align:center;
+        margin: 35px 0;
+      ">
+
+        <a
+          href="${verifyLink}"
+          style="
+            background-color: ${COLORS.orange};
+            color: white;
+            padding: 16px 32px;
+            border-radius: 14px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            box-shadow: 0 10px 20px rgba(247,147,30,0.25);
+          "
+        >
+          Verify My Account
+        </a>
+
+      </div>
+
+      <!-- SECURITY NOTICE -->
+      <div style="
+        background-color: ${COLORS.orangeLight};
+        border-left: 5px solid ${COLORS.orange};
+        padding: 18px 20px;
+        border-radius: 12px;
+        margin: 30px 0;
+      ">
+
+        <p style="
+          margin:0;
+          color:${COLORS.black};
+          font-size:14px;
+          line-height:1.7;
+        ">
+          <strong>Important:</strong>
+          This verification code will expire in
+          <strong>15 minutes</strong>
+          for security reasons.
+        </p>
+
+      </div>
+
+      <!-- SPAM HELP -->
+      <div style="
+        margin-top: 40px;
+        padding: 25px;
+        background-color: #F9FAFB;
+        border-radius: 18px;
+        border: 1px solid #EEEEEE;
+      ">
+
+        <h3 style="
+          margin-top:0;
+          color:${COLORS.navy};
+          font-size:16px;
+          font-weight:900;
+          text-transform:uppercase;
+        ">
+          Did this email land in spam?
+        </h3>
+
+        <p style="
+          font-size:14px;
+          color:${COLORS.gray};
+          line-height:1.7;
+        ">
+          To ensure you continue receiving important updates from MarvelMarts:
+        </p>
+
+        <ol style="
+          padding-left: 18px;
+          color:${COLORS.black};
+          font-size:14px;
+          line-height:1.9;
+        ">
+          <li>
+            Click
+            <strong>
+              "Not Spam"
+            </strong>
+            or
+            <strong>
+              "Move to Inbox"
+            </strong>
+          </li>
+
+          <li>
+            Add
+            <strong>
+              noreply@marvelmarts.com
+            </strong>
+            to your contacts
+          </li>
+        </ol>
+
+        <p style="
+          font-size:13px;
+          color:${COLORS.gray};
+          margin-top:15px;
+          line-height:1.7;
+        ">
+          This helps ensure you receive order updates,
+          support replies, shipping notifications,
+          and important account alerts directly in your inbox.
+        </p>
+
+      </div>
+
+      <!-- FOOTER NOTICE -->
+      <p style="
+        margin-top:40px;
+        font-size:12px;
+        color:#9CA3AF;
+        line-height:1.8;
+        text-align:center;
+      ">
+        If you did not create an account with MarvelMarts,
+        you can safely ignore this email.
+        No further action is required.
+      </p>
+
     </div>
-    <p>Or click the button below:</p>
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="${verifyLink}" style="background: ${COLORS.navy}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Account</a>
-    </div>
-    <p style="font-size: 12px; color: ${COLORS.gray};">This code expires in 15 minutes.</p>
   `;
-  return sendEmail({ to: email, subject: "Verify Your Account - MarvelMarts", html: wrapLayout(content, "Verification Code") });
+
+  return sendEmail({
+    to: email,
+
+    subject:
+      "Verify Your MarvelMarts Account",
+
+    html: wrapLayout(
+      content,
+      "Your MarvelMarts verification code"
+    ),
+  });
 }
+
+
 
 // AUTH: Password Reset
 export async function sendPasswordResetEmail(to: string, token: string) {
