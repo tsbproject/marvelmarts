@@ -48,7 +48,7 @@ import { SectionLink } from "@/types/dashboard";
 interface DashboardSidebarProps {
   children?: ReactNode;
   sections: any;
-   role:
+   roles:
     | "CUSTOMER"
     | "VENDOR"
     | "ADMIN"
@@ -71,7 +71,7 @@ type EnhancedLink = SectionLink & {
 const DashboardSidebar = memo(
   ({
     sections,
-    role: dashboardMode,
+    roles: dashboardMode,
     user: propUser,
     permissions,
     vendorLocked = false,
