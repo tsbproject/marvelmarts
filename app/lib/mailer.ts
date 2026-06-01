@@ -2115,7 +2115,39 @@ export {
     as sendAdminOrderNotification,
 } from "./mail/services/admin.service";
 
+
+
+
+
+
+
+export {
+  sendLowCreditEmail
+    as sendVendorLowCreditEmail,
+} from "./mail/services/vendor.service";
+
 export {
   sendCreditPurchaseEmail
     as sendVendorCreditPurchaseEmail,
+} from "./mail/services/vendor.service";
+
+export {
+  sendExhaustedCreditEmail
+    as sendVendorExhaustedCreditsEmail,
+} from "./mail/services/vendor.service";
+
+export {
+  sendVendorStatusEmail,
+} from "./mail/services/vendor.service";
+
+export {
+  sendVendorActionEmail,
+} from "./mail/services/vendor.service";
+
+export {
+  sendVendorReviewEmail,
+} from "./mail/services/vendor.service";
+
+export {
+  sendVendorApprovedEmail,
 } from "./mail/services/vendor.service";
