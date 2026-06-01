@@ -124,15 +124,38 @@ export async function sendOrderCancellationEmail(
 }
 
 export async function sendRefundStatusEmail(
-  data: RefundStatusData
+  order: any,
+  status: "approved" | "rejected",
+  reason?: string
 ) {
 
   const template =
-    refundStatusEmail(data);
+    refundStatusEmail({
+      orderNumber:
+        order.orderNumber,
+
+      firstName:
+        order.user?.firstName ||
+        order.firstName ||
+        "Customer",
+
+      email:
+        order.user?.email ||
+        order.email,
+
+      status,
+
+      reason,
+    });
 
   return sendEmail({
-    to: data.email,
-    subject: template.subject,
+    to:
+      order.user?.email ||
+      order.email,
+
+    subject:
+      template.subject,
+
     html: emailLayout(
       template.html,
       template.preview
