@@ -2089,13 +2089,21 @@
 //   });
 // }
 
+
+
+
+
 export * from "./mail";
 
+export {
+  sendSupportReceivedEmail
+    as sendSupportAcknowledgementEmail,
+} from "./mail/services/support.service";
 
 export {
-  sendCreditPurchaseEmail
-    as sendVendorCreditPurchaseEmail,
-} from "./mail/services/vendor.service";
+  sendAdminTicketEmail
+    as sendAdminSupportNotification,
+} from "./mail/services/support.service";
 
 export {
   sendAdminAlertEmail
@@ -2108,32 +2116,6 @@ export {
 } from "./mail/services/admin.service";
 
 export {
-  sendAdminTicketEmail
-    as sendAdminSupportNotification,
-} from "./mail/services/support.service";
-
-
-// export {
-//   sendVerificationEmail,
-//   sendPasswordResetEmail,
-// } from "./mail/services/auth.service";
-
-// export {
-//   sendOrderConfirmationEmail,
-//   sendShipmentNotificationEmail,
-//   sendDeliveryConfirmationEmail,
-// } from "./mail/services/order.service";
-
-// export {
-//   sendVendorApprovedEmail,
-//   sendVendorReviewEmail,
-// } from "./mail/services/vendor.service";
-
-// export {
-//   sendSupportReceivedEmail,
-//   sendSupportProgressEmail,
-// } from "./mail/services/support.service";
-
-// export {
-//   sendAdminAlertEmail,
-// } from "./mail/services/admin.service";
+  sendCreditPurchaseEmail
+    as sendVendorCreditPurchaseEmail,
+} from "./mail/services/vendor.service";
