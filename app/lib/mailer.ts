@@ -113,18 +113,3 @@ export async function sendAdminSupportNotification(
 
 
 
-export async function sendAdminSupportNotification(
-  data: AdminTicketData
-) {
-
-  const admins =
-    process.env.ADMIN_EMAILS
-      ?.split(",")
-      .map(email => email.trim())
-      .filter(Boolean) || [];
-
-  return sendAdminTicketEmail(
-    admins,
-    data
-  );
-}
