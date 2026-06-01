@@ -19,9 +19,9 @@ export function shipmentNotificationEmail(
       </h1>
 
       <p>
-        Hello ${order.firstName},
-        your order has been shipped.
-      </p>
+      Hello ${order.firstName || "Customer"},
+      your order has been shipped.
+    </p>
 
       <div
         style="

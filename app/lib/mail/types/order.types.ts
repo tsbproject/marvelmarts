@@ -14,7 +14,7 @@ export interface OrderConfirmationData {
 
 export interface ShipmentNotificationData {
   orderNumber: string;
-  firstName: string;
+  firstName?: string | null;
   email: string;
   trackingNumber?: string;
 }
