@@ -18,7 +18,7 @@ export function orderCancellationEmail(
       </h1>
 
       <p>
-        Hello ${order.firstName},
+         Hello ${order.firstName || "Customer"},
       </p>
 
       <p>

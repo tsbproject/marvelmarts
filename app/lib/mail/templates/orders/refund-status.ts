@@ -25,7 +25,7 @@ export function refundStatusEmail(
       </h1>
 
       <p>
-        Hello ${order.firstName},
+        Hello  Hello ${order.firstName || "Customer"},
       </p>
 
       <p>

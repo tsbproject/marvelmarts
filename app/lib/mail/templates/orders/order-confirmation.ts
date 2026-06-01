@@ -33,7 +33,7 @@ export function orderConfirmationEmail(
       </p>
 
       <p>
-        Hi <strong>${order.firstName}</strong>,
+        Hi <strong> Hello ${order.firstName || "Customer"},</strong>,
         your order has been successfully received.
       </p>
 

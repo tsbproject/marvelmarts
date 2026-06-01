@@ -18,7 +18,7 @@ export function deliveryConfirmationEmail(
       </h1>
 
       <p>
-        Hi ${order.firstName},
+        Hi  Hello ${order.firstName || "Customer"},
         your order
         #${order.orderNumber}
         has been delivered.
