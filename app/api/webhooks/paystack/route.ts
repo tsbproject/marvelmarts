@@ -1,122 +1,3 @@
-// import { prisma } from "@/app/lib/prisma";
-// import { NextResponse } from "next/server";
-// import crypto from "crypto";
-// import { addCreditsToVendor } from "@/app/_actions/boostActions";
-
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.text();
-
-//     const hash = crypto
-//       .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!)
-//       .update(body)
-//       .digest("hex");
-
-//     if (hash !== req.headers.get("x-paystack-signature")) {
-//       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-//     }
-
-//     const event = JSON.parse(body);
-
-//     if (event.event === "charge.success") {
-//       const { reference, metadata } = event.data;
-
-//       console.log("💰 Paystack charge success:", reference);
-
-//       /**
-//        *  PREVENT DUPLICATE PROCESSING
-//        */
-//       const existingTransaction = await prisma.creditTransaction.findUnique({
-//         where: { reference },
-//       });
-
-//       if (existingTransaction) {
-//         console.log("⚠️ Duplicate webhook ignored:", reference);
-//         return NextResponse.json({ received: true });
-//       }
-
-//       /**
-//        *  CASE 1: CREDIT PURCHASE
-//        */
-//       if (metadata?.custom_fields) {
-//         const fields = metadata.custom_fields;
-
-//         const vendorIdField = fields.find(
-//           (f: any) => f.variable_name === "vendor_id"
-//         );
-
-//         const creditsField = fields.find(
-//           (f: any) => f.variable_name === "credits"
-//         );
-
-//         if (vendorIdField && creditsField) {
-//           const vendorProfileId = vendorIdField.value;
-//           const credits = Number(creditsField.value);
-
-//           console.log(
-//             `🎯 Credit Purchase → Vendor: ${vendorProfileId}, Credits: ${credits}`
-//           );
-
-//           const result = await addCreditsToVendor(
-//             vendorProfileId,
-//             credits,
-//             reference
-//           );
-
-//           if (!result.success) {
-//             console.error("❌ Credit update failed:", result.error);
-//             return NextResponse.json(
-//               { error: "Credit update failed" },
-//               { status: 500 }
-//             );
-//           }
-
-//           console.log(" Credits successfully added");
-
-//           return NextResponse.json({ received: true });
-//         }
-//       }
-
-//       /**
-//        *  CASE 2: NORMAL ORDER
-//        */
-//       if (metadata?.orderId) {
-//         const existingOrder = await prisma.order.findUnique({
-//           where: { id: metadata.orderId },
-//         });
-
-//         if (existingOrder?.paymentStatus) {
-//           console.log("⚠️ Order already processed:", metadata.orderId);
-//           return NextResponse.json({ received: true });
-//         }
-
-//         await prisma.order.update({
-//           where: { id: metadata.orderId },
-//           data: {
-//             paymentStatus: true,
-//             status: "processing",
-//             paymentIntentId: reference,
-//           },
-//         });
-
-//         console.log(`📦 Order ${metadata.orderId} verified and paid.`);
-//       }
-//     }
-
-//     return NextResponse.json({ received: true });
-//   } catch (error: any) {
-//     console.error("❌ Webhook Error:", error.message);
-
-//     return NextResponse.json(
-//       { error: error.message },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-
-
 import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
@@ -125,6 +6,10 @@ import {
   sendOrderConfirmationEmail,
   sendAdminOrderNotification,
 } from "@/app/lib/mailer";
+
+import {
+  mapOrderToOrderConfirmationEmail,
+} from "@/app/lib/mail/mappers/order.mapper";
 
 export async function POST(req: Request) {
   try {
@@ -265,9 +150,16 @@ export async function POST(req: Request) {
 
       try {
         await Promise.all([
-          sendOrderConfirmationEmail(updatedOrder),
-          sendAdminOrderNotification(updatedOrder),
-        ]);
+          sendOrderConfirmationEmail(
+            mapOrderToOrderConfirmationEmail(
+              updatedOrder
+            )
+          ),
+
+  sendAdminOrderNotification(
+    updatedOrder
+  ),
+]);
 
         if (!updatedOrder.emailSent) {
           await prisma.order.update({
