@@ -44,8 +44,12 @@ export async function POST(req: Request) {
       },
     });
 
-    // ✅ Send email
-    await sendPasswordResetEmail(user.email, resetCode);
+    // Send email
+
+      await sendPasswordResetEmail({
+        email: user.email,
+        token: resetCode,
+      });
 
     return Response.json(
       { success: true, message: "Password reset code sent successfully" },
