@@ -2118,7 +2118,10 @@ export {
 
 
 
-
+export {
+  sendLowCreditEmail
+    as sendVendorLowCreditsEmail,
+} from "./mail/services/vendor.service";
 
 
 export {
