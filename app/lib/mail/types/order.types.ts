@@ -1,3 +1,6 @@
+import { Prisma } from "@prisma/client";
+
+
 export interface OrderItem {
   title: string;
   qty: number;
@@ -8,7 +11,7 @@ export interface OrderConfirmationData {
   orderNumber: string;
    firstName?: string | null;
    email: string | null;
-  total: number;
+  total: number | Prisma.Decimal;
   items: OrderItem[];
 }
 
