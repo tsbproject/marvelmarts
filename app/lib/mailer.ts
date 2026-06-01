@@ -2092,6 +2092,17 @@
 
 
 
+import type {
+  AdminAlertData,
+} from "./mail/types/admin.types";
+
+import {
+  sendAdminAlertEmail,
+} from "./mail/services/admin.service";
+
+
+
+
 
 export * from "./mail";
 
@@ -2105,16 +2116,12 @@ export {
     as sendAdminSupportNotification,
 } from "./mail/services/support.service";
 
-export {
-  sendAdminAlertEmail
-    as sendAdminAlert,
-} from "./mail/services/admin.service";
 
-export {
-  sendAdminOrderEmail
-    as sendAdminOrderNotification,
-} from "./mail/services/admin.service";
 
+
+import {
+  sendAdminOrderEmail,
+} from "./mail/services/admin.service";
 
 
 
@@ -2154,3 +2161,40 @@ export {
 export {
   sendVendorApprovedEmail,
 } from "./mail/services/vendor.service";
+
+
+
+
+export async function sendAdminAlert(
+  data: AdminAlertData
+) {
+
+  const admins =
+    process.env.ADMIN_EMAILS
+      ?.split(",")
+      .map(email => email.trim())
+      .filter(Boolean) || [];
+
+  return sendAdminAlertEmail(
+    admins,
+    data
+  );
+}
+
+
+
+export async function sendAdminOrderNotification(
+  data: any
+) {
+
+  const admins =
+    process.env.ADMIN_EMAILS
+      ?.split(",")
+      .map(email => email.trim())
+      .filter(Boolean) || [];
+
+  return sendAdminOrderEmail(
+    admins,
+    data
+  );
+}
