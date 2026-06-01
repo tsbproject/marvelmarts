@@ -5,6 +5,10 @@ import {
   sendAdminOrderNotification,
 } from "@/app/lib/mailer";
 
+import {
+  mapOrderToOrderConfirmationEmail,
+} from "@/app/lib/mail/mappers/order.mapper";
+
 export async function POST(req: Request) {
   try {
     const { reference, orderId } = await req.json();
@@ -105,8 +109,15 @@ export async function POST(req: Request) {
       console.log(`Dispatching emails for Order: ${updatedOrder.orderNumber}`);
 
       await Promise.all([
-        sendOrderConfirmationEmail(updatedOrder),
-        sendAdminOrderNotification(updatedOrder),
+        sendOrderConfirmationEmail(
+          mapOrderToOrderConfirmationEmail(
+            updatedOrder
+          )
+        ),
+
+        sendAdminOrderNotification(
+          updatedOrder
+        ),
       ]);
 
       console.log("All notifications sent successfully");

@@ -9,9 +9,9 @@ export interface OrderItem {
 
 export interface OrderConfirmationData {
   orderNumber: string;
-   firstName?: string | null;
-   email: string | null;
-  total: number | Prisma.Decimal;
+  firstName: string;
+  email: string;
+  total: number;
   items: OrderItem[];
 }
 
