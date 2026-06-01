@@ -29,12 +29,17 @@ import {
 } from "../templates/vendor/exshausted-credit";
 
 import {
+  vendorStatusEmail,
+} from "../templates/vendor/vendor-status";
+
+import {
   VendorApprovalData,
   VendorReviewData,
   VendorActionData,
   VendorCreditPurchaseData,
   VendorLowCreditData,
   VendorExhaustedCreditData,
+  VendorStatusData,
 } from "../types/vendor.types";
 
 export async function sendVendorApprovedEmail(
@@ -128,6 +133,23 @@ export async function sendExhaustedCreditEmail(
 
   const template =
     exhaustedCreditEmail(data);
+
+  return sendEmail({
+    to: data.email,
+    subject: template.subject,
+    html: emailLayout(
+      template.html,
+      template.preview
+    ),
+  });
+}
+
+export async function sendVendorStatusEmail(
+  data: VendorStatusData
+) {
+
+  const template =
+    vendorStatusEmail(data);
 
   return sendEmail({
     to: data.email,

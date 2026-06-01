@@ -40,3 +40,17 @@ export interface VendorExhaustedCreditData {
   firstName: string;
   storeName: string;
 }
+
+
+export interface VendorStatusData {
+  email: string;
+  firstName: string;
+  storeName: string;
+  status:
+    | "APPROVED"
+    | "REJECTED"
+    | "SUSPENDED"
+    | "UNDER_REVIEW";
+
+  reason?: string;
+}

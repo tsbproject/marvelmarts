@@ -1,3 +1,6 @@
+
+
+
 export * from "./services/auth.service";
 export * from "./services/order.service";
 export * from "./services/vendor.service";
@@ -13,3 +16,4 @@ export * from "./types/support.types";
 export * from "./types/admin.types";
 export * from "./types/payout.types";
 export * from "./types/messaging.types";
+export * from "./types/vendor.types";
