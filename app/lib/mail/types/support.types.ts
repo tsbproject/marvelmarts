@@ -1,10 +1,12 @@
 export interface SupportReceivedData {
+  email: string;
   ticketId: string;
   subject: string;
   priority: string;
 }
 
 export interface SupportProgressData {
+  email: string;
   ticketId: string;
   subject: string;
   status: string;
@@ -12,6 +14,7 @@ export interface SupportProgressData {
 }
 
 export interface SupportResolvedData {
+  email: string;
   ticketId: string;
   subject: string;
   message: string;

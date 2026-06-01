@@ -28,7 +28,6 @@ import {
 } from "../types/support.types";
 
 export async function sendSupportReceivedEmail(
-  email: string,
   data: SupportReceivedData
 ) {
 
@@ -36,7 +35,7 @@ export async function sendSupportReceivedEmail(
     supportReceivedEmail(data);
 
   return sendEmail({
-    to: email,
+    to: data.email,
     subject: template.subject,
     html: emailLayout(
       template.html,
@@ -46,7 +45,6 @@ export async function sendSupportReceivedEmail(
 }
 
 export async function sendSupportProgressEmail(
-  email: string,
   data: SupportProgressData
 ) {
 
@@ -54,7 +52,7 @@ export async function sendSupportProgressEmail(
     supportProgressEmail(data);
 
   return sendEmail({
-    to: email,
+    to: data.email,
     subject: template.subject,
     html: emailLayout(
       template.html,
@@ -64,7 +62,6 @@ export async function sendSupportProgressEmail(
 }
 
 export async function sendSupportResolvedEmail(
-  email: string,
   data: SupportResolvedData
 ) {
 
@@ -72,7 +69,7 @@ export async function sendSupportResolvedEmail(
     supportResolvedEmail(data);
 
   return sendEmail({
-    to: email,
+    to: data.email,
     subject: template.subject,
     html: emailLayout(
       template.html,
