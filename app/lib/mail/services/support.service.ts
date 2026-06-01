@@ -35,7 +35,7 @@ export async function sendSupportReceivedEmail(
     supportReceivedEmail(data);
 
   return sendEmail({
-    to: data.email,
+    to: data.to,
     subject: template.subject,
     html: emailLayout(
       template.html,
@@ -52,7 +52,7 @@ export async function sendSupportProgressEmail(
     supportProgressEmail(data);
 
   return sendEmail({
-    to: data.email,
+    to: data.to,
     subject: template.subject,
     html: emailLayout(
       template.html,
@@ -69,7 +69,7 @@ export async function sendSupportResolvedEmail(
     supportResolvedEmail(data);
 
   return sendEmail({
-    to: data.email,
+    to: data.to,
     subject: template.subject,
     html: emailLayout(
       template.html,
