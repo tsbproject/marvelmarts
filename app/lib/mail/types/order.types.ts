@@ -20,10 +20,14 @@ export interface ShipmentNotificationData {
 }
 export interface DeliveryConfirmationData {
   orderNumber: string;
-   firstName?: string | null;
+
+  firstName?: string | null;
+
   email: string | null;
-  city: string;
-  streetAddress: string;
+
+  city?: string | null;
+
+  streetAddress?: string | null;
 }
 
 export interface OrderCancellationData {
