@@ -13,15 +13,24 @@ import {
 } from "../types/payout.types";
 
 export async function sendPayoutStatusEmail(
-  email: string,
-  data: PayoutStatusData
+  to: string,
+  vendorName: string,
+  amount: number,
+  status: "APPROVED" | "REJECTED",
+  remarks?: string
 ) {
 
   const template =
-    payoutStatusEmail(data);
+    payoutStatusEmail({
+      to,
+      vendorName,
+      amount,
+      status,
+      remarks,
+    });
 
   return sendEmail({
-    to: email,
+    to,
     subject: template.subject,
     html: emailLayout(
       template.html,
