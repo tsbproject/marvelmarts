@@ -7,7 +7,7 @@ export interface OrderItem {
 export interface OrderConfirmationData {
   orderNumber: string;
   firstName: string;
-  email: string;
+   email: string | null;
   total: number;
   items: OrderItem[];
 }
@@ -15,14 +15,13 @@ export interface OrderConfirmationData {
 export interface ShipmentNotificationData {
   orderNumber: string;
   firstName?: string | null;
-  email: string;
+  email: string | null;
   trackingNumber?: string;
 }
-
 export interface DeliveryConfirmationData {
   orderNumber: string;
   firstName: string;
-  email: string;
+  email: string | null;
   city: string;
   streetAddress: string;
 }
@@ -30,13 +29,13 @@ export interface DeliveryConfirmationData {
 export interface OrderCancellationData {
   orderNumber: string;
   firstName: string;
-  email: string;
+  email: string | null;
 }
 
 export interface RefundStatusData {
   orderNumber: string;
   firstName: string;
-  email: string;
+   email: string | null;
   status: "approved" | "rejected";
   reason?: string;
 }

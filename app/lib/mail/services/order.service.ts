@@ -1,26 +1,3 @@
-// import { sendEmail } from "../sender/send-email";
-// import { emailLayout } from "../layouts/email-layout";
-
-// export async function sendOrderEmail({
-//   to,
-//   subject,
-//   content,
-//   preview,
-// }: {
-//   to: string;
-//   subject: string;
-//   content: string;
-//   preview: string;
-// }) {
-//   return sendEmail({
-//     to,
-//     subject,
-//     html: emailLayout(content, preview),
-//   });
-// }
-
-
-
 import { sendEmail }
   from "../sender/send-email";
 
@@ -59,6 +36,11 @@ export async function sendOrderConfirmationEmail(
   data: OrderConfirmationData
 ) {
 
+    if (!data.email) {
+    return;
+  }
+
+
   const template =
     orderConfirmationEmail(data);
 
@@ -75,6 +57,11 @@ export async function sendOrderConfirmationEmail(
 export async function sendShipmentNotificationEmail(
   data: ShipmentNotificationData
 ) {
+
+    if (!data.email) {
+    return;
+  }
+
 
   const template =
     shipmentNotificationEmail(data);
@@ -93,6 +80,10 @@ export async function sendDeliveryConfirmationEmail(
   data: DeliveryConfirmationData
 ) {
 
+  if (!data.email) {
+    return;
+  }
+
   const template =
     deliveryConfirmationEmail(data);
 
@@ -109,6 +100,10 @@ export async function sendDeliveryConfirmationEmail(
 export async function sendOrderCancellationEmail(
   data: OrderCancellationData
 ) {
+
+  if (!data.email) {
+    return;
+  }
 
   const template =
     orderCancellationEmail(data);
