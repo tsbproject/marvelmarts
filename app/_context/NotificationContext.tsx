@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
@@ -34,17 +34,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     visible: false,
   });
 
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const show = useCallback((type: NotificationType, message: string) => {
     setNotification({ message, type, visible: true });
-    setTimeout(() => {
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current as unknown as number);
+      timeoutRef.current = null;
+    }
+
+    timeoutRef.current = setTimeout(() => {
       setNotification((prev) => ({ ...prev, visible: false }));
-    }, 4500);
+      timeoutRef.current = null;
+    }, 4000);
   }, []);
 
   const notifySuccess = (message: string) => show("success", message);
   const notifyError = (message: string) => show("error", message);
   const notifyInfo = (message: string) => show("info", message);
   const clearNotification = () => setNotification((prev) => ({ ...prev, visible: false }));
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current as unknown as number);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Icon mapping
   const icons = {
@@ -70,7 +89,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             initial={{ opacity: 0, y: 50, scale: 0.9, x: 20 }}
             animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.9, x: 20 }}
-            className="fixed top-8 right-8 z-9999"
+            className="
+                fixed
+                top-4
+                right-4
+                left-4
+                sm:left-auto
+                sm:right-8
+                sm:top-8
+                z-[9999]
+                "
           >
             <div className={`${styles[notification.type]} border-2 shadow-2xl rounded-2xl p-5 flex items-center gap-4 min-w-[320px] max-w-[450px]`}>
               <div className="bg-white/20 p-2 rounded-xl">

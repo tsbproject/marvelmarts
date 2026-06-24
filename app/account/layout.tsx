@@ -105,6 +105,15 @@ export default function UnifiedAccountLayout({ children }: { children: React.Rea
       }, [authStatus, session?.user?.id, userRole, dispatch]);
 
 
+      useEffect(() => {
+        if (authStatus === "unauthenticated") {
+          router.replace(
+            `/auth/sign-in?callbackUrl=${encodeURIComponent(pathname)}`
+          );
+        }
+      }, [authStatus, pathname, router]);
+
+
 
 
 
@@ -162,22 +171,7 @@ const vendorLocked =
         )
       );
 
-      // if (!sessionReady) {
-      //   return (
-      //     <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center">
-      //       <div className="flex flex-col items-center gap-3">
-      //         <div className="animate-spin text-[#F7931E]">
-      //           <RefreshCw size={24} />
-      //         </div>
-
-      //         <div className="font-black text-[#002B5B] uppercase tracking-widest text-[10px]">
-      //           Syncing Vendor Dashboard...
-      //         </div>
-      //       </div>
-      //     </div>
-      //   );
-      // }
-
+     
 
 
 
@@ -199,19 +193,23 @@ const showReviewBanner =
   
 
   if (authStatus === "loading") {
-    return (
-      <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin text-[#F7931E]">
-            <RefreshCw size={24} />
-          </div>
-          <div className="font-black text-[#002B5B] uppercase tracking-widest text-[10px]">
-            Authenticating Signal...
-          </div>
+  return (
+    <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin text-[#F7931E]">
+          <RefreshCw size={24} />
+        </div>
+        <div className="font-black text-[#002B5B] uppercase tracking-widest text-[10px]">
+          Authenticating Signal...
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+if (authStatus === "unauthenticated") {
+  return null;
+}
 
   return (
     <div className="flex min-h-screen bg-[#FBFBFB]">

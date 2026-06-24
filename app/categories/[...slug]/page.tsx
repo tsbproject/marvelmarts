@@ -64,7 +64,7 @@ export default async function CategoryPage({ params }: PageProps) {
       </nav>
 
       <header className="mb-12">
-        <h1 className="text-5xl md:text-7xl font-black italic uppercase text-accent-navy tracking-tighter leading-none">
+        <h1 className="text-xl md:text-3xl font-black italic uppercase text-accent-navy tracking-tighter leading-none">
           {category.name.split(' ')[0]} <span className="text-brand-primary">{category.name.split(' ').slice(1).join(' ')}</span>
         </h1>
         <p className="text-neutral-gray mt-4 max-w-2xl font-medium">
@@ -75,7 +75,7 @@ export default async function CategoryPage({ params }: PageProps) {
       {/* Subcategories Section */}
       {category.children.length > 0 && (
         <section className="mb-16">
-          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-primary mb-6">Sub-Departments</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-primary mb-6">Sub-Categories</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {category.children.map((child) => (
               <Link
@@ -83,7 +83,7 @@ export default async function CategoryPage({ params }: PageProps) {
                 href={`/categories/${child.slug}`} // MUST MATCH FOLDER PATH
                 className="group p-6 bg-white border border-neutral-light rounded-[2rem] hover:border-brand-primary hover:shadow-xl hover:shadow-brand-primary/5 transition-all"
               >
-                <span className="block text-center font-black uppercase italic text-accent-navy group-hover:text-brand-primary transition-colors">
+                <span className="block text-center text-sm font-black uppercase italic text-accent-navy group-hover:text-brand-primary transition-colors">
                   {child.name}
                 </span>
               </Link>
@@ -95,13 +95,13 @@ export default async function CategoryPage({ params }: PageProps) {
       {/* Products Section */}
       <section>
         <div className="flex items-center justify-between mb-8 border-b border-neutral-light pb-4">
-          <h2 className="text-xl font-black uppercase italic text-accent-navy">Available Gear</h2>
+          <h2 className="text-xl font-black uppercase italic text-accent-navy">Available Products</h2>
           <span className="text-[10px] font-bold text-neutral-gray uppercase tracking-widest">{category.products.length} Units Found</span>
         </div>
 
         {category.products.length === 0 ? (
           <div className="py-20 text-center bg-neutral-light rounded-[3rem]">
-            <p className="font-black uppercase italic text-neutral-gray">No tactical units deployed in this sector yet.</p>
+            <p className="font-black uppercase italic text-neutral-gray">No visible products posted in this category yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
