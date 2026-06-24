@@ -101,33 +101,7 @@ export default function SignInForm() {
       redirectPath = intendedPath;
     }
 
-  //   try {
-
-  //     await update();
-
-  //     await new Promise(resolve =>
-  //       setTimeout(resolve, 300)
-  //     );
-
-  //     router.refresh();
-
-  //     router.push(redirectPath);
-
-  //   } catch (err) {
-
-  //     console.error(
-  //       "Session refresh failed:",
-  //       err
-  //     );
-
-  //     router.push(redirectPath);
-
-  //   } finally {
-
-  //     setLoading(false);
-
-  //   }
-  // }
+ 
 
  setLoading(false);
 
@@ -140,7 +114,20 @@ window.location.href = redirectPath;
     
 
   return (
-    <div className="w-full max-w-[1200px] bg-white p-10 rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100">
+   <div className="
+        w-full
+        max-w-[1200px]
+        bg-white
+        p-4
+        sm:p-6
+        md:p-8
+        lg:p-10
+        rounded-[32px]
+        shadow-2xl
+        shadow-gray-200/50
+        border
+        border-gray-100
+      ">
       <button
         type="button"
         onClick={() => router.back()}
@@ -167,7 +154,7 @@ window.location.href = redirectPath;
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label className="text-xs md:text-xl xl:text-lg 2xl:text-xl font-black text-accent-navy uppercase tracking-[0.15em] ml-1">
+          <label className="text-sm font-semibold  text-accent-navy uppercase tracking-[0.15em] ml-1">
             Email
           </label>
           <div className="relative group">
@@ -176,7 +163,7 @@ window.location.href = redirectPath;
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full pl-12 pr-4 py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-accent-navy font-bold placeholder:text-gray-400 shadow-inner"
+              className="w-full pl-12 pr-4 py-3 md:py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-accent-navy font-bold placeholder:text-gray-400 shadow-inner"
               placeholder="Enter your email address"
               required
             />
@@ -185,7 +172,7 @@ window.location.href = redirectPath;
 
         <div className="space-y-2">
           <div className="flex justify-between items-center ml-1">
-            <label className="text-xs md:text-xl xl:text-lg 2xl:text-xl font-black text-accent-navy uppercase tracking-[0.15em]">
+            <label className="text-sm font-semibold  text-accent-navy uppercase tracking-[0.15em]">
               Password
             </label>
             <Link href="/auth/forgot-password" className="text-xs font-black text-brand-primary hover:underline">
@@ -198,7 +185,7 @@ window.location.href = redirectPath;
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-neutral-dark font-bold placeholder:text-gray-400 shadow-inner"
+              className="w-full pl-12 pr-12 py-3 md:py-2 bg-neutral-light border-2 border-transparent rounded-2xl focus:bg-white focus:border-brand-primary transition-all outline-none text-sm xl:text-md 2xl:text-lg text-neutral-dark font-bold placeholder:text-gray-400 shadow-inner"
               placeholder="••••••••"
               required
             />

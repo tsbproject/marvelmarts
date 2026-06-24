@@ -56,7 +56,7 @@ export default function SignInPage() {
       </div>
 
       {/* RIGHT SIDE: Gateway */}
-      <div className="w-full lg:w-[60%] flex items-center justify-center p-6 md:p-12 lg:p-24 bg-[#F8F8F8]">
+      <div className="w-full lg:w-[60%] flex items-center justify-center px-2 py-4 md:p-12 lg:p-24 bg-[#F8F8F8]">
         <Suspense fallback={<div className="animate-pulse text-accent-navy font-black">INITIALIZING GATEWAY...</div>}>
           
           <SignInForm />
