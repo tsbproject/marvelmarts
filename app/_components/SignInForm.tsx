@@ -268,8 +268,8 @@ window.location.href = redirectPath;
         <Link
           href={
             intendedPath
-              ? `/auth/register/customer-registration?redirect=${encodeURIComponent(intendedPath)}`
-              : "/auth/register/customer-registration"
+              ? `/auth/register/customer-signup?redirect=${encodeURIComponent(intendedPath)}`
+              : "/auth/register/customer-signup"
           }
           className="text-brand-primary font-black hover:underline uppercase tracking-tight"
         >

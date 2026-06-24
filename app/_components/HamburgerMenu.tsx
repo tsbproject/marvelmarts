@@ -21,7 +21,7 @@ import CategoryMenu from "./CategoryMenu";
 import { CategoryWithChildren as CategoryTree } from "../layout";
 
 const menuItems = [
-  { label: "Sell On MarvelMarts", href: "/auth/register/vendor-registration", icon: <Store className="w-5 h-5" /> },
+  { label: "Sell On MarvelMarts", href: "/auth/register/vendor-signup", icon: <Store className="w-5 h-5" /> },
   { label: "Marvelmarts FAQs", href: "/faqs", icon: <HelpCircle className="w-5 h-5" /> },
   { label: "Track Orders", href: "/track-order", icon: <Package className="w-5 h-5" />, highlight: true },
   { label: "My Cart", href: "/cart", icon: <ShoppingCart className="w-5 h-5" /> },
@@ -110,9 +110,7 @@ export default function HamburgerMenu({ categories }: { categories: CategoryTree
                     alt="Marvelmarts logo"
                     width={100}
                     height={60}
-                  //    style={{ width: 'auto', height: 'auto' }}
-                      // priority
-                      // quality={100}
+               
                     className="object-contain w-50"
                   />
                   <p className="text-[10px] text-neutral-gray uppercase tracking-widest font-bold">

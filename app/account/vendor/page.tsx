@@ -75,7 +75,7 @@ export default async function VendorDashboardPage() {
   }
 
   if (!vendorData) {
-    redirect("/auth/register/vendor-registration");
+    redirect("/auth/register/vendor-signup");
   }
 
   // VERIFICATION GATE

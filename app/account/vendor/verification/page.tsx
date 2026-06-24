@@ -1,7 +1,3 @@
-
-
-
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
@@ -33,7 +29,7 @@ export default async function VendorVerificationPage() {
 
   // 3. Guard: No vendor profile → force registration
   if (!vendor) {
-    redirect("/auth/register/vendor-registration");
+    redirect("/auth/register/vendor-signup");
   }
 
   // 4. Auto-redirect if already fully APPROVED
