@@ -21,7 +21,7 @@ export async function PATCH(
     const isAdmin =
       session.user.role === "ADMIN" ||
       session.user.role === "SUPER_ADMIN" ||
-      session.user.permissions?.manageMessages === true;
+      session.user.admin?.manageMessages === true;
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

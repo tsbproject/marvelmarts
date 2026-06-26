@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 async function checkAuth() {
   const session = await getServerSession(authOptions);
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
-  const hasPermission = session?.user?.permissions?.manageSupport;
+  const hasPermission = session?.user?.admin?.manageSupport;
 
   if (!session || (!isSuperAdmin && !hasPermission)) {
     return false;

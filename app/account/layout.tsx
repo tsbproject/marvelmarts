@@ -219,7 +219,7 @@ if (authStatus === "unauthenticated") {
             role={activeZone}
             user={session?.user}
             sections={DASHBOARD_CONFIG[activeZone]}
-            vendorLocked={vendorLocked}
+            vendorLocked={vendorLocked ?? false}
             // roles={"VENDOR"}
           />
         </aside>
@@ -232,7 +232,7 @@ if (authStatus === "unauthenticated") {
               role={activeZone}
               user={session?.user}
               sections={DASHBOARD_CONFIG[activeZone]}
-              vendorLocked={vendorLocked}
+              vendorLocked={vendorLocked ?? false}
               todayRevenue={isVendorZone ? Number(session?.user?.balance || 0) : 0}
               roles={"VENDOR"}
             />

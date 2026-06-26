@@ -1,17 +1,14 @@
 generator client {
   provider = "prisma-client-js"
- 
 }
 
 datasource db {
   provider = "postgresql"
-  
 }
 
 model User {
   id                 String              @id @default(cuid())
   email              String              @unique
-  phoneNumber        String?  
   passwordHash       String?
   image              String?
   createdAt          DateTime            @default(now())
@@ -26,6 +23,7 @@ model User {
   walletBalance      Float               @default(0)
   phone              String?
   paymentTypes       PaymentTypes[]
+  phoneNumber        String?
   accounts           Account[]
   addresses          Address[]
   adminProfile       AdminProfile?
@@ -40,13 +38,12 @@ model User {
   payouts            Payout[]
   reviews            Review[]
   sessions           Session[]
+  vendorFollows      VendorFollow[]
   vendorProfile      VendorProfile?
   verificationCodes  VerificationCode[]
   wallet             Wallet?
   wishlists          Wishlist[]
   conversations      Conversation[]      @relation("UserConversations")
-
-  vendorFollows VendorFollow[]
 }
 
 model VerificationCode {
@@ -65,82 +62,100 @@ model VerificationCode {
 }
 
 model AdminProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  permissions Json?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+
+  // Administration
+  manageAdmins           Boolean  @default(false)
+  manageUsers            Boolean  @default(false)
+
+  // Commerce
+  manageProducts         Boolean  @default(false)
+  manageOrders           Boolean  @default(false)
+  manageCategories       Boolean  @default(false)
+  manageTrending         Boolean  @default(false)
+  manageReviews          Boolean  @default(false)
+
+  // Vendors
+  manageVendors          Boolean  @default(false)
+  manageVerifications    Boolean  @default(false)
+  managePayout           Boolean  @default(false)
+
+  // Communication
+  manageMessages         Boolean  @default(false)
+  manageSupport          Boolean  @default(false)
+  manageSubscribers      Boolean  @default(false)
+
+  // Content
+  manageBlogs            Boolean  @default(false)
+
+  // Platform
+  manageSettings         Boolean  @default(false)
+  manageActivity         Boolean  @default(false)
+
+  notes                  String?
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user                   User @relation( fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VendorProfile {
-  id              String              @id @default(cuid())
-  userId          String              @unique
-  firstName       String
-  lastName        String
-  phoneNumber     String
-  storeName       String
-  storePhone      String
-  storeAddress    String
-  country         String
-  state           String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  isVerified      Boolean             @default(false)
-
-
-  followerCount    Int      @default(0)
-  shippingScore    Int      @default(100) // Percentage
-  qualityScore     Int      @default(100) // Percentage
-  avgRating        Float    @default(5.0)
-  cancellationRate Int      @default(0)   // Percentage
-
-
-
-
-
-
-  bio             String?
-  coverUrl        String?
-  logoUrl         String?
-  isSuspended     Boolean             @default(false)
-  rejectionReason String?
-  status          VendorStatus        @default(PENDING)
-  verificationDoc String?
-  accountName     String?
-  accountNumber   String?
-  bankName        String?
-  facebook        String?
-  instagram       String?
-  twitter         String?
-  whatsapp        String?
-  balance         Decimal             @default(0.00) @db.Decimal(10, 2)
-  lastSyncedAt    DateTime?
-  productDone     Boolean             @default(false)
-  profileDone     Boolean             @default(false)
-  storeDone       Boolean             @default(false)
-  businessDoc     String?
-  identityDoc     String?
-  locationDoc     String?
-  payoutsDone     Boolean             @default(false)
-  transactions    CreditTransaction[]
-  disputes        Dispute[]
-  orders          Order[]
-  payouts         Payout[]
-  products        Product[]
-  boost           VendorBoost?
-  onboarding      VendorOnboarding?
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  score           VendorScore?
-  store           VendorStore?
-  withdrawal      Withdrawal[]
-
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  firstName               String
+  lastName                String
+  storeName               String
+  storePhone              String
+  storeAddress            String
+  country                 String
+  state                   String
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  isVerified              Boolean                  @default(false)
+  bio                     String?
+  coverUrl                String?
+  logoUrl                 String?
+  isSuspended             Boolean                  @default(false)
+  rejectionReason         String?
+  status                  VendorStatus             @default(PENDING)
+  verificationDoc         String?
+  accountName             String?
+  accountNumber           String?
+  bankName                String?
+  facebook                String?
+  instagram               String?
+  twitter                 String?
+  whatsapp                String?
+  balance                 Decimal                  @default(0.00) @db.Decimal(10, 2)
+  lastSyncedAt            DateTime?
+  productDone             Boolean                  @default(false)
+  profileDone             Boolean                  @default(false)
+  storeDone               Boolean                  @default(false)
+  businessDoc             String?
+  identityDoc             String?
+  locationDoc             String?
+  payoutsDone             Boolean                  @default(false)
+  avgRating               Float                    @default(5.0)
+  cancellationRate        Int                      @default(0)
+  followerCount           Int                      @default(0)
+  qualityScore            Int                      @default(100)
+  shippingScore           Int                      @default(100)
+  phoneNumber             String
+  transactions            CreditTransaction[]
+  disputes                Dispute[]
   marketplaceTransactions MarketplaceTransaction[]
-
-  vendorFollows VendorFollow[]
-
- 
+  orders                  Order[]
+  payouts                 Payout[]
+  products                Product[]
+  boost                   VendorBoost?
+  vendorFollows           VendorFollow[]
+  onboarding              VendorOnboarding?
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score                   VendorScore?
+  store                   VendorStore?
+  withdrawal              Withdrawal[]
 }
 
 model VendorOnboarding {
@@ -177,15 +192,13 @@ model VendorBoost {
   vendorProfile      VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 
-
 model VendorFollow {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   userId          String
   vendorProfileId String
-  createdAt       DateTime @default(now())
-
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vendorProfile   VendorProfile   @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
   @@unique([userId, vendorProfileId])
 }
@@ -206,22 +219,13 @@ model CreditTransaction {
 model VendorScore {
   id              String        @id @default(cuid())
   vendorProfileId String        @unique
-  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
-
-  commissionRate  Float         @default(0.10)
-  
-  rating          Float         @default(0.0)
-  fulfillmentRate Int           @default(100)
-  reviewsCount    Int           @default(0)
   tier            VendorTier    @default(BRONZE)
-  
+  fulfillmentRate Int           @default(100)
+  rating          Float         @default(0.0)
+  reviewsCount    Int           @default(0)
   updatedAt       DateTime      @updatedAt
-}
-
-enum VendorTier {
-  BRONZE
-  SILVER
-  GOLD
+  commissionRate  Float         @default(0.10)
+  vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
 }
 
 model Dispute {
@@ -248,28 +252,22 @@ model Withdrawal {
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
 }
 
-
 model MarketplaceTransaction {
-  id                String            @id @default(cuid())
-  orderId           String            @unique
-  vendorProfileId   String
-  vendorProfile     VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
-  
-  // The Financial Split
-  grossAmount       Float             // Total paid by Customer (e.g., ₦10,000)
-  platformFee       Float             // Subtracted Commission (e.g., ₦1,000)
-  netAmount         Float             // Actual Vendor Payout (e.g., ₦9,000)
-  
-  commissionRate    Float             // Snapshot of the rate used (e.g., 0.10)
-  vendorTier        VendorTier        // Tier at time of sale (BRONZE/SILVER/GOLD)
-  
-  status            TransactionStatus @default(SUCCESS)
-  reference         String            @unique 
-  createdAt         DateTime          @default(now())
+  id              String            @id @default(cuid())
+  orderId         String            @unique
+  vendorProfileId String
+  grossAmount     Float
+  platformFee     Float
+  netAmount       Float
+  commissionRate  Float
+  vendorTier      VendorTier
+  status          TransactionStatus @default(SUCCESS)
+  reference       String            @unique
+  createdAt       DateTime          @default(now())
+  vendorProfile   VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
   @@index([vendorProfileId])
 }
-
 
 model Payout {
   id              String        @id @default(cuid())
@@ -596,43 +594,30 @@ model HelpArticle {
 }
 
 model Ticket {
-  id          String        @id @default(cuid())
-
-  subject     String
-  message     String
-
-  status      String        @default("OPEN")
-
-  category    String?
-  priority    String?       @default("MEDIUM")
-
-  attachment  String?
-
-  userEmail   String
-
-  articleId   String?
-
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  notes       String?
-
-  replies     TicketReply[]
+  id         String        @id @default(cuid())
+  subject    String
+  message    String
+  status     String        @default("OPEN")
+  userEmail  String
+  articleId  String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  notes      String?
+  attachment String?
+  category   String?
+  priority   String?       @default("MEDIUM")
+  replies    TicketReply[]
 }
 
 model TicketReply {
-  id          String   @id @default(cuid())
-
-  ticketId    String
-
-  senderType  String
-
-  message     String
-
-  createdAt   DateTime @default(now())
-
-  ticket      Ticket @relation(fields: [ticketId], references: [id])
+  id         String   @id @default(cuid())
+  ticketId   String
+  senderType String
+  message    String
+  createdAt  DateTime @default(now())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
 }
+
 model Blog {
   id         String   @id @default(cuid())
   title      String
@@ -699,37 +684,25 @@ model SiteSettings {
   @@map("site_settings")
 }
 
-
-
-enum ConversationStatus {
-  OPEN
-  CLOSED
-}
-
 model Conversation {
-  id               String             @id @default(cuid())
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  participantIds   String[]
-  type             ConversationType   @default(CUSTOMER_VENDOR)
-  subject          String?
-  status           ConversationStatus @default(OPEN)
-
-  isGuest          Boolean            @default(false)
-  visitorName      String?
-  visitorEmail     String?
-  guestAccessToken String?            @unique
-
-  endedAt          DateTime?
-  endedById        String?
-  endedByRole      String?
-
-  deletedForUserIds String[]          @default([])
-
-  deletedByParticipantIds String[]    @default([])
-
-  messages         Message[]
-  participants     User[]             @relation("UserConversations")
+  id                      String             @id @default(cuid())
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  participantIds          String[]
+  type                    ConversationType   @default(CUSTOMER_VENDOR)
+  subject                 String?
+  endedAt                 DateTime?
+  endedById               String?
+  endedByRole             String?
+  guestAccessToken        String?            @unique
+  isGuest                 Boolean            @default(false)
+  status                  ConversationStatus @default(OPEN)
+  visitorEmail            String?
+  visitorName             String?
+  deletedForUserIds       String[]           @default([])
+  deletedByParticipantIds String[]           @default([])
+  messages                Message[]
+  participants            User[]             @relation("UserConversations")
 }
 
 model Message {
@@ -817,6 +790,17 @@ model BankAccount {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum VendorTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -830,8 +814,6 @@ enum BoostPlan {
   PRO
   ULTRA
 }
-
-
 
 enum DisputeStatus {
   OPEN
@@ -901,9 +883,4 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
- 
 }
-
-
-
-

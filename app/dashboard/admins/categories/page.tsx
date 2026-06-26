@@ -32,7 +32,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
   const user = session.user;
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const canViewPage = isSuperAdmin || user.role === "ADMIN";
-  const canManageCategories = !!(isSuperAdmin || user.permissions?.manageCategories);
+  const canManageCategories = !!(isSuperAdmin || user.admin?.manageCategories);
 
   if (!canViewPage) {
     return (

@@ -165,7 +165,7 @@ export async function GET(
     const isAdmin =
       session.user.role === "ADMIN" ||
       session.user.role === "SUPER_ADMIN" ||
-      session.user.permissions?.manageMessages === true;
+      session.user.admin?.manageMessages === true;
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },

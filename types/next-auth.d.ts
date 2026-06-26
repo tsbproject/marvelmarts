@@ -1,54 +1,86 @@
-import { DefaultSession } from "next-auth";
+
+import type { DefaultSession } from "next-auth";
 import { UserRole, VendorStatus } from "@prisma/client"; 
+import type { AdminPermissions } from "@/app/lib/auth/types";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      roles: UserRole;
+      roles: UserRole[];
       role: UserRole;
      
-      permissions: Record<string, boolean>;
+      admin?: AdminPermissions;
      
       vendorStatus?: VendorStatus | null;
       isSuspended?: boolean;
       rejectionReason?: string | null;
+
+      vendorProfileId?: string;
+
+      balance?: number;
+
+      identityDoc?: string | null;
+
+      businessDoc?: string | null;
+
+      locationDoc?: string | null;
     } & DefaultSession["user"];
   }
 
-  interface User {
-    id: string;
-    name: string | null;
-    email: string | null;
-    image?: string | null;
-    role: UserRole;
-    permissions: Record<string, boolean>;
-    passwordHash?: string;
-    // Added Vendor Specific Fields
-    vendorStatus?: VendorStatus | null;
-    isSuspended?: boolean;
-    rejectionReason?: string | null;
-
-     user: {
+      interface User {
       id: string;
+      name: string | null;
       email: string;
-      roles: UserRole[];
-      permissions: any;
+      image?: string | null;
+
       role: UserRole;
-      role: "VENDOR" | "ADMIN" | "SUPER_ADMIN" | "CUSTOMER";
-    } & DefaultSession["user"];
-  }
+      roles: UserRole[];
+
+     admin?: AdminPermissions;
+
+      passwordHash?: string;
+
+      vendorStatus?: VendorStatus | null;
+      isSuspended?: boolean;
+      rejectionReason?: string | null;
+
+      vendorProfileId?: string;
+
+      balance?: number;
+
+      identityDoc?: string | null;
+
+      businessDoc?: string | null;
+
+      locationDoc?: string | null;
+
+
+      
+    }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     userId: string;
     role: UserRole;
-    roles: UserRole;
-    permissions: Record<string, boolean>;
+    roles: UserRole[];
+    admin?: AdminPermissions;
     // Added Vendor Specific Fields
     vendorStatus?: VendorStatus | null;
     isSuspended?: boolean;
     rejectionReason?: string | null;
+
+    vendorProfileId?: string;
+
+    balance?: number;
+
+    identityDoc?: string | null;
+
+    businessDoc?: string | null;
+
+    locationDoc?: string | null;
+
+    lastSync?: number;
   }
 }

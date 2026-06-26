@@ -3,23 +3,12 @@ import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
+import { defaultPermissions, type Permissions, } from "@/types/admin";
 
-type PermissionsShape = Record<string, boolean>;
+import { serializeAdminPermissions, permissionsToAdminProfile,} from "@/app/lib/auth/admin-permissions";
 
-const DEFAULT_PERMISSIONS: PermissionsShape = {
-  manageAdmins: false,
-  manageUsers: false,
-   manageVendors: false,
-  manageBlogs: false,
-  manageProducts: false,
-  manageOrders: false,
-  manageMessages: false,
-  manageSettings: false,
-  manageCategories: false, 
-  manageReview: false, 
-  manageSupport: false, 
-  manageActivity: false, 
-};
+
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,13 +44,17 @@ export async function GET(
     return NextResponse.json({
       user: {
         ...user,
-        adminProfile: {
-          ...user.adminProfile,
-          permissions: {
-            ...DEFAULT_PERMISSIONS,
-            ...(user.adminProfile?.permissions as Record<string, boolean> || {}),
-          },
-        },
+        adminProfile: user.adminProfile
+          ? {
+              ...user.adminProfile,
+              permissions:
+                serializeAdminPermissions(
+                  user.adminProfile
+                ),
+            }
+          : {
+              ...defaultPermissions,
+            },
       },
     });
   } catch (err) {
@@ -105,8 +98,9 @@ export async function PUT(
       if (body.permissions) {
         await tx.adminProfile.upsert({
           where: { userId: id },
-          update: { permissions: body.permissions },
-          create: { userId: id, permissions: body.permissions },
+          update: permissionsToAdminProfile( body.permissions),
+          create: { userId: id, ...permissionsToAdminProfile( body.permissions),
+},
         });
       }
       return user;

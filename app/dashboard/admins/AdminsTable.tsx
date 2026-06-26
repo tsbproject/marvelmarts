@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useEffect } from "react";
@@ -20,6 +17,7 @@ import {
 import { formatDistanceToNow } from "date-fns"; 
 import { setAdmins } from "@/store/adminSlice"; 
 import { RootState } from "@/store"; 
+import type { AdminPermissions } from "@/app/lib/auth/types";
 
 
 // Updated Admin type to match Prisma/Redux structure safely
@@ -30,11 +28,11 @@ export type Admin = {
   role: string;
   createdAt: string;
   lastLogin?: string | null;
-  adminProfile?: { 
-    permissions?: Record<string, boolean> | null; 
+
+  adminProfile?: {
+    permissions?: AdminPermissions;
   } | null;
 };
-
 export default function AdminsTable({
   initialAdmins,
   canManageAdmins,

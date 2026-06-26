@@ -308,7 +308,22 @@ useEffect(() => {
                     placeholder="Enter first name  "
                     value={formData.firstName}
                     onChange={(e) => setField("firstName", e.target.value)}
-                    className="w-full p-3 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black transition-all"
+                    className="
+                      w-full
+                      px-4
+                      py-3
+                      text-base
+                      bg-neutral-white
+                      border-2
+                      border-transparent
+                      focus:border-brand-primary/20
+                      focus:bg-white
+                      rounded-2xl
+                      outline-none
+                      font-medium
+                      text-brand-black
+                      transition-all
+                      "
                   />
                 </div>
                 <div className="space-y-3">
@@ -318,7 +333,22 @@ useEffect(() => {
                     placeholder="Enter last name"
                     value={formData.lastName}
                     onChange={(e) => setField("lastName", e.target.value)}
-                    className="w-full p-3 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-brand-white rounded-2xl outline-none font-bold text-brand-gray transition-all"
+                    className="
+                      w-full
+                      px-4
+                      py-3
+                      text-base
+                      bg-neutral-white
+                      border-2
+                      border-transparent
+                      focus:border-brand-primary/20
+                      focus:bg-white
+                      rounded-2xl
+                      outline-none
+                      font-medium
+                      text-brand-black
+                      transition-all
+                      "
                   />
                 </div>
               </div>
@@ -334,7 +364,22 @@ useEffect(() => {
                     value={formData.email}
                     onChange={(e) => setField("email", e.target.value)}
                     disabled={isVerified}
-                    className="w-full p-2 text-xs bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-brand-white rounded-2xl outline-none font-bold text-brand-gray transition-all"
+                    className="
+                      w-full
+                      px-4
+                      py-3
+                      text-base
+                      bg-neutral-white
+                      border-2
+                      border-transparent
+                      focus:border-brand-primary/20
+                      focus:bg-white
+                      rounded-2xl
+                      outline-none
+                      font-medium
+                      text-brand-black
+                      transition-all
+                      "
                   />
                   {!isVerified && (
                   <button
@@ -389,8 +434,23 @@ useEffect(() => {
                       placeholder="XXXXXX"
                       value={formData.verificationCode}
                       onChange={(e) => setField("verificationCode", e.target.value)}
-                      className="flex-1 p-4 bg-brand-white border-2 border-brand-primary/30 rounded-2xl outline-none font-black text-center tracking-[0.5em] text-xs"
-                    />
+                     className="
+                        w-full
+                        px-4
+                        py-3
+                        text-base
+                        bg-neutral-white
+                        border-2
+                        border-transparent
+                        focus:border-brand-primary/20
+                        focus:bg-white
+                        rounded-2xl
+                        outline-none
+                        font-medium
+                        text-brand-black
+                        transition-all
+                        "
+                                            />
                     <button
                       type="button"
                       onClick={handleVerifyCode}
@@ -441,8 +501,23 @@ useEffect(() => {
                   placeholder="e.g. Marvel Mart Lagos"
                   value={formData.storeName}
                   onChange={(e) => setField("storeName", e.target.value)}
-                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
-                />
+                  className="
+                        w-full
+                        px-4
+                        py-3
+                        text-base
+                        bg-neutral-white
+                        border-2
+                        border-transparent
+                        focus:border-brand-primary/20
+                        focus:bg-white
+                        rounded-2xl
+                        outline-none
+                        font-medium
+                        text-brand-black
+                        transition-all
+                        "
+                                        />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -456,8 +531,23 @@ useEffect(() => {
                   value={formData.storePhone}
                   onChange={(e) => setField("storePhone", e.target.value)}
                   required
-                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
-/>
+                 className="
+                    w-full
+                    px-4
+                    py-3
+                    text-base
+                    bg-neutral-white
+                    border-2
+                    border-transparent
+                    focus:border-brand-primary/20
+                    focus:bg-white
+                    rounded-2xl
+                    outline-none
+                    font-medium
+                    text-brand-black
+                    transition-all
+                    "
+                    />
                 </div>
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-[#4B4B4B] ml-1 flex items-center gap-2">
@@ -482,8 +572,23 @@ useEffect(() => {
                   value={formData.storeAddress}
                   onChange={(e) => setField("storeAddress", e.target.value)}
                   required
-                  className="w-full p-4 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
-                />
+                 className="
+                    w-full
+                    px-4
+                    py-3
+                    text-base
+                    bg-neutral-white
+                    border-2
+                    border-transparent
+                    focus:border-brand-primary/20
+                    focus:bg-white
+                    rounded-2xl
+                    outline-none
+                    font-medium
+                    text-brand-black
+                    transition-all
+                    "
+                                    />
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -529,7 +634,22 @@ useEffect(() => {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setField("password", e.target.value)}
-                    className="w-full p-5 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
+                    className="
+                      w-full
+                      px-4
+                      py-3
+                      text-base
+                      bg-neutral-white
+                      border-2
+                      border-transparent
+                      focus:border-brand-primary/20
+                      focus:bg-white
+                      rounded-2xl
+                      outline-none
+                      font-medium
+                      text-brand-black
+                      transition-all
+                      "
                     placeholder="••••••••"
                   />
                   <button
@@ -558,7 +678,22 @@ useEffect(() => {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => setField("confirmPassword", e.target.value)}
-                  className="w-full p-5 bg-neutral-white border-2 border-transparent focus:border-brand-primary/20 focus:bg-white rounded-2xl outline-none font-bold text-brand-black"
+                  className="
+                      w-full
+                      px-4
+                      py-3
+                      text-base
+                      bg-neutral-white
+                      border-2
+                      border-transparent
+                      focus:border-brand-primary/20
+                      focus:bg-white
+                      rounded-2xl
+                      outline-none
+                      font-medium
+                      text-brand-black
+                      transition-all
+                      "
                   placeholder="••••••••"
                 />
               </div>

@@ -85,7 +85,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
         </div>
         
         {/* Vendor Button */}
-        <Link href="/auth/register/vendor-registration">
+        <Link href="/auth/register/vendor-signup">
           <button className="absolute xl:top-35 xl:left-[50rem] 2xl:top-30 2xl:left-[66rem] flex items-center gap-2 
             bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm
             hover:shadow-md hover:border-brand-primary hover:bg-brand-primary hover:text-white
