@@ -1,46 +1,109 @@
-// app/api/reviews/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 
-export async function POST(req: Request) {
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  req: NextRequest
+) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
+    const session =
+      await requireAuth();
 
-    const { productId, rating, body } = await req.json();
+    const body = await req.json();
 
-    // 1. TACTICAL CHECK: Verify Purchase
-    // Search for a delivered order belonging to this user that contains this product
-    const purchased = await prisma.order.findFirst({
-      where: {
-        userId: session.user.id,
-        status: "DELIVERED",
-        items: {
-          some: { productId: productId }
-        }
-      }
-    });
+    const {
+      productId,
+      rating,
+      body: reviewBody,
+    } = body;
 
-    // 2. Create Review with the verification intel
-    const review = await prisma.review.create({
-      data: {
-        productId,
-        userId: session.user.id,
-        rating: Number(rating),
-        body,
-        isVerified: !!purchased, // true if order found, false otherwise
-        approved: true,
+    if (!productId) {
+      throw badRequest(
+        "Product is required."
+      );
+    }
+
+    if (
+      !rating ||
+      Number(rating) < 1 ||
+      Number(rating) > 5
+    ) {
+      throw badRequest(
+        "Rating must be between 1 and 5."
+      );
+    }
+
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          id: productId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!product) {
+      throw notFound(
+        "Product not found."
+      );
+    }
+
+    const purchased =
+      await prisma.order.findFirst({
+        where: {
+          userId: session.user.id,
+          status: "DELIVERED",
+          items: {
+            some: {
+              productId,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    const review =
+      await prisma.review.create({
+        data: {
+          productId,
+          userId: session.user.id,
+          rating: Number(rating),
+          body: reviewBody,
+          isVerified: !!purchased,
+          approved: true,
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+    return NextResponse.json(
+      {
+        success: true,
+        review,
       },
-      include: {
-        user: { select: { name: true } }
+      {
+        status: 201,
       }
-    });
-
-    return NextResponse.json(review);
-  } catch (error: any) {
-    console.error("REVIEW_POST_ERROR:", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,65 +1,87 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+
+import { prisma } from "@/app/lib/prisma";
+
+import { requireSuperAdmin } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-
-// Must match Next.js App Router type signature
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
   try {
-    // Await params because Next.js wraps params in a Promise
-    const { id } = await context.params;
+    await requireSuperAdmin();
 
-    const session = await getServerSession(authOptions);
+    const { id } = await params;
 
-    if (!session || session.user.role !== "SUPER_ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
+    const { newPassword } =
+      await req.json();
+
+    if (
+      !newPassword ||
+      newPassword.length < 8
+    ) {
+      throw badRequest(
+        "Password must be at least 8 characters."
       );
     }
 
-    const { newPassword } = await req.json();
-
-    if (!newPassword || newPassword.length < 8) {
-      return NextResponse.json(
-        { success: false, error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
+      throw notFound(
+        "User not found."
       );
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const passwordHash =
+      await bcrypt.hash(
+        newPassword,
+        10
+      );
 
     await prisma.user.update({
-      where: { id },
-      data: { passwordHash: hashedPassword },
+      where: {
+        id,
+      },
+      data: {
+        passwordHash,
+      },
     });
 
     return NextResponse.json(
-      { success: true, message: "Password updated successfully" },
-      { status: 200 }
+      {
+        success: true,
+        message:
+          "Password updated successfully.",
+      },
+      {
+        status: 200,
+      }
     );
-  } catch (err) {
-    console.error("Change password error:", err);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

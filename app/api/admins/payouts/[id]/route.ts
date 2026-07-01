@@ -1,258 +1,207 @@
-// import { NextRequest, NextResponse } from "next/server";
-// import { prisma } from "@/app/lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
-// import { pusherServer } from "@/app/lib/pusherServer";
-// import { sendPayoutStatusEmail } from "@/app/lib/mailer";
-
-// /**
-//  * PATCH: Process a specific payout request (Approve/Reject)
-//  * Requirement: Next.js 15 requires awaiting params
-//  */
-// export async function PATCH(
-//   req: NextRequest,
-//   context: { params: Promise<{ id: string }> }
-// ) {
-//   try {
-//     const session = await getServerSession(authOptions);
-    
-//     // 1. Await params for Next.js 15 compliance
-//     const { id: requestId } = await context.params;
-
-//     // 2. Authorization Guard
-//     if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     const body = await req.json();
-//     const { status, remarks } = body; // status: "APPROVED" | "REJECTED"
-
-//     if (!requestId || !status) {
-//       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-//     }
-
-//     // 3. Database Transaction (Financial Integrity)
-//     const result = await prisma.$transaction(async (tx) => {
-//       const payout = await tx.payout.findUnique({
-//         where: { id: requestId },
-//         include: {
-//           vendor: { select: { id: true, name: true, email: true } }
-//         }
-//       });
-
-//       if (!payout) throw new Error("Payout record not found");
-//       if (payout.status !== "PENDING") throw new Error("Payout already processed");
-
-//       // Update Payout Status
-//       const updatedPayout = await tx.payout.update({
-//         where: { id: requestId },
-//         data: { 
-//           status: status,
-//           adminRemarks: remarks || (status === "APPROVED" ? "Processed by Admin" : "Rejected by Admin"),
-//           processedAt: new Date()
-//         },
-//         include: {
-//           vendor: { select: { id: true, name: true, email: true } }
-//         }
-//       });
-
-//       // Refund logic if rejected - Using 'vendorProfileId' as per saved instructions
-//       let newBalance = null;
-//       if (status === "REJECTED") {
-//         const updatedProfile = await tx.vendorProfile.update({
-//           where: { id: payout.vendorProfileId },
-//           data: { balance: { increment: payout.amount } }
-//         });
-//         newBalance = updatedProfile.balance;
-//       }
-
-//       return { updatedPayout, newBalance, vendorId: payout.vendorId };
-//     });
-
-//     const { updatedPayout, newBalance } = result;
-
-//     // 4. Real-time Notification via Pusher
-//     try {
-//       await pusherServer.trigger(
-//         `vendor-${result.vendorId}`,
-//         "payout-updated", 
-//         {
-//           status: status,
-//           amount: updatedPayout.amount,
-//           newBalance: newBalance,
-//           requestId: updatedPayout.id,
-//           remarks: remarks || "Processed"
-//         }
-//       );
-//     } catch (pusherError) {
-//       console.error("Pusher Trigger Error:", pusherError);
-//     }
-
-//     // 5. Email Notification using central mailer
-//     if (updatedPayout.vendor?.email) {
-//       try {
-//         await sendPayoutStatusEmail(
-//           updatedPayout.vendor.email,
-//           updatedPayout.vendor.name || "Vendor",
-//           updatedPayout.amount,
-//           status,
-//           remarks
-//         );
-//       } catch (emailErr) {
-//         console.error("Email Notification Failed:", emailErr);
-//       }
-//     }
-
-//     return NextResponse.json({ 
-//       success: true, 
-//       message: `Payout request has been ${status.toLowerCase()}.`,
-//       payout: updatedPayout
-//     });
-
-//   } catch (error: any) {
-//     console.error("ADMIN_PAYOUT_PATCH_ERROR:", error);
-//     return NextResponse.json(
-//       { error: error.message || "Failed to process payout" }, 
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-
-
 import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 import { pusherServer } from "@/app/lib/pusherServer";
 import { sendPayoutStatusEmail } from "@/app/lib/mailer";
 
+import { requireManagePayout } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  conflict,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Context = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: Context
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const { id: requestId } = await context.params;
+    await requireManagePayout();
 
-    const userRole = session?.user?.role;
-    const userRoles = Array.isArray(session?.user?.roles) ? session.user.roles : [];
-
-    const isAdmin =
-      userRole === "ADMIN" ||
-      userRole === "SUPER_ADMIN" ||
-      userRoles.includes("ADMIN") ||
-      userRoles.includes("SUPER_ADMIN");
-
-    if (!session?.user?.id || !isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { id } = await params;
 
     const body = await req.json();
-    const { status, remarks } = body;
 
-    if (!requestId || !status) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const status = String(
+      body.status ?? ""
+    )
+      .trim()
+      .toUpperCase();
 
-    if (!["APPROVED", "REJECTED"].includes(status)) {
-      return NextResponse.json({ error: "Invalid payout status" }, { status: 400 });
-    }
+    const remarks =
+      body.remarks?.trim() || "";
 
-    const payout = await prisma.payout.findUnique({
-      where: { id: requestId },
-      include: {
-        vendor: { select: { id: true, name: true, email: true } },
-      },
-    });
-
-    if (!payout) {
-      return NextResponse.json({ error: "Payout record not found" }, { status: 404 });
-    }
-
-    if (payout.status !== "PENDING") {
-      return NextResponse.json(
-        { error: `Payout already processed as ${payout.status}` },
-        { status: 409 }
+    if (!id || !status) {
+      throw badRequest(
+        "Payout ID and status are required."
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const updatedPayout = await tx.payout.update({
-        where: { id: requestId },
-        data: {
-          status,
-          adminRemarks:
-            remarks ||
-            (status === "APPROVED" ? "Processed by Admin" : "Rejected by Admin"),
-          processedAt: new Date(),
+    if (
+      status !== "APPROVED" &&
+      status !== "REJECTED"
+    ) {
+      throw badRequest(
+        "Invalid payout status."
+      );
+    }
+
+    const payout =
+      await prisma.payout.findUnique({
+        where: {
+          id,
         },
         include: {
-          vendor: { select: { id: true, name: true, email: true } },
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       });
 
-      let newBalance: number | null = null;
+    if (!payout) {
+      throw notFound(
+        "Payout request not found."
+      );
+    }
 
-      if (status === "REJECTED") {
-        const updatedProfile = await tx.vendorProfile.update({
-          where: { id: payout.vendorProfileId },
-          data: {
-            balance: {
-              increment: payout.amount,
+    if (payout.status !== "PENDING") {
+      throw conflict(
+        `Payout has already been processed as ${payout.status}.`
+      );
+    }
+
+    const {
+      updatedPayout,
+      newBalance,
+      vendorId,
+    } = await prisma.$transaction(
+      async (tx) => {
+        const updatedPayout =
+          await tx.payout.update({
+            where: {
+              id,
             },
-          },
-        });
+            data: {
+              status,
+              adminRemarks:
+                remarks ||
+                (status === "APPROVED"
+                  ? "Processed by Administrator"
+                  : "Rejected by Administrator"),
+              processedAt: new Date(),
+            },
+            include: {
+              vendor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          });
 
-        newBalance = Number(updatedProfile.balance || 0);
+        let newBalance: number | null =
+          null;
+
+        if (status === "REJECTED") {
+          const profile =
+            await tx.vendorProfile.update({
+              where: {
+                id: payout.vendorProfileId,
+              },
+              data: {
+                balance: {
+                  increment:
+                    payout.amount,
+                },
+              },
+            });
+
+          newBalance = Number(
+            profile.balance
+          );
+        }
+
+        return {
+          updatedPayout,
+          newBalance,
+          vendorId: payout.vendorId,
+        };
       }
-
-      return {
-        updatedPayout,
-        newBalance,
-        vendorId: payout.vendorId,
-      };
-    });
-
-    const { updatedPayout, newBalance, vendorId } = result;
+    );
 
     try {
-      await pusherServer.trigger(`vendor-${vendorId}`, "payout-updated", {
-        status,
-        amount: updatedPayout.amount,
-        newBalance,
-        requestId: updatedPayout.id,
-        remarks: remarks || "Processed",
-      });
-    } catch (pusherError) {
-      console.error("Pusher Trigger Error:", pusherError);
+      await pusherServer.trigger(
+        `vendor-${vendorId}`,
+        "payout-updated",
+        {
+          requestId:
+            updatedPayout.id,
+
+          status,
+
+          amount:
+            updatedPayout.amount,
+
+          newBalance,
+
+          remarks:
+            remarks ||
+            "Processed",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "PUSHER_PAYOUT_ERROR:",
+        error
+      );
     }
 
     if (updatedPayout.vendor?.email) {
       try {
         await sendPayoutStatusEmail(
           updatedPayout.vendor.email,
-          updatedPayout.vendor.name || "Vendor",
+          updatedPayout.vendor.name ??
+            "Vendor",
           updatedPayout.amount,
           status,
           remarks
         );
-      } catch (emailErr) {
-        console.error("Email Notification Failed:", emailErr);
+      } catch (error) {
+        console.error(
+          "PAYOUT_EMAIL_ERROR:",
+          error
+        );
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Payout request has been ${status.toLowerCase()}.`,
-      payout: updatedPayout,
-    });
-  } catch (error: any) {
-    console.error("ADMIN_PAYOUT_PATCH_ERROR:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process payout" },
-      { status: 500 }
+      {
+        success: true,
+        message:
+          `Payout ${status.toLowerCase()} successfully.`,
+        payout: updatedPayout,
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
-}``
+}

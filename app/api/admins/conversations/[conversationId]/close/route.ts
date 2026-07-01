@@ -1,101 +1,104 @@
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+
+import { conversationService } from "@/app/lib/services/conversation.service";
 import { pusherServer } from "@/app/lib/pusherServer";
 
+import { requireConversationAccess } from "@/app/lib/auth/conversation";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  forbidden,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      conversationId: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
     const { conversationId } = await params;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const access =
+      await requireConversationAccess(
+        conversationId
+      );
 
-    const isAdmin =
-      session.user.role === "ADMIN" ||
-      session.user.role === "SUPER_ADMIN" ||
-      session.user.admin?.manageMessages === true;
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const adminUserId =
-      (session.user as any).id || (session.user as any).sub;
-
-    const adminRole =
-      session.user.role || "ADMIN";
-
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-    });
-
-    if (!conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
+    if (!access.isAdmin) {
+      throw forbidden(
+        "Only administrators can close conversations."
       );
     }
 
-    if (conversation.status === "CLOSED") {
-      return NextResponse.json(
-        { error: "Conversation is already closed" },
-        { status: 400 }
+    if (
+      access.conversation.status ===
+      "CLOSED"
+    ) {
+      throw badRequest(
+        "Conversation is already closed."
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const updatedConversation = await tx.conversation.update({
-        where: { id: conversationId },
-        data: {
-          status: "CLOSED",
-          endedAt: new Date(),
-          endedById: adminUserId,
-          endedByRole: adminRole,
-        },
-      });
+    const result =
+      await conversationService.closeConversation(
+        conversationId,
+        access.userId,
+        access.session.user.role
+      );
 
-      const systemMessage = await tx.message.create({
-        data: {
+    try {
+      await Promise.all([
+        pusherServer.trigger(
           conversationId,
-          senderId: "SYSTEM",
-          senderName: "MarvelMarts Support",
-          content: "This support session has been ended by an administrator.",
-        },
-      });
+          "new-message",
+          result.systemMessage
+        ),
 
-      return { updatedConversation, systemMessage };
-    });
+        pusherServer.trigger(
+          conversationId,
+          "conversation-closed",
+          {
+            conversationId,
+            status: "CLOSED",
+          }
+        ),
 
-    await Promise.all([
-      pusherServer.trigger(conversationId, "new-message", result.systemMessage),
-      pusherServer.trigger(conversationId, "conversation-closed", {
-        conversationId,
-        status: "CLOSED",
-      }),
-      pusherServer.trigger("global-admin-support", "conversation-closed", {
-        conversationId,
-        status: "CLOSED",
-      }),
-    ]);
+        pusherServer.trigger(
+          "global-admin-support",
+          "conversation-closed",
+          {
+            conversationId,
+            status: "CLOSED",
+          }
+        ),
+      ]);
+    } catch (error) {
+      console.error(
+        "PUSHER_ERROR:",
+        error
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      conversation: result.updatedConversation,
-      message: result.systemMessage,
-    });
-  } catch (error: any) {
-    console.error("CLOSE_CONVERSATION_ERROR:", error.message || error);
     return NextResponse.json(
-      { error: "Failed to close conversation" },
-      { status: 500 }
+      {
+        success: true,
+        conversation:
+          result.conversation,
+        message:
+          result.systemMessage,
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

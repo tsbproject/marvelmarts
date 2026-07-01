@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { defaultPermissions, type Permissions, } from "@/types/admin";
-
-import { serializeAdminPermissions, permissionsToAdminProfile,} from "@/app/lib/auth/admin-permissions";
+import type { AdminPermissions,} from "@/app/lib/auth/types";
+import {  defaultAdminPermissions,
+  permissionsToAdminProfile,  
+  serializeAdminPermissions,} 
+  from "@/app/lib/auth/admin-permissions";
+import {requireManageAdmins, requireSuperAdmin,
+} from "@/app/lib/auth/guards";
+import { handleApiError,} from "@/app/lib/auth/api";
+import { Prisma, UserRole } from "@prisma/client";
 
 
 
@@ -13,164 +17,480 @@ import { serializeAdminPermissions, permissionsToAdminProfile,} from "@/app/lib/
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* ============================================================
-   GET: Fetch Admin by ID
-   ============================================================ */
+
+/* ========================================================================== */
+/* GET: Fetch Administrator                                                   */
+/* ========================================================================== */
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    /* ---------------------------------------------------------------------- */
+    /* SECURITY                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    await requireManageAdmins();
+
+    /* ---------------------------------------------------------------------- */
+    /* PARAMS                                                                 */
+    /* ---------------------------------------------------------------------- */
+
     const { id } = await params;
 
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid administrator id.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* FETCH ADMIN                                                            */
+    /* ---------------------------------------------------------------------- */
+
     const user = await prisma.user.findUnique({
-      where: { id },
-      include: { adminProfile: true },
-    });
+      where: {
+        id,
+      },
 
-          // 1. Check if user exists
-        if (!user) {
-          return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        // 2. Check if the user has the right permissions
-        const userRole = user.role || "USER"; // Default to a safe low-level role
-        const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(userRole);
-
-        if (!isAdmin) {
-          return NextResponse.json({ error: "Access denied: Admins only" }, { status: 403 });
-        }
-
-    return NextResponse.json({
-      user: {
-        ...user,
-        adminProfile: user.adminProfile
-          ? {
-              ...user.adminProfile,
-              permissions:
-                serializeAdminPermissions(
-                  user.adminProfile
-                ),
-            }
-          : {
-              ...defaultPermissions,
-            },
+      include: {
+        adminProfile: true,
       },
     });
-  } catch (err) {
-    console.error("GET Error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* VALIDATE ROLE                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    const isAdministrator =
+      user.role === "ADMIN" ||
+      user.role === "SUPER_ADMIN";
+
+    if (!isAdministrator) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "User is not an administrator.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* RESPONSE                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        user: {
+          ...user,
+
+          adminProfile: user.adminProfile
+            ? {
+                ...user.adminProfile,
+
+                permissions:
+                  serializeAdminPermissions(
+                    user.adminProfile
+                  ),
+              }
+            : {
+                permissions:
+                  defaultAdminPermissions,
+              },
+        },
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/* ============================================================
-   PUT: Update Admin by ID
-   ============================================================ */
+/* ========================================================================== */
+/* PUT: Update Administrator                                                  */
+/* ========================================================================== */
+
+interface UpdateAdminRequest {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: UserRole;
+  permissions?: Partial<AdminPermissions>;
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    /* ---------------------------------------------------------------------- */
+    /* SECURITY                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    const session = await requireManageAdmins();
+
+    /* ---------------------------------------------------------------------- */
+    /* PARAMS                                                                 */
+    /* ---------------------------------------------------------------------- */
+
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const target = await prisma.user.findUnique({ where: { id } });
-
-    if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    // Protect Super Admins
-    if (target.role === "SUPER_ADMIN" && session.user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid administrator id.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    const updateData: any = {};
-    if (body.name) updateData.name = body.name;
-    if (body.email) updateData.email = body.email.toLowerCase().trim();
-    if (body.role && session.user.role === "SUPER_ADMIN") updateData.role = body.role;
-    if (body.password) updateData.passwordHash = await bcrypt.hash(body.password, 10);
+    /* ---------------------------------------------------------------------- */
+    /* REQUEST                                                                */
+    /* ---------------------------------------------------------------------- */
 
-    // Use transaction for User + Profile update
-    const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.update({ where: { id }, data: updateData });
-      
-      if (body.permissions) {
-        await tx.adminProfile.upsert({
-          where: { userId: id },
-          update: permissionsToAdminProfile( body.permissions),
-          create: { userId: id, ...permissionsToAdminProfile( body.permissions),
-},
-        });
-      }
-      return user;
+    const body =
+      (await req.json()) as UpdateAdminRequest;
+
+    /* ---------------------------------------------------------------------- */
+    /* VERIFY TARGET                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    const target = await prisma.user.findUnique({
+      where: {
+        id,
+      },
     });
 
-    return NextResponse.json({ user: result });
-  } catch (err) {
-    console.error("PUT Error:", err);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    if (!target) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /**
+     * Only SUPER_ADMIN may modify another SUPER_ADMIN.
+     */
+    if (
+      target.role === UserRole.SUPER_ADMIN &&
+      session.user.role !== UserRole.SUPER_ADMIN
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Only Super Administrators can modify another Super Administrator.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* UPDATE DATA                                                            */
+    /* ---------------------------------------------------------------------- */
+
+    const updateData: Prisma.UserUpdateInput = {};
+
+    if (body.name) {
+      updateData.name = body.name.trim();
+    }
+
+    if (body.email) {
+      updateData.email =
+        body.email.toLowerCase().trim();
+    }
+
+    if (
+      body.role &&
+      session.user.role === UserRole.SUPER_ADMIN
+    ) {
+      updateData.role = body.role;
+      updateData.roles = [body.role];
+    }
+
+    if (body.password) {
+      updateData.passwordHash =
+        await bcrypt.hash(body.password, 10);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* DATABASE                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    const result =
+      await prisma.$transaction(async (tx) => {
+
+        const user =
+          await tx.user.update({
+            where: {
+              id,
+            },
+            data: updateData,
+          });
+
+        if (body.permissions) {
+          await tx.adminProfile.upsert({
+            where: {
+              userId: id,
+            },
+
+            update: permissionsToAdminProfile(
+              body.permissions
+            ),
+
+            create: {
+              userId: id,
+              ...permissionsToAdminProfile(
+                body.permissions
+              ),
+            },
+          });
+        }
+
+        return user;
+      });
+
+    /* ---------------------------------------------------------------------- */
+    /* AUDIT (Temporary)                                                      */
+    /* ---------------------------------------------------------------------- */
+
+    console.log(
+      `[Admin Updated] By: ${session.user.email} → ${result.email}`
+    );
+
+    /* ---------------------------------------------------------------------- */
+    /* RESPONSE                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Administrator updated successfully.",
+        user: result,
+      },
+      {
+        status: 200,
+      }
+    );
+
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/* ============================================================
-   DELETE: Remove Admin by ID
-   ============================================================ */
+/* ========================================================================== */
+/* DELETE: Remove Administrator                                               */
+/* ========================================================================== */
+
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const session = await getServerSession(authOptions);
+    /* ---------------------------------------------------------------------- */
+    /* SECURITY                                                               */
+    /* ---------------------------------------------------------------------- */
 
-    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await requireSuperAdmin();
+
+    /* ---------------------------------------------------------------------- */
+    /* PARAMS                                                                 */
+    /* ---------------------------------------------------------------------- */
+
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid administrator id.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
+    /**
+     * Prevent deleting yourself.
+     */
     if (session.user.id === id) {
-      return NextResponse.json({ error: "You cannot delete yourself" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "You cannot delete your own administrator account.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* VERIFY TARGET                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    const target = await prisma.user.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    if (!target) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* DATABASE                                                               */
+    /* ---------------------------------------------------------------------- */
 
     await prisma.$transaction(async (tx) => {
-      // Step A: Delete associated Products
-      // If vendorProfileId is required, we cannot set it to null. 
-      // We must remove the products to satisfy database integrity.
+
+      /**
+       * Remove vendor products.
+       */
       await tx.product.deleteMany({
-        where: { vendorProfileId: id },
+        where: {
+          vendorProfileId: id,
+        },
       });
 
-      // Step B: "Unhook" Orders (Only if userId is optional in your Schema)
-      // If your Order schema also requires userId, change this to deleteMany as well.
-      await tx.order.updateMany({
-        where: { userId: id },
-        data: { userId: null }, 
-      }).catch(() => {
-        console.log("Order update skipped: userId might be required in schema.");
+      /**
+       * Detach orders if nullable.
+       */
+      try {
+        await tx.order.updateMany({
+          where: {
+            userId: id,
+          },
+          data: {
+            userId: null,
+          },
+        });
+      } catch {
+        console.warn(
+          "Order detachment skipped."
+        );
+      }
+
+      /**
+       * Remove related records.
+       */
+      await tx.account.deleteMany({
+        where: {
+          userId: id,
+        },
       });
 
-      // Step C: Delete secondary records
-      await tx.account.deleteMany({ where: { userId: id } });
-      await tx.address.deleteMany({ where: { userId: id } });
-      await tx.review.deleteMany({ where: { userId: id } });
-      await tx.adminProfile.deleteMany({ where: { userId: id } });
-      
-      // If this admin had a vendor profile, delete that too
-      await tx.vendorProfile.deleteMany({ where: { userId: id } });
+      await tx.address.deleteMany({
+        where: {
+          userId: id,
+        },
+      });
 
-      // Step D: Finally, delete the User
+      await tx.review.deleteMany({
+        where: {
+          userId: id,
+        },
+      });
+
+      await tx.adminProfile.deleteMany({
+        where: {
+          userId: id,
+        },
+      });
+
+      await tx.vendorProfile.deleteMany({
+        where: {
+          userId: id,
+        },
+      });
+
+      /**
+       * Finally remove the user.
+       */
       await tx.user.delete({
-        where: { id },
+        where: {
+          id,
+        },
       });
     });
 
-    return NextResponse.json({ message: "Admin and associated data removed" }, { status: 200 });
+    /* ---------------------------------------------------------------------- */
+    /* AUDIT (Temporary)                                                      */
+    /* ---------------------------------------------------------------------- */
 
-  } catch (err: any) {
-    console.error("MANUAL DELETE ERROR:", err);
-    return NextResponse.json(
-      { error: "Delete failed: " + (err.message || "Internal Server Error") },
-      { status: 500 }
+    console.log(
+      `[Admin Deleted] By: ${session.user.email} → ${target.email}`
     );
+
+    /* ---------------------------------------------------------------------- */
+    /* RESPONSE                                                               */
+    /* ---------------------------------------------------------------------- */
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Administrator removed successfully.",
+      },
+      {
+        status: 200,
+      }
+    );
+
+  } catch (error) {
+    return handleApiError(error);
   }
 }

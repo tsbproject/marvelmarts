@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useState } from "react";
@@ -41,7 +38,7 @@ export default function NewArticlePage() {
           .replace(/-+/g, "-"),
       };
 
-      const res = await fetch("/api/admins/support/articles", {
+      const res = await fetch("/api/admins/support", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

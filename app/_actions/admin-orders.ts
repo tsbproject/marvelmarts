@@ -2,7 +2,7 @@
 "use server";
 
 import { prisma } from "@/app/lib/prisma";
-import { finalizeOrderPayout } from "@/app/lib/payouts-calculation";
+import { finalizeVendorPayout } from "@/app/lib/payouts-calculation";
 
 export async function updateOrderStatus(orderId: string, status: string) {
   // 1. Update the order status first
@@ -14,7 +14,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
   // 2. If it is DELIVERED, trigger the payout logic
   if (status === "DELIVERED") {
     try {
-      await finalizeOrderPayout(orderId);
+      await finalizeVendorPayout(orderId);
     } catch (error) {
       console.error("Critical: Order delivered but payout failed", error);
       // In production, you might want to log this to an error tracking service

@@ -1,115 +1,132 @@
-// import { prisma } from "@/app/lib/prisma";
-// import { pusherServer } from "@/app/lib/pusherServer";
-// import { NextRequest, NextResponse } from "next/server";
-
-// // Define the context type for Next.js 15+ 
-// type Context = {
-//   params: Promise<{ id: string }>;
-// };
-
-// export async function PATCH(req: NextRequest, context: Context) {
-//   // 1. Await params to prevent Build Error
-//   const { id } = await context.params;
-
-//   try {
-//     // 2. Get the action from the body ("approved" or "rejected")
-//     const { action } = await req.json(); 
-
-//     if (!action || !["approved", "rejected"].includes(action)) {
-//       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-//     }
-
-//     // 3. Update Order in Database
-//     const updatedOrder = await prisma.order.update({
-//       where: { id: id },
-//       data: {
-//         refundStatus: action,
-//         // Only set the main order status to 'refunded' if it was approved
-//         ...(action === "approved" && { status: "refunded" }),
-//       },
-//     });
-
-//     // 4. Trigger Pusher Sync
-//     // This makes the update appear on the customer's screen instantly
-//     await pusherServer.trigger(
-//       `user-${updatedOrder.userId}`, 
-//       "order-update", 
-//       updatedOrder
-//     );
-
-//     return NextResponse.json(updatedOrder);
-//   } catch (error) {
-//     console.error("MarvelMarts Refund Process Error:", error);
-//     return NextResponse.json({ error: "Action failed" }, { status: 500 });
-//   }
-// }
-
-
-
-
+import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/app/lib/prisma";
 import { pusherServer } from "@/app/lib/pusherServer";
-import { sendRefundStatusEmail } from "@/app/lib/mailer"; // Ensure this import path is correct
-import { NextRequest, NextResponse } from "next/server";
+import { sendRefundStatusEmail } from "@/app/lib/mailer";
+
+import { requireManageOrders } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type Context = {
-  params: Promise<{ id: string }>;
+  params: Promise<{
+    id: string;
+  }>;
 };
 
-export async function PATCH(req: NextRequest, context: Context) {
-  const { id } = await context.params;
+type RefundAction =
+  | "approved"
+  | "rejected";
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: Context
+) {
   try {
-    // 1. Capture both the action AND the reason from the request body
-    const { action, adminNote } = await req.json(); 
+    await requireManageOrders();
 
-    if (!action || !["approved", "rejected"].includes(action)) {
-      return NextResponse.json({ error: "Invalid protocol action" }, { status: 400 });
+    const { id } = await params;
+
+    const body = await req.json();
+
+    const action =
+      body.action as RefundAction;
+
+    const adminNote =
+      body.adminNote?.trim() ||
+      "Administrative decision";
+
+    if (
+      action !== "approved" &&
+      action !== "rejected"
+    ) {
+      throw badRequest(
+        "Invalid refund action."
+      );
     }
 
-    // 2. Update Database with the decision and the justification
-    const updatedOrder = await prisma.order.update({
-      where: { id: id },
-      data: {
-        refundStatus: action,
-        // We save the reason in cancelReason to ensure visibility in the UI
-        cancelReason: adminNote || "Administrative decision",
-        // Only set the main order status to 'refunded' if it was approved
-        ...(action === "approved" && { status: "refunded" }),
-      },
-      include: { items: true } // Include items for the email template
-    });
+    const order =
+      await prisma.order.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          items: true,
+        },
+      });
 
-    // 3. Trigger Real-time Pusher Sync
+    if (!order) {
+      throw notFound(
+        "Order not found."
+      );
+    }
+
+    const updatedOrder =
+      await prisma.order.update({
+        where: {
+          id,
+        },
+        data: {
+          refundStatus: action,
+          cancelReason: adminNote,
+
+          ...(action === "approved"
+            ? {
+                status: "refunded",
+              }
+            : {}),
+        },
+        include: {
+          items: true,
+        },
+      });
+
     if (updatedOrder.userId) {
-      await pusherServer.trigger(
-        `user-${updatedOrder.userId}`, 
-        "order-update", 
-        updatedOrder
-      ).catch(err => console.error("Pusher Sync Failed:", err));
+      try {
+        await pusherServer.trigger(
+          `user-${updatedOrder.userId}`,
+          "order-update",
+          updatedOrder
+        );
+      } catch (error) {
+        console.error(
+          "PUSHER_REFUND_ERROR:",
+          error
+        );
+      }
     }
 
-    // 4. Dispatch the Branded Email
-    // This uses the template we built to notify the customer of the result
     try {
       await sendRefundStatusEmail(
-        updatedOrder, 
-        action as 'approved' | 'rejected', 
+        updatedOrder,
+        action,
         adminNote
       );
-    } catch (mailErr) {
-      console.error("Email Dispatch Failed:", mailErr);
+    } catch (error) {
+      console.error(
+        "REFUND_EMAIL_ERROR:",
+        error
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Protocol ${action.toUpperCase()} successfully executed.`,
-      order: updatedOrder
-    });
-
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          `Refund ${action} successfully.`,
+        order: updatedOrder,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("MarvelMarts Refund Process Error:", error);
-    return NextResponse.json({ error: "Critical System Failure" }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,4 +1,5 @@
 import type {
+  AdminProfile,
   Prisma,
   VendorStatus,
 } from "@prisma/client";
@@ -36,6 +37,30 @@ export interface AdminPermissions {
   manageSupport: boolean;
   managePayout: boolean;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                      ADMIN PERMISSION SOURCE                               */
+/* -------------------------------------------------------------------------- */
+
+export type AdminPermissionSource = Pick<
+  AdminProfile,
+  | "manageAdmins"
+  | "manageUsers"
+  | "manageBlogs"
+  | "manageProducts"
+  | "manageOrders"
+  | "manageMessages"
+  | "manageSettings"
+  | "manageCategories"
+  | "manageVendors"
+  | "manageVerifications"
+  | "manageSubscribers"
+  | "manageReviews"
+  | "manageActivity"
+  | "manageTrending"
+  | "manageSupport"
+  | "managePayout"
+>;
 
 /* -------------------------------------------------------------------------- */
 /*                              AUTHENTICATED USER                            */
@@ -94,5 +119,3 @@ export type AuthDatabaseUser =
       };
     };
   }>;
-
-

@@ -1,104 +1,78 @@
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+
+import { conversationService } from "@/app/lib/services/conversation.service";
+
+import { requireConversationAccess } from "@/app/lib/auth/conversation";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      conversationId: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { conversationId } = await params;
 
-    const userId =
-      (session.user as any)?.id || (session.user as any)?.sub;
+    const access =
+      await requireConversationAccess(
+        conversationId
+      );
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isAdmin =
-      session.user.role === "ADMIN" ||
-      session.user.role === "SUPER_ADMIN" ||
-      session.user.admin?.manageMessages === true;
-
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      select: {
-        id: true,
-        status: true,
-        participantIds: true,
-        deletedByParticipantIds: true,
-      },
-    });
-
-    if (!conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
+    if (
+      access.conversation.status !==
+      "CLOSED"
+    ) {
+      throw badRequest(
+        "Only closed conversations can be deleted."
       );
     }
 
-    const isParticipant = conversation.participantIds.includes(userId);
+    const deletedBy =
+      access.conversation
+        .deletedByParticipantIds ?? [];
 
-    if (!isParticipant && !isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (conversation.status !== "CLOSED") {
+    if (
+      deletedBy.includes(
+        access.userId
+      )
+    ) {
       return NextResponse.json(
-        { error: "Only closed chats can be deleted" },
-        { status: 400 }
-      );
-    }
-
-    const deletedByParticipantIds = conversation.deletedByParticipantIds ?? [];
-
-    if (deletedByParticipantIds.includes(userId)) {
-      return NextResponse.json({ success: true });
-    }
-
-    const updatedConversation = await prisma.conversation.update({
-      where: { id: conversationId },
-      data: {
-        deletedByParticipantIds: {
-          push: userId,
+        {
+          success: true,
+          deleted: false,
         },
-      },
-      select: {
-        id: true,
-        participantIds: true,
-        deletedByParticipantIds: true,
-      },
-    });
-
-    const allParticipantsDeleted = updatedConversation.participantIds.every((id: any) =>
-      updatedConversation.deletedByParticipantIds.includes(id)
-    );
-
-    if (allParticipantsDeleted) {
-      await prisma.$transaction([
-        prisma.message.deleteMany({
-          where: { conversationId: updatedConversation.id },
-        }),
-        prisma.conversation.delete({
-          where: { id: updatedConversation.id },
-        }),
-      ]);
+        {
+          status: 200,
+        }
+      );
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("DELETE_CONVERSATION_ERROR:", error);
+    const result =
+      await conversationService.deleteConversation(
+        conversationId,
+        access.userId
+      );
+
     return NextResponse.json(
-      { error: "Failed to delete conversation" },
-      { status: 500 }
+      {
+        success: true,
+        deleted:
+          result.everyoneDeleted,
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,29 +1,48 @@
-// app/api/admins/orders/route.ts
-import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
+
+import { prisma } from "@/app/lib/prisma";
+
+import { requireManageOrders } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Adding a console log here is CRUCIAL. 
-    // If you don't see "API HIT" in your terminal, the frontend isn't reaching this file.
-    console.log(" API HIT: Fetching Orders from DB...");
+    await requireManageOrders();
 
     const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: "desc",
+      },
       include: {
-        // Including the user to get the customer name
         user: {
           select: {
+            id: true,
             name: true,
-          }
+            email: true,
+          },
         },
-        _count: { select: { items: true } }
-      }
+
+        _count: {
+          select: {
+            items: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json(orders);
+    return NextResponse.json(
+      {
+        success: true,
+        orders,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("❌ Prisma Order Error:", error);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    return handleApiError(error);
   }
 }

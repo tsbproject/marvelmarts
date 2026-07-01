@@ -1,35 +1,100 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
 
-export async function PATCH(req: Request) {
+import { requireManageReviews } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* -------------------------------------------------------------------------- */
+/*                           BULK APPROVE / REJECT                            */
+/* -------------------------------------------------------------------------- */
+
+export async function PATCH(req: NextRequest) {
   try {
-    const { ids, approved } = await req.json();
+    await requireManageReviews();
+
+    const body = await req.json();
+
+    const ids = body.ids;
+    const approved = body.approved;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw badRequest(
+        "At least one review must be selected."
+      );
+    }
+
+    if (typeof approved !== "boolean") {
+      throw badRequest(
+        "Approved flag is required."
+      );
+    }
 
     const result = await prisma.review.updateMany({
       where: {
-        id: { in: ids }
+        id: {
+          in: ids,
+        },
       },
-      data: { approved }
+      data: {
+        approved,
+      },
     });
 
-    return NextResponse.json({ updated: result.count });
+    return NextResponse.json(
+      {
+        success: true,
+        updated: result.count,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    return new NextResponse("Bulk update failed", { status: 500 });
+    return handleApiError(error);
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                           BULK DELETE                                      */
+/* -------------------------------------------------------------------------- */
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
   try {
-    const { ids } = await req.json();
+    await requireManageReviews();
 
-    // 1. Delete all selected reviews
-    await prisma.review.deleteMany({
-      where: { id: { in: ids } }
+    const body = await req.json();
+
+    const ids = body.ids;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw badRequest(
+        "At least one review must be selected."
+      );
+    }
+
+    const result = await prisma.review.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
     });
 
-    return new NextResponse("Intel Purged", { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        deleted: result.count,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    return new NextResponse("Purge Failed", { status: 500 });
+    return handleApiError(error);
   }
 }

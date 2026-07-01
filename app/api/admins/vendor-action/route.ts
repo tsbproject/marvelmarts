@@ -1,12 +1,15 @@
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/app/lib/auth";
-import { sendVendorActionEmail } from "@/app/lib/mailer";
-import type { Permissions } from "@/types/admin";
-import { serializeAdminPermissions,} from "@/app/lib/auth/admin-permissions";
-import { defaultPermissions } from "@/types/admin";
 import type { Prisma } from "@prisma/client";
+
+import { prisma } from "@/app/lib/prisma";
+import { sendVendorActionEmail } from "@/app/lib/mailer";
+
+import {
+  requireManageVendors,
+  requireManageVerifications,
+} from "@/app/lib/auth/guards";
+
+import { handleApiError } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,48 +27,22 @@ interface VendorActionRequest {
   reason?: string;
 }
 
+const ALLOWED_ACTIONS = new Set<VendorAction>([
+  "SUSPEND",
+  "FLAG",
+  "RESTORE",
+  "REJECT",
+  "APPROVE",
+]);
+
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    /* ---------------------------------------------------------------------- */
+    /* REQUEST                                                                */
+    /* ---------------------------------------------------------------------- */
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = session.user.role;
-    const userRoles = Array.isArray(session.user.roles)
-      ? session.user.roles
-      : [];
-
-    const isSuperAdmin =
-      userRole === "SUPER_ADMIN" ||
-      userRoles.includes("SUPER_ADMIN");
-
-    const isAdmin =
-      userRole === "ADMIN" ||
-      isSuperAdmin ||
-      userRoles.includes("ADMIN");
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
-    }
-
-    let body: VendorActionRequest;
-
-      try {
-        body = await req.json();
-      } catch {
-        return NextResponse.json(
-          { error: "Invalid request body." },
-          { status: 400 }
-        );
-      }
+    const body =
+      (await req.json()) as VendorActionRequest;
 
     const {
       vendorProfileId,
@@ -73,87 +50,43 @@ export async function PATCH(req: Request) {
       reason,
     } = body;
 
-    if (
-      !vendorProfileId ||
-      typeof vendorProfileId !== "string"
-    ) {
-      return NextResponse.json(
-        { error: "Invalid vendor profile id" },
-        { status: 400 }
-      );
-    }
-
-    const allowedActions = new Set<VendorAction>([
-      "SUSPEND",
-      "FLAG",
-      "RESTORE",
-      "REJECT",
-      "APPROVE",
-    ]);
-
-    if (!allowedActions.has(action)) {
-      return NextResponse.json(
-        { error: "Invalid action." },
-        { status: 400 }
-      );
-    }
-
-    const adminProfile = await prisma.adminProfile.findUnique({
-      where: {
-        userId: session.user.id,
-      },
-    });
-
-        if (!isSuperAdmin && !adminProfile) {
+    if (!vendorProfileId) {
       return NextResponse.json(
         {
-          error:
-            "Administrator profile not found. Please contact a Super Administrator.",
+          success: false,
+          error: "Vendor profile id is required.",
         },
-        { status: 403 }
+        {
+          status: 400,
+        }
       );
     }
 
-const permissions = adminProfile ? serializeAdminPermissions(adminProfile): defaultPermissions;
-   
-  if (!isSuperAdmin) {
-      const needsVendorPermission = [
-        "SUSPEND",
-        "FLAG",
-        "RESTORE",
-      ].includes(action);
-
-      const needsVerificationPermission = [
-        "APPROVE",
-        "REJECT",
-      ].includes(action);
-
-      if (
-        needsVendorPermission &&
-        !permissions?.manageVendors
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "You do not have permission to manage vendors.",
-          },
-          { status: 403 }
-        );
-      }
-
-      if (
-        needsVerificationPermission &&
-        !permissions?.manageVerifications
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "You do not have permission to manage vendor verifications.",
-          },
-          { status: 403 }
-        );
-      }
+    if (!ALLOWED_ACTIONS.has(action)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid vendor action.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* AUTHORIZATION                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    const session =
+      action === "APPROVE" ||
+      action === "REJECT"
+        ? await requireManageVerifications()
+        : await requireManageVendors();
+
+    /* ---------------------------------------------------------------------- */
+    /* VERIFY VENDOR                                                          */
+    /* ---------------------------------------------------------------------- */
 
     const existingVendor =
       await prisma.vendorProfile.findUnique({
@@ -173,107 +106,158 @@ const permissions = adminProfile ? serializeAdminPermissions(adminProfile): defa
 
     if (!existingVendor) {
       return NextResponse.json(
-        { error: "Vendor not found" },
-        { status: 404 }
+        {
+          success: false,
+          error: "Vendor not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
-    const updateData: Prisma.VendorProfileUpdateInput =
-      (() => {
-        switch (action) {
-          case "SUSPEND":
-            return {
-              isSuspended: true,
-            };
+    /* ---------------------------------------------------------------------- */
+    /* BUILD UPDATE                                                           */
+    /* ---------------------------------------------------------------------- */
 
-          case "FLAG":
-            return {
-              status: "PENDING",
-            };
+    let updateData: Prisma.VendorProfileUpdateInput =
+      {};
 
-          case "RESTORE":
-            return {
-              isSuspended: false,
-            };
+    switch (action) {
+      case "SUSPEND":
+        updateData = {
+          isSuspended: true,
+        };
+        break;
 
-          case "REJECT":
-            return {
-              status: "REJECTED",
-              isSuspended: false,
-            };
+      case "FLAG":
+        updateData = {
+          status: "PENDING",
+        };
+        break;
 
-          case "APPROVE":
-            return {
-              status: "APPROVED",
-              isSuspended: false,
-            };
+      case "RESTORE":
+        updateData = {
+          isSuspended: false,
+        };
+        break;
 
-          default:
-            return {};
-        }
-      })();
+      case "REJECT":
+        updateData = {
+          status: "REJECTED",
+          isSuspended: false,
+          rejectionReason: reason ?? null,
+        };
+        break;
 
-    const updatedVendor = await prisma.$transaction(async (tx) => {
-      const vendor = await tx.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: updateData,
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
+      case "APPROVE":
+        updateData = {
+          status: "APPROVED",
+          isSuspended: false,
+          rejectionReason: null,
+        };
+        break;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* TRANSACTION                                                            */
+    /* ---------------------------------------------------------------------- */
+
+    const vendor =
+      await prisma.$transaction(async (tx) => {
+
+        const updatedVendor =
+          await tx.vendorProfile.update({
+            where: {
+              id: vendorProfileId,
             },
-          },
-        },
+            data: updateData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                },
+              },
+            },
+          });
+
+        const conversation =
+          await tx.conversation.findFirst({
+            where: {
+              participantIds: {
+                has: updatedVendor.userId,
+              },
+              type: "VENDOR_ADMIN",
+            },
+          });
+
+        if (conversation) {
+          await tx.message.create({
+            data: {
+              conversationId:
+                conversation.id,
+
+              senderId:
+                session.user.id,
+
+              senderName:
+                "MARVELMARTS COMPLIANCE",
+
+              content:
+                `🚨 SYSTEM ACTION: Account has been ${action}.\nReason: ${reason ?? "No reason provided"}`,
+            },
+          });
+        }
+
+        return updatedVendor;
       });
 
-      const conversation = await tx.conversation.findFirst({
-        where: {
-          participantIds: { has: vendor.userId },
-          type: "VENDOR_ADMIN",
-        },
-      });
+    /* ---------------------------------------------------------------------- */
+    /* EMAIL                                                                  */
+    /* ---------------------------------------------------------------------- */
 
-      if (conversation) {
-        await tx.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: session.user.id,
-            senderName: "MARVELMARTS COMPLIANCE",
-            content: `🚨 SYSTEM ACTION: Account has been ${action}.
-    Reason: ${reason || "No reason provided"}`,
-          },
-        });
-      }
-
-      return vendor;
-    });
-
-    if (updatedVendor.user?.email) {
+    if (vendor.user?.email) {
       await sendVendorActionEmail({
-        email: updatedVendor.user.email,
+        email: vendor.user.email,
         name:
-          updatedVendor.user.name ||
-          updatedVendor.storeName,
-        action: action as "SUSPEND" | "RESTORE",
-        reason: reason ?? "",
+          vendor.user.name ??
+          vendor.storeName,
+
+        action:
+          action as
+            | "SUSPEND"
+            | "RESTORE",
+
+        reason:
+          reason ?? "",
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      vendor: updatedVendor,
-    });
-  } catch (error) {
-    console.error(
-      "ADMIN_VENDOR_ACTION_ERROR:",
-      error
+    /* ---------------------------------------------------------------------- */
+    /* AUDIT                                                                  */
+    /* ---------------------------------------------------------------------- */
+
+    console.log(
+      `[Vendor Action] ${action} | Admin: ${session.user.email} | Vendor: ${vendor.user?.email}`
     );
 
+    /* ---------------------------------------------------------------------- */
+    /* RESPONSE                                                               */
+    /* ---------------------------------------------------------------------- */
+
     return NextResponse.json(
-      { error: "Action failed" },
-      { status: 500 }
+      {
+        success: true,
+        vendor,
+      },
+      {
+        status: 200,
+      }
     );
+
+  } catch (error) {
+    return handleApiError(error);
   }
 }

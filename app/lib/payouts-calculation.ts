@@ -4,7 +4,7 @@ import { prisma } from "@/app/lib/prisma";
  * THE BRAIN: Purely calculates the numbers. 
  * Use this for UI previews (Order Details, Invoices).
  */
-export async function calculateOrderPayout(orderId: string) {
+export async function calculateVendorPayout(orderId: string) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { 
@@ -39,7 +39,7 @@ export async function calculateOrderPayout(orderId: string) {
  * THE MUSCLE: Executes the database transaction.
  * Use this ONLY when status changes to "DELIVERED".
  */
-export async function finalizeOrderPayout(orderId: string) {
+export async function finalizeVendorPayout(orderId: string) {
   // 1. Get the math from the "Brain"
   const { 
     totalAmount, 
@@ -48,7 +48,7 @@ export async function finalizeOrderPayout(orderId: string) {
     commissionRate, 
     tier, 
     vendorProfileId 
-  } = await calculateOrderPayout(orderId);
+  } = await calculateVendorPayout(orderId);
 
   // 2. Execute the atomic transaction
   return await prisma.$transaction([

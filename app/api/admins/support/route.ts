@@ -1,107 +1,167 @@
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth"; 
 import { NextResponse } from "next/server";
 
-/**
- * UTILITY: Check Permissions
- * Ensures the user is a Super Admin or has the 'manageSupport' permission
- */
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
-  const hasPermission = session?.user?.admin?.manageSupport;
+import { prisma } from "@/app/lib/prisma";
 
-  if (!session || (!isSuperAdmin && !hasPermission)) {
-    return false;
-  }
-  return true;
+import { requireManageSupport } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+interface HelpArticleRequest {
+  title: string;
+  slug?: string;
+  excerpt?: string;
+  content: string;
+  category: string;
+  keywords?: string[];
 }
 
-// 1. CREATE NEW ARTICLE
+function generateSlug(title: string) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]/g, "");
+}
+
+/* ========================================================================== */
+/* CREATE HELP ARTICLE                                                        */
+/* ========================================================================== */
+
 export async function POST(req: Request) {
   try {
-    if (!(await checkAuth())) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    await requireManageSupport();
+
+    const body = (await req.json()) as HelpArticleRequest;
+
+    if (!body.title || !body.content || !body.category) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Title, content and category are required.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    const body = await req.json();
-    
-    // Automatic slug generation if not provided
-    const slug = body.slug || body.title.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+    const slug =
+      body.slug?.trim() || generateSlug(body.title);
 
     const article = await prisma.helpArticle.create({
       data: {
-        title: body.title,
-        slug: slug,
-        excerpt: body.excerpt,
+        title: body.title.trim(),
+        slug,
+        excerpt: body.excerpt?.trim() ?? "",
         content: body.content,
         category: body.category,
-        keywords: Array.isArray(body.keywords) ? body.keywords : [],
+        keywords: Array.isArray(body.keywords)
+          ? body.keywords
+          : [],
       },
     });
 
-    return NextResponse.json(article);
+    return NextResponse.json(
+      {
+        success: true,
+        article,
+      },
+      {
+        status: 201,
+      }
+    );
   } catch (error) {
-    console.error("POST_SUPPORT_ERROR", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-// 2. UPDATE EXISTING ARTICLE
+/* ========================================================================== */
+/* UPDATE HELP ARTICLE                                                        */
+/* ========================================================================== */
+
 export async function PUT(req: Request) {
   try {
-    if (!(await checkAuth())) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+    await requireManageSupport();
 
     const { searchParams } = new URL(req.url);
+
     const id = searchParams.get("id");
-    const body = await req.json();
 
     if (!id) {
-      return NextResponse.json({ error: "Missing article ID" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Article id is required.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    const updated = await prisma.helpArticle.update({
-      where: { id },
+    const body = (await req.json()) as HelpArticleRequest;
+
+    const article = await prisma.helpArticle.update({
+      where: {
+        id,
+      },
       data: {
-        title: body.title,
-        excerpt: body.excerpt,
+        title: body.title?.trim(),
+        excerpt: body.excerpt?.trim(),
         content: body.content,
         category: body.category,
-        keywords: Array.isArray(body.keywords) ? body.keywords : [],
+        keywords: Array.isArray(body.keywords)
+          ? body.keywords
+          : [],
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      success: true,
+      article,
+    });
   } catch (error) {
-    console.error("PUT_SUPPORT_ERROR", error);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-// 3. DELETE ARTICLE
+/* ========================================================================== */
+/* DELETE HELP ARTICLE                                                        */
+/* ========================================================================== */
+
 export async function DELETE(req: Request) {
   try {
-    if (!(await checkAuth())) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+    await requireManageSupport();
 
     const { searchParams } = new URL(req.url);
+
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Missing article ID" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Article id is required.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
     await prisma.helpArticle.delete({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
-    return NextResponse.json({ message: "Article deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Help article deleted successfully.",
+    });
   } catch (error) {
-    console.error("DELETE_SUPPORT_ERROR", error);
-    return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }

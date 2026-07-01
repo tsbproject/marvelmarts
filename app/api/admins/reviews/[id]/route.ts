@@ -1,62 +1,136 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
-/**
- * PATCH: Update Review Status (Approve/Unapprove)
- */
+import { prisma } from "@/app/lib/prisma";
+
+import { requireManageReviews } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* -------------------------------------------------------------------------- */
+/*                           UPDATE REVIEW                                    */
+/* -------------------------------------------------------------------------- */
+
 export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
   try {
-    // 1. Security Check: Ensure only Admins can access
-    const session = await getServerSession(authOptions);
-    
-    // Tactical Note: Add your specific admin email or role check here
-    if (!session?.user || session.user.email !== "your-admin-email@example.com") {
-      return new NextResponse("Unauthorized Command", { status: 401 });
-    }
+    await requireManageReviews();
 
     const { id } = await params;
-    const { approved } = await req.json();
 
-    const updatedReview = await prisma.review.update({
-      where: { id },
-      data: { approved },
-    });
+    const body = await req.json();
 
-    return NextResponse.json(updatedReview);
-  } catch (error: any) {
-    console.error("ADMIN_REVIEW_PATCH_ERROR:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    if (typeof body.approved !== "boolean") {
+      throw badRequest(
+        "Approved status is required."
+      );
+    }
+
+    const existingReview =
+      await prisma.review.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!existingReview) {
+      throw notFound(
+        "Review not found."
+      );
+    }
+
+    const review =
+      await prisma.review.update({
+        where: {
+          id,
+        },
+        data: {
+          approved: body.approved,
+        },
+      });
+
+    return NextResponse.json(
+      {
+        success: true,
+        review,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * DELETE: Permanently Remove a Review
- */
+/* -------------------------------------------------------------------------- */
+/*                           DELETE REVIEW                                    */
+/* -------------------------------------------------------------------------- */
+
 export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user || session.user.email !== "your-admin-email@example.com") {
-      return new NextResponse("Unauthorized Command", { status: 401 });
-    }
+    await requireManageReviews();
 
     const { id } = await params;
 
+    const existingReview =
+      await prisma.review.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!existingReview) {
+      throw notFound(
+        "Review not found."
+      );
+    }
+
     await prisma.review.delete({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
-    return new NextResponse("Report Purged", { status: 200 });
-  } catch (error: any) {
-    console.error("ADMIN_REVIEW_DELETE_ERROR:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Review deleted successfully.",
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

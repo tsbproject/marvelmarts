@@ -1,53 +1,165 @@
-// app/api/admin/orders/update/route.ts
+import { NextRequest, NextResponse } from "next/server";
 
-import { NextResponse } from "next/server";
-import { pusherServer } from "@/app/lib/pusherServer"; 
-import { prisma } from "@/app/lib/prisma"; 
-import { finalizeOrderPayout } from "@/app/lib/finance-logic";
+import { prisma } from "@/app/lib/prisma";
+import { pusherServer } from "@/app/lib/pusherServer";
+import { finalizeVendorPayout } from "@/app/lib/payouts-calculation";
 
-export async function PATCH(req: Request) {
+import { requireManageOrders } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* -------------------------------------------------------------------------- */
+/*                          PATCH ORDER STATUS                                */
+/* -------------------------------------------------------------------------- */
+
+export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orderId, status, userId } = body;
+    await requireManageOrders();
 
-    // 1. Update Database
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: { status },
+    const body = await req.json();
+
+    const {
+      orderId,
+      status,
+      userId,
+    } = body;
+
+    if (!orderId || !status) {
+      throw badRequest(
+        "Order ID and status are required."
+      );
+    }
+
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+      },
     });
 
-    // 2. Trigger Real-time update via Pusher Server
-    // This matches the "user-{user.id}" channel we set up in the frontend
-    await pusherServer.trigger(`user-${userId}`, "order-update", updatedOrder);
+    if (!order) {
+      throw notFound(
+        "Order not found."
+      );
+    }
 
-    return NextResponse.json(updatedOrder);
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status: String(status).toUpperCase(),
+      },
+    });
+
+    if (userId) {
+      try {
+        await pusherServer.trigger(
+          `user-${userId}`,
+          "order-update",
+          updatedOrder
+        );
+      } catch (error) {
+        console.error(
+          "PUSHER_ORDER_UPDATE_ERROR:",
+          error
+        );
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        order: updatedOrder,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Pusher Server Error:", error);
-    return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                         FINALIZE ORDER                                     */
+/* -------------------------------------------------------------------------- */
 
+export async function POST(req: NextRequest) {
+  try {
+    await requireManageOrders();
 
-// Example: app/api/admin/orders/update/route.ts
-export async function POST(req: Request) {
-  const { orderId, newStatus } = await req.json();
+    const body = await req.json();
 
-  const updatedOrder = await prisma.order.update({
-    where: { id: orderId },
-    data: { status: newStatus }
-  });
+    const {
+      orderId,
+      newStatus,
+    } = body;
 
-  // CRITICAL TRIGGER
-  if (newStatus === "DELIVERED") {
-    try {
-      await finalizeOrderPayout(orderId);
-      // notifySuccess logic here...
-    } catch (error) {
-      console.error("Payout failed but order was delivered:", error);
-      // Handle the edge case where the order is delivered but payout failed
+    if (!orderId || !newStatus) {
+      throw badRequest(
+        "Order ID and status are required."
+      );
     }
-  }
 
-  return Response.json(updatedOrder);
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!order) {
+      throw notFound(
+        "Order not found."
+      );
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status: String(newStatus).toUpperCase(),
+      },
+    });
+
+    if (
+      String(newStatus).toUpperCase() ===
+      "DELIVERED"
+    ) {
+      try {
+        await finalizeVendorPayout(
+          orderId
+        );
+      } catch (error) {
+        console.error(
+          "FINALIZE_PAYOUT_ERROR:",
+          error
+        );
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        order: updatedOrder,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

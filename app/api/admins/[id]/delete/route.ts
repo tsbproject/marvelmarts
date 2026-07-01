@@ -1,66 +1,87 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+
+import { requireSuperAdmin } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
   try {
-    // params MUST be awaited in Next.js App Router
-    const { id } = await context.params;
+    const session =
+      await requireSuperAdmin();
 
-    const session = await getServerSession(authOptions);
-    const currentUser = session?.user;
+    const { id } = await params;
 
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!id) {
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-    }
-
-    if (currentUser.id === id) {
-      return NextResponse.json(
-        { error: "Cannot delete yourself" },
-        { status: 400 }
+    if (session.user.id === id) {
+      throw badRequest(
+        "You cannot delete your own account."
       );
     }
 
-    const target = await prisma.user.findUnique({
-      where: { id },
-      include: { adminProfile: true },
-    });
+    const target =
+      await prisma.user.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          adminProfile: true,
+        },
+      });
 
     if (!target) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      throw notFound(
+        "Administrator not found."
+      );
     }
 
     if (target.role === "SUPER_ADMIN") {
-      return NextResponse.json(
-        { error: "Cannot delete SUPER_ADMIN" },
-        { status: 403 }
+      throw forbidden(
+        "Super Administrators cannot be deleted."
       );
     }
 
-    // Remove AdminProfile first
-    await prisma.adminProfile.deleteMany({ where: { userId: id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.adminProfile.deleteMany({
+        where: {
+          userId: id,
+        },
+      });
 
-    // Delete user record
-    await prisma.user.delete({ where: { id } });
+      await tx.user.delete({
+        where: {
+          id,
+        },
+      });
+    });
 
-    return NextResponse.json({ message: "Deleted" }, { status: 200 });
-  } catch (err) {
-    console.error("DELETE /api/admins/[id] error:", err);
     return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
+      {
+        success: true,
+        message:
+          "Administrator deleted successfully.",
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
