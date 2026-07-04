@@ -1,115 +1,109 @@
-// import { NextRequest, NextResponse } from "next/server";
-// import { prisma } from "@/app/lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
-
-// export async function POST(req: NextRequest) {
-//   const session = await getServerSession(authOptions);
-
-//   if (!session?.user) {
-//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//   }
-
-//   try {
-//     const { reference } = await req.json();
-
-//     // 1. Verify with Paystack
-//     const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-//       headers: {
-//         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-//       },
-//     });
-
-//     const resData = await response.json();
-
-//     if (!resData.status || resData.data.status !== "success") {
-//       return NextResponse.json({ error: "Verification failed" }, { status: 400 });
-//     }
-
-//     const auth = resData.data.authorization;
-
-//     // 2. Save to database
-//     const paymentMethod = await prisma.paymentMethod.create({
-//       data: {
-//         userId: session.user.id,
-//         provider: "PAYSTACK",
-//         providerId: auth.authorization_code,
-//         last4: auth.last4,
-//         expiryMonth: auth.exp_month,
-//         expiryYear: auth.exp_year.toString().slice(-2),
-//         cardType: auth.brand,
-//         isDefault: true, // Simplified for this example
-//       },
-//     });
-
-//     return NextResponse.json({ success: true, data: paymentMethod });
-//   } catch (error) {
-//     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-//   }
-// }
-
-
-
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+
+import {
+  requireAuth,
+  handleApiError,
+} from "@/app/lib/auth/api";
+
+import {
+  badRequest,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await requireAuth();
+
+    const { reference } = await req.json();
+
+    if (!reference || typeof reference !== "string") {
+      throw badRequest("Payment reference is required.");
     }
 
-    const body = await req.json();
-    const { reference } = body;
+    const paystackRes = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
 
-    if (!reference) {
-      return NextResponse.json({ error: "No reference provided" }, { status: 400 });
+    const result = await paystackRes.json();
+
+    if (
+      !paystackRes.ok ||
+      !result.status ||
+      result.data?.status !== "success"
+    ) {
+      throw badRequest(
+        result.message ?? "Payment verification failed."
+      );
     }
 
-    // 1. Verify with Paystack
-    const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    const authorization = result.data?.authorization;
+
+    if (!authorization?.authorization_code) {
+      throw badRequest(
+        "Reusable payment authorization was not returned."
+      );
+    }
+
+    const existingCard = await prisma.paymentMethod.findFirst({
+      where: {
+        userId: session.user.id,
+        provider: "PAYSTACK",
+        providerId: authorization.authorization_code,
+      },
+      select: {
+        id: true,
       },
     });
 
-    const resData = await paystackRes.json();
-
-    // LOG THIS: This is where you'll see the real reason for the 400
-    console.log("Paystack Verification Response:", resData);
-
-    if (!resData.status || resData.data.status !== "success") {
-      return NextResponse.json({ 
-        error: resData.message || "Paystack verification failed" 
-      }, { status: 400 });
+    if (existingCard) {
+      return NextResponse.json({
+        success: true,
+        data: existingCard,
+        message: "Payment method already exists.",
+      });
     }
 
-    const auth = resData.data.authorization;
+    const hasDefaultCard = await prisma.paymentMethod.findFirst({
+      where: {
+        userId: session.user.id,
+        isDefault: true,
+      },
+      select: {
+        id: true,
+      },
+    });
 
-    // 2. Save to database using your exact model fields
-    const newCard = await prisma.paymentMethod.create({
+    const paymentMethod = await prisma.paymentMethod.create({
       data: {
         userId: session.user.id,
         provider: "PAYSTACK",
-        providerId: auth.authorization_code, // Store the reusable token
-        cardType: auth.brand,
-        last4: auth.last4,
-        expiryMonth: auth.exp_month,
-        expiryYear: auth.exp_year.toString().slice(-2),
-        isDefault: true, // You can add logic to check if it's the first card
-        metadata: resData.data,
+        providerId: authorization.authorization_code,
+        cardType: authorization.brand,
+        last4: authorization.last4,
+        expiryMonth: authorization.exp_month,
+        expiryYear: authorization.exp_year
+          .toString()
+          .slice(-2),
+        isDefault: !hasDefaultCard,
+        metadata: result.data,
       },
     });
 
-    return NextResponse.json({ success: true, data: newCard });
+    return NextResponse.json({
+      success: true,
+      data: paymentMethod,
+    });
 
-  } catch (error: any) {
-    console.error("API_PAYMENT_ERROR:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

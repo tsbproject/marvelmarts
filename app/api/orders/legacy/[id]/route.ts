@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest, notFound } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: Request,
@@ -8,20 +13,33 @@ export async function GET(
   try {
     const { id } = await params;
 
+    if (!id) {
+      throw badRequest("Order ID is required.");
+    }
+
     const order = await prisma.order.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
       select: {
         id: true,
         orderNumber: true,
+        paymentStatus: true,
+        status: true,
+        createdAt: true,
+        paymentIntentId: true,
       },
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      throw notFound("Order not found.");
     }
 
-    return NextResponse.json(order);
+    return NextResponse.json({
+      success: true,
+      order,
+    });
   } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

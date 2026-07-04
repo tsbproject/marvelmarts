@@ -1,127 +1,122 @@
-// import { prisma } from "@/app/lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
-// import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// /**
-//  * TACTICAL UPDATE: In Next.js 16, params must be treated as a Promise.
-//  * We also ensure the user is a verified participant before leaking messages.
-//  */
-// export async function GET(
-//   req: Request,
-//   { params }: { params: Promise<{ conversationId: string }> }
-// ) {
-//   try {
-//     const session = await getServerSession(authOptions);
-    
-//     // 1. Resolve params as a Promise (Next.js 16 requirement)
-//     const resolvedParams = await params;
-//     const conversationId = resolvedParams.conversationId;
+import { conversationService } from "@/app/lib/services/conversation.service";
 
-//     if (!session?.user?.id) {
-//       return NextResponse.json({ error: "Identity Required" }, { status: 401 });
-//     }
-
-//     // 2. Fetch conversation with nested messages
-//     const conversation = await prisma.conversation.findUnique({
-//       where: {
-//         id: conversationId,
-//       },
-//       include: {
-//         messages: {
-//           orderBy: {
-//             createdAt: "asc",
-//           },
-//         },
-//       },
-//     });
-
-//     // 3. Validation
-//     if (!conversation) {
-//       return NextResponse.json({ error: "Signal Lost: Channel not found" }, { status: 404 });
-//     }
-
-//     // 4. Security Check: Participant Authorization
-//     // Checks if the logged-in user's ID exists in the participantIds array
-//     if (!conversation.participantIds.includes(session.user.id)) {
-//       console.warn(`Unauthorized access attempt by ${session.user.id} on channel ${conversationId}`);
-//       return NextResponse.json({ error: "Access Denied: Encrypted Channel" }, { status: 403 });
-//     }
-
-//     // 5. Success Response
-//     // We return the messages array directly so VendorChatPage's (data.messages) works.
-//     return NextResponse.json({ 
-//       messages: conversation.messages,
-//       subject: conversation.subject 
-//     });
-
-//   } catch (error) {
-//     console.error("FETCH_MESSAGES_ERROR:", error);
-//     return NextResponse.json({ error: "System Error: Comms link failed" }, { status: 500 });
-//   }
-// }
-
-
-
-import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { NextResponse } from "next/server";
+
+import { requireConversationAccess } from "@/app/lib/auth/conversation";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ conversationId: string }> }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      conversationId: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const { conversationId } = await params;
+    const { conversationId } =
+      await params;
 
-    const url = new URL(req.url);
-    const guestAccessToken = url.searchParams.get("guestAccessToken");
+    const session =
+      await getServerSession(authOptions);
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
-      },
-    });
+    const guestAccessToken =
+      req.nextUrl.searchParams.get(
+        "guestAccessToken"
+      );
 
-    if (!conversation) {
-      return NextResponse.json({ error: "Signal Lost: Channel not found" }, { status: 404 });
-    }
+    let conversation;
 
     if (session?.user?.id) {
-      if (!conversation.participantIds.includes(session.user.id)) {
-        return NextResponse.json({ error: "Access Denied: Encrypted Channel" }, { status: 403 });
-      }
+      const access =
+        await requireConversationAccess(
+          conversationId
+        );
+
+      conversation =
+        access.conversation;
     } else {
-      if (!conversation.isGuest) {
-        return NextResponse.json({ error: "Identity Required" }, { status: 401 });
+      conversation =
+        await conversationService.getConversation(
+          conversationId
+        );
+
+      if (!conversation) {
+        throw notFound(
+          "Conversation not found."
+        );
       }
 
-      if (!guestAccessToken || guestAccessToken !== conversation.guestAccessToken) {
-        return NextResponse.json({ error: "Invalid guest access token" }, { status: 403 });
+      if (!conversation.isGuest) {
+        throw forbidden(
+          "Authentication required."
+        );
+      }
+
+      if (
+        guestAccessToken !==
+        conversation.guestAccessToken
+      ) {
+        throw forbidden(
+          "Invalid guest access token."
+        );
       }
     }
 
-    return NextResponse.json({
-      conversation: {
-        id: conversation.id,
-        subject: conversation.subject,
-        status: conversation.status,
-        isGuest: conversation.isGuest,
-        visitorName: conversation.visitorName,
-        visitorEmail: conversation.visitorEmail,
-        endedAt: conversation.endedAt,
-        endedById: conversation.endedById,
-        endedByRole: conversation.endedByRole,
+    const messages =
+      await conversationService.getMessages(
+        conversationId
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        conversation: {
+          id: conversation.id,
+          subject:
+            conversation.subject,
+          type:
+            conversation.type,
+          status:
+            conversation.status,
+          isGuest:
+            conversation.isGuest,
+          visitorName:
+            conversation.visitorName,
+          visitorEmail:
+            conversation.visitorEmail,
+          endedAt:
+            conversation.endedAt,
+          endedById:
+            conversation.endedById,
+          endedByRole:
+            conversation.endedByRole,
+          createdAt:
+            conversation.createdAt,
+          updatedAt:
+            conversation.updatedAt,
+        },
+
+        messages,
       },
-      messages: conversation.messages,
-    });
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("FETCH_MESSAGES_ERROR:", error);
-    return NextResponse.json({ error: "System Error: Comms link failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }

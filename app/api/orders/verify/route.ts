@@ -1,27 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import {
-  sendOrderConfirmationEmail,
-  sendAdminOrderNotification,
-} from "@/app/lib/mailer";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest, notFound } from "@/app/lib/auth/errors";
 
-import {
-  mapOrderToOrderConfirmationEmail,
-} from "@/app/lib/mail/mappers/order.mapper";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const { reference, orderId } = await req.json();
 
     if (!reference || !orderId) {
-      return NextResponse.json(
-        { error: "Missing reference or orderId" },
-        { status: 400 }
-      );
+      throw badRequest("Reference and orderId are required.");
     }
 
     const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
+      where: {
+        id: orderId,
+      },
       include: {
         items: true,
         vendorProfile: {
@@ -33,16 +29,7 @@ export async function POST(req: Request) {
     });
 
     if (!existingOrder) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    if (existingOrder.paymentStatus) {
-      return NextResponse.json({
-        success: true,
-        orderId: existingOrder.id,
-        orderNumber: existingOrder.orderNumber,
-        message: "Order already processed",
-      });
+      throw notFound("Order not found.");
     }
 
     const paystackRes = await fetch(
@@ -55,87 +42,68 @@ export async function POST(req: Request) {
       }
     );
 
-    const data = await paystackRes.json();
-
-    if (!paystackRes.ok || !data.status || data?.data?.status !== "success") {
-      return NextResponse.json(
-        { error: "Payment verification failed with provider" },
-        { status: 400 }
-      );
-    }
-
-    const metadata = data?.data?.metadata || {};
-    const metadataOrderId = metadata?.orderId || null;
-    const metadataOrderNumber = metadata?.orderNumber || null;
+    const result = await paystackRes.json();
 
     if (
-      metadataOrderId &&
-      metadataOrderId !== existingOrder.id
+      !paystackRes.ok ||
+      !result.status ||
+      result.data?.status !== "success"
     ) {
-      return NextResponse.json(
-        { error: "Payment reference does not match this order" },
-        { status: 400 }
-      );
+      throw badRequest("Payment could not be verified.");
+    }
+
+    const metadata = result.data?.metadata ?? {};
+
+    if (
+      metadata.orderId &&
+      metadata.orderId !== existingOrder.id
+    ) {
+      throw badRequest("Payment reference does not belong to this order.");
     }
 
     if (
-      metadataOrderNumber &&
-      metadataOrderNumber !== existingOrder.orderNumber
+      metadata.orderNumber &&
+      metadata.orderNumber !== existingOrder.orderNumber
     ) {
-      return NextResponse.json(
-        { error: "Payment order number mismatch" },
-        { status: 400 }
-      );
+      throw badRequest("Order number mismatch.");
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id: existingOrder.id },
-      data: {
-        paymentStatus: true,
-        status: "processing",
-        paymentIntentId: reference,
+    const expectedAmount = Math.round(
+      Number(existingOrder.total) * 100
+    );
+
+    if (Number(result.data.amount) !== expectedAmount) {
+      throw badRequest("Payment amount mismatch.");
+    }
+
+    if (
+      existingOrder.email &&
+      result.data.customer?.email &&
+      existingOrder.email.toLowerCase() !==
+        result.data.customer.email.toLowerCase()
+    ) {
+      throw badRequest("Customer email mismatch.");
+    }
+
+    const latestOrder = await prisma.order.findUnique({
+      where: {
+        id: existingOrder.id,
       },
-      include: {
-        items: true,
-        vendorProfile: {
-          select: {
-            storeName: true,
-          },
-        },
+      select: {
+        id: true,
+        orderNumber: true,
+        paymentStatus: true,
+        paymentIntentId: true,
+        status: true,
       },
     });
-
-    try {
-      console.log(`Dispatching emails for Order: ${updatedOrder.orderNumber}`);
-
-      await Promise.all([
-        sendOrderConfirmationEmail(
-          mapOrderToOrderConfirmationEmail(
-            updatedOrder
-          )
-        ),
-
-        sendAdminOrderNotification(
-          updatedOrder
-        ),
-      ]);
-
-      console.log("All notifications sent successfully");
-    } catch (mailErr: any) {
-      console.error("Email dispatch failed:", mailErr.message);
-    }
 
     return NextResponse.json({
       success: true,
-      orderId: updatedOrder.id,
-      orderNumber: updatedOrder.orderNumber,
-      status: updatedOrder.status,
+      verified: result.data.status === "success",
+      order: latestOrder,
     });
-  } catch (error: any) {
-    console.error("VERIFY_ERROR:", error.message);
-    return NextResponse.json(
-      { error: "Internal server error during verification" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,80 +1,159 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
+import { prisma } from "@/app/lib/prisma";
+import { requireAdmin } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+import { handleApiError } from "@/app/lib/auth/api";
 
 export async function PATCH(req: Request) {
   try {
-    const body = await req.json();
-    const { ids, updateType, applyToAll, filters } = body;
+    await requireAdmin();
 
-    const fieldMapping: Record<string, string> = {
+    const {
+      ids = [],
+      updateType,
+      applyToAll = false,
+      filters,
+    } = await req.json();
+
+    const fieldMapping = {
       isFeatured: "isFeatured",
       isFlashSale: "isFlashSale",
       isNew: "isNewArrival",
-      isNewArrival: "isNewArrival"
-    };
+      isNewArrival: "isNewArrival",
+    } as const;
 
-    const dbField = fieldMapping[updateType];
+    const dbField = fieldMapping[
+      updateType as keyof typeof fieldMapping
+    ];
+
     if (!dbField) {
-      return NextResponse.json({ success: false, message: "Invalid update type" }, { status: 400 });
+      throw badRequest("Invalid update type.");
     }
 
     let targetIds: string[] = [];
 
-    // 1. Determine Target IDs
     if (applyToAll && filters) {
-      const where: any = {};
-      
+      const where: Record<string, unknown> = {};
+
       if (filters.search) {
-        const searchConstraint = { contains: filters.search, mode: "insensitive" };
-        if (filters.searchType === "title") where.title = searchConstraint;
-        else if (filters.searchType === "category") where.category = { name: searchConstraint };
-        else if (filters.searchType === "vendor") where.vendor = { name: searchConstraint };
-        else {
-          where.OR = [
-            { title: searchConstraint },
-            { category: { name: searchConstraint } },
-            { vendor: { name: searchConstraint } },
-          ];
+        const searchConstraint = {
+          contains: filters.search,
+          mode: "insensitive" as const,
+        };
+
+        switch (filters.searchType) {
+          case "title":
+            where.title = searchConstraint;
+            break;
+
+          case "category":
+            where.category = {
+              name: searchConstraint,
+            };
+            break;
+
+          case "vendor":
+            where.vendorProfile = {
+              storeName: searchConstraint,
+            };
+            break;
+
+          default:
+            where.OR = [
+              {
+                title: searchConstraint,
+              },
+              {
+                category: {
+                  name: searchConstraint,
+                },
+              },
+              {
+                vendorProfile: {
+                  storeName: searchConstraint,
+                },
+              },
+            ];
         }
       }
 
-      if (filters.filter === "featured") where.isFeatured = true;
-      if (filters.filter === "new") where.isNewArrival = true;
-      if (filters.filter === "flash") where.isFlashSale = true;
+      if (filters.filter === "featured") {
+        where.isFeatured = true;
+      }
 
-      const products = await prisma.product.findMany({ where, select: { id: true } });
-      targetIds = products.map(p => p.id);
+      if (filters.filter === "new") {
+        where.isNewArrival = true;
+      }
+
+      if (filters.filter === "flash") {
+        where.isFlashSale = true;
+      }
+
+      const products = await prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+        },
+      });
+
+      targetIds = products.map((product) => product.id);
     } else {
-      targetIds = ids || [];
+      targetIds = ids;
     }
 
     if (targetIds.length === 0) {
-      return NextResponse.json({ success: false, message: "No products targeted" }, { status: 400 });
+      throw badRequest("No products selected.");
     }
 
-    // 2. Perform Toggle in a Transaction
-    const currentStatus = await prisma.product.findMany({
-      where: { id: { in: targetIds } },
-      select: { id: true, [dbField]: true }
+    const currentProducts = await prisma.product.findMany({
+      where: {
+        id: {
+          in: targetIds,
+        },
+      },
+      select: {
+        id: true,
+        isFeatured: true,
+        isFlashSale: true,
+        isNewArrival: true,
+      },
     });
 
     await prisma.$transaction(
-      currentStatus.map((p: any) =>
-        prisma.product.update({
-          where: { id: p.id },
-          data: { [dbField]: !p[dbField] }
-        })
-      )
+      currentProducts.map((product) => {
+        let value = false;
+
+        switch (dbField) {
+          case "isFeatured":
+            value = !product.isFeatured;
+            break;
+
+          case "isFlashSale":
+            value = !product.isFlashSale;
+            break;
+
+          case "isNewArrival":
+            value = !product.isNewArrival;
+            break;
+        }
+
+        return prisma.product.update({
+          where: {
+            id: product.id,
+          },
+          data: {
+            [dbField]: value,
+          },
+        });
+      })
     );
 
     return NextResponse.json({
       success: true,
-      message: `Updated ${targetIds.length} products`,
-      affectedIds: targetIds
+      message: `Updated ${targetIds.length} products.`,
+      affectedIds: targetIds,
     });
-
   } catch (error) {
-    console.error("Bulk Update Error:", error);
-    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

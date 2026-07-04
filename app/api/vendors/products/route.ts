@@ -1,93 +1,166 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
+import { prisma } from "@/app/lib/prisma";
+
+import { requireVendor } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// --- GET: Fetch My Products ---
+/* -------------------------------------------------------------------------- */
+/*                           GET MY PRODUCTS                                  */
+/* -------------------------------------------------------------------------- */
+
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
+    const session = await requireVendor();
 
-    const vendorProfile = await prisma.vendorProfile.findUnique({
-      where: { userId: session.user.id },
+    const vendor = await prisma.vendorProfile.findUnique({
+      where: {
+        userId: session.user.id,
+      },
+      select: {
+        id: true,
+      },
     });
 
-    if (!vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 });
+    if (!vendor) {
+      throw notFound(
+        "Vendor profile not found."
+      );
     }
 
     const products = await prisma.product.findMany({
-      where: { vendorProfileId: vendorProfile.id },
-      include: { 
-        category: { select: { name: true } },
-        images: { select: { url: true }, take: 1 } // Fetch the primary image
+      where: {
+        vendorProfileId: vendor.id,
       },
-      orderBy: { createdAt: "desc" },
+      include: {
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        images: {
+          select: {
+            url: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    // Flatten data for the frontend
-    const items = products.map(p => ({
-      ...p,
-      name: p.title || "Untitled Product",
-      // Priority: 1. Related images array, 2. Direct imageUrl field, 3. Placeholder
-      imageUrl: p.images?.[0]?.url || (p as any).imageUrl || "/logo.png"
-    }));
-
-    return NextResponse.json({ success: true, items });
+    return NextResponse.json(
+      {
+        success: true,
+        items: products.map((product) => ({
+          ...product,
+          name:
+            product.title ||
+            "Untitled Product",
+            imageUrl:
+            product.images?.[0]?.url ||
+            "/logo.png",
+        })),
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("GET_VENDOR_PRODUCTS_ERROR:", error);
-    return NextResponse.json({ success: false, message: "Error fetching inventory" }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-// --- DELETE: Remove My Product ---
-export async function DELETE(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    const { searchParams } = new URL(request.url);
-    const productId = searchParams.get("id");
+/* -------------------------------------------------------------------------- */
+/*                           DELETE PRODUCT                                   */
+/* -------------------------------------------------------------------------- */
 
-    if (!session?.user) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
+export async function DELETE(
+  req: NextRequest
+) {
+  try {
+    const session =
+      await requireVendor();
+
+    const productId =
+      new URL(req.url).searchParams.get(
+        "id"
+      );
 
     if (!productId) {
-      return NextResponse.json({ success: false, message: "Product ID required" }, { status: 400 });
+      throw badRequest(
+        "Product ID is required."
+      );
     }
 
-    const vendorProfile = await prisma.vendorProfile.findUnique({
-      where: { userId: session.user.id },
-    });
+    const vendor =
+      await prisma.vendorProfile.findUnique({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (!vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 });
+    if (!vendor) {
+      throw notFound(
+        "Vendor profile not found."
+      );
     }
 
-    // Verify ownership before deleting
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          id: productId,
+        },
+        select: {
+          id: true,
+          vendorProfileId: true,
+        },
+      });
 
     if (!product) {
-      return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
+      throw notFound(
+        "Product not found."
+      );
     }
 
-    if (product.vendorProfileId !== vendorProfile.id) {
-      return NextResponse.json({ success: false, message: "Permission denied" }, { status: 403 });
+    if (
+      product.vendorProfileId !==
+      vendor.id
+    ) {
+      throw forbidden(
+        "You do not have permission to delete this product."
+      );
     }
 
     await prisma.product.delete({
-      where: { id: productId },
+      where: {
+        id: productId,
+      },
     });
 
-    return NextResponse.json({ success: true, message: "Product deleted successfully" });
-  } catch (error: any) {
-    console.error("DELETE_PRODUCT_ERROR:", error);
-    return NextResponse.json({ success: false, message: "Failed to delete product" }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Product deleted successfully.",
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

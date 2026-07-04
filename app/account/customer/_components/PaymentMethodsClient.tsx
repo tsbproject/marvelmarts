@@ -81,7 +81,7 @@ interface PaymentMethodsClientProps {
 }
 
 type PurchaseResponse = 
-  | { success: true; newBalance: string } 
+  | { success: true; newBalance: number } 
   | { success: false; error: string };
   
 

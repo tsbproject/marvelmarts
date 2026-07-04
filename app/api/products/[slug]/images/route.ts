@@ -1,145 +1,316 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 import { z } from "zod";
+
+import { prisma } from "@/app/lib/prisma";
+
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "@/app/lib/cloudinary";
+
+import {
+  handleApiError,
+  requireVendor,
+} from "@/app/lib/auth/api";
+
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+import { requireProductOwnershipBySlug } from "@/app/lib/products/ownership";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Zod schema for JSON-based image input
+/* -------------------------------------------------------------------------- */
+/* SCHEMA                                                                     */
+/* -------------------------------------------------------------------------- */
+
 const imageSchema = z.object({
-  url: z.string().url("Image URL must be valid"),
+  url: z.string().url(),
   alt: z.string().optional(),
   order: z.number().optional(),
 });
 
-// GET /api/products/[slug]/images
+/* -------------------------------------------------------------------------- */
+/* GET                                                                        */
+/* -------------------------------------------------------------------------- */
+
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const { slug } = await params;
 
-    const product = await prisma.product.findUnique({
-      where: { slug },
-      include: { images: true },
-    });
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          slug,
+        },
+
+        include: {
+          images: {
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      });
 
     if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
+      throw notFound(
+        "Product not found."
+      );
     }
 
-    return NextResponse.json(product.images);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("GET /api/products/[slug]/images error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      images: product.images,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 // POST /api/products/[slug]/images
+/* -------------------------------------------------------------------------- */
+/* POST IMAGES                                                                */
+/* -------------------------------------------------------------------------- */
+
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
-    const contentType = request.headers.get("content-type") || "";
+    const session = await requireVendor();
 
-    const product = await prisma.product.findUnique({ where: { slug } });
+    const { slug } = await params;
 
-    if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
-    }
+    const product =
+      await requireProductOwnershipBySlug(
+        slug,
+        session
+      );
 
-    // Case 1: JSON body (API clients)
+    const contentType =
+      request.headers.get("content-type") ?? "";
+
+    /* ---------------------------------------------------------------------- */
+    /* JSON REQUEST                                                           */
+    /* ---------------------------------------------------------------------- */
+
     if (contentType.includes("application/json")) {
       const body = await request.json();
-      const parsed = imageSchema.parse(body);
 
-      const image = await prisma.productImage.create({
-        data: {
-          url: parsed.url,
-          alt: parsed.alt,
-          order: parsed.order ?? 0,
-          productId: product.id,
+      const parsed =
+        imageSchema.parse(body);
+
+      const image =
+        await prisma.productImage.create({
+          data: {
+            url: parsed.url,
+            alt: parsed.alt,
+            order: parsed.order ?? 0,
+            productId: product.id,
+          },
+        });
+
+      return NextResponse.json(
+        {
+          success: true,
+          image,
         },
-      });
-
-      return NextResponse.json(image, { status: 201 });
+        {
+          status: 201,
+        }
+      );
     }
 
-    // Case 2: FormData (file uploads from dashboard)
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
+    /* ---------------------------------------------------------------------- */
+    /* FORM DATA                                                              */
+    /* ---------------------------------------------------------------------- */
 
-      const mainImage = formData.get("mainImage") as File | null;
-      const extraImages = formData.getAll("extraImages") as File[];
+    if (
+      contentType.includes(
+        "multipart/form-data"
+      )
+    ) {
+      const formData =
+        await request.formData();
 
-      const createdImages = [];
+      const uploadedImages = [];
 
-      if (mainImage) {
-        const url = `https://cdn.example.com/${slug}/${mainImage.name}`;
-        const img = await prisma.productImage.create({
-          data: {
+      const mainImage =
+        formData.get(
+          "mainImage"
+        ) as File | null;
+
+      const extraImages =
+        formData.getAll(
+          "extraImages"
+        ) as File[];
+
+      if (
+        mainImage &&
+        mainImage.size > 0
+      ) {
+        const url =
+          await uploadToCloudinary(
+            mainImage,
+            "products"
+          );
+
+        if (url) {
+          uploadedImages.push({
             url,
             alt: "Main image",
             order: 0,
-            productId: product.id,
-          },
-        });
-        createdImages.push(img);
+          });
+        }
       }
 
-      for (let i = 0; i < extraImages.length; i++) {
+      for (
+        let i = 0;
+        i < extraImages.length;
+        i++
+      ) {
         const file = extraImages[i];
-        const url = `https://cdn.example.com/${slug}/${file.name}`;
-        const img = await prisma.productImage.create({
-          data: {
+
+        if (!file || file.size === 0) {
+          continue;
+        }
+
+        const url =
+          await uploadToCloudinary(
+            file,
+            "products"
+          );
+
+        if (url) {
+          uploadedImages.push({
             url,
             alt: `Extra image ${i + 1}`,
             order: i + 1,
-            productId: product.id,
-          },
-        });
-        createdImages.push(img);
+          });
+        }
       }
 
-      return NextResponse.json(createdImages, { status: 201 });
+      const createdImages =
+        await prisma.$transaction(
+          uploadedImages.map((image) =>
+            prisma.productImage.create({
+              data: {
+                ...image,
+                productId: product.id,
+              },
+            })
+          )
+        );
+
+      return NextResponse.json(
+        {
+          success: true,
+          images: createdImages,
+        },
+        {
+          status: 201,
+        }
+      );
     }
 
-    return NextResponse.json({ message: "Unsupported content type" }, { status: 400 });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ errors: err.flatten() }, { status: 400 });
-    }
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("POST /api/products/[slug]/images error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    throw badRequest(
+      "Unsupported content type."
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-// DELETE /api/products/[slug]/images?id=IMAGE_ID
+/* -------------------------------------------------------------------------- */
+/* DELETE IMAGE                                                               */
+/* -------------------------------------------------------------------------- */
+
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const session =
+      await requireVendor();
 
-    const { searchParams } = new URL(request.url);
-    const imageId = searchParams.get("id");
+    const { slug } =
+      await params;
+
+    await requireProductOwnershipBySlug(
+      slug,
+      session
+    );
+
+    const { searchParams } =
+      new URL(request.url);
+
+    const imageId =
+      searchParams.get("id");
 
     if (!imageId) {
-      return NextResponse.json({ message: "Image ID required" }, { status: 400 });
+      throw badRequest(
+        "Image ID is required."
+      );
     }
 
-    await prisma.productImage.delete({ where: { id: imageId } });
+    const image =
+      await prisma.productImage.findUnique({
+        where: {
+          id: imageId,
+        },
+      });
 
-    return NextResponse.json({ message: "Image deleted successfully" });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("DELETE /api/products/[slug]/images error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    if (!image) {
+      throw notFound(
+        "Image not found."
+      );
+    }
+
+    try {
+      await deleteFromCloudinary(
+        image.url
+      );
+    } catch {
+      // Ignore Cloudinary cleanup failures
+    }
+
+    await prisma.productImage.delete({
+      where: {
+        id: imageId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message:
+        "Image deleted successfully.",
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

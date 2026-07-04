@@ -1,124 +1,105 @@
-// import { NextResponse } from "next/server";
-// import prisma from "@/app/lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/app/lib/auth";
-// import { pusherServer } from "@/app/lib/pusherServer";
+import { NextRequest, NextResponse } from "next/server";
 
-// export async function POST(
-//   req: Request,
-//   { params }: { params: Promise<{ id: string }> | { id: string } }
-// ) {
-//   try {
-//     const session = await getServerSession(authOptions);
-//     const resolvedParams = await params;
-//     const { id } = resolvedParams; // This matches conversationId
-//     const { content } = await req.json();
-
-//     if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
-
-//     // 1. Save to Database
-//     const newMessage = await prisma.message.create({
-//       data: {
-//         content,
-//         conversationId: id,
-//         senderId: session.user.id,
-//         senderName: session.user.name || "Vendor",
-//       },
-//     });
-
-//     // 2. Update Conversation (for sorting in inbox)
-//     await prisma.conversation.update({
-//       where: { id },
-//       data: { updatedAt: new Date() }
-//     });
-
-//     // 3. TACTICAL TRIGGER
-//     // This MUST match the customer's pusherClient.subscribe(conversationId)
-//     await pusherServer.trigger(id, "new-message", newMessage);
-
-//     return NextResponse.json(newMessage);
-//   } catch (error) {
-//     console.error("REPLY_ERROR:", error);
-//     return new NextResponse("Internal Error", { status: 500 });
-//   }
-// }
-
-
-
-
-import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { conversationService } from "@/app/lib/services/conversation.service";
 import { pusherServer } from "@/app/lib/pusherServer";
 
+import { requireConversationAccess } from "@/app/lib/auth/conversation";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  forbidden,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { id: conversationId } =
+      await params;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const access =
+      await requireConversationAccess(
+        conversationId
+      );
 
-    const resolvedParams = await params;
-    const { id } = resolvedParams;
     const body = await req.json();
-    const content = body?.content?.trim();
 
-    if (!id || id === "undefined") {
-      return NextResponse.json({ error: "Conversation ID is missing" }, { status: 400 });
-    }
+    const content =
+      body.content?.trim();
 
     if (!content) {
-      return NextResponse.json({ error: "Message content is required" }, { status: 400 });
-    }
-
-    const conversation = await prisma.conversation.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-        participantIds: true,
-      },
-    });
-
-    if (!conversation) {
-      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
-    }
-
-    if (!conversation.participantIds.includes(session.user.id)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (conversation.status === "CLOSED") {
-      return NextResponse.json(
-        { error: "This chat has already been ended." },
-        { status: 403 }
+      throw badRequest(
+        "Message content is required."
       );
     }
 
-    const newMessage = await prisma.message.create({
-      data: {
-        content,
-        conversationId: id,
-        senderId: session.user.id,
-        senderName: session.user.name || "Vendor",
+    if (
+      access.conversation.status ===
+      "CLOSED"
+    ) {
+      throw forbidden(
+        "This conversation has already been closed."
+      );
+    }
+
+    const message =
+      await conversationService.sendMessage(
+        conversationId,
+        access.userId,
+        access.session.user.name ??
+          "Vendor",
+        content
+      );
+
+    try {
+      await Promise.all([
+        pusherServer.trigger(
+          conversationId,
+          "new-message",
+          message
+        ),
+
+        pusherServer.trigger(
+          "global-admin-support",
+          "incoming-support-message",
+          {
+            conversationId,
+            content:
+              message.content,
+            senderName:
+              message.senderName,
+            createdAt:
+              message.createdAt,
+          }
+        ),
+      ]);
+    } catch (error) {
+      console.error(
+        "PUSHER_ERROR:",
+        error
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message,
       },
-    });
-
-    await prisma.conversation.update({
-      where: { id },
-      data: { updatedAt: new Date() },
-    });
-
-    await pusherServer.trigger(id, "new-message", newMessage);
-
-    return NextResponse.json(newMessage);
+      {
+        status: 201,
+      }
+    );
   } catch (error) {
-    console.error("VENDOR_REPLY_ERROR:", error);
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

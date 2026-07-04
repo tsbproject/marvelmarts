@@ -1,47 +1,97 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
-import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
 
-  const guestCart = await req.json(); // { items: [{ productId, variantId, qty, unitPrice }] }
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-  const cart = await prisma.cart.upsert({
-    where: { userId: session.user.id },
-    create: { userId: session.user.id },
-    update: {},
-  });
+interface GuestCartItem {
+  productId: string;
+  variantId?: string | null;
+  qty: number;
+  unitPrice: number;
+}
 
-  for (const item of guestCart.items) {
-    // Check for existing matching item (match both Product AND Variant)
-    const existing = await prisma.cartItem.findFirst({
-      where: { 
-        cartId: cart.id, 
-        productId: item.productId,
-        variantId: item.variantId ?? null 
-      },
-    });
+interface GuestCart {
+  items: GuestCartItem[];
+}
 
-    if (existing) {
-      await prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { qty: existing.qty + item.qty },
-      });
-    } else {
-      await prisma.cartItem.create({
-        data: {
-          cartId: cart.id,
-          productId: item.productId,
-          variantId: item.variantId ?? null,
-          qty: item.qty,
-          unitPrice: item.unitPrice,
-        },
-      });
+export async function POST(
+  req: NextRequest
+) {
+  try {
+    const session =
+      await requireAuth();
+
+    const guestCart: GuestCart =
+      await req.json();
+
+    if (
+      !Array.isArray(guestCart.items)
+    ) {
+      throw badRequest(
+        "Invalid cart payload."
+      );
     }
-  }
 
-  return NextResponse.json({ success: true });
+    const cart =
+      await prisma.cart.upsert({
+        where: {
+          userId: session.user.id,
+        },
+        create: {
+          userId: session.user.id,
+        },
+        update: {},
+      });
+
+    for (const item of guestCart.items) {
+      const existing =
+        await prisma.cartItem.findFirst({
+          where: {
+            cartId: cart.id,
+            productId: item.productId,
+            variantId: item.variantId ?? null,
+          },
+        });
+
+      if (existing) {
+        await prisma.cartItem.update({
+          where: {
+            id: existing.id,
+          },
+          data: {
+            qty: {
+              increment: item.qty,
+            },
+          },
+        });
+      } else {
+        await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId: item.productId,
+            variantId: item.variantId ?? null,
+            qty: item.qty,
+            unitPrice: item.unitPrice,
+          },
+        });
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

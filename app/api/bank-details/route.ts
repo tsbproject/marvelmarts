@@ -1,77 +1,119 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import prisma from "@/app/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-// GET: Fetch existing bank details for the logged-in user
+import { prisma } from "@/app/lib/prisma";
+
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* -------------------------------------------------------------------------- */
+/*                          GET BANK ACCOUNT                                  */
+/* -------------------------------------------------------------------------- */
+
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await requireAuth();
 
-    if (!session?.user?.email) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const bankDetails = await prisma.bankAccount.findFirst({
-      where: {
-        user: {
-          email: session.user.email,
+    const bankAccount =
+      await prisma.bankAccount.findUnique({
+        where: {
+          userId: session.user.id,
         },
-      },
-    });
+      });
 
-    return NextResponse.json(bankDetails);
+    return NextResponse.json(
+      {
+        success: true,
+        bankAccount,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("[BANK_DETAILS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return handleApiError(error);
   }
 }
 
-// POST: Create or Update bank details
-export async function POST(req: Request) {
+/* -------------------------------------------------------------------------- */
+/*                     CREATE / UPDATE BANK ACCOUNT                           */
+/* -------------------------------------------------------------------------- */
+
+export async function POST(
+  req: NextRequest
+) {
   try {
-    const session = await getServerSession(authOptions);
+    const session =
+      await requireAuth();
+
     const body = await req.json();
-    const { bankName, accountNumber, accountName } = body;
 
-    if (!session?.user?.email) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const {
+      bankName,
+      accountNumber,
+      accountName,
+    } = body;
+
+    if (
+      !bankName ||
+      !accountNumber ||
+      !accountName
+    ) {
+      throw badRequest(
+        "Bank name, account number and account name are required."
+      );
     }
 
-    if (!bankName || !accountNumber || !accountName) {
-      return new NextResponse("Missing required fields", { status: 400 });
-    }
-
-    // Find the user first to get their ID
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id: session.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
 
     if (!user) {
-      return new NextResponse("User not found", { status: 404 });
+      throw notFound(
+        "User not found."
+      );
     }
 
-    // UPSERT: Update if exists, Create if not
-    const bankAccount = await prisma.bankAccount.upsert({
-      where: {
-        userId: user.id,
-      },
-      update: {
-        bankName,
-        accountNumber,
-        accountName,
-      },
-      create: {
-        userId: user.id,
-        bankName,
-        accountNumber,
-        accountName,
-      },
-    });
+    const bankAccount =
+      await prisma.bankAccount.upsert({
+        where: {
+          userId: user.id,
+        },
+        update: {
+          bankName,
+          accountNumber,
+          accountName,
+        },
+        create: {
+          userId: user.id,
+          bankName,
+          accountNumber,
+          accountName,
+        },
+      });
 
-    return NextResponse.json(bankAccount);
+    return NextResponse.json(
+      {
+        success: true,
+        bankAccount,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("[BANK_DETAILS_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return handleApiError(error);
   }
 }

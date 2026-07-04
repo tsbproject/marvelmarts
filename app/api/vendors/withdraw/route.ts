@@ -1,48 +1,105 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import prisma from "@/app/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+import { prisma } from "@/app/lib/prisma";
+
+import { requireVendor } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  req: NextRequest
+) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session =
+      await requireVendor();
 
-    const { amount } = await req.json();
-    const withdrawAmount = Number(amount);
+    const body = await req.json();
 
-    // 1. Get Vendor Profile & Verify Balance
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: { userId: session.user.id }
-    });
+    const withdrawAmount = Number(
+      body.amount
+    );
 
-    if (!vendor) return NextResponse.json({ error: "Vendor profile not found" }, { status: 404 });
-    
+    if (
+      !withdrawAmount ||
+      withdrawAmount <= 0
+    ) {
+      throw badRequest(
+        "Invalid withdrawal amount."
+      );
+    }
+
+    const vendor =
+      await prisma.vendorProfile.findUnique({
+        where: {
+          userId: session.user.id,
+        },
+      });
+
+    if (!vendor) {
+      throw notFound(
+        "Vendor profile not found."
+      );
+    }
+
     if (vendor.isSuspended) {
-      return NextResponse.json({ error: "Account suspended. Withdrawals locked." }, { status: 403 });
+      throw forbidden(
+        "Account suspended. Withdrawals are locked."
+      );
     }
 
-    if (withdrawAmount > Number(vendor.balance)) {
-      return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
+    if (
+      withdrawAmount >
+      Number(vendor.balance)
+    ) {
+      throw badRequest(
+        "Insufficient balance."
+      );
     }
 
-    // 2. Atomic Transaction: Create Withdrawal & Deduct Balance
-    const result = await prisma.$transaction([
-      prisma.withdrawal.create({
-        data: {
-          vendorProfileId: vendor.id,
-          amount: withdrawAmount,
-          status: "PENDING",
-        }
-      }),
-      prisma.vendorProfile.update({
-        where: { id: vendor.id },
-        data: { balance: { decrement: withdrawAmount } }
-      })
-    ]);
+    const [withdrawal] =
+      await prisma.$transaction([
+        prisma.withdrawal.create({
+          data: {
+            vendorProfileId:
+              vendor.id,
+            amount:
+              withdrawAmount,
+            status: "PENDING",
+          },
+        }),
 
-    return NextResponse.json({ message: "Withdrawal initiated", data: result[0] }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+        prisma.vendorProfile.update({
+          where: {
+            id: vendor.id,
+          },
+          data: {
+            balance: {
+              decrement:
+                withdrawAmount,
+            },
+          },
+        }),
+      ]);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Withdrawal initiated successfully.",
+        withdrawal,
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

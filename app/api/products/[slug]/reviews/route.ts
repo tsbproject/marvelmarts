@@ -1,66 +1,196 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 import { z } from "zod";
+
+import { prisma } from "@/app/lib/prisma";
+
+import {
+  handleApiError,
+  requireCustomer,
+} from "@/app/lib/auth/api";
+
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Zod schema for review input
+/* -------------------------------------------------------------------------- */
+/* REVIEW SCHEMA                                                              */
+/* -------------------------------------------------------------------------- */
+
 const reviewSchema = z.object({
-  rating: z.number().int().min(1).max(5, "Rating must be between 1 and 5"),
+  rating: z.number().int().min(1).max(5),
   title: z.string().optional(),
   body: z.string().optional(),
   pros: z.string().optional(),
   cons: z.string().optional(),
-  userId: z.string().min(1, "User ID is required"),
 });
 
-// GET /api/products/[slug]/reviews
+/* -------------------------------------------------------------------------- */
+/* GET REVIEWS                                                                */
+/* -------------------------------------------------------------------------- */
+
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
-    const { searchParams } = new URL(request.url);
-    const page = Number(searchParams.get("page") ?? 1);
-    const limit = Number(searchParams.get("limit") ?? 10);
+    const { slug } = await params;
 
-    const product = await prisma.product.findUnique({ where: { slug } });
+    const { searchParams } =
+      new URL(request.url);
+
+    const page = Math.max(
+      Number(searchParams.get("page") ?? 1),
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number(searchParams.get("limit") ?? 10),
+        1
+      ),
+      50
+    );
+
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          slug,
+        },
+        select: {
+          id: true,
+        },
+      });
+
     if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
+      throw notFound(
+        "Product not found."
+      );
     }
 
-    const reviews = await prisma.review.findMany({
-      where: { productId: product.id },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-      include: { user: true },
-    });
+    const reviews =
+      await prisma.review.findMany({
+        where: {
+          productId: product.id,
+        },
 
-    return NextResponse.json(reviews);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("GET /api/products/[slug]/reviews error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        skip: (page - 1) * limit,
+
+        take: limit,
+      });
+
+    const total =
+      await prisma.review.count({
+        where: {
+          productId: product.id,
+        },
+      });
+
+    return NextResponse.json({
+      success: true,
+      reviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(
+          total / limit
+        ),
+      },
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 // POST /api/products/[slug]/reviews
+/* -------------------------------------------------------------------------- */
+/* POST REVIEW                                                                */
+/* -------------------------------------------------------------------------- */
+
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const session = await requireCustomer();
+
+    const { slug } = await params;
+
     const body = await request.json();
+
     const parsed = reviewSchema.parse(body);
 
-    const product = await prisma.product.findUnique({ where: { slug } });
+    const product = await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
     if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
+      throw notFound("Product not found.");
     }
+
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        productId: product.id,
+        userId: session.user.id,
+      },
+    });
+
+    if (existingReview) {
+      throw badRequest(
+        "You have already reviewed this product."
+      );
+    }
+
+    const purchased = await prisma.order.findFirst({
+      where: {
+        userId: session.user.id,
+        status: "DELIVERED",
+        items: {
+          some: {
+            productId: product.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
 
     const review = await prisma.review.create({
       data: {
@@ -69,43 +199,124 @@ export async function POST(
         body: parsed.body,
         pros: parsed.pros,
         cons: parsed.cons,
-        userId: parsed.userId,
+
+        userId: session.user.id,
+
         productId: product.id,
+
+        isVerified: !!purchased,
+
+        approved: true,
       },
-      include: { user: true },
+
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json(review, { status: 201 });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ errors: err.flatten() }, { status: 400 });
-    }
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("POST /api/products/[slug]/reviews error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+        review,
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-// DELETE /api/products/[slug]/reviews?id=REVIEW_ID
+/* -------------------------------------------------------------------------- */
+/* DELETE REVIEW                                                              */
+/* -------------------------------------------------------------------------- */
+
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
+    const session = await requireCustomer();
+
+    const { slug } = await params;
+
     const { searchParams } = new URL(request.url);
+
     const reviewId = searchParams.get("id");
 
     if (!reviewId) {
-      return NextResponse.json({ message: "Review ID required" }, { status: 400 });
+      throw badRequest(
+        "Review ID is required."
+      );
     }
 
-    await prisma.review.delete({ where: { id: reviewId } });
+    const product = await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+      },
+    });
 
-    return NextResponse.json({ message: "Review deleted successfully" });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("DELETE /api/products/[slug]/reviews error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    if (!product) {
+      throw notFound("Product not found.");
+    }
+
+    const review = await prisma.review.findUnique({
+      where: {
+        id: reviewId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        productId: true,
+      },
+    });
+
+    if (!review || review.productId !== product.id) {
+      throw notFound("Review not found.");
+    }
+
+    const isAdmin =
+      session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN";
+
+    if (
+      !isAdmin &&
+      review.userId !== session.user.id
+    ) {
+        throw forbidden(
+      "You do not have permission to delete this review."
+  );
+    }
+
+    await prisma.review.delete({
+      where: {
+        id: review.id,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message:
+        "Review deleted successfully.",
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
+

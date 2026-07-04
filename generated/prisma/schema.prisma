@@ -756,8 +756,8 @@ model WalletTransaction {
   id          String   @id @default(cuid())
   walletId    String
   amount      Decimal  @db.Decimal(10, 2)
-  type        String
-  status      String   @default("SUCCESS")
+  type        TransactionType
+  status      TransactionStatus @default(SUCCESS)
   reference   String   @unique
   description String?
   createdAt   DateTime @default(now())

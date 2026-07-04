@@ -1,23 +1,43 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
+
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [userCount, orderCount, openTickets, blogCount] = await Promise.all([
+    const [
+      users,
+      orders,
+      tickets,
+      blogs,
+    ] = await Promise.all([
       prisma.user.count(),
       prisma.order.count(),
-      prisma.ticket.count({ where: { status: "OPEN" } }),
-      prisma.blog.count(), // This will now work!
+      prisma.ticket.count({
+        where: {
+          status: "OPEN",
+        },
+      }),
+      prisma.blog.count(),
     ]);
 
-    return NextResponse.json({
-      users: userCount,
-      orders: orderCount,
-      tickets: openTickets,
-      blogs: blogCount,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        users,
+        orders,
+        tickets,
+        blogs,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Stats API Error:", error);
-    return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
+    return handleApiError(error);
   }
 }

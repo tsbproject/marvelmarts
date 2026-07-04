@@ -1,27 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { requireAuth } from "@/app/lib/auth/api";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest, notFound } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await requireAuth();
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const orderNumber = id;
+    const { id: orderNumber } = await params;
 
     if (!orderNumber) {
-      return NextResponse.json(
-        { error: "Order number missing" },
-        { status: 400 }
-      );
+      throw badRequest("Order number is required.");
     }
 
     const order = await prisma.order.findFirst({
@@ -33,6 +29,7 @@ export async function GET(
         items: true,
         vendorProfile: {
           select: {
+            id: true,
             storeName: true,
           },
         },
@@ -40,30 +37,24 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      throw notFound("Order not found.");
     }
 
-    const serializedOrder = {
-      ...order,
-      total: Number(order.total),
-      subtotal: Number(order.subtotal),
-      shipping: Number(order.shipping),
-      tax: Number(order.tax),
-      items: order.items.map((item) => ({
-        ...item,
-        unitPrice: Number(item.unitPrice),
-      })),
-    };
-
-    return NextResponse.json(serializedOrder);
-  } catch (error: any) {
-    console.error("API_FETCH_ORDER_ERROR:", error);
-    return NextResponse.json(
-      {
-        error: "Internal Server Error",
-        details: error.message,
+    return NextResponse.json({
+      success: true,
+      order: {
+        ...order,
+        subtotal: Number(order.subtotal),
+        shipping: Number(order.shipping),
+        tax: Number(order.tax),
+        total: Number(order.total),
+        items: order.items.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+        })),
       },
-      { status: 500 }
-    );
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

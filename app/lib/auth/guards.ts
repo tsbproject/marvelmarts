@@ -76,6 +76,23 @@ export async function requirePermission(
 }
 
 
+/* -------------------------------------------------------------------------- */
+/*                             REQUIRE VENDOR                                 */
+/* -------------------------------------------------------------------------- */
+
+export async function requireVendor() {
+  const session = await requireAuth();
+
+  if (session.user.role !== "VENDOR") {
+    throw forbidden(
+      "Vendor access required."
+    );
+  }
+
+  return session;
+}
+
+
 
 
 

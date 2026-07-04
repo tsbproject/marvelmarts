@@ -13,19 +13,28 @@ export const conversationService = {
     );
   },
 
-  sendMessage(
-    conversationId: string,
-    senderId: string,
-    senderName: string,
-    content: string
-  ) {
-    return conversationRepository.createMessage({
-      conversationId,
-      senderId,
-      senderName,
-      content,
-    });
-  },
+  async sendMessage(
+  conversationId: string,
+  senderId: string | null,
+  senderName: string,
+  content: string,
+  product?: {
+    productId?: string | null;
+    productPrice?: string | null;
+    productImage?: string | null;
+  }
+) {
+  return conversationRepository.createMessage({
+    conversationId,
+    senderId,
+    senderName,
+    content,
+
+    productId: product?.productId ?? null,
+    productPrice: product?.productPrice ?? null,
+    productImage: product?.productImage ?? null,
+  });
+},
 
   closeConversation(
     conversationId: string,

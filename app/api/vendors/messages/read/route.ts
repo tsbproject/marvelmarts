@@ -1,27 +1,56 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
 
-export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function PATCH(
+  req: NextRequest
+) {
   try {
-    const { conversationId } = await req.json();
+    const session =
+      await requireAuth();
 
-    // Mark all messages in this chat as read, IF they weren't sent by the current user
-    await prisma.message.updateMany({
-      where: {
-        conversationId,
-        senderId: { not: session.user.id },
-        isRead: false
+    const body = await req.json();
+
+    const conversationId =
+      body.conversationId;
+
+    if (!conversationId) {
+      throw badRequest(
+        "Conversation ID is required."
+      );
+    }
+
+    const result =
+      await prisma.message.updateMany({
+        where: {
+          conversationId,
+          senderId: {
+            not: session.user.id,
+          },
+          isRead: false,
+        },
+        data: {
+          isRead: true,
+        },
+      });
+
+    return NextResponse.json(
+      {
+        success: true,
+        updated: result.count,
       },
-      data: { isRead: true }
-    });
-
-    return NextResponse.json({ success: true });
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }

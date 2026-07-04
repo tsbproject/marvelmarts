@@ -1,84 +1,177 @@
-import prisma from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { NextResponse } from "next/server";
-import type { Session } from "next-auth";
-import { cartItemUpdateSchema, cartItemDeleteSchema } from "@/app/lib/schemas/cart";
+import { NextRequest, NextResponse } from "next/server";
+
+import { prisma } from "@/app/lib/prisma";
+
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+import {
+  cartItemUpdateSchema,
+  cartItemDeleteSchema,
+} from "@/app/lib/schemas/cart";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: Request) {
-  try {
-    const session = (await getServerSession(authOptions)) as Session | null;
-    const userId = session?.user?.id;
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+/* -------------------------------------------------------------------------- */
+/*                           UPDATE CART ITEM                                 */
+/* -------------------------------------------------------------------------- */
 
-    const body = await req.json();
-    const parsed = cartItemUpdateSchema.safeParse(body);
+export async function PATCH(
+  req: NextRequest
+) {
+  try {
+    const session =
+      await requireAuth();
+
+    const parsed =
+      cartItemUpdateSchema.safeParse(
+        await req.json()
+      );
+
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Invalid request payload", errors: parsed.error.format() },
-        { status: 400 }
+        {
+          success: false,
+          message:
+            "Invalid request payload.",
+          errors:
+            parsed.error.format(),
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const { id, qty } = parsed.data;
+    const { id, qty } =
+      parsed.data;
 
-    const cartItem = await prisma.cartItem.findUnique({
-      where: { id: String(id) },
-      include: { cart: true },
-    });
+    const cartItem =
+      await prisma.cartItem.findUnique({
+        where: {
+          id: String(id),
+        },
+        include: {
+          cart: true,
+        },
+      });
 
-    if (!cartItem || cartItem.cart.userId !== userId) {
-      return new NextResponse("Forbidden", { status: 403 });
+    if (!cartItem) {
+      throw notFound(
+        "Cart item not found."
+      );
+    }
+
+    if (
+      cartItem.cart.userId !==
+      session.user.id
+    ) {
+      throw forbidden(
+        "You do not have access to this cart item."
+      );
     }
 
     await prisma.cartItem.update({
-      where: { id: String(id) },
-      data: { qty },
+      where: {
+        id: cartItem.id,
+      },
+      data: {
+        qty,
+      },
     });
 
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("PATCH /api/cart/item error:", err);
-    return NextResponse.json({ message: "Failed to update item" }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-export async function DELETE(req: Request) {
-  try {
-    const session = (await getServerSession(authOptions)) as Session | null;
-    const userId = session?.user?.id;
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+/* -------------------------------------------------------------------------- */
+/*                           DELETE CART ITEM                                 */
+/* -------------------------------------------------------------------------- */
 
-    const body = await req.json();
-    const parsed = cartItemDeleteSchema.safeParse(body);
+export async function DELETE(
+  req: NextRequest
+) {
+  try {
+    const session =
+      await requireAuth();
+
+    const parsed =
+      cartItemDeleteSchema.safeParse(
+        await req.json()
+      );
+
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Invalid request payload", errors: parsed.error.format() },
-        { status: 400 }
+        {
+          success: false,
+          message:
+            "Invalid request payload.",
+          errors:
+            parsed.error.format(),
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const { id } = parsed.data;
+    const { id } =
+      parsed.data;
 
-    const cartItem = await prisma.cartItem.findUnique({
-      where: { id: String(id) },
-      include: { cart: true },
-    });
+    const cartItem =
+      await prisma.cartItem.findUnique({
+        where: {
+          id: String(id),
+        },
+        include: {
+          cart: true,
+        },
+      });
 
-    if (!cartItem || cartItem.cart.userId !== userId) {
-      return new NextResponse("Forbidden", { status: 403 });
+    if (!cartItem) {
+      throw notFound(
+        "Cart item not found."
+      );
+    }
+
+    if (
+      cartItem.cart.userId !==
+      session.user.id
+    ) {
+      throw forbidden(
+        "You do not have access to this cart item."
+      );
     }
 
     await prisma.cartItem.delete({
-      where: { id: String(id) },
+      where: {
+        id: cartItem.id,
+      },
     });
 
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/cart/item error:", err);
-    return NextResponse.json({ message: "Failed to delete item" }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

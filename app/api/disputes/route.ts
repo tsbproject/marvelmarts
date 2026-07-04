@@ -1,21 +1,42 @@
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
-import { authOptions } from "@/app/lib/auth";
+
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+
 import { sendAdminAlert } from "@/app/lib/mailer";
 import { pusherServer } from "@/app/lib/pusherServer";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return new NextResponse("Unauthorized", { status: 401 });
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+export async function POST(req: NextRequest) {
   try {
-    const { orderId, reason, description, vendorName, vendorProfileId } = await req.json();
+    const session = await requireAuth();
 
-    // 1. Create the Dispute record in Prisma
+    const {
+      orderId,
+      reason,
+      description,
+      vendorName,
+      vendorProfileId,
+    } = await req.json();
+
+    if (
+      !orderId ||
+      !reason ||
+      !vendorProfileId
+    ) {
+      throw badRequest(
+        "Order, vendor and dispute reason are required."
+      );
+    }
+
     const dispute = await prisma.dispute.create({
       data: {
-        vendorProfileId: vendorProfileId,
+        vendorProfileId,
         orderId,
         reason,
         description,
@@ -24,44 +45,64 @@ export async function POST(req: Request) {
       },
     });
 
-    // 2. Find Admin Users (to send them the notification)
     const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true }
+      where: {
+        role: "ADMIN",
+      },
+      select: {
+        id: true,
+      },
     });
 
-    // 3. Save to DB for the NotificationBell & Trigger Pusher
-    // We map through admins if you have multiple, or just target the main one
-    await Promise.all(admins.map(async (admin) => {
-      await prisma.notification.create({
-        data: {
-          userId: admin.id,
+    await Promise.all(
+      admins.map((admin) =>
+        prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: "DISPUTE",
+            title: "New Dispute Filed",
+            message: `Vendor ${vendorName} filed a dispute for Order #${orderId}`,
+            link: `/admin/disputes/${dispute.id}`,
+          },
+        })
+      )
+    );
+
+    try {
+      await pusherServer.trigger(
+        "admin-notifications",
+        "new-alert",
+        {
           type: "DISPUTE",
           title: "New Dispute Filed",
-          message: `Vendor ${vendorName} filed a dispute for Order #${orderId}`,
+          message: `${vendorName} raised a dispute for Order #${orderId}`,
           link: `/admin/disputes/${dispute.id}`,
-        },
+        }
+      );
+    } catch (err) {
+      console.error("Pusher Error:", err);
+    }
+
+    try {
+      await sendAdminAlert({
+        type: "DISPUTE",
+        subject: `Order #${orderId} Dispute`,
+        details: `Vendor: ${vendorName}\nReason: ${reason}\nDescription: ${description}\n\nAction required immediately in the Admin Control Center.`,
       });
-    }));
+    } catch (err) {
+      console.error("Admin Email Error:", err);
+    }
 
-    // 4. Instant UI Update via Pusher (Targeting the admin-notifications channel)
-    await pusherServer.trigger("admin-notifications", "new-alert", {
-      type: "DISPUTE",
-      title: "New Dispute Filed",
-      message: `${vendorName} raised a dispute for Order #${orderId}`,
-      link: `/admin/disputes/${dispute.id}`
-    });
-
-    // 5. Send External Branded Admin Email via mailer.ts
-    await sendAdminAlert({
-      type: 'DISPUTE',
-      subject: `Order #${orderId} Dispute`,
-      details: `Vendor: ${vendorName}\nReason: ${reason}\nDescription: ${description}\n\nAction required immediately in the Admin Control Center.`
-    });
-
-    return NextResponse.json({ success: true, disputeId: dispute.id });
+    return NextResponse.json(
+      {
+        success: true,
+        disputeId: dispute.id,
+      },
+      {
+        status: 201,
+      }
+    );
   } catch (error) {
-    console.error("DISPUTE_SUBMISSION_ERROR", error);
-    return NextResponse.json({ error: "Failed to submit dispute" }, { status: 500 });
+    return handleApiError(error);
   }
 }

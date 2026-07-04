@@ -1,100 +1,138 @@
-// import prisma from "@/app/lib/prisma";
-// import { NextResponse } from "next/server";
-
-// export async function GET(request: Request) {
-//   const { searchParams } = new URL(request.url);
-//   const query = searchParams.get("q");
-
-//   if (!query || query.length < 2) {
-//     return NextResponse.json({ products: [], categories: [] });
-//   }
-
-//   const [products, categories] = await Promise.all([
-//     // 1. Search Products (by Title or ID)
-//     prisma.product.findMany({
-//       where: {
-//         status: "ACTIVE",
-//         OR: [
-//           { title: { contains: query, mode: "insensitive" } },
-//           { id: { contains: query, mode: "insensitive" } },
-//         ],
-//       },
-//       select: {
-//         id: true,
-//         title: true,
-//         slug: true,
-//         price: true,
-//         images: { take: 1, select: { url: true } },
-//       },
-//       take: 5,
-//     }),
-//     // 2. Search Categories
-//     prisma.category.findMany({
-//       where: {
-//         name: { contains: query, mode: "insensitive" },
-//       },
-//       select: { id: true, name: true, slug: true },
-//       take: 4,
-//     }),
-//   ]);
-
-//   return NextResponse.json({ products, categories });
-// }
-
-
-
-
-
-
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
+import { prisma } from "@/app/lib/prisma";
+import { badRequest } from "@/app/lib/auth/errors";
+import { handleApiError } from "@/app/lib/auth/api";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q") || "";
-
-  if (query.length < 2) return NextResponse.json({ products: [], categories: [], vendors: [] });
-
   try {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("q")?.trim() ?? "";
+
+    if (query.length < 2) {
+      return NextResponse.json({
+        products: [],
+        categories: [],
+        vendors: [],
+      });
+    }
+
     const [products, categories, vendors] = await Promise.all([
-      // 1. SEARCH PRODUCTS (with Boost Priority)
       prisma.product.findMany({
         where: {
+          status: "ACTIVE",
           isPublished: true,
+          vendorProfile: {
+            isSuspended: false,
+            status: "APPROVED",
+          },
           OR: [
-            { title: { contains: query, mode: "insensitive" } },
-            { description: { contains: query, mode: "insensitive" } },
-            { sku: { contains: query, mode: "insensitive" } },
+            {
+              title: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              description: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              sku: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
           ],
         },
-        include: { images: { take: 1 }, vendorProfile: true },
+        include: {
+          images: {
+            take: 1,
+            orderBy: {
+              order: "asc",
+            },
+          },
+         vendorProfile: {
+            select: {
+              id: true,
+              storeName: true,
+              logoUrl: true,
+              isVerified: true,
+            },
+          },
+        },
         orderBy: [
-          { boostUntil: { sort: "desc", nulls: "last" } }, // Boosted first
-          { createdAt: "desc" },
+          {
+            boostUntil: {
+              sort: "desc",
+              nulls: "last",
+            },
+          },
+          {
+            createdAt: "desc",
+          },
         ],
         take: 10,
       }),
 
-      // 2. SEARCH CATEGORIES
       prisma.category.findMany({
-        where: { name: { contains: query, mode: "insensitive" } },
+        where: {
+          name: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        orderBy: {
+          name: "asc",
+        },
         take: 4,
       }),
 
-      // 3. SEARCH VENDORS (by Name or Profile ID)
       prisma.vendorProfile.findMany({
         where: {
+          isSuspended: false,
+          status: "APPROVED",
           OR: [
-            { storeName: { contains: query, mode: "insensitive" } },
-            { id: { equals: query } }, // Direct ID match
+            {
+              storeName: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              id: {
+                equals: query,
+              },
+            },
           ],
+        },
+        select: {
+          id: true,
+          storeName: true,
+          logoUrl: true,
+          isVerified: true,
         },
         take: 3,
       }),
     ]);
 
-    return NextResponse.json({ products, categories, vendors });
+    const serializedProducts = products.map((product) => ({
+      ...product,
+      price: Number(product.price),
+      discountPrice:
+        product.discountPrice != null
+          ? Number(product.discountPrice)
+          : null,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      products: serializedProducts,
+      categories,
+      vendors,
+    });
   } catch (error) {
-    return NextResponse.json({ error: "Search failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }

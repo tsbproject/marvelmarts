@@ -1,65 +1,24 @@
-import { prisma } from "@/app/lib/prisma";
-import crypto from "crypto";
-import { sendPasswordResetEmail } from "@/app/lib/mailer";
+import { AuthService } from "@/app/lib/services/auth.service";
+import { handleApiError } from "@/app/lib/auth/api";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-
-export async function POST(req: Request) {
+export async function POST(
+  request: Request
+) {
   try {
-    const body = await req.json();
-    const { email } = body;
+    const { email } =
+      await request.json();
 
-    if (!email || typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
-      return Response.json(
-        { success: false, error: "Invalid email" },
-        { status: 400 }
+    const result =
+      await AuthService.sendPasswordResetCode(
+        email
       );
-    }
 
-    // ✅ Find user by email, any role
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return Response.json(
-        { success: false, error: "No account found with this email" },
-        { status: 404 }
-      );
-    }
-
-    // ✅ Generate 6-digit reset code
-    const resetCode = crypto.randomInt(100000, 999999).toString();
-
-    // ✅ Upsert token
-    await prisma.passwordResetToken.upsert({
-      where: { userId: user.id },
-      update: {
-        token: resetCode,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-      create: {
-        userId: user.id,
-        token: resetCode,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    // Send email
-
-      await sendPasswordResetEmail({
-        email: user.email,
-        token: resetCode,
-      });
-
-    return Response.json(
-      { success: true, message: "Password reset code sent successfully" },
-      { status: 200 }
-    );
-  } catch (error: unknown) {
-    console.error("Forgot-password route error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(result);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
-
-

@@ -21,28 +21,39 @@ export const conversationRepository = {
   },
 
   async createMessage(data: {
-    conversationId: string;
-    senderId: string;
-    senderName: string;
-    content: string;
-  }) {
-    return prisma.$transaction(async (tx) => {
-      const message = await tx.message.create({
-        data,
-      });
-
-      await tx.conversation.update({
-        where: {
-          id: data.conversationId,
-        },
-        data: {
-          updatedAt: new Date(),
-        },
-      });
-
-      return message;
+  conversationId: string;
+  senderId: string | null;
+  senderName: string;
+  content: string;
+  productId?: string | null;
+  productPrice?: string | null;
+  productImage?: string | null;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const message = await tx.message.create({
+      data: {
+        conversationId: data.conversationId,
+        senderId: data.senderId,
+        senderName: data.senderName,
+        content: data.content,
+        productId: data.productId ?? null,
+        productPrice: data.productPrice ?? null,
+        productImage: data.productImage ?? null,
+      },
     });
-  },
+
+    await tx.conversation.update({
+      where: {
+        id: data.conversationId,
+      },
+      data: {
+        updatedAt: new Date(),
+      },
+    });
+
+    return message;
+  });
+},
 
   async close(
     conversationId: string,

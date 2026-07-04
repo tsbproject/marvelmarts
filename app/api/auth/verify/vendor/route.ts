@@ -1,37 +1,33 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { VerificationType } from "@prisma/client";
 
-export async function POST(req: Request) {
+import {
+  handleApiError,
+} from "@/app/lib/auth/api";
+
+import { AuthService } from "@/app/lib/services/auth.service";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  request: Request
+) {
   try {
-    const { uid, code } = await req.json();
+    const {
+      uid,
+      code,
+    } = await request.json();
 
-    // 1. Find the code record
-    const verification = await prisma.verificationCode.findFirst({
-      where: {
-        id: uid,
-        code: code.toUpperCase(),
-        type: VerificationType.VENDOR_REGISTRATION,
-      },
-    });
+    const result =
+      await AuthService.verifyVendorRegistration(
+        uid,
+        code
+      );
 
-    if (!verification) {
-      return NextResponse.json({ error: "Invalid or incorrect code" }, { status: 400 });
-    }
-
-    if (verification.expiresAt < new Date()) {
-      return NextResponse.json({ error: "This code has expired" }, { status: 400 });
-    }
-
-    // 2. THE FIX: Update 'used' to true so getLatestVerification can find it
-    await prisma.verificationCode.update({
-      where: { id: uid },
-      data: { used: true },
-    });
-
-    return NextResponse.json({ success: true, message: "Email verified successfully" });
-  } catch (error: any) {
-    console.error("Verification Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      result
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

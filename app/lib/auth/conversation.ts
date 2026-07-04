@@ -9,24 +9,34 @@ import { forbidden, notFound } from "./errors";
 type ConversationWithParticipants =
   Prisma.ConversationGetPayload<{
     select: {
-      id: true;
-      status: true;
-      participantIds: true;
-      deletedByParticipantIds: true;
-      participants: {
-        select: {
-          id: true;
-          name: true;
-          email: true;
-          role: true;
-          vendorProfile: {
-            select: {
-              id: true;
-            };
-          };
-        };
-      };
-    };
+        id: true,
+        subject: true,
+        type: true,
+        status: true,
+        isGuest: true,
+        visitorName: true,
+        visitorEmail: true,
+        endedAt: true,
+        endedById: true,
+        endedByRole: true,
+        createdAt: true,
+        updatedAt: true,
+        participantIds: true,
+        deletedByParticipantIds: true,
+        participants: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            vendorProfile: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      }
   }>;
 
 
@@ -66,7 +76,17 @@ export async function requireConversationAccess(
     },
     select: {
       id: true,
+      subject: true,
+      type: true,
       status: true,
+      isGuest: true,
+      visitorName: true,
+      visitorEmail: true,
+      endedAt: true,
+      endedById: true,
+      endedByRole: true,
+      createdAt: true,
+      updatedAt: true,
       participantIds: true,
       deletedByParticipantIds: true,
       participants: {

@@ -4,6 +4,8 @@
 /*                              AUTH ERROR                                    */
 /* -------------------------------------------------------------------------- */
 
+import { ApiError } from "next/dist/server/api-utils";
+
 export class AuthError extends Error {
   readonly status: number;
 
@@ -23,12 +25,9 @@ export class AuthError extends Error {
 /*                           FACTORIES                                        */
 /* -------------------------------------------------------------------------- */
 
-export const unauthorized = () =>
-  new AuthError(
-    "Authentication required.",
-    401
-  );
-
+export function unauthorized(message = "Unauthorized") {
+  return new ApiError(401, message);
+}
 export function forbidden(
   message = "Forbidden.",
   status = 403

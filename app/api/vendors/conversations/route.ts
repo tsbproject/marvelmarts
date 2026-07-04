@@ -1,41 +1,48 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+
+import { prisma } from "@/app/lib/prisma";
+
+import { requireVendor } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    
-    // Ensure vendor is logged in
-    if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    const session =
+      await requireVendor();
 
-    // We look for conversations where the vendor's ID is in the participant list
-    const conversations = await prisma.conversation.findMany({
-      where: {
-        participantIds: {
-          has: session.user.id
-        }
-      },
-      include: {
-        // We include messages to show the content snippet in the inbox
-        messages: {
-          orderBy: {
-            createdAt: 'desc'
+    const conversations =
+      await prisma.conversation.findMany({
+        where: {
+          participantIds: {
+            has: session.user.id,
           },
-          take: 1 // Only need the most recent one for the preview
-        }
-      },
-      orderBy: {
-        updatedAt: 'desc' // Newest conversations at the top
-      }
-    });
+        },
+        include: {
+          messages: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-    return NextResponse.json(conversations);
+    return NextResponse.json(
+      {
+        success: true,
+        conversations,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("INBOX_FETCH_ERROR:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return handleApiError(error);
   }
 }

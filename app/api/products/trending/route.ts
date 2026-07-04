@@ -1,39 +1,69 @@
-import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
+import { handleApiError } from "@/app/lib/auth/api";
 
 export async function GET() {
   try {
-    const trendingProducts = await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         isTrending: true,
+        status: "ACTIVE",
+        vendorProfile: {
+          isSuspended: false,
+          status: "APPROVED",
+        },
       },
-      select: {
-        id: true,
-        title: true, 
-        slug: true,
-        price: true,
-        images: true, // Use the correct field name 'images'
-        category: {
-          select: {
-            name: true 
-          }
-        }
+      orderBy: {
+        updatedAt: "desc",
       },
       take: 10,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        price: true,
+        discountPrice: true,
+        stock: true,
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+          take: 1,
+          select: {
+            url: true,
+            alt: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
-    // Map the array of images to a single imageUrl for the frontend
-    const serializedProducts = trendingProducts.map(product => ({
+    const serializedProducts = products.map((product) => ({
       ...product,
-      // Pick the first image in the array, or null if empty
-      imageUrl: Array.isArray(product.images) && product.images.length > 0 
-        ? product.images[0] 
-        : null
+      price: Number(product.price),
+      discountPrice:
+        product.discountPrice != null
+          ? Number(product.discountPrice)
+          : null,
+      imageUrl: product.images[0]?.url ?? null,
+      imageAlt: product.images[0]?.alt ?? null,
     }));
 
-    return NextResponse.json(serializedProducts);
+    return NextResponse.json(
+      {
+        success: true,
+        products: serializedProducts,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Trending API Error:", error);
-    return NextResponse.json({ error: "Tactical Data Retrieval Failed" }, { status: 500 });
+    return handleApiError(error);
   }
 }

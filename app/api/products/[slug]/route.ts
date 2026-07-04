@@ -1,112 +1,212 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma"; // Ensure correct path
+import { prisma } from "@/app/lib/prisma";
 import { productSchema } from "@/app/lib/validations/product";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { deleteFromCloudinary } from "@/app/lib/cloudinary";
+
+import {
+  requireVendor,
+  requireAdmin,
+  handleApiError,
+} from "@/app/lib/auth/api";
+
+import {
+  forbidden,
+  notFound,
+} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* ===========================
-    Helper: Format Decimal to Number
-    Ensures frontend doesn't crash on Prisma Decimal types
-=========================== */
-const formatSafeProduct = (product: any) => ({
-  ...product,
-  price: product.price ? Number(product.price) : 0,
-  discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-  variants: product.variants?.map((v: any) => ({
-    ...v,
-    price: v.price ? Number(v.price) : 0,
-  })) || [],
-});
+/* -------------------------------------------------------------------------- */
+/* SERIALIZER                                                                 */
+/* -------------------------------------------------------------------------- */
 
-/* ===========================
-    GET /api/products/[slug]
-    Used for the Public Product Details Page
-=========================== */
+function serializeProduct(product: any) {
+  return {
+    ...product,
+    price: Number(product.price),
+    discountPrice:
+      product.discountPrice != null
+        ? Number(product.discountPrice)
+        : null,
+
+    variants:
+      product.variants?.map((variant: any) => ({
+        ...variant,
+        price:
+          variant.price != null
+            ? Number(variant.price)
+            : null,
+      })) ?? [],
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* VENDOR HELPER                                                              */
+/* -------------------------------------------------------------------------- */
+
+async function getVendorProfileId(
+  userId: string
+) {
+  const vendor = await prisma.vendorProfile.findUnique({
+    where: {
+      userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return vendor?.id ?? null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* GET PRODUCT                                                                */
+/* -------------------------------------------------------------------------- */
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
     const { slug } = await params;
 
     const product = await prisma.product.findUnique({
-      where: { slug },
+      where: {
+        slug,
+      },
+
       include: {
-        images: { orderBy: { order: "asc" } },
-        category: { select: { id: true, name: true } },
-        variants: true,
-        reviews: { include: { user: { select: { name: true, image: true } } } },
-        // FIXED: Corrected relationship naming for Vendor Profile
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        variants: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+
+        reviews: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+
         vendorProfile: {
           select: {
+            id: true,
             storeName: true,
             logoUrl: true,
-            id: true,
-          }
-        }
+            status: true,
+            isSuspended: true,
+          },
+        },
       },
     });
 
     if (!product) {
-      return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
+      throw notFound("Product not found.");
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      product: formatSafeProduct(product) 
+    if (
+      product.vendorProfile.isSuspended ||
+      product.vendorProfile.status !==
+        "APPROVED"
+    ) {
+      throw forbidden(
+        "Product is unavailable."
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      product: serializeProduct(product),
     });
-  } catch (err) {
-    console.error("GET error:", err);
-    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/* ===========================
-    PUT /api/products/[slug]
-    Used for updating via Slug (Admin/Vendor)
-=========================== */
+/* -------------------------------------------------------------------------- */
+/* UPDATE PRODUCT                                                             */
+/* -------------------------------------------------------------------------- */
+
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const session = await requireVendor();
 
     const { slug } = await params;
-    
-    // 1. Ownership & Security Check
+
     const existingProduct = await prisma.product.findUnique({
-      where: { slug },
-      // FIXED: Use vendorProfileId instead of vendorId
-      select: { id: true, vendorProfileId: true }
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+        vendorProfileId: true,
+      },
     });
 
-    if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    if (!existingProduct) {
+      throw notFound("Product not found.");
+    }
 
-    const userRoles = session?.user?.roles || []; // Fallback to empty array
-const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("SUPER_ADMIN");
-    
-// Check ownership by comparing vendorProfile link (User ID check)
-    const vendorProfile = await prisma.vendorProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { id: true }
-    });
+    const vendorProfileId = await getVendorProfileId(
+      session.user.id
+    );
 
-    const isOwner = vendorProfile?.id === existingProduct.vendorProfileId;
+    const isAdmin =
+      session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN";
 
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    if (
+      !isAdmin &&
+      vendorProfileId !== existingProduct.vendorProfileId
+    ) {
+      throw forbidden(
+        "You do not have permission to update this product."
+      );
     }
 
     const body = await request.json();
+
     const parsed = productSchema.parse(body);
 
     const updatedProduct = await prisma.product.update({
-      where: { slug },
+      where: {
+        slug,
+      },
+
       data: {
         title: parsed.title,
         description: parsed.description,
@@ -116,63 +216,124 @@ const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("SUPER_ADMIN")
         categoryId: parsed.categoryId,
         status: parsed.status,
         isFeatured: parsed.isFeatured,
-        metaTitle: parsed.metaTitle || parsed.title,
-        metaDescription: parsed.metaDescription || parsed.description?.substring(0, 160),
+        metaTitle:
+          parsed.metaTitle || parsed.title,
+        metaDescription:
+          parsed.metaDescription ||
+          parsed.description?.substring(0, 160),
       },
-      include: { images: true, category: true, variants: true },
+
+      include: {
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+
+        category: true,
+
+        variants: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      product: formatSafeProduct(updatedProduct) 
+    return NextResponse.json({
+      success: true,
+      product: serializeProduct(updatedProduct),
     });
-  } catch (err: any) {
-    if (err?.name === "ZodError") return NextResponse.json({ errors: err.errors }, { status: 400 });
-    console.error("Update error:", err);
-    return NextResponse.json({ message: "Update failed" }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/* ===========================
-    DELETE /api/products/[slug]
-=========================== */
+/* -------------------------------------------------------------------------- */
+/* DELETE PRODUCT                                                             */
+/* -------------------------------------------------------------------------- */
+
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const session = await requireVendor();
 
     const { slug } = await params;
 
     const existingProduct = await prisma.product.findUnique({
-      where: { slug },
-      // FIXED: Use vendorProfileId
-      select: { vendorProfileId: true }
+      where: {
+        slug,
+      },
+
+      include: {
+        images: true,
+      },
     });
 
-    if (!existingProduct) return NextResponse.json({ message: "Not found" }, { status: 404 });
-
-   const userRoles = session?.user?.roles || []; // Fallback to empty array
-   const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("SUPER_ADMIN");
-    
-    const vendorProfile = await prisma.vendorProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { id: true }
-    });
-
-    const isOwner = vendorProfile?.id === existingProduct.vendorProfileId;
-
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    if (!existingProduct) {
+      throw notFound("Product not found.");
     }
 
-    await prisma.product.delete({ where: { slug } });
+    const vendorProfileId = await getVendorProfileId(
+      session.user.id
+    );
 
-    return NextResponse.json({ success: true, message: "Product deleted successfully" });
-  } catch (err) {
-    console.error("Delete error:", err);
-    return NextResponse.json({ success: false, message: "Delete failed" }, { status: 500 });
+    const isAdmin =
+      session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN";
+
+    if (
+      !isAdmin &&
+      vendorProfileId !== existingProduct.vendorProfileId
+    ) {
+      throw forbidden(
+        "You do not have permission to delete this product."
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.productImage.deleteMany({
+        where: {
+          productId: existingProduct.id,
+        },
+      });
+
+      await tx.variant.deleteMany({
+        where: {
+          productId: existingProduct.id,
+        },
+      });
+
+      await tx.product.delete({
+        where: {
+          id: existingProduct.id,
+        },
+      });
+    });
+
+    await Promise.allSettled(
+      existingProduct.images.map(async (image) => {
+        try {
+          await deleteFromCloudinary(image.url);
+        } catch {
+          // Ignore Cloudinary cleanup failures
+        }
+      })
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Product deleted successfully.",
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

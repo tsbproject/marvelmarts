@@ -1,42 +1,45 @@
-
-
-
-
 // app/api/wishlist/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 import prisma from "@/app/lib/prisma";
+
+import {
+  requireAuth,
+  handleApiError,
+} from "@/app/lib/auth/api";
+
+import {
+  badRequest,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Context = {
+  params: Promise<{ id: string }>;
+};
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: Context
 ) {
   try {
-    // 1. Await params to satisfy Next.js 15 type constraints
-    const resolvedParams = await params;
-    const { id } = resolvedParams;
+    const session = await requireAuth();
 
-    const session = await getServerSession(authOptions);
+    const { id } = await params;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!id) {
+      throw badRequest("Wishlist item ID is required.");
     }
 
-    // 2. Use deleteMany instead of delete. 
-    // .delete() throws an error if ID is missing.
-    // .deleteMany() simply returns count: 0 if not found, preventing a 500 crash.
-    const deletion = await prisma.wishlist.deleteMany({
+    let deletion = await prisma.wishlist.deleteMany({
       where: {
-        id: id,
+        id,
         userId: session.user.id,
       },
     });
 
     if (deletion.count === 0) {
-      // 3. Fallback: If not found by ID, try finding by productId.
-      // This prevents the 2nd-item-failure if your IDs are mixed up.
-      await prisma.wishlist.deleteMany({
+      deletion = await prisma.wishlist.deleteMany({
         where: {
           productId: id,
           userId: session.user.id,
@@ -44,9 +47,11 @@ export async function DELETE(
       });
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
-    console.error("DATABASE_DELETE_ERROR:", error.message);
-    return NextResponse.json({ message: "Server Error" }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      removed: deletion.count > 0,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

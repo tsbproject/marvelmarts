@@ -1,110 +1,233 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 import { z } from "zod";
+
+import { prisma } from "@/app/lib/prisma";
+
+import {
+  handleApiError,
+  requireVendor,
+} from "@/app/lib/auth/api";
+
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+import { requireProductOwnershipBySlug } from "@/app/lib/products/ownership";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Define attributes as a record of string → string
-const attributesSchema = z.record(z.string(), z.string());
+/* -------------------------------------------------------------------------- */
+/* SCHEMA                                                                     */
+/* -------------------------------------------------------------------------- */
 
-// Variant schema
+const attributesSchema = z.record(
+  z.string(),
+  z.string()
+);
+
 export const variantSchema = z.object({
-  name: z.string().min(1, "Variant name is required"),
+  name: z.string().min(1),
   price: z.number().nonnegative().optional(),
   stock: z.number().int().nonnegative().optional(),
   attributes: attributesSchema.optional(),
 });
 
-// GET /api/products/[slug]/variants
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+/* -------------------------------------------------------------------------- */
+/* SERIALIZER                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function serializeVariant(
+  variant: any
 ) {
-  try {
-    const { slug } = await context.params; // 👈 await params
-
-    const product = await prisma.product.findUnique({
-      where: { slug },
-      include: { variants: true },
-    });
-
-    if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
-    }
-
-    const safeVariants = product.variants.map((v) => ({
-      ...v,
-      price: v.price ? Number(v.price) : null,
-    }));
-
-    return NextResponse.json(safeVariants);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("GET /api/products/[slug]/variants error:", err);
-    return NextResponse.json({ message }, { status: 500 });
-  }
+  return {
+    ...variant,
+    price:
+      variant.price != null
+        ? Number(variant.price)
+        : null,
+  };
 }
 
-// POST /api/products/[slug]/variants
-export async function POST(
+/* -------------------------------------------------------------------------- */
+/* GET                                                                         */
+/* -------------------------------------------------------------------------- */
+
+export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
-    const body = await request.json();
-    const parsed = variantSchema.parse(body);
+    const { slug } = await params;
 
-    const product = await prisma.product.findUnique({ where: { slug } });
-    if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
-    }
+    const product = await prisma.product.findUnique({
+      where: {
+        slug,
+      },
 
-    const variant = await prisma.variant.create({
-      data: {
-        name: parsed.name,
-        price: parsed.price ?? 0,
-        stock: parsed.stock ?? 0,
-        attributes: parsed.attributes ?? {},
-        productId: product.id,
+      include: {
+        variants: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
     });
 
-    return NextResponse.json(
-      { ...variant, price: variant.price ? Number(variant.price) : null },
-      { status: 201 }
-    );
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ errors: err.flatten() }, { status: 400 });
+    if (!product) {
+      throw notFound("Product not found.");
     }
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("POST /api/products/[slug]/variants error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+
+    return NextResponse.json({
+      success: true,
+      variants: product.variants.map(
+        serializeVariant
+      ),
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-// DELETE /api/products/[slug]/variants?id=VARIANT_ID
-export async function DELETE(
+/* -------------------------------------------------------------------------- */
+/* POST                                                                        */
+/* -------------------------------------------------------------------------- */
+
+export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
 ) {
   try {
-    const { slug } = await context.params; // 👈 await params
-    const { searchParams } = new URL(request.url);
-    const variantId = searchParams.get("id");
+    const session =
+      await requireVendor();
+
+    const { slug } =
+      await params;
+
+    const product =
+      await requireProductOwnershipBySlug(
+        slug,
+        session
+      );
+
+    const body =
+      await request.json();
+
+    const parsed =
+      variantSchema.parse(body);
+
+    const variant =
+      await prisma.variant.create({
+        data: {
+          name: parsed.name,
+
+          price:
+            parsed.price ?? 0,
+
+          stock:
+            parsed.stock ?? 0,
+
+          attributes:
+            parsed.attributes ?? {},
+
+          productId:
+            product.id,
+        },
+      });
+
+    return NextResponse.json(
+      {
+        success: true,
+        variant:
+          serializeVariant(
+            variant
+          ),
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* DELETE                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export async function DELETE(
+  request: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      slug: string;
+    }>;
+  }
+) {
+  try {
+    const session =
+      await requireVendor();
+
+    const { slug } =
+      await params;
+
+    await requireProductOwnershipBySlug(
+      slug,
+      session
+    );
+
+    const { searchParams } =
+      new URL(request.url);
+
+    const variantId =
+      searchParams.get("id");
 
     if (!variantId) {
-      return NextResponse.json({ message: "Variant ID required" }, { status: 400 });
+      throw badRequest(
+        "Variant ID is required."
+      );
     }
 
-    await prisma.variant.delete({ where: { id: variantId } });
+    const variant =
+      await prisma.variant.findUnique({
+        where: {
+          id: variantId,
+        },
+      });
 
-    return NextResponse.json({ message: "Variant deleted successfully" });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("DELETE /api/products/[slug]/variants error:", err);
-    return NextResponse.json({ message }, { status: 500 });
+    if (!variant) {
+      throw notFound(
+        "Variant not found."
+      );
+    }
+
+    await prisma.variant.delete({
+      where: {
+        id: variantId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message:
+        "Variant deleted successfully.",
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

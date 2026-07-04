@@ -1,55 +1,96 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
 
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import {
+  badRequest,
+  notFound,
+} from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ vendorId: string }> }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      vendorId: string;
+    }>;
+  }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session =
+      await requireAuth();
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { vendorId } =
+      await params;
 
-    const { vendorId } = await params;
     const body = await req.json();
-    const action = body?.action;
 
-    if (!vendorId) {
-      return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
+    const action =
+      String(body.action ?? "")
+        .trim()
+        .toLowerCase();
+
+    if (
+      action !== "follow" &&
+      action !== "unfollow"
+    ) {
+      throw badRequest(
+        "Invalid follow action."
+      );
     }
 
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: { id: vendorId },
-      select: { id: true },
-    });
+    const vendor =
+      await prisma.vendorProfile.findUnique({
+        where: {
+          id: vendorId,
+        },
+        select: {
+          id: true,
+        },
+      });
 
     if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+      throw notFound(
+        "Vendor not found."
+      );
     }
 
-    const existingFollow = await prisma.vendorFollow.findUnique({
-      where: {
-        userId_vendorProfileId: {
-          userId: session.user.id,
-          vendorProfileId: vendorId,
+    const existingFollow =
+      await prisma.vendorFollow.findUnique({
+        where: {
+          userId_vendorProfileId: {
+            userId:
+              session.user.id,
+            vendorProfileId:
+              vendorId,
+          },
         },
-      },
-    });
+      });
 
-    if (action === "follow" && !existingFollow) {
+    if (
+      action === "follow" &&
+      !existingFollow
+    ) {
       await prisma.$transaction([
         prisma.vendorFollow.create({
           data: {
-            userId: session.user.id,
-            vendorProfileId: vendorId,
+            userId:
+              session.user.id,
+            vendorProfileId:
+              vendorId,
           },
         }),
+
         prisma.vendorProfile.update({
-          where: { id: vendorId },
+          where: {
+            id: vendorId,
+          },
           data: {
             followerCount: {
               increment: 1,
@@ -59,18 +100,26 @@ export async function POST(
       ]);
     }
 
-    if (action === "unfollow" && existingFollow) {
+    if (
+      action === "unfollow" &&
+      existingFollow
+    ) {
       await prisma.$transaction([
         prisma.vendorFollow.delete({
           where: {
             userId_vendorProfileId: {
-              userId: session.user.id,
-              vendorProfileId: vendorId,
+              userId:
+                session.user.id,
+              vendorProfileId:
+                vendorId,
             },
           },
         }),
+
         prisma.vendorProfile.update({
-          where: { id: vendorId },
+          where: {
+            id: vendorId,
+          },
           data: {
             followerCount: {
               decrement: 1,
@@ -80,26 +129,45 @@ export async function POST(
       ]);
     }
 
-    const updatedVendor = await prisma.vendorProfile.findUnique({
-      where: { id: vendorId },
-      select: { followerCount: true },
-    });
-
-    const stillFollowing = await prisma.vendorFollow.findUnique({
-      where: {
-        userId_vendorProfileId: {
-          userId: session.user.id,
-          vendorProfileId: vendorId,
+    const [
+      updatedVendor,
+      follow,
+    ] = await Promise.all([
+      prisma.vendorProfile.findUnique({
+        where: {
+          id: vendorId,
         },
-      },
-    });
+        select: {
+          followerCount: true,
+        },
+      }),
 
-    return NextResponse.json({
-      isFollowing: Boolean(stillFollowing),
-      followerCount: updatedVendor?.followerCount ?? 0,
-    });
+      prisma.vendorFollow.findUnique({
+        where: {
+          userId_vendorProfileId: {
+            userId:
+              session.user.id,
+            vendorProfileId:
+              vendorId,
+          },
+        },
+      }),
+    ]);
+
+    return NextResponse.json(
+      {
+        success: true,
+        isFollowing:
+          !!follow,
+        followerCount:
+          updatedVendor?.followerCount ??
+          0,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Follow toggle error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

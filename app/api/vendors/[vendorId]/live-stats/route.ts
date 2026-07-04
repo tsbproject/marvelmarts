@@ -1,57 +1,91 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
 
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { notFound } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ vendorId: string }> }
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      vendorId: string;
+    }>;
+  }
 ) {
   try {
-    const { vendorId } = await params;
-    const session = await getServerSession(authOptions);
+    const { vendorId } =
+      await params;
 
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: { id: vendorId },
-      select: {
-        id: true,
-        followerCount: true,
-        shippingScore: true,
-        qualityScore: true,
-        avgRating: true,
-        cancellationRate: true,
-      },
-    });
+    const session =
+      await requireAuth();
+
+    const vendor =
+      await prisma.vendorProfile.findUnique({
+        where: {
+          id: vendorId,
+        },
+        select: {
+          id: true,
+          followerCount: true,
+          shippingScore: true,
+          qualityScore: true,
+          avgRating: true,
+          cancellationRate: true,
+        },
+      });
 
     if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+      throw notFound(
+        "Vendor not found."
+      );
     }
 
-    let isFollowing = false;
-
-    if (session?.user?.id) {
-      const follow = await prisma.vendorFollow.findUnique({
+    const follow =
+      await prisma.vendorFollow.findUnique({
         where: {
           userId_vendorProfileId: {
-            userId: session.user.id,
-            vendorProfileId: vendorId,
+            userId:
+              session.user.id,
+            vendorProfileId:
+              vendorId,
           },
         },
       });
 
-      isFollowing = Boolean(follow);
-    }
+    return NextResponse.json(
+      {
+        success: true,
 
-    return NextResponse.json({
-      followerCount: vendor.followerCount,
-      shippingScore: vendor.shippingScore,
-      qualityScore: vendor.qualityScore,
-      avgRating: vendor.avgRating,
-      cancellationRate: vendor.cancellationRate,
-      isFollowing,
-    });
+        followerCount:
+          vendor.followerCount,
+
+        shippingScore:
+          vendor.shippingScore,
+
+        qualityScore:
+          vendor.qualityScore,
+
+        avgRating:
+          vendor.avgRating,
+
+        cancellationRate:
+          vendor.cancellationRate,
+
+        isFollowing:
+          !!follow,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Vendor live stats error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,26 +1,47 @@
-// app/api/categories/route.ts
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/app/lib/prisma";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
-      where: { parentId: null }, // only top-level
-      orderBy: { position: "asc" },
-      include: {
-        children: {
-          orderBy: { position: "asc" },
-          include: {
-            children: true, // nested grandchildren
+    const categories =
+      await prisma.category.findMany({
+        where: {
+          parentId: null,
+        },
+        orderBy: {
+          position: "asc",
+        },
+        include: {
+          children: {
+            orderBy: {
+              position: "asc",
+            },
+            include: {
+              children: {
+                orderBy: {
+                  position: "asc",
+                },
+              },
+            },
           },
         },
-      },
-    });
+      });
 
-    return NextResponse.json(categories);
-  } catch (err) {
-    console.error("GET /api/categories error:", err);
-    return NextResponse.json({ message: "Failed to fetch categories" }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+        categories,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
-

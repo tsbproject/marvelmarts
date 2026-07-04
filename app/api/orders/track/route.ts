@@ -1,5 +1,10 @@
 import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest, notFound } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
@@ -7,18 +12,18 @@ export async function GET(req: Request) {
     const orderNumber = searchParams.get("orderNumber")?.trim();
 
     if (!orderNumber) {
-      return NextResponse.json(
-        { error: "Order number required" },
-        { status: 400 }
-      );
+      throw badRequest("Order number is required.");
     }
 
     const order = await prisma.order.findUnique({
-      where: { orderNumber },
+      where: {
+        orderNumber,
+      },
       include: {
         items: true,
         vendorProfile: {
           select: {
+            id: true,
             storeName: true,
           },
         },
@@ -26,30 +31,24 @@ export async function GET(req: Request) {
     });
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      throw notFound("Order not found.");
     }
 
-    const serializedOrder = {
-      ...order,
-      subtotal: Number(order.subtotal),
-      shipping: Number(order.shipping),
-      tax: Number(order.tax),
-      total: Number(order.total),
-      items: order.items.map((item) => ({
-        ...item,
-        unitPrice: Number(item.unitPrice),
-      })),
-    };
-
-    return NextResponse.json(serializedOrder);
-  } catch (error: any) {
-    console.error("TRACK_ORDER_ERROR:", error);
-    return NextResponse.json(
-      { error: "Failed to track order" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: true,
+      order: {
+        ...order,
+        subtotal: Number(order.subtotal),
+        shipping: Number(order.shipping),
+        tax: Number(order.tax),
+        total: Number(order.total),
+        items: order.items.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+        })),
+      },
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

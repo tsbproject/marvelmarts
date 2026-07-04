@@ -1,49 +1,73 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
-import { pusherServer } from "@/app/lib/pusherServer"; 
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+import { conversationService } from "@/app/lib/services/conversation.service";
 
+import { requireAuth } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+
+import { pusherServer } from "@/app/lib/pusherServer";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(req: NextRequest) {
   try {
-    const { content, conversationId, recipientId, recipientRole } = await req.json();
+    const session = await requireAuth();
 
-    // 1. Save Message to Database
-    const message = await prisma.message.create({
-      data: {
-        content,
-        conversationId,
-        senderId: session.user.id,
-        senderName: session.user.name || "User",
-      },
-    });
+    const {
+      content,
+      conversationId,
+      recipientId,
+      recipientRole,
+    } = await req.json();
 
-    // 2. Update Conversation Timestamp (for sorting)
-    await prisma.conversation.update({
-      where: { id: conversationId },
-      data: { updatedAt: new Date() },
-    });
-
-    // 3. Trigger Pusher Event
-    // If the recipient is a vendor, we trigger to their specific channel
-    if (recipientRole === "VENDOR") {
-      await pusherServer.trigger(`vendor-${recipientId}`, "new-inquiry", {
-        id: conversationId,
-        subject: "New Message Received", // Or fetch the actual subject
-        unreadCount: 1,
-        updatedAt: new Date(),
-      });
+    if (!conversationId || !content?.trim()) {
+      throw badRequest(
+        "Conversation ID and message content are required."
+      );
     }
 
-    // Also trigger to the specific conversation channel for the chat UI
-    await pusherServer.trigger(`chat-${conversationId}`, "incoming-message", message);
+    const message = await conversationService.sendMessage(
+      conversationId,
+      session.user.id,
+      session.user.name || "User",
+      content.trim()
+    );
 
-    return NextResponse.json(message);
+    try {
+      if (recipientRole === "VENDOR" && recipientId) {
+        await pusherServer.trigger(
+          `vendor-${recipientId}`,
+          "new-inquiry",
+          {
+            id: conversationId,
+            subject: "New Message Received",
+            unreadCount: 1,
+            updatedAt: new Date().toISOString(),
+          }
+        );
+      }
+
+      await pusherServer.trigger(
+        `chat-${conversationId}`,
+        "incoming-message",
+        message
+      );
+    } catch (err) {
+      console.error("Pusher Error:", err);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message,
+      },
+      {
+        status: 201,
+      }
+    );
   } catch (error) {
-    console.error("PUSHER_TRIGGER_ERROR:", error);
-    return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
+    return handleApiError(error);
   }
 }
