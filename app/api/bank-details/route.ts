@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 import { requireAuth } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,14 +17,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const session = await requireAuth();
+    const session =
+      await requireAuth();
 
     const bankAccount =
-      await prisma.bankAccount.findUnique({
-        where: {
-          userId: session.user.id,
-        },
-      });
+      await VendorService.getBankAccount(
+        session.user.id
+      );
 
     return NextResponse.json(
       {
@@ -52,57 +50,14 @@ export async function POST(
     const session =
       await requireAuth();
 
-    const body = await req.json();
-
-    const {
-      bankName,
-      accountNumber,
-      accountName,
-    } = body;
-
-    if (
-      !bankName ||
-      !accountNumber ||
-      !accountName
-    ) {
-      throw badRequest(
-        "Bank name, account number and account name are required."
-      );
-    }
-
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          id: session.user.id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!user) {
-      throw notFound(
-        "User not found."
-      );
-    }
+    const body =
+      await req.json();
 
     const bankAccount =
-      await prisma.bankAccount.upsert({
-        where: {
-          userId: user.id,
-        },
-        update: {
-          bankName,
-          accountNumber,
-          accountName,
-        },
-        create: {
-          userId: user.id,
-          bankName,
-          accountNumber,
-          accountName,
-        },
-      });
+      await VendorService.saveBankAccount(
+        session.user.id,
+        body
+      );
 
     return NextResponse.json(
       {

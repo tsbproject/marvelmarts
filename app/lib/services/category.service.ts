@@ -1,0 +1,310 @@
+import type { Prisma } from "@prisma/client";
+
+import { prisma } from "@/app/lib/prisma";
+
+import { badRequest, notFound } from "@/app/lib/auth/errors";
+
+type CategorySortField =
+  | "position"
+  | "name"
+  | "slug"
+  | "createdAt"
+  | "updatedAt";
+
+const categoryInclude = {
+  parent: true,
+  children: true,
+} satisfies Prisma.CategoryInclude;
+
+export class CategoryService {
+  static async createCategory(
+    data: {
+      name: string;
+      slug: string;
+      parentId?: string;
+      position?: number;
+    }
+  ) {
+    const normalizedData = {
+      ...data,
+      parentId:
+        data.parentId &&
+        data.parentId.trim() !== ""
+          ? data.parentId
+          : null,
+      position: data.position ?? 0,
+    };
+
+    const existing =
+      await prisma.category.findUnique({
+        where: {
+          slug: normalizedData.slug,
+        },
+      });
+
+    if (existing) {
+      throw badRequest(
+        "Slug already exists."
+      );
+    }
+
+    return prisma.category.create({
+      data: normalizedData,
+    });
+  }
+
+  static async getCategories(options: {
+    all: boolean;
+    page: number;
+    pageSize: number;
+    search: string;
+    sortBy: CategorySortField;
+    sortOrder: "asc" | "desc";
+  }) {
+    const {
+      all,
+      page,
+      pageSize,
+      search,
+      sortBy,
+      sortOrder,
+    } = options;
+
+    const where:
+      | Prisma.CategoryWhereInput
+      | undefined = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        }
+      : undefined;
+
+    const orderBy: Prisma.CategoryOrderByWithRelationInput =
+      {
+        [sortBy]: sortOrder,
+      };
+
+    if (all) {
+      const categories =
+        await prisma.category.findMany({
+          where,
+          include: categoryInclude,
+          orderBy,
+        });
+
+      return {
+        success: true,
+        categories,
+      };
+    }
+
+    const [categories, total] =
+      await Promise.all([
+        prisma.category.findMany({
+          where,
+          include: categoryInclude,
+          orderBy,
+          skip:
+            (page - 1) * pageSize,
+          take: pageSize,
+        }),
+
+        prisma.category.count({
+          where,
+        }),
+      ]);
+
+    return {
+      categories,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(
+        total / pageSize
+      ),
+      sortBy,
+      sortOrder,
+    };
+  }
+
+    static async reorderCategories(
+    updates: {
+        id: string;
+        position: number;
+    }[]
+    ) {
+    await prisma.$transaction(
+        updates.map(({ id, position }) =>
+        prisma.category.update({
+            where: {
+            id,
+            },
+            data: {
+            position,
+            },
+        })
+        )
+    );
+    }
+
+    static async categorySlugExists(
+    slug: string
+    ) {
+    const category =
+        await prisma.category.findUnique({
+        where: {
+            slug,
+        },
+        select: {
+            id: true,
+        },
+        });
+
+    return !!category;
+    }
+
+    static async getCategoryById(
+    id: string
+    ) {
+    const category =
+        await prisma.category.findUnique({
+        where: {
+            id,
+        },
+        include: categoryInclude,
+        });
+
+    if (!category) {
+        throw notFound(
+        "Category not found."
+        );
+    }
+
+    return category;
+    }
+
+    static async updateCategory(
+    id: string,
+    data: {
+        name?: string;
+        slug?: string;
+        parentId?: string;
+        position?: number;
+        imageUrl?: string;
+        metaTitle?: string;
+        metaDescription?: string;
+    }
+    ) {
+    const existingCategory =
+        await prisma.category.findUnique({
+        where: {
+            id,
+        },
+        select: {
+            id: true,
+        },
+        });
+
+    if (!existingCategory) {
+        throw notFound(
+        "Category not found."
+        );
+    }
+
+    const normalizedData = {
+        ...data,
+        parentId:
+        data.parentId &&
+        data.parentId.trim() !== ""
+            ? data.parentId
+            : null,
+
+        position:
+        data.position ?? 0,
+
+        imageUrl:
+        data.imageUrl &&
+        data.imageUrl.trim() !== ""
+            ? data.imageUrl
+            : null,
+
+        metaTitle:
+        data.metaTitle &&
+        data.metaTitle.trim() !== ""
+            ? data.metaTitle
+            : null,
+
+        metaDescription:
+        data.metaDescription &&
+        data.metaDescription.trim() !== ""
+            ? data.metaDescription
+            : null,
+    };
+
+    if (normalizedData.slug) {
+        const slugConflict =
+        await prisma.category.findUnique({
+            where: {
+            slug: normalizedData.slug,
+            },
+            select: {
+            id: true,
+            },
+        });
+
+        if (
+        slugConflict &&
+        slugConflict.id !== id
+        ) {
+        throw badRequest(
+            "Slug already exists."
+        );
+        }
+    }
+
+    return prisma.category.update({
+        where: {
+        id,
+        },
+        data: normalizedData,
+    });
+    }
+
+    static async deleteCategory(
+    id: string
+    ) {
+    const category =
+        await prisma.category.findUnique({
+        where: {
+            id,
+        },
+        select: {
+            id: true,
+        },
+        });
+
+    if (!category) {
+        throw notFound(
+        "Category not found."
+        );
+    }
+
+    await prisma.category.delete({
+        where: {
+        id,
+        },
+    });
+    }
+}

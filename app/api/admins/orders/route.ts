@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { OrderService } from "@/app/lib/services/order.service";
 
 import { requireManageOrders } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
@@ -12,26 +12,8 @@ export async function GET() {
   try {
     await requireManageOrders();
 
-    const orders = await prisma.order.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-
-        _count: {
-          select: {
-            items: true,
-          },
-        },
-      },
-    });
+    const orders =
+      await OrderService.getAdminOrders();
 
     return NextResponse.json(
       {

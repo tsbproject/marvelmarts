@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
 import { pusherServer } from "@/app/lib/pusherServer";
 import { finalizeVendorPayout } from "@/app/lib/payouts-calculation";
 
+import { OrderService } from "@/app/lib/services/order.service";
+
 import { requireManageOrders } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,47 +15,24 @@ export const dynamic = "force-dynamic";
 /*                          PATCH ORDER STATUS                                */
 /* -------------------------------------------------------------------------- */
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest
+) {
   try {
     await requireManageOrders();
-
-    const body = await req.json();
 
     const {
       orderId,
       status,
       userId,
-    } = body;
+    } = await req.json();
 
-    if (!orderId || !status) {
-      throw badRequest(
-        "Order ID and status are required."
+    const updatedOrder =
+      await OrderService.updateOrderStatus(
+        orderId,
+        status,
+        null
       );
-    }
-
-    const order = await prisma.order.findUnique({
-      where: {
-        id: orderId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!order) {
-      throw notFound(
-        "Order not found."
-      );
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status: String(status).toUpperCase(),
-      },
-    });
 
     if (userId) {
       try {
@@ -78,7 +52,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        order: updatedOrder,
+        order:
+          updatedOrder,
       },
       {
         status: 200,
@@ -93,49 +68,25 @@ export async function PATCH(req: NextRequest) {
 /*                         FINALIZE ORDER                                     */
 /* -------------------------------------------------------------------------- */
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest
+) {
   try {
     await requireManageOrders();
-
-    const body = await req.json();
 
     const {
       orderId,
       newStatus,
-    } = body;
+    } = await req.json();
 
-    if (!orderId || !newStatus) {
-      throw badRequest(
-        "Order ID and status are required."
+    const updatedOrder =
+      await OrderService.finalizeOrder(
+        orderId,
+        newStatus
       );
-    }
-
-    const order = await prisma.order.findUnique({
-      where: {
-        id: orderId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!order) {
-      throw notFound(
-        "Order not found."
-      );
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status: String(newStatus).toUpperCase(),
-      },
-    });
 
     if (
-      String(newStatus).toUpperCase() ===
+      newStatus.toUpperCase() ===
       "DELIVERED"
     ) {
       try {
@@ -153,7 +104,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        order: updatedOrder,
+        order:
+          updatedOrder,
       },
       {
         status: 200,

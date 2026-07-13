@@ -54,7 +54,7 @@ export async function POST(
       );
     }
 
-    const newMessage =
+    const message =
       await conversationService.sendMessage(
         conversationId,
         access.userId,
@@ -68,7 +68,7 @@ export async function POST(
         pusherServer.trigger(
           conversationId,
           "new-message",
-          newMessage
+          message
         ),
 
         pusherServer.trigger(
@@ -76,11 +76,11 @@ export async function POST(
           "incoming-support-message",
           {
             conversationId,
-            content: newMessage.content,
+            content: message.content,
             senderName:
-              newMessage.senderName,
+              message.senderName,
             createdAt:
-              newMessage.createdAt,
+              message.createdAt,
           }
         ),
       ]);
@@ -94,7 +94,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-        message: newMessage,
+        message: message,
       },
       {
         status: 201,

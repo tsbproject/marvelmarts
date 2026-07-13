@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { CartService } from "@/app/lib/services/cart.service";
 
 import { requireAuth } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  forbidden,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 import {
   cartItemUpdateSchema,
@@ -48,42 +47,16 @@ export async function PATCH(
       );
     }
 
-    const { id, qty } =
-      parsed.data;
+    const {
+      id,
+      qty,
+    } = parsed.data;
 
-    const cartItem =
-      await prisma.cartItem.findUnique({
-        where: {
-          id: String(id),
-        },
-        include: {
-          cart: true,
-        },
-      });
-
-    if (!cartItem) {
-      throw notFound(
-        "Cart item not found."
-      );
-    }
-
-    if (
-      cartItem.cart.userId !==
-      session.user.id
-    ) {
-      throw forbidden(
-        "You do not have access to this cart item."
-      );
-    }
-
-    await prisma.cartItem.update({
-      where: {
-        id: cartItem.id,
-      },
-      data: {
-        qty,
-      },
-    });
+    await CartService.updateCartItem(
+      session.user.id,
+      String(id),
+      qty
+    );
 
     return NextResponse.json(
       {
@@ -132,36 +105,10 @@ export async function DELETE(
     const { id } =
       parsed.data;
 
-    const cartItem =
-      await prisma.cartItem.findUnique({
-        where: {
-          id: String(id),
-        },
-        include: {
-          cart: true,
-        },
-      });
-
-    if (!cartItem) {
-      throw notFound(
-        "Cart item not found."
-      );
-    }
-
-    if (
-      cartItem.cart.userId !==
-      session.user.id
-    ) {
-      throw forbidden(
-        "You do not have access to this cart item."
-      );
-    }
-
-    await prisma.cartItem.delete({
-      where: {
-        id: cartItem.id,
-      },
-    });
+    await CartService.deleteCartItem(
+      session.user.id,
+      String(id)
+    );
 
     return NextResponse.json(
       {

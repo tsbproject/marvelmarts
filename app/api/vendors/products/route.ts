@@ -4,6 +4,8 @@ import { prisma } from "@/app/lib/prisma";
 
 import { requireVendor } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
+import { VendorService } from "@/app/lib/services/vendor.service";
+import { ProductService } from "@/app/lib/services/product.service";
 import {
   badRequest,
   forbidden,
@@ -21,42 +23,15 @@ export async function GET() {
   try {
     const session = await requireVendor();
 
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: {
-        userId: session.user.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!vendor) {
-      throw notFound(
-        "Vendor profile not found."
+    const vendor =
+      await VendorService.getVendorProfileOrThrow(
+        session.user.id
       );
-    }
-
-    const products = await prisma.product.findMany({
-      where: {
-        vendorProfileId: vendor.id,
-      },
-      include: {
-        category: {
-          select: {
-            name: true,
-          },
-        },
-        images: {
-          select: {
-            url: true,
-          },
-          take: 1,
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    
+     const products =
+      await ProductService.getVendorProducts(
+        vendor.id
+      );
 
     return NextResponse.json(
       {
@@ -119,15 +94,9 @@ export async function DELETE(
     }
 
     const product =
-      await prisma.product.findUnique({
-        where: {
-          id: productId,
-        },
-        select: {
-          id: true,
-          vendorProfileId: true,
-        },
-      });
+      await ProductService.getProductByIdOrThrow(
+        productId
+      );
 
     if (!product) {
       throw notFound(
@@ -144,11 +113,9 @@ export async function DELETE(
       );
     }
 
-    await prisma.product.delete({
-      where: {
-        id: productId,
-      },
-    });
+    await ProductService.deleteProductById(
+          productId
+        );
 
     return NextResponse.json(
       {

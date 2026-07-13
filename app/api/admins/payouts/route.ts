@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { PayoutService } from "@/app/lib/services/payout.service";
 
 import { requireManagePayout } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
@@ -12,49 +12,13 @@ export async function GET() {
   try {
     await requireManagePayout();
 
-    const payouts = await prisma.payout.findMany({
-      include: {
-        vendor: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const payouts =
+      await PayoutService.getAdminPayouts();
 
     return NextResponse.json(
       {
         success: true,
-        payouts: payouts.map((payout) => ({
-          id: payout.id,
-          vendorProfileId:
-            payout.vendorProfileId,
-
-          vendorName:
-            payout.vendor?.name ??
-            "Unknown Vendor",
-
-          amount: Number(
-            payout.amount
-          ),
-
-          status: payout.status,
-
-          accountName:
-            payout.accountName,
-
-          accountNumber:
-            payout.accountNumber,
-
-          bankName:
-            payout.bankName,
-
-          createdAt:
-            payout.createdAt.toISOString(),
-        })),
+        payouts,
       },
       {
         status: 200,

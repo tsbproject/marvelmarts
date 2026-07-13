@@ -1,8 +1,12 @@
 // app/api/admins/categories/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import { z } from "zod";
+
+import { CategoryService } from "@/app/lib/services/category.service";
+
+import { requireManageCategories } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -11,105 +15,109 @@ const createSchema = z.object({
   position: z.number().optional(),
 });
 
+/* -------------------------------------------------------------------------- */
+/*                              CREATE CATEGORY                               */
+/* -------------------------------------------------------------------------- */
+
 export async function POST(req: NextRequest) {
   try {
+    await requireManageCategories();
+
     const body = await req.json();
+
     const parsed = createSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid payload", details: parsed.error.format() },
-        { status: 400 }
+        {
+          error: "Invalid payload",
+          details: parsed.error.format(),
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const data = parsed.data;
-
-    // Normalize into a new object instead of mutating
-    const normalizedData = {
-      ...data,
-      parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
-      position: data.position ?? 0,
-    };
-
-    // Slug conflict check
-    const existing = await prisma.category.findUnique({
-      where: { slug: normalizedData.slug },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { error: "Slug already exists" },
-        { status: 400 }
+    const category =
+      await CategoryService.createCategory(
+        parsed.data
       );
-    }
 
-    const category = await prisma.category.create({
-      data: normalizedData,
-    });
-
-    return NextResponse.json({ success: true, category }, { status: 201 });
-  } catch (err: any) {
-    console.error("Category create error:", err);
     return NextResponse.json(
       {
-        error: "Internal Server Error",
-        details: err.message ?? "Unknown error",
+        success: true,
+        category,
       },
-      { status: 500 }
+      {
+        status: 201,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-// List Categories
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+/* -------------------------------------------------------------------------- */
+/*                              LIST CATEGORIES                               */
+/* -------------------------------------------------------------------------- */
 
-  const all = searchParams.get("all") === "true"; //flag for full list
-  const page = parseInt(searchParams.get("page") || "1", 10);
-  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
-  const search = searchParams.get("search") || "";
-  const sortBy = searchParams.get("sortBy") || "position";
-  const sortOrder = searchParams.get("sortOrder") || "asc";
+export async function GET(
+  req: NextRequest
+) {
+  try {
+    await requireManageCategories();
 
-  const where: Prisma.CategoryWhereInput | undefined = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { slug: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : undefined;
+    const { searchParams } =
+      new URL(req.url);
 
-  if (all) {
-    // 🔹 Return full list (for create/edit dropdowns)
-    const categories = await prisma.category.findMany({
-      where,
-      include: { parent: true, children: true },
-      orderBy: { [sortBy]: sortOrder },
-    });
+    const all =
+      searchParams.get("all") ===
+      "true";
 
-    return NextResponse.json({ success: true, categories });
+    const page = parseInt(
+      searchParams.get("page") ??
+        "1",
+      10
+    );
+
+    const pageSize = parseInt(
+      searchParams.get("pageSize") ??
+        "10",
+      10
+    );
+
+    const search =
+      searchParams.get("search") ??
+      "";
+
+    const sortBy =
+      (searchParams.get("sortBy") ??
+        "position") as
+        | "position"
+        | "name"
+        | "slug"
+        | "createdAt"
+        | "updatedAt";
+
+    const sortOrder =
+      (searchParams.get("sortOrder") ??
+        "asc") as
+        | "asc"
+        | "desc";
+
+    const result =
+      await CategoryService.getCategories({
+        all,
+        page,
+        pageSize,
+        search,
+        sortBy,
+        sortOrder,
+      });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  //Paginated mode (for table view)
-  const [categories, total] = await Promise.all([
-    prisma.category.findMany({
-      where,
-      include: { parent: true, children: true },
-      orderBy: { [sortBy]: sortOrder },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.category.count({ where }),
-  ]);
-
-  return NextResponse.json({
-    categories,
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
-    sortBy,
-    sortOrder,
-  });
 }

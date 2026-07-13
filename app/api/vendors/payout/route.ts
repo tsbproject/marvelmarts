@@ -4,6 +4,7 @@ import { prisma } from "@/app/lib/prisma";
 
 import { requireVendor } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
+import { PayoutService } from "@/app/lib/services/payout.service";
 import {
   badRequest,
   forbidden,
@@ -37,89 +38,21 @@ export async function POST(
     }
 
     const profile =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          userId: session.user.id,
-        },
-      });
-
-    if (!profile) {
-      throw notFound(
-        "Vendor profile not found."
+      await PayoutService.validatePayoutRequest(
+        session.user.id,
+        amount
       );
-    }
-
-    if (
-      !profile.bankName ||
-      !profile.accountNumber ||
-      !profile.accountName
-    ) {
-      throw badRequest(
-        "Complete your payout details before requesting a payout."
-      );
-    }
-
-    if (profile.isSuspended) {
-      throw forbidden(
-        "Your vendor account is suspended."
-      );
-    }
-
-    if (
-      Number(profile.balance) < amount
-    ) {
-      throw badRequest(
-        "Insufficient balance."
-      );
-    }
 
     const result =
-      await prisma.$transaction(
-        async (tx) => {
-          const payout =
-            await tx.payout.create({
-              data: {
-                amount,
-                status: "PENDING",
-                vendorId:
-                  session.user.id,
-                vendorProfileId:
-                  profile.id,
-                bankName:
-                  profile.bankName,
-                accountNumber:
-                  profile.accountNumber,
-                accountName:
-                  profile.accountName,
-                reference:
-                  `PAYOUT-${Date.now()}-${Math.floor(
-                    Math.random() *
-                      100000
-                  )}`,
-              },
-            });
-
-          const updatedProfile =
-            await tx.vendorProfile.update({
-              where: {
-                id: profile.id,
-              },
-              data: {
-                balance: {
-                  decrement:
-                    amount,
-                },
-              },
-            });
-
-          return {
-            payout,
-            newBalance:
-              Number(
-                updatedProfile.balance
-              ),
-          };
-        }
+      await PayoutService.createPayoutRequest(
+        {
+          id: profile.id,
+          bankName: profile.bankName!,
+          accountName: profile.accountName!,
+          accountNumber: profile.accountNumber!,
+        },
+        session.user.id,
+        amount
       );
 
     return NextResponse.json(
@@ -151,15 +84,9 @@ export async function GET() {
       await requireVendor();
 
     const payouts =
-      await prisma.payout.findMany({
-        where: {
-          vendorId:
-            session.user.id,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      await PayoutService.getVendorPayouts(
+        session.user.id
+      );
 
     return NextResponse.json(
       {

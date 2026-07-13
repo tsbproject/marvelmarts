@@ -8,10 +8,8 @@ import {
 } from "@/app/lib/auth/guards";
 
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
+import { badRequest, notFound,} from "@/app/lib/auth/errors";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,31 +22,18 @@ export async function GET() {
   try {
     await requireManageVendors();
 
-    const vendors = await prisma.vendorProfile.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        onboarding: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const vendors =
+      await VendorService.listVendors();
 
-    return NextResponse.json(
-      {
-        success: true,
-        vendors,
-      },
-      {
-        status: 200,
-      }
-    );
+        return NextResponse.json(
+          {
+            success: true,
+            vendors,
+          },
+          {
+            status: 200,
+          }
+        );
   } catch (error) {
     return handleApiError(error);
   }
@@ -75,21 +60,9 @@ export async function PATCH(
       coverUrl,
     } = body;
 
-    const vendor =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          userId: session.user.id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!vendor) {
-      throw notFound(
-        "Vendor profile not found."
+    await VendorService.getVendorProfileOrThrow(
+        session.user.id
       );
-    }
 
     if (
       !storeName?.trim()
@@ -100,37 +73,16 @@ export async function PATCH(
     }
 
     const updatedVendor =
-      await prisma.$transaction(
-        async (tx) => {
-          const profile =
-            await tx.vendorProfile.update({
-              where: {
-                userId:
-                  session.user.id,
-              },
-              data: {
-                storeName,
-                storePhone,
-                storeAddress,
-                logoUrl,
-                coverUrl,
-              },
-            });
-
-          await tx.vendorOnboarding.update({
-            where: {
-              vendorProfileId:
-                profile.id,
-            },
-            data: {
-              storeDone: true,
-            },
-          });
-
-          return profile;
+      await VendorService.updateStoreSetup(
+        session.user.id,
+        {
+          storeName,
+          storePhone,
+          storeAddress,
+          logoUrl,
+          coverUrl,
         }
       );
-
     return NextResponse.json(
       {
         success: true,

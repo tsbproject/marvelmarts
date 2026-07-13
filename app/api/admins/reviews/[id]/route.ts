@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { ProductService } from "@/app/lib/services/product.service";
 
 import { requireManageReviews } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,41 +28,18 @@ export async function PATCH(
   try {
     await requireManageReviews();
 
-    const { id } = await params;
+    const { id } =
+      await params;
 
-    const body = await req.json();
-
-    if (typeof body.approved !== "boolean") {
-      throw badRequest(
-        "Approved status is required."
-      );
-    }
-
-    const existingReview =
-      await prisma.review.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!existingReview) {
-      throw notFound(
-        "Review not found."
-      );
-    }
+    const {
+      approved,
+    } = await req.json();
 
     const review =
-      await prisma.review.update({
-        where: {
-          id,
-        },
-        data: {
-          approved: body.approved,
-        },
-      });
+      await ProductService.updateReviewApproval(
+        id,
+        approved
+      );
 
     return NextResponse.json(
       {
@@ -84,7 +60,7 @@ export async function PATCH(
 /* -------------------------------------------------------------------------- */
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
   }: {
@@ -96,29 +72,12 @@ export async function DELETE(
   try {
     await requireManageReviews();
 
-    const { id } = await params;
+    const { id } =
+      await params;
 
-    const existingReview =
-      await prisma.review.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!existingReview) {
-      throw notFound(
-        "Review not found."
-      );
-    }
-
-    await prisma.review.delete({
-      where: {
-        id,
-      },
-    });
+    await ProductService.deleteReview(
+      id
+    );
 
     return NextResponse.json(
       {

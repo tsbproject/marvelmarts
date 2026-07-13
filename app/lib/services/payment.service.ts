@@ -1,4 +1,5 @@
 import { badRequest } from "@/app/lib/auth/errors";
+import { prisma } from "@/app/lib/prisma";
 
 export class PaymentService {
   private static getSecretKey() {
@@ -117,4 +118,118 @@ export class PaymentService {
 
     return result.data;
   }
+
+  static async initializeOrderPayment(
+  order: {
+    id: string;
+    orderNumber: string;
+  },
+  email: string,
+  total: number
+) {
+  const secretKey =
+    process.env.PAYSTACK_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error(
+      "PAYSTACK_SECRET_KEY is not configured."
+    );
+  }
+
+  const response = await fetch(
+    "https://api.paystack.co/transaction/initialize",
+    {
+      method: "POST",
+
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify({
+        email,
+
+        amount: Math.round(
+          total * 100
+        ),
+
+        metadata: {
+          orderId: order.id,
+
+          orderNumber:
+            order.orderNumber,
+
+          custom_fields: [
+            {
+              display_name:
+                "Order Number",
+
+              variable_name:
+                "order_number",
+
+              value:
+                order.orderNumber,
+            },
+          ],
+        },
+
+        callback_url:
+          `${process.env.NEXT_PUBLIC_BASE_URL}/thank-you?orderNumber=${order.orderNumber}`,
+      }),
+    }
+  );
+
+  const result =
+    await response.json();
+
+  if (
+    !response.ok ||
+    !result.status
+  ) {
+    await prisma.order.update({
+      where: {
+        id: order.id,
+      },
+
+      data: {
+        paymentStatus: false,
+      },
+    });
+
+    throw new Error(
+      result.message ??
+        "Unable to initialize payment."
+    );
+  }
+
+  await prisma.order.update({
+    where: {
+      id: order.id,
+    },
+
+    data: {
+      paymentIntentId:
+        result.data.reference,
+    },
+  });
+
+  return {
+    success: true,
+
+    orderId: order.id,
+
+    orderNumber:
+      order.orderNumber,
+
+    paymentReference:
+      result.data.reference,
+
+    url:
+      result.data.authorization_url,
+
+    authorizationUrl:
+      result.data.authorization_url,
+  };
+}
 }

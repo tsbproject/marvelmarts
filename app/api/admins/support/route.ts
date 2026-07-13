@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
 import { requireManageSupport } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,51 +18,23 @@ interface HelpArticleRequest {
   keywords?: string[];
 }
 
-function generateSlug(title: string) {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]/g, "");
-}
-
 /* ========================================================================== */
 /* CREATE HELP ARTICLE                                                        */
 /* ========================================================================== */
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
     await requireManageSupport();
 
-    const body = (await req.json()) as HelpArticleRequest;
+    const body =
+      (await req.json()) as HelpArticleRequest;
 
-    if (!body.title || !body.content || !body.category) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Title, content and category are required.",
-        },
-        {
-          status: 400,
-        }
+    const article =
+      await HelpCenterService.createArticle(
+        body
       );
-    }
-
-    const slug =
-      body.slug?.trim() || generateSlug(body.title);
-
-    const article = await prisma.helpArticle.create({
-      data: {
-        title: body.title.trim(),
-        slug,
-        excerpt: body.excerpt?.trim() ?? "",
-        content: body.content,
-        category: body.category,
-        keywords: Array.isArray(body.keywords)
-          ? body.keywords
-          : [],
-      },
-    });
 
     return NextResponse.json(
       {
@@ -81,42 +54,32 @@ export async function POST(req: Request) {
 /* UPDATE HELP ARTICLE                                                        */
 /* ========================================================================== */
 
-export async function PUT(req: Request) {
+export async function PUT(
+  req: Request
+) {
   try {
     await requireManageSupport();
 
-    const { searchParams } = new URL(req.url);
+    const { searchParams } =
+      new URL(req.url);
 
-    const id = searchParams.get("id");
+    const id =
+      searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Article id is required.",
-        },
-        {
-          status: 400,
-        }
+      throw badRequest(
+        "Article id is required."
       );
     }
 
-    const body = (await req.json()) as HelpArticleRequest;
+    const body =
+      (await req.json()) as HelpArticleRequest;
 
-    const article = await prisma.helpArticle.update({
-      where: {
+    const article =
+      await HelpCenterService.updateArticle(
         id,
-      },
-      data: {
-        title: body.title?.trim(),
-        excerpt: body.excerpt?.trim(),
-        content: body.content,
-        category: body.category,
-        keywords: Array.isArray(body.keywords)
-          ? body.keywords
-          : [],
-      },
-    });
+        body
+      );
 
     return NextResponse.json({
       success: true,
@@ -131,35 +94,32 @@ export async function PUT(req: Request) {
 /* DELETE HELP ARTICLE                                                        */
 /* ========================================================================== */
 
-export async function DELETE(req: Request) {
+export async function DELETE(
+  req: Request
+) {
   try {
     await requireManageSupport();
 
-    const { searchParams } = new URL(req.url);
+    const { searchParams } =
+      new URL(req.url);
 
-    const id = searchParams.get("id");
+    const id =
+      searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Article id is required.",
-        },
-        {
-          status: 400,
-        }
+      throw badRequest(
+        "Article id is required."
       );
     }
 
-    await prisma.helpArticle.delete({
-      where: {
-        id,
-      },
-    });
+    await HelpCenterService.deleteArticle(
+      id
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Help article deleted successfully.",
+      message:
+        "Help article deleted successfully.",
     });
   } catch (error) {
     return handleApiError(error);

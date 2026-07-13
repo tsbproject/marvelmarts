@@ -1,16 +1,41 @@
-// app/api/categories/check-slug/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const slug = searchParams.get("slug");
+import { CategoryService } from "@/app/lib/services/category.service";
 
-  if (!slug) {
-    return NextResponse.json({ error: "Slug required" }, { status: 400 });
+import { requireManageCategories } from "@/app/lib/auth/guards";
+import { badRequest } from "@/app/lib/auth/errors";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET(
+  req: Request
+) {
+  try {
+    await requireManageCategories();
+
+    const { searchParams } =
+      new URL(req.url);
+
+    const slug =
+      searchParams.get("slug");
+
+    if (!slug) {
+      throw badRequest(
+        "Slug required."
+      );
+    }
+
+    const exists =
+      await CategoryService.categorySlugExists(
+        slug
+      );
+
+    return NextResponse.json({
+      exists,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  const exists = await prisma.category.findUnique({ where: { slug } });
-
-  return NextResponse.json({ exists: !!exists });
 }

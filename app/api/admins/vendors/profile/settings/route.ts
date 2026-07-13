@@ -1,60 +1,41 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
 
-export async function PATCH(req: Request) {
+import { VendorService } from "@/app/lib/services/vendor.service";
+
+import { requireVendor } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function PATCH(
+  req: Request
+) {
   try {
-    const session = await getServerSession(authOptions);
+    const session =
+      await requireVendor();
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const body =
+      await req.json();
 
-    const body = await req.json();
-    const { 
-      logoUrl, 
-      coverUrl, 
-      bio, 
-      storeName, 
-      instagram, 
-      whatsapp, 
-      twitter, 
-      bankName, 
-      accountNumber, 
-      accountName 
-    } = body;
+    const profile =
+      await VendorService.updateVendorSettings(
+        session.user.id,
+        body
+      );
 
-    // Update Vendor Profile with Branding, Socials, and Payouts
-    const updatedProfile = await prisma.vendorProfile.update({
-      where: { userId: session.user.id },
-      data: {
-        logoUrl,
-        coverUrl,
-        bio,
-        storeName,
-        instagram,
-        whatsapp,
-        twitter,
-        bankName,
-        accountNumber,
-        accountName,
-        // Update onboarding status if essential branding is provided
-        onboarding: {
-          update: {
-            storeDone: !!(logoUrl && coverUrl && bio),
-          }
-        }
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Profile settings updated",
+        profile,
       },
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Profile settings updated", 
-      profile: updatedProfile 
-    });
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("VENDOR_SETTINGS_PATCH_ERROR:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

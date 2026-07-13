@@ -5,6 +5,7 @@ import { pusherServer } from "@/app/lib/pusherServer";
 
 import { requireConversationAccess } from "@/app/lib/auth/conversation";
 import { handleApiError } from "@/app/lib/auth/api";
+import { MessageService } from "@/app/lib/services/message.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,23 +45,11 @@ export async function POST(
     }
 
     const conversation =
-      await prisma.conversation.update({
-        where: {
-          id: conversationId,
-        },
-        data: {
-          status: "CLOSED",
-          endedAt: new Date(),
-          endedById: access.userId,
-          endedByRole: "VENDOR",
-        },
-        select: {
-          id: true,
-          status: true,
-          endedAt: true,
-          endedByRole: true,
-        },
-      });
+      await MessageService.closeConversation(
+        conversationId,
+        access.userId,
+        "VENDOR"
+      );
 
     try {
       await Promise.all([

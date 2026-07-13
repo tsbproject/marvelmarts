@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma"; // adjust import if your prisma client lives elsewhere
 
-export async function PUT(req: NextRequest) {
+import { CategoryService } from "@/app/lib/services/category.service";
+
+import { requireManageCategories } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function PUT(
+  req: NextRequest
+) {
   try {
-    const updates = await req.json(); // [{ id, position }, ...]
+    await requireManageCategories();
 
-    // ✅ Update each category's position
-    for (const { id, position } of updates) {
-      await prisma.category.update({
-        where: { id },
-        data: { position },
-      });
-    }
+    const updates =
+      await req.json();
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Failed to reorder categories:", error);
-    return NextResponse.json(
-      { error: "Failed to reorder categories" },
-      { status: 500 }
+    await CategoryService.reorderCategories(
+      updates
     );
+
+    return NextResponse.json(
+      {
+        success: true,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

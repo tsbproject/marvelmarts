@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 import { requireAuth } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
@@ -20,66 +20,36 @@ export async function GET(
   }
 ) {
   try {
-    const { vendorId } =
-      await params;
+    const { vendorId } = await params;
 
-    const session =
-      await requireAuth();
+    const session = await requireAuth();
 
-    const vendor =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          id: vendorId,
-        },
-        select: {
-          id: true,
-          followerCount: true,
-          shippingScore: true,
-          qualityScore: true,
-          avgRating: true,
-          cancellationRate: true,
-        },
-      });
+    const { vendor, isFollowing } =
+      await VendorService.getVendorPublicStats(
+        vendorId,
+        session.user.id
+      );
 
     if (!vendor) {
-      throw notFound(
-        "Vendor not found."
-      );
+      throw notFound("Vendor not found.");
     }
-
-    const follow =
-      await prisma.vendorFollow.findUnique({
-        where: {
-          userId_vendorProfileId: {
-            userId:
-              session.user.id,
-            vendorProfileId:
-              vendorId,
-          },
-        },
-      });
 
     return NextResponse.json(
       {
         success: true,
 
-        followerCount:
-          vendor.followerCount,
+        followerCount: vendor.followerCount,
 
-        shippingScore:
-          vendor.shippingScore,
+        shippingScore: vendor.shippingScore,
 
-        qualityScore:
-          vendor.qualityScore,
+        qualityScore: vendor.qualityScore,
 
-        avgRating:
-          vendor.avgRating,
+        avgRating: vendor.avgRating,
 
         cancellationRate:
           vendor.cancellationRate,
 
-        isFollowing:
-          !!follow,
+        isFollowing,
       },
       {
         status: 200,

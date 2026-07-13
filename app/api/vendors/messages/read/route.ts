@@ -5,6 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 import { requireAuth } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
 import { badRequest } from "@/app/lib/auth/errors";
+import { MessageService } from "@/app/lib/services/message.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,18 +29,10 @@ export async function PATCH(
     }
 
     const result =
-      await prisma.message.updateMany({
-        where: {
-          conversationId,
-          senderId: {
-            not: session.user.id,
-          },
-          isRead: false,
-        },
-        data: {
-          isRead: true,
-        },
-      });
+      await MessageService.markConversationAsRead(
+        conversationId,
+        session.user.id
+      );
 
     return NextResponse.json(
       {

@@ -5,6 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 import { requireVendor } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
 import { notFound } from "@/app/lib/auth/errors";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,37 +15,10 @@ export async function GET() {
   try {
     const session = await requireVendor();
 
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: {
-        userId: session.user.id,
-      },
-      include: {
-        orders: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          include: {
-            items: {
-              take: 1,
-            },
-            user: {
-              select: {
-                name: true,
-                image: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!vendor) {
-      throw notFound(
-        "Vendor profile not found."
+    const vendor =
+      await OrderService.getVendorOrders(
+        session.user.id
       );
-    }
-
     const orders = vendor.orders.map(
       (order) => {
         const firstItem =

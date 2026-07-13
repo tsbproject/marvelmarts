@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { OrderService } from "@/app/lib/services/order.service";
+
 import { pusherServer } from "@/app/lib/pusherServer";
 import { sendRefundStatusEmail } from "@/app/lib/mailer";
 
 import { requireManageOrders } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,9 +28,11 @@ export async function PATCH(
   try {
     await requireManageOrders();
 
-    const { id } = await params;
+    const { id } =
+      await params;
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
     const action =
       body.action as RefundAction;
@@ -42,50 +41,12 @@ export async function PATCH(
       body.adminNote?.trim() ||
       "Administrative decision";
 
-    if (
-      action !== "approved" &&
-      action !== "rejected"
-    ) {
-      throw badRequest(
-        "Invalid refund action."
-      );
-    }
-
-    const order =
-      await prisma.order.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          items: true,
-        },
-      });
-
-    if (!order) {
-      throw notFound(
-        "Order not found."
-      );
-    }
-
     const updatedOrder =
-      await prisma.order.update({
-        where: {
-          id,
-        },
-        data: {
-          refundStatus: action,
-          cancelReason: adminNote,
-
-          ...(action === "approved"
-            ? {
-                status: "refunded",
-              }
-            : {}),
-        },
-        include: {
-          items: true,
-        },
-      });
+      await OrderService.processRefundRequest(
+        id,
+        action,
+        adminNote
+      );
 
     if (updatedOrder.userId) {
       try {
@@ -120,7 +81,8 @@ export async function PATCH(
         success: true,
         message:
           `Refund ${action} successfully.`,
-        order: updatedOrder,
+        order:
+          updatedOrder,
       },
       {
         status: 200,

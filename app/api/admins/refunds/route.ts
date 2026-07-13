@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/app/lib/prisma";
+import { OrderService } from "@/app/lib/services/order.service";
+
 import { pusherServer } from "@/app/lib/pusherServer";
 import { sendRefundStatusEmail } from "@/app/lib/mailer";
 
 import { requireManageOrders } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,69 +21,22 @@ export async function PATCH(
   try {
     await requireManageOrders();
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
-    const orderId = body.orderId;
     const action =
       body.action as RefundAction;
 
     const adminNote =
-      body.adminNote?.trim() ?? "";
-
-    if (!orderId) {
-      throw badRequest(
-        "Order ID is required."
-      );
-    }
-
-    if (
-      action !== "approved" &&
-      action !== "rejected"
-    ) {
-      throw badRequest(
-        "Invalid refund action."
-      );
-    }
-
-    const currentOrder =
-      await prisma.order.findUnique({
-        where: {
-          id: orderId,
-        },
-        include: {
-          items: true,
-        },
-      });
-
-    if (!currentOrder) {
-      throw notFound(
-        "Order not found."
-      );
-    }
+      body.adminNote?.trim() ??
+      "";
 
     const updatedOrder =
-      await prisma.order.update({
-        where: {
-          id: orderId,
-        },
-        data: {
-          status:
-            action === "approved"
-              ? "refunded"
-              : currentOrder.status,
-
-          refundStatus: action,
-
-          cancelReason:
-            adminNote ||
-            (action === "approved"
-              ? "Authorized by Administrator"
-              : "Declined by Administrator"),
-        },
-        include: {
-          items: true,
-        },
-      });
+      await OrderService.processOrderRefund(
+        body.orderId,
+        action,
+        adminNote
+      );
 
     if (updatedOrder.userId) {
       try {

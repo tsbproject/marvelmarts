@@ -1,153 +1,169 @@
-// app/api/admins/categories/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
 import { z } from "zod";
+
+import { CategoryService } from "@/app/lib/services/category.service";
+
+import { requireManageCategories } from "@/app/lib/auth/guards";
+import { handleApiError } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
   parentId: z.string().optional(),
   position: z.number().optional(),
-  imageUrl: z.string().optional(), // allow any string, not just valid URL
+  imageUrl: z.string().optional(),
   metaTitle: z.string().max(60).optional(),
   metaDescription: z.string().max(160).optional(),
 });
 
-// 🔹 GET handler
+/* -------------------------------------------------------------------------- */
+/*                                   GET                                      */
+/* -------------------------------------------------------------------------- */
+
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
-  const { id } = await context.params;
+  try {
+    await requireManageCategories();
 
-  if (!id) {
+    const { id } = await params;
+
+    if (!id) {
+      throw badRequest(
+        "Category ID is required."
+      );
+    }
+
+    const category =
+      await CategoryService.getCategoryById(
+        id
+      );
+
     return NextResponse.json(
-      { error: "Category ID is required" },
-      { status: 400 }
+      {
+        success: true,
+        category,
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  const category = await prisma.category.findUnique({
-    where: { id },
-    include: { parent: true, children: true },
-  });
-
-  if (!category) {
-    return NextResponse.json(
-      { error: "Category not found" },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json({ success: true, category }, { status: 200 });
 }
 
-// 🔹 PUT handler
+/* -------------------------------------------------------------------------- */
+/*                                   PUT                                      */
+/* -------------------------------------------------------------------------- */
+
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-
-  if (!id) {
-    return NextResponse.json(
-      { error: "Category ID is required" },
-      { status: 400 }
-    );
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
   }
-
+) {
   try {
+    await requireManageCategories();
+
+    const { id } = await params;
+
+    if (!id) {
+      throw badRequest(
+        "Category ID is required."
+      );
+    }
+
     const body = await req.json();
-    const parsed = updateSchema.safeParse(body);
+
+    const parsed =
+      updateSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid payload", details: parsed.error.format() },
-        { status: 400 }
+        {
+          error: "Invalid payload",
+          details: parsed.error.format(),
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const data = parsed.data;
-
-    // ✅ Normalize optional fields
-    const normalizedData = {
-      ...data,
-      parentId:
-        data.parentId && data.parentId !== "" ? data.parentId : null,
-      position: data.position ?? 0,
-      imageUrl:
-        data.imageUrl && data.imageUrl !== "" ? data.imageUrl : null,
-      metaTitle:
-        data.metaTitle && data.metaTitle !== "" ? data.metaTitle : null,
-      metaDescription:
-        data.metaDescription && data.metaDescription !== ""
-          ? data.metaDescription
-          : null,
-    };
-
-    const existingCategory = await prisma.category.findUnique({
-      where: { id },
-    });
-    if (!existingCategory) {
-      return NextResponse.json(
-        { error: "Category not found" },
-        { status: 404 }
+    const category =
+      await CategoryService.updateCategory(
+        id,
+        parsed.data
       );
-    }
 
-    if (normalizedData.slug) {
-      const slugConflict = await prisma.category.findUnique({
-        where: { slug: normalizedData.slug },
-      });
-      if (slugConflict && slugConflict.id !== id) {
-        return NextResponse.json(
-          { error: "Slug already exists" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const category = await prisma.category.update({
-      where: { id },
-      data: normalizedData,
-    });
-
-    return NextResponse.json({ success: true, category }, { status: 200 });
-  } catch (err: any) {
-    console.error("Category update error:", err);
     return NextResponse.json(
       {
-        error: "Internal Server Error",
-        details: err.message ?? "Unknown error",
+        success: true,
+        category,
       },
-      { status: 500 }
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-// 🔹 DELETE handler
+/* -------------------------------------------------------------------------- */
+/*                                 DELETE                                     */
+/* -------------------------------------------------------------------------- */
+
 export async function DELETE(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
 ) {
-  const { id } = await context.params;
+  try {
+    await requireManageCategories();
 
-  if (!id) {
-    return NextResponse.json(
-      { error: "Category ID is required" },
-      { status: 400 }
+    const { id } = await params;
+
+    if (!id) {
+      throw badRequest(
+        "Category ID is required."
+      );
+    }
+
+    await CategoryService.deleteCategory(
+      id
     );
-  }
 
-  const category = await prisma.category.findUnique({ where: { id } });
-  if (!category) {
     return NextResponse.json(
-      { error: "Category not found" },
-      { status: 404 }
+      {
+        success: true,
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  await prisma.category.delete({ where: { id } });
-
-  return NextResponse.json({ success: true }, { status: 200 });
 }

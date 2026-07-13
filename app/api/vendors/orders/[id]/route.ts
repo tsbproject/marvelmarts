@@ -4,6 +4,8 @@ import { prisma } from "@/app/lib/prisma";
 
 import { requireVendor } from "@/app/lib/auth/guards";
 import { handleApiError } from "@/app/lib/auth/api";
+import { VendorService } from "@/app/lib/services/vendor.service";
+import  { OrderService } from "@/app/lib/services/order.service";
 import {
   badRequest,
   forbidden,
@@ -48,37 +50,14 @@ export async function PATCH(
     }
 
     const vendor =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          userId: session.user.id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!vendor) {
-      throw notFound(
-        "Vendor profile not found."
+      await VendorService.getVendorProfileOrThrow(
+        session.user.id
       );
-    }
-
-    const order =
-      await prisma.order.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-          vendorProfileId: true,
-        },
-      });
-
-    if (!order) {
-      throw notFound(
-        "Order not found."
+   
+      const order =
+      await OrderService.getOrderByIdOrThrow(
+        id
       );
-    }
 
     if (
       order.vendorProfileId !==
@@ -89,16 +68,12 @@ export async function PATCH(
       );
     }
 
-    const updatedOrder =
-      await prisma.order.update({
-        where: {
-          id,
-        },
-        data: {
-          status,
-          trackingNumber,
-        },
-      });
+   const updatedOrder =
+      await OrderService.updateOrderStatus(
+        id,
+        status,
+        trackingNumber
+      );
 
     return NextResponse.json(
       {
@@ -136,67 +111,22 @@ export async function GET(
       await params;
 
     const vendor =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          userId:
-            session.user.id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!vendor) {
-      throw notFound(
-        "Vendor profile not found."
-      );
-    }
-
+    await VendorService.getVendorProfileOrThrow(
+      session.user.id
+    );
     const order =
-      await prisma.order.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          items: {
-            include: {
-              product: {
-                select: {
-                  title: true,
-                  images: {
-                    take: 1,
-                    select: {
-                      url: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-    if (!order) {
-      throw notFound(
-        "Order not found."
+      await OrderService.getVendorOrderDetails(
+        id
       );
-    }
 
-    if (
-      order.vendorProfileId !==
-      vendor.id
-    ) {
-      throw forbidden(
-        "You do not have permission to access this order."
-      );
-    }
+        if (
+          order.vendorProfileId !==
+          vendor.id
+        ) {
+          throw forbidden(
+            "You do not have permission to access this order."
+          );
+        }
 
     return NextResponse.json(
       {

@@ -1,7 +1,7 @@
-import { prisma } from "@/app/lib/prisma";
+import { NextResponse } from "next/server";
+import { MessageService } from "@/app/lib/services/message.service";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   try {
@@ -14,36 +14,11 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
-    const conversations = await prisma.conversation.findMany({
-      where: {
-        participantIds: {
-          has: session.user.id,
-        },
-        NOT: {
-          deletedByParticipantIds: {
-            has: session.user.id,
-          },
-        },
-        ...(type && { type: type as any }),
-      },
-      include: {
-        participants: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
-            vendorProfile: {
-              select: { id: true },
-            },
-          },
-        },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    const conversations =
+      await MessageService.getConversations(
+        session.user.id,
+        type
+      );
 
     return NextResponse.json(conversations);
   } catch (error) {

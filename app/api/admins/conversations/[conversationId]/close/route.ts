@@ -46,7 +46,7 @@ export async function PATCH(
       );
     }
 
-    const result =
+    const conversationResult =
       await conversationService.closeConversation(
         conversationId,
         access.userId,
@@ -58,7 +58,7 @@ export async function PATCH(
         pusherServer.trigger(
           conversationId,
           "new-message",
-          result.systemMessage
+          conversationResult.systemMessage
         ),
 
         pusherServer.trigger(
@@ -90,9 +90,9 @@ export async function PATCH(
       {
         success: true,
         conversation:
-          result.conversation,
+        conversationResult.conversation,
         message:
-          result.systemMessage,
+        conversationResult.systemMessage,
       },
       {
         status: 200,
