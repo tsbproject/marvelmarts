@@ -1,7 +1,8 @@
-// import { Prisma } from "@prisma/client";
-
 import { prisma } from "@/app/lib/prisma";
 import { badRequest } from "@/app/lib/auth/errors";
+import { walletRepository } from "@/app/lib/repositories/wallet-repository";
+import { OrderService } from "@/app/lib/services/order.service";
+import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
 
 
 import {
@@ -13,51 +14,42 @@ import {
 
 
 export class WalletService {
+  
   // ==========================================================
   // Queries
   // ==========================================================
+static async getWallet(userId: string) {
+  return walletRepository.findWallet(userId);
+}
 
-  static async getWallet(userId: string) {
-    return prisma.wallet.findUnique({
-      where: {
-        userId,
-      },
-    });
-  }
+static async getBalance(
+  userId: string
+): Promise<number> {
+  const wallet =
+    await walletRepository.findBalance(
+      userId
+    );
 
-  static async getBalance(userId: string): Promise<number> {
-    const wallet = await prisma.wallet.findUnique({
-      where: {
-        userId,
-      },
-      select: {
-        balance: true,
-      },
-    });
+  return Number(
+    wallet?.balance ?? 0
+  );
+}
 
-    return Number(wallet?.balance ?? 0);
-  }
+static async getTransactions(
+  userId: string
+) {
+  return walletRepository.findTransactions(
+    userId
+  );
+}
 
-  static async getTransactions(userId: string) {
-    return prisma.walletTransaction.findMany({
-      where: {
-        wallet: {
-          userId,
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  }
-
-  static async getTransaction(reference: string) {
-    return prisma.walletTransaction.findUnique({
-      where: {
-        reference,
-      },
-    });
-  }
+static async getTransaction(
+  reference: string
+) {
+  return walletRepository.findTransaction(
+    reference
+  );
+}
 
   // ==========================================================
   // Credits
@@ -73,21 +65,14 @@ export class WalletService {
     reference: string,
     description: string
     ) {
-    return prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.upsert({
-        where: {
+   return prisma.$transaction(
+  async (tx: Prisma.TransactionClient) => {
+      const wallet =
+        await walletRepository.credit(
+          tx,
           userId,
-        },
-        update: {
-          balance: {
-            increment: amount,
-          },
-        },
-        create: {
-          userId,
-          balance: amount,
-        },
-      });
+          amount
+        );
 
       await this.createTransaction(
         tx,
@@ -129,17 +114,12 @@ export class WalletService {
         amount
       );
 
-      const updatedWallet =
-        await tx.wallet.update({
-          where: {
-            userId,
-          },
-          data: {
-            balance: {
-              decrement: amount,
-            },
-          },
-        });
+     const updatedWallet =
+        await walletRepository.debit(
+          tx,
+          userId,
+          amount
+        );
 
       await this.createTransaction(
         tx,
@@ -173,21 +153,17 @@ export class WalletService {
       `Payment for Order #${orderId}`
     );
 
-    await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status: "PAID",
-        paymentTypes: "WALLET",
-      },
-    });
+    await walletRepository.updateOrderPayment(
+        orderId
+      );
 
     return {
       success: true as const,
       newBalance: Number(wallet.balance),
     };
   }
+
+
 
   // ==========================================================
   // Private Helpers
@@ -197,11 +173,11 @@ export class WalletService {
     tx: Prisma.TransactionClient,
     userId: string
   ) {
-    const wallet = await tx.wallet.findUnique({
-      where: {
-        userId,
-      },
-    });
+    const wallet =
+      await walletRepository.findWalletTx(
+        tx,
+        userId
+      );
 
     if (!wallet) {
       throw badRequest("Wallet not found.");
@@ -230,33 +206,32 @@ export class WalletService {
     reference: string,
     description: string
   ) {
-    return tx.walletTransaction.create({
-      data: {
-        walletId,
-        amount,
-        type,
-        status,
-        reference,
-        description,
-      },
-    });
+    return walletRepository.createTransaction(
+        tx,
+        {
+          walletId,
+          amount,
+          type,
+          status,
+          reference,
+          description,
+        }
+      );
   }
+
+  
 
         /**
          * Credit wallet after payment has already been verified.
          */
-       static async creditVerifiedPayment(
+ static async creditVerifiedPayment(
   userId: string,
   amount: number,
   reference: string,
   description: string
 ) {
   const existing =
-    await prisma.walletTransaction.findUnique({
-      where: {
-        reference,
-      },
-    });
+    await walletRepository.findTransaction(reference);
 
   if (existing) {
     return {
@@ -274,12 +249,190 @@ export class WalletService {
     description
   );
 
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      name: true,
+      email: true,
+    },
+  });
+
+  if (user?.email) {
+    await sendVendorCreditPurchaseEmail({
+      email: user.email,
+      firstName: user.name ?? "Vendor",
+      storeName: "MarvelMarts Store",
+      amountAdded: amount,
+      newBalance: Number(wallet.balance),
+    });
+  }
+
   return {
     success: true,
     alreadyProcessed: false,
     balance: Number(wallet.balance),
   };
-}}
+}
+
+static async checkout(
+  userId: string,
+  body: {
+    amount: number;
+    items: any[];
+    shippingAddress: any;
+  }
+) {
+  const {
+    amount,
+    items,
+    shippingAddress,
+  } = body;
+
+  if (
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
+    throw badRequest(
+      "No checkout items provided."
+    );
+  }
+
+  const vendorProfileId =
+    items[0]?.vendorProfileId;
+
+  if (!vendorProfileId) {
+    throw badRequest(
+      "Vendor profile is required."
+    );
+  }
+
+  const mixedVendors =
+    items.some(
+      (item) =>
+        item.vendorProfileId &&
+        item.vendorProfileId !==
+          vendorProfileId
+    );
+
+  if (mixedVendors) {
+    throw badRequest(
+      "Wallet checkout currently supports one vendor per order."
+    );
+  }
+
+  const total = Number(amount);
+
+  if (
+    !Number.isFinite(total) ||
+    total <= 0
+  ) {
+    throw badRequest(
+      "Invalid payment amount."
+    );
+  }
+
+  const result = await prisma.$transaction(
+    async (
+      tx: Prisma.TransactionClient
+    ) => {
+      const wallet =
+        await this.ensureWallet(
+          tx,
+          userId
+        );
+
+      this.ensureSufficientBalance(
+        wallet.balance,
+        total
+      );
+
+      await walletRepository.debit(
+        tx,
+        userId,
+        total
+      );
+
+      await this.createTransaction(
+        tx,
+        wallet.id,
+        total,
+        TransactionType.PURCHASE,
+        TransactionStatus.SUCCESS,
+        `ORD-${Date.now()}`,
+        "Wallet checkout"
+      );
+
+      const normalizedItems =
+        items.map((item) => ({
+          productId:
+            item.productId,
+          variantId:
+            item.variantId,
+          quantity:
+            Number(item.quantity) || 1,
+        }));
+
+      const orderItems =
+        items.map((item) => ({
+          productId:
+            item.productId ?? null,
+          variantId:
+            item.variantId ?? null,
+          qty:
+            Number(item.quantity) || 1,
+          unitPrice:
+            new Prisma.Decimal(
+              Number(item.price) || 0
+            ),
+          imageUrl:
+            item.imageUrl ?? null,
+          title:
+            item.title ?? null,
+        }));
+
+      const order =
+        await OrderService.createOrderTx(
+          tx,
+          {
+            orderNumber: `MM-${Date.now()}`,
+            userId,
+            vendorProfileId,
+            formData: shippingAddress,
+            orderItems,
+            normalizedItems,
+            subtotal: total,
+            shipping: 0,
+            total,
+          }
+        );
+
+      await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          paymentTypes: "WALLET",
+        },
+      });
+
+      return {
+        success: true,
+        orderId: order.id,
+      };
+    }
+  );
+
+  await OrderService.completePaidOrder(
+    result.orderId,
+    `WALLET-${Date.now()}`
+  );
+
+  return result;
+}
+
+}
 
 
 

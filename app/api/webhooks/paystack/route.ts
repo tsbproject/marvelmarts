@@ -7,6 +7,7 @@ import {
   sendOrderConfirmationEmail,
 } from "@/app/lib/mailer";
 import { mapOrderToOrderConfirmationEmail } from "@/app/lib/mail/mappers/order.mapper";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -192,93 +193,25 @@ export async function POST(req: Request) {
         }
       );
     }
-
-          const updatedOrder = await prisma.$transaction(async (tx) => {
-        const order = await tx.order.update({
-          where: {
-            id: existingOrder.id,
-          },
-          data: {
-            paymentStatus: true,
-            paymentIntentId: reference,
-            status: "processing",
-          },
-          include: {
-            items: true,
-            vendorProfile: {
-              select: {
-                id: true,
-                userId: true,
-                storeName: true,
-              },
-            },
-          },
-        });
-
-        // Credit Vendor Balance
-        await tx.vendorProfile.update({
-          where: {
-            id: order.vendorProfileId,
-          },
-          data: {
-            balance: {
-              increment: Number(order.subtotal),
-            },
-          },
-        });
-
-        // Clear Customer Cart
-        if (order.userId) {
-          await tx.cartItem.deleteMany({
-            where: {
-              cart: {
-                userId: order.userId,
-              },
-            },
-          });
-        }
-
-        return order;
-      });
-
-      // Send Emails (outside transaction)
-      try {
-        if (!updatedOrder.emailSent) {
-          await Promise.all([
-            sendOrderConfirmationEmail(
-              mapOrderToOrderConfirmationEmail(updatedOrder)
-            ),
-
-            sendAdminOrderNotification(updatedOrder),
-          ]);
-
-          await prisma.order.update({
-            where: {
-              id: updatedOrder.id,
-            },
-            data: {
-              emailSent: true,
-            },
-          });
-        }
-      } catch (mailError: any) {
-        console.error(
-          "ORDER_EMAIL_ERROR:",
-          mailError?.message ?? mailError
-        );
-      }
-
-      console.log(
-        `PAYMENT_CONFIRMED: ${updatedOrder.orderNumber}`
+    
+    const updatedOrder =
+      await OrderService.completePaidOrder(
+        existingOrder.id,
+        reference
       );
 
-      return NextResponse.json({
-        success: true,
-        received: true,
-        orderId: updatedOrder.id,
-        orderNumber: updatedOrder.orderNumber,
-        status: updatedOrder.status,
-      });
+    console.log(
+      `PAYMENT_CONFIRMED: ${updatedOrder.orderNumber}`
+    );
+
+    return NextResponse.json({
+      success: true,
+      received: true,
+      orderId: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      status: "processing",
+    });
+  
   } catch (error: any) {
     console.error(
       "PAYSTACK_WEBHOOK_ERROR:",

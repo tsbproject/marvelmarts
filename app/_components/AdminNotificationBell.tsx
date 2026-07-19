@@ -206,7 +206,7 @@ export default function AdminNotificationBell() {
                 ) + "...",
 
               link:
-                `/account/vendor/messages/${data.conversationId}`,
+                `/dashboard/admins/support/messages?type=VENDOR_ADMIN&id=${data.conversationId}`,
             })
           );
 

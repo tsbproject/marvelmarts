@@ -56,7 +56,7 @@ export async function POST(
       await conversationService.sendMessage(
         conversationId,
         access.userId,
-        access.session.user.name ??
+        access.session?.user.name ??
           "Vendor",
         content
       );

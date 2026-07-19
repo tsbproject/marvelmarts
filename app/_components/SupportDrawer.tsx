@@ -146,7 +146,9 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
         const newConvId = data.conversationId;
         setConversationId(newConvId);
         
-        const msgRes = await fetch(`/api/admins/conversations/${newConvId}/messages`);
+        const msgRes = await fetch(
+  `/api/admins/conversations/${newConvId}/messages?email=${encodeURIComponent(formData.email)}`
+);
         if (msgRes.ok) {
           const msgData = await msgRes.json();
           setMessages(dedupeMessages(msgData.messages || []));
@@ -183,10 +185,14 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
   setChatInput("");
 
   try {
-    const res = await fetch(`/api/admins/conversations/${conversationId}/messages`, {
+    const res = await fetch(`/api/conversations/${conversationId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+      content,
+      email: formData.email,
+      name: formData.name,
+    })
     });
 
     const data = await res.json();

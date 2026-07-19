@@ -22,6 +22,8 @@ import {
 export async function requireAuth(): Promise<Session> {
   const session = await getServerSession(authOptions);
 
+
+
   if (!session) {
     throw unauthorized();
   }

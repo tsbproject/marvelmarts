@@ -62,43 +62,28 @@ model VerificationCode {
 }
 
 model AdminProfile {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-
-  // Administration
-  manageAdmins           Boolean  @default(false)
-  manageUsers            Boolean  @default(false)
-
-  // Commerce
-  manageProducts         Boolean  @default(false)
-  manageOrders           Boolean  @default(false)
-  manageCategories       Boolean  @default(false)
-  manageTrending         Boolean  @default(false)
-  manageReviews          Boolean  @default(false)
-
-  // Vendors
-  manageVendors          Boolean  @default(false)
-  manageVerifications    Boolean  @default(false)
-  managePayout           Boolean  @default(false)
-
-  // Communication
-  manageMessages         Boolean  @default(false)
-  manageSupport          Boolean  @default(false)
-  manageSubscribers      Boolean  @default(false)
-
-  // Content
-  manageBlogs            Boolean  @default(false)
-
-  // Platform
-  manageSettings         Boolean  @default(false)
-  manageActivity         Boolean  @default(false)
-
-  notes                  String?
-
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  user                   User @relation( fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  manageActivity      Boolean  @default(false)
+  manageAdmins        Boolean  @default(false)
+  manageBlogs         Boolean  @default(false)
+  manageCategories    Boolean  @default(false)
+  manageMessages      Boolean  @default(false)
+  manageOrders        Boolean  @default(false)
+  managePayout        Boolean  @default(false)
+  manageProducts      Boolean  @default(false)
+  manageReviews       Boolean  @default(false)
+  manageSettings      Boolean  @default(false)
+  manageSubscribers   Boolean  @default(false)
+  manageSupport       Boolean  @default(false)
+  manageTrending      Boolean  @default(false)
+  manageUsers         Boolean  @default(false)
+  manageVendors       Boolean  @default(false)
+  manageVerifications Boolean  @default(false)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VendorProfile {

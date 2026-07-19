@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { WalletService } from "@/app/lib/services/wallet.service";
 import { PaymentService } from "@/app/lib/services/payment.service";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,19 @@ export async function POST(request: NextRequest) {
             "Wallet funding"
           );
         }
+
+        if (
+          metadata?.type === "order" &&
+          metadata?.orderId
+      ) {
+          const transaction =
+              await PaymentService.verifyTransaction(reference);
+
+          await OrderService.completePaidOrder(
+              metadata.orderId,
+              reference
+          );
+      }
 
         break;
       }

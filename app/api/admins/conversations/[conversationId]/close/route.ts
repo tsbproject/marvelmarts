@@ -50,7 +50,7 @@ export async function PATCH(
       await conversationService.closeConversation(
         conversationId,
         access.userId,
-        access.session.user.role
+        access.session?.user.role ?? "CUSTOMER"
       );
 
     try {

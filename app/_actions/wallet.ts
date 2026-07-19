@@ -6,6 +6,7 @@ import { requireAuth } from "@/app/lib/auth/api";
 
 import { PaymentService } from "@/app/lib/services/payment.service";
 import { WalletService } from "@/app/lib/services/wallet.service";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export async function topUpWallet(reference: string) {
   try {
@@ -76,11 +77,21 @@ export async function processWalletPurchase(
   try {
     const session = await requireAuth();
 
-    return await WalletService.debitForOrder(
-      session.user.id,
-      orderId,
-      totalAmount
+   const result = await WalletService.debitForOrder(
+  session.user.id,
+  orderId,
+  totalAmount
     );
+
+    if (!result.success) {
+      return result;
+    }
+
+    await OrderService.completePaidOrder(orderId);
+
+    revalidatePath("/checkout");
+
+return result;
   } catch (error) {
     console.error(
       "PURCHASE_ERROR:",

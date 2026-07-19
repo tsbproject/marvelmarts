@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
    const session = await requireAuth();
 
     const body = await req.json();
+    const paymentMethod = body?.paymentMethod ?? "CARD";
     const rawFormData = body?.formData ?? {};
     const rawItems = Array.isArray(body?.items) ? body.items : [];
 

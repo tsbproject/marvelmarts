@@ -38,20 +38,30 @@ export async function POST(req: Request) {
     }
 
     if (
-      result.created &&
-      result.welcomeMessage
-    ) {
-      await pusherServer.trigger(
-        "global-admin-channel",
-        "new-support-ticket",
-        {
-          ...result.conversation,
-          messages: [
-            result.welcomeMessage,
-          ],
-        }
-      );
+  result.created &&
+  result.welcomeMessage
+) {
+  // Notify admin that a new support ticket exists
+  await pusherServer.trigger(
+    "global-admin-support",
+    "new-support-ticket",
+    {
+      conversationId:
+        result.conversation!.id,
+      type:
+        result.conversation!.type,
+      customerName: name,
+      customerEmail: email,
     }
+  );
+
+  // Deliver the welcome message to the conversation
+  await pusherServer.trigger(
+    result.conversation!.id,
+    "new-message",
+    result.welcomeMessage
+  );
+}
 
     const conversation = result.conversation!;
 

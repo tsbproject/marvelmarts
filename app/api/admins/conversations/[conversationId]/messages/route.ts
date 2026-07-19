@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { conversationService } from "@/app/lib/services/conversation.service";
 import { pusherServer } from "@/app/lib/pusherServer";
 
-import { requireConversationAccess } from "@/app/lib/auth/conversation";
+import {
+  requireConversationAccess,
+  requireSupportConversationAccess,
+} from "@/app/lib/auth/conversation";
 import { handleApiError } from "@/app/lib/auth/api";
 import {
   badRequest,
@@ -31,9 +34,10 @@ export async function POST(
     const { conversationId } = await params;
 
     const access =
-      await requireConversationAccess(
-        conversationId
-      );
+  await requireSupportConversationAccess(
+    conversationId,
+    req.nextUrl.searchParams.get("email") ?? undefined
+  );
 
     const body = await req.json();
 
@@ -58,7 +62,7 @@ export async function POST(
       await conversationService.sendMessage(
         conversationId,
         access.userId,
-        access.session.user.name ??
+        access.session?.user.name ??
           "Unknown User",
         content
       );

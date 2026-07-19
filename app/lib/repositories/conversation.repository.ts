@@ -1,4 +1,6 @@
 import { prisma } from "@/app/lib/prisma";
+import { ConversationType } from "@prisma/client";
+
 
 export const conversationRepository = {
   async findById(conversationId: string) {
@@ -128,4 +130,103 @@ export const conversationRepository = {
       }),
     ]);
   },
+
+  async findOpenSupportConversation(
+  userId: string,
+  type: ConversationType
+) {
+  return prisma.conversation.findFirst({
+    where: {
+      type,
+      status: "OPEN",
+      participantIds: {
+        has: userId,
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+      participants: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+    },
+  });
+},
+
+async createSupportConversation(data: {
+  userId: string;
+  adminId: string;
+  type: ConversationType;
+  subject: string;
+}) {
+  return prisma.conversation.create({
+    data: {
+      type: data.type,
+      status: "OPEN",
+      subject: data.subject,
+      participantIds: [
+        data.userId,
+        data.adminId,
+      ],
+    },
+    include: {
+      participants: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+      messages: true,
+    },
+  });
+},
+
+async createSystemMessage(
+  conversationId: string,
+  content: string
+) {
+  return prisma.message.create({
+    data: {
+      conversationId,
+      senderId: "SYSTEM",
+      senderName: "MarvelMarts Support",
+      content,
+    },
+  });
+},
+
+async findUserConversations(
+  userId: string
+) {
+  return prisma.conversation.findMany({
+    where: {
+      participantIds: {
+        has: userId,
+      },
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+}
 };

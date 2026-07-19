@@ -1,5 +1,8 @@
 import { ConversationType } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
+import {
+  ConversationStatus,
+} from "@prisma/client";
 
 export class MessageService {
   static async markConversationAsRead(
@@ -111,128 +114,149 @@ export class MessageService {
             });
           }
         
-      static async initiateSupportConversation(
-          email: string,
-          name: string,
-          isVendor: boolean
-        ) {
-          const user = await prisma.user.findUnique({
-            where: {
-              email,
-            },
-            include: {
-              vendorProfile: true,
-            },
-          });
+  static async initiateSupportConversation(
+  email: string,
+  name: string,
+  isVendor: boolean
+) {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+    include: {
+      vendorProfile: true,
+    },
+  });
 
-          if (!user) {
-            return {
-              userExists: false,
-            };
-          }
+  if (!user) {
+    return {
+      userExists: false,
+    };
+  }
 
-          const type = isVendor
-            ? ConversationType.VENDOR_ADMIN
-            : ConversationType.CUSTOMER_ADMIN;
+  const type = isVendor
+    ? ConversationType.VENDOR_ADMIN
+    : ConversationType.CUSTOMER_ADMIN;
 
-          let conversation =
-            await prisma.conversation.findFirst({
-              where: {
-                type,
-                participantIds: {
-                  has: user.id,
-                },
-              },
-              include: {
-                messages: {
-                  orderBy: {
-                    createdAt: "desc",
-                  },
-                  take: 1,
-                },
-                participants: {
-                  select: {
-                    id: true,
-                    name: true,
-                    role: true,
-                  },
-                },
-              },
-            });
+  // --------------------------------------------------------
+  // Reuse ONLY an OPEN conversation
+  // --------------------------------------------------------
 
-          const admin =
-            await prisma.user.findFirst({
-              where: {
-                role: {
-                  in: [
-                    "ADMIN",
-                    "SUPER_ADMIN",
-                  ],
-                },
-                isSuspended: false,
-              },
-            });
+  let conversation =
+    await prisma.conversation.findFirst({
+      where: {
+        type,
+        status: ConversationStatus.OPEN,
+        participantIds: {
+          has: user.id,
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+      include: {
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+        participants: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
 
-          if (!conversation) {
-            if (!admin) {
-              return {
-                userExists: true,
-                adminAvailable: false,
-              };
-            }
+  if (conversation) {
+    return {
+      userExists: true,
+      adminAvailable: true,
+      created: false,
+      conversation,
+    };
+  }
 
-            conversation =
-              await prisma.conversation.create({
-                data: {
-                  type,
-                  subject: isVendor
-                    ? `Vendor Support: ${name}`
-                    : `Customer Support: ${name}`,
-                  participantIds: [
-                    user.id,
-                    admin.id,
-                  ],
-                },
-                include: {
-                  participants: {
-                    select: {
-                      id: true,
-                      name: true,
-                      role: true,
-                    },
-                  },
-                  messages: true,
-                },
-              });
+  // --------------------------------------------------------
+  // No active conversation exists.
+  // Find an available administrator.
+  // --------------------------------------------------------
 
-            const welcomeMessage =
-              await prisma.message.create({
-                data: {
-                  conversationId:
-                    conversation.id,
-                  senderId: "SYSTEM",
-                  senderName:
-                    "MarvelMarts Support",
-                  content: `Hello ${name}, thank you for reaching out. A member of our team will be with you shortly.`,
-                },
-              });
+  const admin =
+    await prisma.user.findFirst({
+      where: {
+        role: {
+          in: [
+            "ADMIN",
+            "SUPER_ADMIN",
+          ],
+        },
+        isSuspended: false,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
-            return {
-              userExists: true,
-              adminAvailable: true,
-              created: true,
-              conversation,
-              welcomeMessage,
-            };
-          }
+  if (!admin) {
+    return {
+      userExists: true,
+      adminAvailable: false,
+    };
+  }
 
-          return {
-            userExists: true,
-            adminAvailable: true,
-            created: false,
-            conversation,
-          };
-        }
+  // --------------------------------------------------------
+  // Create a brand-new support conversation
+  // --------------------------------------------------------
+
+  conversation =
+    await prisma.conversation.create({
+      data: {
+        type,
+        status: ConversationStatus.OPEN,
+        subject: isVendor
+          ? `Vendor Support: ${name}`
+          : `Customer Support: ${name}`,
+        participantIds: [
+          user.id,
+          admin.id,
+        ],
+      },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        messages: true,
+      },
+    });
+
+  const welcomeMessage =
+    await prisma.message.create({
+      data: {
+        conversationId:
+          conversation.id,
+        senderId: "SYSTEM",
+        senderName:
+          "MarvelMarts Support",
+        content: `Hello ${name}, thank you for reaching out. A member of our team will be with you shortly.`,
+      },
+    });
+
+  return {
+    userExists: true,
+    adminAvailable: true,
+    created: true,
+    conversation,
+    welcomeMessage,
+  };
+}
 
         static async getSupportDashboardStats() {
         const openTickets =

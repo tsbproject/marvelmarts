@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Image from "next/image";
+import Link from "next/link";
 
 type LogoProps = {
   variant?: "icon" | "full";
@@ -25,6 +26,7 @@ export default function Logo({
   const dimension = sizes[size];
 
   return (
+    <Link href="/">
     <Image
       src={
         variant === "icon"
@@ -37,5 +39,7 @@ export default function Logo({
       priority={priority}
       className={clsx(className)}
     />
+
+    </Link>
   );
 }

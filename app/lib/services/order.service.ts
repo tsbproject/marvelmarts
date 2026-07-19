@@ -1,6 +1,16 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { InventoryService } from "@/app/lib/services/inventory.service";
 import { notFound,badRequest, forbidden } from "@/app/lib/auth/errors";
+
+
+import {
+  sendAdminOrderNotification,
+  sendOrderConfirmationEmail,
+} from "@/app/lib/mailer";
+
+import { mapOrderToOrderConfirmationEmail } from "@/app/lib/mail/mappers/order.mapper";
+
 
 type CreateOrderParams = {
   orderNumber: string;
@@ -23,19 +33,22 @@ type CreateOrderParams = {
 };
 
 export class OrderService {
-    static async createOrder({
-      orderNumber,
-      userId,
-      vendorProfileId,
-      formData,
-      orderItems,
-      normalizedItems,
-      subtotal,
-      shipping,
-      total,
-    }: CreateOrderParams) {
-      return prisma.$transaction(async (tx) => {
-        const createdOrder =
+static async createOrderTx(
+  tx: Prisma.TransactionClient,
+  {
+    orderNumber,
+    userId,
+    vendorProfileId,
+    formData,
+    orderItems,
+    normalizedItems,
+    subtotal,
+    shipping,
+    total,
+  }: CreateOrderParams
+) { 
+
+const createdOrder =
           await tx.order.create({
             data: {
               orderNumber,
@@ -118,22 +131,29 @@ export class OrderService {
             },
           });
 
-        await InventoryService.decrementStock(
-            tx,
-            normalizedItems.map((item) => ({
-              productId: item.productId,
-              variantId: item.variantId,
-              quantity: item.quantity!,
-            }))
-          );
+        
         
     
 
         return createdOrder;
-      });
-    }
+      }
 
-  static async getOrders(userId: string) {
+      static async createOrder(
+        params: CreateOrderParams
+      ) {
+        return prisma.$transaction(
+          async (
+            tx: Prisma.TransactionClient
+          ) => {
+            return this.createOrderTx(
+              tx,
+              params
+            );
+    }
+  );
+}
+    
+static async getOrders(userId: string) {
     return prisma.order.findMany({
       where: {
         userId,
@@ -208,6 +228,10 @@ export class OrderService {
         throw notFound(
           "Order not found."
         );
+      }
+
+      if (order.paymentStatus) {
+        return order;
       }
 
       return order;
@@ -649,5 +673,122 @@ export class OrderService {
 
       return updatedOrder;
     }
+
+
+static async completePaidOrder(
+  orderId: string,
+  paymentReference?: string
+) {
+  const order = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            userId: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw notFound("Order not found.");
+    }
+
+    if (order.paymentStatus) {
+      return order;
+    }
+
+    await tx.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        paymentStatus: true,
+        status: "processing",
+        ...(paymentReference
+          ? {
+              paymentIntentId: paymentReference,
+            }
+          : {}),
+      },
+    });
+
+    await tx.vendorProfile.update({
+      where: {
+        id: order.vendorProfileId,
+      },
+      data: {
+        balance: {
+          increment: Number(order.subtotal),
+        },
+      },
+    });
+
+    if (order.userId) {
+      await tx.cartItem.deleteMany({
+        where: {
+          cart: {
+            userId: order.userId,
+          },
+        },
+      });
+    }
+
+    const inventoryItems = order.items
+      .filter(
+        (
+          item
+        ): item is typeof item & {
+          productId: string;
+        } => item.productId !== null
+      )
+      .map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.qty,
+      }));
+
+    await InventoryService.decrementStock(
+      tx,
+      inventoryItems
+    );
+
+    return order;
+  });
+
+  try {
+    if (!order.emailSent) {
+      await Promise.all([
+        sendOrderConfirmationEmail(
+          mapOrderToOrderConfirmationEmail(order)
+        ),
+        sendAdminOrderNotification(order),
+      ]);
+
+      await prisma.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          emailSent: true,
+        },
+      });
+    }
+  } catch (mailError: any) {
+    console.error(
+      "ORDER_EMAIL_ERROR:",
+      mailError?.message ?? mailError
+    );
+  }
+
+  return order;
+}
+   
 
 }

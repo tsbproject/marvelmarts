@@ -307,4 +307,131 @@ export class CategoryService {
         },
     });
     }
+
+    static async getCategoryTree() {
+  return prisma.category.findMany({
+    where: {
+      parentId: null,
+    },
+    orderBy: {
+      position: "asc",
+    },
+    include: {
+      children: {
+        orderBy: {
+          position: "asc",
+        },
+        include: {
+          children: {
+            orderBy: {
+              position: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+static async searchCategories(
+  query: string
+) {
+  if (!query) {
+    throw badRequest(
+      "Search query is required."
+    );
+  }
+
+  if (query.length < 3) {
+    return [];
+  }
+
+  return prisma.category.findMany({
+    where: {
+      OR: [
+        {
+          name: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        {
+          slug: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+    take: 6,
+  });
+}
+
+static async getCategoryBySlug(
+  slug: string
+) {
+  const category =
+    await prisma.category.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        products: {
+          include: {
+            images: true,
+            variants: true,
+          },
+        },
+        children: {
+          orderBy: {
+            position: "asc",
+          },
+        },
+      },
+    });
+
+  if (!category) {
+    throw notFound(
+      "Category not found."
+    );
+  }
+
+  return {
+    ...category,
+
+    products:
+      category.products.map(
+        (product) => ({
+          ...product,
+
+          price: Number(
+            product.price
+          ),
+
+          discountPrice:
+            product.discountPrice
+              ? Number(
+                  product.discountPrice
+                )
+              : null,
+
+          variants:
+            product.variants.map(
+              (variant) => ({
+                ...variant,
+
+                price: Number(
+                  variant.price
+                ),
+              })
+            ),
+        })
+      ),
+  };
+}
 }

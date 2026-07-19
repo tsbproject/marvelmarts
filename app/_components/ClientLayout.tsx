@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Script from "next/script";
 import { Provider, useDispatch } from "react-redux";
 import { store } from "@/store";
 import { SessionProvider as NextAuthSessionProvider, useSession } from "next-auth/react";
@@ -16,6 +17,7 @@ import { setUser, clearUser } from "@/store/authSlice";
 import { setWishlist } from "@/store/wishlistSlice";
 import { hydrateCart } from "@/store/cartSlice";
 import { Loader2 } from "lucide-react";
+import WalletProvider from "@/app/_context/WalletProvider";
 
 function ReduxStateSync({ onReady }: { onReady: () => void }) {
   const { data: session, status } = useSession();
@@ -92,6 +94,8 @@ export default function ClientLayout({
 
         <CustomSessionProvider>
           <NotificationProvider>
+             <WalletProvider
+              >
             <LoadingOverlayProvider>
               <NextTopLoader
                 color="#002B5B"
@@ -116,8 +120,14 @@ export default function ClientLayout({
               <MobileBottomNav />
               <Footer />
             </LoadingOverlayProvider>
+            </WalletProvider>
           </NotificationProvider>
         </CustomSessionProvider>
+
+         <Script
+        src="https://js.paystack.co/v1/inline.js"
+        strategy="afterInteractive"
+      />
       </NextAuthSessionProvider>
     </Provider>
   );

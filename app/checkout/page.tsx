@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -21,6 +17,10 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { processWalletPurchase } from "@/app/_actions/wallet";
+import { useWallet } from "@/app/hooks/UseWallet";
+import { createOrder } from "@/app/lib/checkout/create-order";
+
+
 
 type CheckoutFormData = {
   email: string;
@@ -52,6 +52,9 @@ type PaystackButtonProps = {
 };
 
 
+
+
+
 const QuickFundModal = dynamic(() => import("../account/customer/_components/QuickFundModal"), {
   ssr: false, // This is the magic line that stops the crash
   loading: () => <div className="hidden" /> // Or a spinner
@@ -75,9 +78,11 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CARD" | "WALLET" | "TRANSFER">("CARD");
-  const [walletBalance, setWalletBalance] = useState(0);
+
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  const { balance: walletBalance, refreshBalance, fundWallet, } = useWallet();
 
   const { items } = useSelector((state: RootState) => state.cart);
   const { notifySuccess, notifyError } = useNotification();
@@ -85,6 +90,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useDispatch();
 
+ 
   const NIGERIAN_STATES = [
     "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
     "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe",
@@ -132,30 +138,24 @@ export default function CheckoutPage() {
 
 
   
+
+
   
 
-          useEffect(() => {
-            setMounted(true);
-          }, []);
+
+  
+  
+
+         useEffect(() => {
+          if (status === "authenticated") {
+            void refreshBalance();
+          }
+        }, [status, refreshBalance]);
 
         useEffect(() => {
-          if (status === "authenticated" && session?.user?.email) {
-            fetch("/api/wallet")
-              .then(async (res) => {
-                if (!res.ok) {
-                  const errorText = await res.text();
-                  throw new Error(`Server responded with ${res.status}: ${errorText}`);
-                }
-                return res.json();
-              })
-              .then((data) => setWalletBalance(Number(data.balance || 0)))
-              .catch((err) => {
-                console.error("Wallet Sync Error:", err.message);
-                setWalletBalance(0);
-              });
-          }
-        }, [status, session]);
-    
+        setMounted(true);
+      }, []);
+            
     
     
     useEffect(() => {
@@ -236,33 +236,47 @@ export default function CheckoutPage() {
   return null;
 }
 
-  const handleFundingSuccess = async (amount: number) => {
-  // 1. Keep modal open for a second so user sees the progress
-  setIsProcessing(true); 
+
+const handleWalletCheckout = async () => {
+  if (isProcessing) return;
 
   try {
-    const response = await fetch('/api/wallet/topup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
+    setIsProcessing(true);
+
+    const order = await createOrder({
+      formData,
+      items,
+      subtotal,
+      shipping: shippingFee,
+      total: grandTotal,
     });
 
-    if (!response.ok) throw new Error("Database sync failed");
+    const result = await processWalletPurchase(
+      order.orderId,
+      grandTotal
+    );
 
-    const data = await response.json();
-    
-    // 2. Update Balance & Close Modal
-    setWalletBalance(Number(data.balance || 0));
-    setIsFundModalOpen(false); // Close the modal ONLY after DB confirmation
-    notifySuccess(`Wallet Powered Up! New Balance: ₦${data.balance.toLocaleString()}`);
-    
-  } catch (err) {
-    console.error("Sync Error:", err);
-    notifyError("Payment confirmed, but balance sync failed. Please refresh.");
-    // Even if it fails, we must stop the "rolling" loader
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    dispatch(clearCart());
+
+    await refreshBalance();
+
+    notifySuccess("Payment completed successfully.");
+
+    router.push(
+      `/thank-you?orderNumber=${order.orderNumber}`
+    );
+  } catch (error) {
+    notifyError(
+      error instanceof Error
+        ? error.message
+        : "Unable to complete wallet payment."
+    );
   } finally {
-    setIsProcessing(false); 
-    setIsInitializing(false); // Also reset the modal's internal loader
+    setIsProcessing(false);
   }
 };
 
@@ -372,11 +386,18 @@ return (
                 </button>
 
                 {/* QUICKFUNDMODAL*/}
-                      <QuickFundModal 
-                        isOpen={isFundModalOpen} 
-                        email={formData.email} // Pass the email here
-                        onClose={() => setIsFundModalOpen(false)} 
-                        onSuccess={handleFundingSuccess} 
+                     <QuickFundModal
+                        isOpen={isFundModalOpen}
+                        onClose={() => setIsFundModalOpen(false)}
+                        onSuccess={(amount) => {
+                          void fundWallet({
+                            amount,
+                            onSuccess: () => {
+                              setIsFundModalOpen(false);
+                              notifySuccess("Wallet funded successfully!");
+                            },
+                          });
+                        }}
                       />
             </div>
 
@@ -399,7 +420,7 @@ return (
                   <div className="space-y-4">
                     {walletBalance >= grandTotal ? (
                       <button 
-                        onClick={() => setIsProcessing(true)} 
+                        onClick={handleWalletCheckout} 
                         disabled={!isFormValid || isProcessing} 
                         className="w-full bg-brand-primary text-white py-6 rounded-[2rem] font-black uppercase italic shadow-xl hover:bg-accent-navy transition-all flex items-center justify-center gap-3 active:scale-95"
                       >
