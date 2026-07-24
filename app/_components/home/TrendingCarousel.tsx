@@ -7,6 +7,7 @@ import { Flame, ChevronRight, ShoppingCart, Rocket } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { SerializedProduct } from "@/types/product";
+import { formatNaira } from "@/app/lib/FormatNaira";
 
 interface TrendingCarouselProps {
   initialData: SerializedProduct[];
@@ -36,9 +37,9 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
           <div>
             <div className="flex items-center gap-2 text-orange-600 mb-2">
               <Flame size={18} fill="currentColor" className="animate-pulse" />
-              <span className="text-sm font-black uppercase tracking-[0.2em]">Hot Products</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Hot Products</span>
             </div>
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[var(--accent-navy)]">
+            <h2 className="text-md md:text-2xl font-black uppercase italic tracking-tighter text-[var(--accent-navy)]">
               Trending <span className="text-[var(--brand-primary)]">Products</span>
             </h2>
           </div>
@@ -120,8 +121,8 @@ export default function TrendingCarousel({ initialData }: TrendingCarouselProps)
                     <h3 className="font-black text-lg uppercase tracking-tight text-gray-900 leading-tight group-hover/card:text-blue-600 transition-colors">
                       {product.title}
                     </h3>
-                    <p className="text-blue-600 font-black text-xl">
-                      ${Number(product.price).toLocaleString()}
+                                        <p className="text-blue-600 font-black text-xl">
+                      {formatNaira(product.price)}
                     </p>
                   </div>
                 </div>

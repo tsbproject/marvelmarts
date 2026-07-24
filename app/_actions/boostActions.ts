@@ -4,7 +4,7 @@ import prisma from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
+
 
 const getBoostPlanDetails = (days: number) => {
   switch (days) {

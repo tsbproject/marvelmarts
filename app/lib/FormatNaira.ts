@@ -1,9 +1,11 @@
-// app/lib/FormatNaira.ts
-export function formatNaira(amount: number) {
-  if (typeof amount !== 'number') return "";
+export function formatNaira(
+  amount: number | string | null | undefined
+) {
+  if (amount == null) return "";
+
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(Number(amount));
 }
