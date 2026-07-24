@@ -10,16 +10,16 @@ type LogoProps = {
 };
 
 const sizes = {
-  xs: 26,
-  sm: 36,
-  md: 48,
+  xs: 10,
+  sm: 25,
+  md: 80,
   lg: 120,
   xl: 200,
 };
 
 export default function Logo({
   variant = "icon",
-  size = "lg",
+  size = "md",
   priority = false,
   className,
 }: LogoProps) {
