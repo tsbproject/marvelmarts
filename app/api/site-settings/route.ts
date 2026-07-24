@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+import { SiteSettingsService } from "@/app/lib/services/site-settings.service";
 
-import {
-  requireAdmin,
+import { requireAdmin,
   handleApiError,
 } from "@/app/lib/auth/api";
 
@@ -71,11 +70,8 @@ const DEFAULT_SETTINGS = {
 
 export async function GET() {
   try {
-    const settings = await prisma.siteSettings.findUnique({
-      where: {
-        id: 1,
-      },
-    });
+   const settings =
+    await SiteSettingsService.getSettings();
 
     return NextResponse.json(
       settings ?? DEFAULT_SETTINGS
@@ -101,25 +97,10 @@ export async function PATCH(request: Request) {
       throw badRequest("Invalid JSON payload.");
     }
 
-    const existing = await prisma.siteSettings.findUnique({
-      where: {
-        id: 1,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!existing) {
-      throw notFound("Site settings record not found.");
-    }
-
-    const updated = await prisma.siteSettings.update({
-      where: {
-        id: 1,
-      },
-      data: body,
-    });
+    const updated =
+      await SiteSettingsService.updateSettings(
+        body
+      );
 
     return NextResponse.json(updated);
   } catch (error) {

@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { prisma } from "@/app/lib/prisma";
-
 import {
   requireManageVendors,
-  requireAuth,
-} from "@/app/lib/auth/guards";
-
-import { handleApiError } from "@/app/lib/auth/api";
-import { badRequest, notFound,} from "@/app/lib/auth/errors";
+  requireAuth, handleApiError
+} from "@/app/lib/auth/api";
+import { badRequest} from "@/app/lib/auth/errors";
 import { VendorService } from "@/app/lib/services/vendor.service";
 
 export const runtime = "nodejs";

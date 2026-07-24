@@ -1,10 +1,8 @@
-import { prisma } from "@/app/lib/prisma";
-
 import { NextResponse } from "next/server";
-
 import { z } from "zod";
-
 import DOMPurify from "isomorphic-dompurify";
+
+import { TicketService } from "@/app/lib/services/ticket.service";
 
 import {
   sendSupportAcknowledgementEmail,
@@ -28,17 +26,20 @@ const ticketSchema = z.object({
   articleId: z.string().optional().nullable(),
 });
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-
     // REQUEST DATA
-    const json = await req.json();
+    const json =
+      await req.json();
 
     // HONEYPOT
     if (json.marvel_bot_gate) {
       return NextResponse.json(
         {
-          message: "Security Protocol Active",
+          message:
+            "Security Protocol Active",
         },
         {
           status: 200,
@@ -63,85 +64,47 @@ export async function POST(req: Request) {
 
     // NORMALIZED VALUES
     const category =
-      body.category || "GENERAL";
+      body.category ??
+      "GENERAL";
 
     const priority =
-      body.priority || "MEDIUM";
+      body.priority ??
+      "MEDIUM";
 
     // CREATE SUPPORT TICKET
-    const ticket =
-      await prisma.ticket.create({
-        data: {
-          subject: cleanSubject,
-
-          message: cleanMessage,
-
-          userEmail: body.email,
-
-          category,
-
-          priority,
-
-          articleId:
-            body.articleId || null,
-        },
-      });
-
-    // FIND ADMINS
-    const admins =
-      await prisma.user.findMany({
-        where: {
-          roles: {
-            has: "ADMIN",
-          },
-        },
-
-        select: {
-          id: true,
-        },
-      });
-
-    // CREATE DATABASE NOTIFICATIONS
-    if (admins.length > 0) {
-
-      await prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
-
-          type: "SUPPORT_TICKET",
-
-          title: "New Support Ticket",
-
+    const {
+      ticket,
+    } =
+      await TicketService.createTicket(
+        {
+          email: body.email,
+          subject:
+            cleanSubject,
           message:
-            `${body.email} submitted a support request.`,
-
-          link:
-            `/dashboard/admins/support/tickets/${ticket.id}`,
-        })),
-      });
-    }
+            cleanMessage,
+          category,
+          priority,
+          articleId:
+            body.articleId ??
+            null,
+        }
+      );
 
     // REALTIME PUSHER EVENT
     try {
-
       await pusherServer.trigger(
         "admin-system",
         "new-support-ticket",
         {
           id: ticket.id,
-
           email: body.email,
-
-          subject: cleanSubject,
-
+          subject:
+            cleanSubject,
           category,
-
           priority,
         }
       );
-
     } catch (pusherError) {
-
       console.error(
         "Pusher Support Notification Error:",
         pusherError
@@ -150,19 +113,17 @@ export async function POST(req: Request) {
 
     // SEND USER ACKNOWLEDGEMENT EMAIL
     try {
-
-      await sendSupportAcknowledgementEmail({
-        to: body.email,
-
-        ticketId: ticket.id,
-
-        subject: cleanSubject,
-
-        priority,
-      });
-
+      await sendSupportAcknowledgementEmail(
+        {
+          to: body.email,
+          ticketId:
+            ticket.id,
+          subject:
+            cleanSubject,
+          priority,
+        }
+      );
     } catch (emailError) {
-
       console.error(
         "User acknowledgement email failed:",
         emailError
@@ -171,52 +132,47 @@ export async function POST(req: Request) {
 
     // SEND ADMIN EMAIL ALERT
     try {
-
-      await sendAdminSupportNotification({
-        ticketId: ticket.id,
-
-        subject: cleanSubject,
-
-        category,
-
-        priority,
-
-        email: body.email,
-      });
-
-    } catch (adminEmailError) {
-
+      await sendAdminSupportNotification(
+        {
+          ticketId:
+            ticket.id,
+          subject:
+            cleanSubject,
+          category,
+          priority,
+          email:
+            body.email,
+        }
+      );
+    } catch (
+      adminEmailError
+    ) {
       console.error(
         "Admin notification email failed:",
         adminEmailError
       );
     }
 
-    // SUCCESS RESPONSE
     return NextResponse.json({
       success: true,
-
       id: ticket.id,
-
       message:
         "Support ticket submitted successfully.",
     });
-
   } catch (error) {
-
     console.error(
       "Support Ticket Error:",
       error
     );
 
-    // VALIDATION ERROR
-    if (error instanceof z.ZodError) {
-
+    if (
+      error instanceof
+      z.ZodError
+    ) {
       return NextResponse.json(
         {
           error:
             "Invalid Data Structure",
-
           issues:
             error.flatten(),
         },
@@ -226,7 +182,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // SERVER ERROR
     return NextResponse.json(
       {
         error:

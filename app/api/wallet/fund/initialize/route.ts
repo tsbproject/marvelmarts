@@ -7,19 +7,22 @@ export async function POST(request: Request) {
   try {
     const session = await requireAuth();
 
-const { amount } = await request.json();
+const {
+  amount,
+  saveCard,
+  returnUrl,
+} = await request.json();
 
 const payment =
-  await PaymentService.initializeWalletFunding({
-    email: session.user.email!,
-    userId: session.user.id,
-    amount,
-  });
+        await PaymentService.initializeWalletFunding({
+        email: session.user.email!,
+        userId: session.user.id,
+        amount,
+        saveCard,
+        returnUrl,
+      });
 
-return NextResponse.json({
-  success: true,
-  ...payment,
-});
+return NextResponse.json(payment);
   } catch (error) {
     return handleApiError(error);
   }

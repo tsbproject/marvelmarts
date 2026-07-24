@@ -127,4 +127,74 @@ export class HelpCenterService {
         },
     });
     }
+
+
+    //SUPPORT ARTICLE VOTE ROUTE
+
+     static async voteArticle(
+  id: string,
+  type: "helpful" | "notHelpful"
+) {
+  if (!id) {
+    throw badRequest(
+      "Article ID is required."
+    );
+  }
+
+  if (
+    type !== "helpful" &&
+    type !== "notHelpful"
+  ) {
+    throw badRequest(
+      "Invalid vote type."
+    );
+  }
+
+  const updated =
+    await prisma.helpArticle.update({
+      where: {
+        id,
+      },
+      data: {
+        [type]: {
+          increment: 1,
+        },
+      },
+    });
+
+  return updated[type];
+}
+
+//SUPPORT LANDING DATA ROUTE
+
+   static async getHelpCenterHome() {
+  const [categoryData, featuredArticles] =
+    await Promise.all([
+      prisma.helpArticle.groupBy({
+        by: ["category"],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      prisma.helpArticle.findMany({
+        take: 4,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          category: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      }),
+    ]);
+
+  return {
+    categoryData,
+    featuredArticles,
+  };
+}
 }

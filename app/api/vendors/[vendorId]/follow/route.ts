@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireAuth  } from "@/app/lib/auth/api";
 import  { VendorService } from "@/app/lib/services/vendor.service";
 import {
   badRequest,

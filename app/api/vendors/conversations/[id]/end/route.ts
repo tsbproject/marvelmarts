@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { prisma } from "@/app/lib/prisma";
 import { pusherServer } from "@/app/lib/pusherServer";
 
 import { requireConversationAccess } from "@/app/lib/auth/conversation";

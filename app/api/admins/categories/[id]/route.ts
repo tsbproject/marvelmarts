@@ -3,8 +3,7 @@ import { z } from "zod";
 
 import { CategoryService } from "@/app/lib/services/category.service";
 
-import { requireManageCategories } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { requireManageCategories, handleApiError  } from "@/app/lib/auth/api";
 import { badRequest } from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";

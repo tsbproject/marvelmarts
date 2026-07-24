@@ -1,7 +1,8 @@
-import { prisma } from "@/app/lib/prisma";
+
 import { NextResponse } from "next/server";
 import { handleApiError } from "@/app/lib/auth/api";
-import { badRequest, notFound } from "@/app/lib/auth/errors";
+import { badRequest} from "@/app/lib/auth/errors";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,24 +16,12 @@ export async function GET(req: Request) {
       throw badRequest("Order number is required.");
     }
 
-    const order = await prisma.order.findUnique({
-      where: {
-        orderNumber,
-      },
-      include: {
-        items: true,
-        vendorProfile: {
-          select: {
-            id: true,
-            storeName: true,
-          },
-        },
-      },
-    });
+    const order =
+      await OrderService.getOrderByNumber(
+        orderNumber
+      );
 
-    if (!order) {
-      throw notFound("Order not found.");
-    }
+   
 
     return NextResponse.json({
       success: true,

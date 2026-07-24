@@ -46,13 +46,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
     await prisma.newsletterSubscriber.upsert({
       where: {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
       },
       update: {},
       create: {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
       },
     });
 

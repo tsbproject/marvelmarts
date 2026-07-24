@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { prisma } from "@/app/lib/prisma";
-
-import { requireVendor } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireVendor  } from "@/app/lib/auth/api";
 import { PayoutService } from "@/app/lib/services/payout.service";
 import {
   badRequest,
-  forbidden,
-  notFound,
 } from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";

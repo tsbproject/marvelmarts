@@ -15,7 +15,6 @@ import { MapPin,
   Zap, CreditCard, Banknote, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
 import { processWalletPurchase } from "@/app/_actions/wallet";
 import { useWallet } from "@/app/hooks/UseWallet";
 import { createOrder } from "@/app/lib/checkout/create-order";
@@ -55,7 +54,7 @@ type PaystackButtonProps = {
 
 
 
-const QuickFundModal = dynamic(() => import("../account/customer/_components/QuickFundModal"), {
+const QuickFundModal = dynamic(() => import("../_components/wallet/QuickFundModal"), {
   ssr: false, // This is the magic line that stops the crash
   loading: () => <div className="hidden" /> // Or a spinner
 });
@@ -124,6 +123,45 @@ export default function CheckoutPage() {
     return val.replace(/<[^>]*>?/gm, '').trim(); // Remove HTML tags and trim
   };
 
+  const CHECKOUT_DRAFT_KEY = "checkout-draft";
+
+const saveCheckoutDraft = useCallback(() => {
+  sessionStorage.setItem(
+    CHECKOUT_DRAFT_KEY,
+    JSON.stringify({
+      formData,
+      paymentMethod,
+    })
+  );
+}, [formData, paymentMethod]);
+
+const restoreCheckoutDraft = useCallback(() => {
+  const draft = sessionStorage.getItem(CHECKOUT_DRAFT_KEY);
+
+  if (!draft) return;
+
+  try {
+    const parsed = JSON.parse(draft);
+
+    if (parsed.formData) {
+      setFormData(parsed.formData);
+    }
+
+    if (parsed.paymentMethod) {
+      setPaymentMethod(parsed.paymentMethod);
+    }
+
+    sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  } catch (error) {
+    console.error(
+      "Failed to restore checkout draft:",
+      error
+    );
+
+    sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  }
+}, []);
+
   // --- VALIDATION LOGIC ---
   const isFormValid = useMemo(() => {
     const { email, firstName, lastName, phone, streetAddress, city, state } = formData;
@@ -153,9 +191,16 @@ export default function CheckoutPage() {
         }, [status, refreshBalance]);
 
         useEffect(() => {
-        setMounted(true);
-      }, []);
-            
+          setMounted(true);
+        }, []);
+
+
+      useEffect(() => {
+        if (!mounted) return;
+
+        restoreCheckoutDraft();
+      }, [mounted, restoreCheckoutDraft]);
+                  
     
     
     useEffect(() => {
@@ -386,19 +431,22 @@ return (
                 </button>
 
                 {/* QUICKFUNDMODAL*/}
-                     <QuickFundModal
-                        isOpen={isFundModalOpen}
-                        onClose={() => setIsFundModalOpen(false)}
-                        onSuccess={(amount) => {
-                          void fundWallet({
-                            amount,
-                            onSuccess: () => {
-                              setIsFundModalOpen(false);
-                              notifySuccess("Wallet funded successfully!");
-                            },
-                          });
-                        }}
-                      />
+                   <QuickFundModal
+                      isOpen={isFundModalOpen}
+                      onClose={() => setIsFundModalOpen(false)}
+                      onSuccess={(amount, saveCard) => {
+                      saveCheckoutDraft();
+                        void fundWallet({
+                          amount,
+                          saveCard,
+                          returnUrl: "/checkout",
+                          onSuccess: () => {
+                            setIsFundModalOpen(false);
+                            notifySuccess("Wallet funding initialized.");
+                          },
+                        });
+                      }}
+                    />
             </div>
 
               

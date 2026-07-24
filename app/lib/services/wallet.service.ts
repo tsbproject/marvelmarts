@@ -58,35 +58,47 @@ static async getTransaction(
   /**
    * Generic wallet credit.
    */
-    static async credit(
-    userId: string,
-    amount: number,
-    type: TransactionType,
-    reference: string,
-    description: string
-    ) {
-   return prisma.$transaction(
-  async (tx: Prisma.TransactionClient) => {
-      const wallet =
-        await walletRepository.credit(
+   static async credit(
+  userId: string,
+  amount: number,
+  type: TransactionType,
+  reference: string,
+  description: string
+) {
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const wallet =
+          await walletRepository.credit(
+            tx,
+            userId,
+            amount
+          );
+
+        await this.createTransaction(
           tx,
-          userId,
-          amount
+          wallet.id,
+          amount,
+          type,
+          "SUCCESS",
+          reference,
+          description
         );
 
-      await this.createTransaction(
-        tx,
-        wallet.id,
-        amount,
-        type,
-        "SUCCESS",
-        reference,
-        description
-      );
+        return wallet;
+      }
+    );
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return await this.getWallet(userId);
+    }
 
-      return wallet;
-    });
+    throw error;
   }
+}
 
   
   // ==========================================================
@@ -248,6 +260,12 @@ static async getTransaction(
     reference,
     description
   );
+
+  if (!wallet) {
+  throw new Error(
+    "Wallet could not be retrieved after funding."
+  );
+}
 
   const user = await prisma.user.findUnique({
     where: {
@@ -430,6 +448,34 @@ static async checkout(
   );
 
   return result;
+}
+
+
+static async completeWalletFunding(
+  transaction: any
+) {
+  const metadata = transaction.metadata ?? {};
+
+  if (metadata.type !== "wallet") {
+    throw badRequest("Invalid payment type.");
+  }
+
+  const wallet =
+    await this.creditVerifiedPayment(
+      metadata.userId,
+      Number(transaction.amount) / 100,
+      transaction.reference,
+      "Wallet funding"
+    );
+
+  return {
+    success: true,
+    wallet,
+    returnUrl:
+      typeof metadata.returnUrl === "string"
+        ? metadata.returnUrl
+        : "/account/customer/payment-methods",
+  };
 }
 
 }

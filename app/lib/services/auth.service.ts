@@ -629,8 +629,11 @@ static async registerVendor(data: {
                   state,
                   country,
                   isVerified: false,
-                  status:
-                    VendorStatus.AWAITING_DOCUMENTS,
+                  status: VendorStatus.AWAITING_DOCUMENTS,
+
+                  boost: {
+                    create: {},
+                  },
                 },
 
                 update: {
@@ -668,11 +671,14 @@ static async registerVendor(data: {
                 state,
                 country,
                 isVerified: false,
-                status:
-                  VendorStatus.AWAITING_DOCUMENTS,
+                status: VendorStatus.AWAITING_DOCUMENTS,
+
+                boost: {
+                  create: {},
+                },
               },
             },
-          },
+          }, 
 
           select: {
             id: true,

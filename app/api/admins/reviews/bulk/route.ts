@@ -4,9 +4,7 @@ import {
 } from "next/server";
 
 import { ProductService } from "@/app/lib/services/product.service";
-
-import { requireManageReviews } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageReviews } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

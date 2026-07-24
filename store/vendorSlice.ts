@@ -218,20 +218,7 @@ export const fetchAllPayouts = createAsyncThunk(
   }
 );
 
-/**
- * Syncs profile, onboarding status, and current balance.
- */
-// export const fetchVendorProfile = createAsyncThunk(
-//   "vendor/fetchProfile",
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.get("/api/vendors/profile");
-//       return response.data;
-//     } catch (error: any) {
-//       return rejectWithValue(error.response?.data?.message || "Failed to sync profile");
-//     }
-//   }
-// );
+
 
        export const fetchVendorProfile = createAsyncThunk(
   "vendor/fetchProfile",

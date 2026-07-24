@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { VendorService } from "@/app/lib/services/vendor.service";
 
-import { requireManageVendors } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageVendors } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

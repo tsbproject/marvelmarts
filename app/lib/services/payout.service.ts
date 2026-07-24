@@ -265,4 +265,65 @@ export class PayoutService {
         }
     );
     }
+
+
+    static async requestWithdrawal(
+  userId: string,
+  amount: number
+) {
+  if (!amount || amount <= 0) {
+    throw badRequest(
+      "Invalid withdrawal amount."
+    );
+  }
+
+  const vendor =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+  if (!vendor) {
+    throw notFound(
+      "Vendor profile not found."
+    );
+  }
+
+  if (vendor.isSuspended) {
+    throw forbidden(
+      "Account suspended. Withdrawals are locked."
+    );
+  }
+
+  if (amount > Number(vendor.balance)) {
+    throw badRequest(
+      "Insufficient balance."
+    );
+  }
+
+  const [withdrawal] =
+    await prisma.$transaction([
+      prisma.withdrawal.create({
+        data: {
+          vendorProfileId: vendor.id,
+          amount,
+          status: "PENDING",
+        },
+      }),
+
+      prisma.vendorProfile.update({
+        where: {
+          id: vendor.id,
+        },
+        data: {
+          balance: {
+            decrement: amount,
+          },
+        },
+      }),
+    ]);
+
+  return withdrawal;
+}
 }

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-
-import { prisma } from "@/app/lib/prisma";
-
-import { requireVendor } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireVendor  } from "@/app/lib/auth/api";
 import {
   badRequest,
   notFound,

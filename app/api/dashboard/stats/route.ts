@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
-
 import { prisma } from "@/app/lib/prisma";
-
-import { handleApiError } from "@/app/lib/auth/api";
+import {
+  requireAdmin,
+  handleApiError,
+} from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await requireAdmin();
+
     const [
       users,
       orders,

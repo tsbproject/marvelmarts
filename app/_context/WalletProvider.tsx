@@ -49,7 +49,12 @@ setBalance(Number(data.balance ?? 0));
 }, []);
 
  const fundWallet = useCallback(
-  async ({ amount, onSuccess }: FundWalletOptions) => {
+  async ({
+  amount,
+  saveCard = false,
+  returnUrl,
+  onSuccess,
+}: FundWalletOptions) => {
   
   try {
     setLoading(true);
@@ -62,9 +67,11 @@ setBalance(Number(data.balance ?? 0));
           "Content-Type":
             "application/json",
         },
-        body: JSON.stringify({
-          amount,
-        }),
+       body: JSON.stringify({
+        amount,
+        saveCard,
+        returnUrl,
+      }),
       }
     );
 
@@ -83,59 +90,25 @@ setBalance(Number(data.balance ?? 0));
 
 
 
-    const handler = window.PaystackPop.setup({
-      key: data.publicKey,
-      email: data.email,
-      amount: Number(data.amount) * 100,
-      currency: "NGN",
-      ref: data.reference,
-      callback: function (response: { reference: string }) {
-        void (async () => {
-          try {
-            const verifyResponse = await fetch(
-              "/api/wallet/fund/verify",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  reference: response.reference,
-                }),
-              }
-            );
+    const redirectUrl =
+      data.authorizationUrl ?? data.url;
 
-            const verifyData = await verifyResponse.json();
+    if (!redirectUrl) {
+      throw new Error(
+        "Payment gateway URL not returned."
+      );
+    }
 
-            if (!verifyResponse.ok) {
-              throw new Error(
-                verifyData.error ??
-                verifyData.message ??
-                "Wallet verification failed."
-              );
-            }
+   onSuccess?.();
+window.location.href = redirectUrl;
+return;
 
-            await refreshBalance();
-
-            onSuccess?.();
-
-            // we'll add the remaining UI updates below
-          } catch (error) {
-            console.error(error);
-          }
-        })();
-      },
-      onClose: function () {
-        setLoading(false);
-      },
-    });
-
-    handler.openIframe();
+  
   } catch (error) {
     console.error(error);
     setLoading(false);
   }
-}, [refreshBalance]);
+}, []);
 
 
 

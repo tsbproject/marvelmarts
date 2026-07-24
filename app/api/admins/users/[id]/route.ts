@@ -4,10 +4,10 @@ import { AuthService } from "@/app/lib/services/auth.service";
 
 import {
   requireManageUsers,
-  requireSuperAdmin,
-} from "@/app/lib/auth/guards";
+  requireSuperAdmin, handleApiError
+} from "@/app/lib/auth/api";
 
-import { handleApiError } from "@/app/lib/auth/api";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

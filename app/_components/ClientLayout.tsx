@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Script from "next/script";
 import { Provider, useDispatch } from "react-redux";
 import { store } from "@/store";
 import { SessionProvider as NextAuthSessionProvider, useSession } from "next-auth/react";
@@ -123,11 +122,6 @@ export default function ClientLayout({
             </WalletProvider>
           </NotificationProvider>
         </CustomSessionProvider>
-
-         <Script
-        src="https://js.paystack.co/v1/inline.js"
-        strategy="afterInteractive"
-      />
       </NextAuthSessionProvider>
     </Provider>
   );

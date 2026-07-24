@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { pusherServer } from "@/app/lib/pusherServer";
+import { OrderService } from "@/app/lib/services/order.service";
 
 import {
   requireAuth,
   handleApiError,
 } from "@/app/lib/auth/api";
 
-import {
-  badRequest,
-  forbidden,
-  notFound,
-} from "@/app/lib/auth/errors";
+import { badRequest,} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,126 +35,13 @@ export async function PATCH(
         ? body.reason.trim()
         : "Customer Cancelled";
 
-    const order = await prisma.order.findFirst({
-      where: {
+    const updatedOrder =
+      await OrderService.cancelOrder(
+        session.user.id,
         orderNumber,
-        userId: session.user.id,
-      },
-      include: {
-        items: true,
-      },
-    });
-
-    if (!order) {
-      throw notFound("Order not found.");
-    }
-
-    const status = order.status.toLowerCase();
-
-    if (status === "cancelled") {
-      throw badRequest("Order has already been cancelled.");
-    }
-
-    if (status === "delivered") {
-      throw forbidden("Delivered orders cannot be cancelled.");
-    }
-
-    if (status === "shipped") {
-      throw forbidden("Shipped orders cannot be cancelled.");
-    }
-
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          status: "cancelled",
-          cancelReason: reason,
-        },
-        include: {
-          items: true,
-          vendorProfile: {
-            select: {
-              id: true,
-              storeName: true,
-            },
-          },
-        },
-      });
-
-      for (const item of order.items) {
-        if (item.variantId) {
-          await tx.variant.update({
-            where: {
-              id: item.variantId,
-            },
-            data: {
-              stock: {
-                increment: item.qty,
-              },
-            },
-          });
-        }
-
-        if (item.productId) {
-          await tx.product.update({
-            where: {
-              id: item.productId,
-            },
-            data: {
-              stock: {
-                increment: item.qty,
-              },
-              salesCount: {
-                decrement: item.qty,
-              },
-            },
-          });
-        }
-      }
-
-      return updated;
-    });
-
-    try {
-      await Promise.all([
-        pusherServer.trigger(
-          "admin-notifications",
-          "new-notification",
-          {
-            id: updatedOrder.id,
-            type: "ORDER_CANCELLED",
-            title: "Order Cancelled",
-            message: `Order #${updatedOrder.orderNumber} was cancelled by ${
-              session.user.name ?? "a customer"
-            }.`,
-            orderId: updatedOrder.id,
-            orderNumber: updatedOrder.orderNumber,
-            createdAt: new Date().toISOString(),
-          }
-        ),
-
-        pusherServer.trigger(
-          "admin-orders",
-          "order-cancelled",
-          {
-            orderId: updatedOrder.id,
-            orderNumber: updatedOrder.orderNumber,
-            customerName:
-              session.user.name ?? "Customer",
-            total: Number(updatedOrder.total),
-            reason,
-            status: updatedOrder.status,
-          }
-        ),
-      ]);
-    } catch (error) {
-      console.error(
-        "ORDER_CANCEL_PUSHER_ERROR:",
-        error
+        reason,
+        session.user.name ?? "Customer"
       );
-    }
 
     return NextResponse.json({
       success: true,

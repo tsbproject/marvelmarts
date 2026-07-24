@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";
 
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError,  requireAuth } from "@/app/lib/auth/api";
 import { badRequest } from "@/app/lib/auth/errors";
 
 import { pusherServer } from "@/app/lib/pusherServer";

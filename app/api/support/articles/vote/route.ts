@@ -1,19 +1,27 @@
-import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
+import { handleApiError } from "@/app/lib/auth/api";
 
-export async function POST(req: Request) {
-  const { id, type } = await req.json();
+export async function POST(
+  req: Request
+) {
+  try {
+    const {
+      id,
+      type,
+    } = await req.json();
 
-  if (!id || !["helpful", "notHelpful"].includes(type)) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    const count =
+      await HelpCenterService.voteArticle(
+        id,
+        type
+      );
+
+    return NextResponse.json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  const updated = await prisma.helpArticle.update({
-    where: { id },
-    data: {
-      [type]: { increment: 1 }
-    }
-  });
-
-  return NextResponse.json({ success: true, count: updated[type as "helpful" | "notHelpful"] });
 }

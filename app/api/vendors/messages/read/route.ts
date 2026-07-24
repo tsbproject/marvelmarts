@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { prisma } from "@/app/lib/prisma";
-
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError,  requireAuth  } from "@/app/lib/auth/api";
 import { badRequest } from "@/app/lib/auth/errors";
 import { MessageService } from "@/app/lib/services/message.service";
 

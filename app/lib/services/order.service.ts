@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { InventoryService } from "@/app/lib/services/inventory.service";
 import { notFound,badRequest, forbidden } from "@/app/lib/auth/errors";
+import { pusherServer } from "@/app/lib/pusherServer";
 
 
 import {
@@ -788,6 +789,515 @@ static async completePaidOrder(
   }
 
   return order;
+}
+
+static async validateVerifiedPayment(
+  orderId: string,
+  transaction: any
+) {
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+    include: {
+      items: true,
+      vendorProfile: {
+        select: {
+          storeName: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  const metadata =
+    transaction.metadata ?? {};
+
+  if (
+    metadata.orderId &&
+    metadata.orderId !== order.id
+  ) {
+    throw badRequest(
+      "Payment reference does not belong to this order."
+    );
+  }
+
+  if (
+    metadata.orderNumber &&
+    metadata.orderNumber !== order.orderNumber
+  ) {
+    throw badRequest(
+      "Order number mismatch."
+    );
+  }
+
+  const expectedAmount =
+    Math.round(Number(order.total) * 100);
+
+  if (
+    Number(transaction.amount) !==
+    expectedAmount
+  ) {
+    throw badRequest(
+      "Payment amount mismatch."
+    );
+  }
+
+  if (
+    order.email &&
+    transaction.customer?.email &&
+    order.email.toLowerCase() !==
+      transaction.customer.email.toLowerCase()
+  ) {
+    throw badRequest(
+      "Customer email mismatch."
+    );
+  }
+
+  return prisma.order.findUnique({
+    where: {
+      id: order.id,
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      paymentStatus: true,
+      paymentIntentId: true,
+      status: true,
+    },
+  });
+}
+
+
+static async getOrderPaymentStatus(
+  orderNumber: string
+) {
+  const order = await prisma.order.findUnique({
+    where: {
+      orderNumber,
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      paymentStatus: true,
+      paymentIntentId: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  return order;
+}
+
+
+static async getOrderByNumber(
+  orderNumber: string
+) {
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        orderNumber,
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  return order;
+}
+
+
+static async getOrderStatusById(
+  orderId: string
+) {
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        paymentStatus: true,
+        status: true,
+        createdAt: true,
+        paymentIntentId: true,
+      },
+    });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  return order;
+}
+
+static async getUserOrderByNumber(
+  userId: string,
+  orderNumber: string
+) {
+  const order =
+    await prisma.order.findFirst({
+      where: {
+        orderNumber,
+        userId,
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  return order;
+}
+
+
+static async requestRefund(
+  userId: string,
+  orderNumber: string,
+  reason: string,
+  customerName: string
+) {
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      userId,
+    },
+  });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  if (!order.paymentStatus) {
+    throw forbidden(
+      "Only paid orders can be refunded."
+    );
+  }
+
+  if (order.refundStatus === "requested") {
+    throw badRequest(
+      "Refund has already been requested."
+    );
+  }
+
+  if (order.refundStatus === "approved") {
+    throw badRequest(
+      "Refund has already been approved."
+    );
+  }
+
+  const updatedOrder =
+    await prisma.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        refundStatus: "requested",
+        refundReason: reason.trim(),
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+  try {
+    await pusherServer.trigger(
+      "admin-orders",
+      "new-refund-request",
+      {
+        id: updatedOrder.id,
+        orderId: updatedOrder.id,
+        orderNumber:
+          updatedOrder.orderNumber,
+        refundStatus:
+          updatedOrder.refundStatus,
+        refundReason:
+          updatedOrder.refundReason,
+        customerName,
+        amount: Number(updatedOrder.total),
+        status: updatedOrder.status,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "PUSHER_REFUND_ERROR:",
+      error
+    );
+  }
+
+  return updatedOrder;
+}
+
+
+static async cancelOrder(
+  userId: string,
+  orderNumber: string,
+  reason: string,
+  customerName: string
+) {
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      userId,
+    },
+    include: {
+      items: true,
+    },
+  });
+
+  if (!order) {
+    throw notFound("Order not found.");
+  }
+
+  const status = order.status.toLowerCase();
+
+  if (status === "cancelled") {
+    throw badRequest(
+      "Order has already been cancelled."
+    );
+  }
+
+  if (status === "delivered") {
+    throw forbidden(
+      "Delivered orders cannot be cancelled."
+    );
+  }
+
+  if (status === "shipped") {
+    throw forbidden(
+      "Shipped orders cannot be cancelled."
+    );
+  }
+
+  const updatedOrder =
+    await prisma.$transaction(async (tx) => {
+      const updated =
+        await tx.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            status: "cancelled",
+            cancelReason: reason,
+          },
+          include: {
+            items: true,
+            vendorProfile: {
+              select: {
+                id: true,
+                storeName: true,
+              },
+            },
+          },
+        });
+
+      for (const item of order.items) {
+        if (item.variantId) {
+          await tx.variant.update({
+            where: {
+              id: item.variantId,
+            },
+            data: {
+              stock: {
+                increment: item.qty,
+              },
+            },
+          });
+        }
+
+        if (item.productId) {
+          await tx.product.update({
+            where: {
+              id: item.productId,
+            },
+            data: {
+              stock: {
+                increment: item.qty,
+              },
+              salesCount: {
+                decrement: item.qty,
+              },
+            },
+          });
+        }
+      }
+
+      return updated;
+    });
+
+  try {
+    await Promise.all([
+      pusherServer.trigger(
+        "admin-notifications",
+        "new-notification",
+        {
+          id: updatedOrder.id,
+          type: "ORDER_CANCELLED",
+          title: "Order Cancelled",
+          message: `Order #${updatedOrder.orderNumber} was cancelled by ${customerName}.`,
+          orderId: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          createdAt: new Date().toISOString(),
+        }
+      ),
+
+      pusherServer.trigger(
+        "admin-orders",
+        "order-cancelled",
+        {
+          orderId: updatedOrder.id,
+          orderNumber:
+            updatedOrder.orderNumber,
+          customerName,
+          total: Number(updatedOrder.total),
+          reason,
+          status: updatedOrder.status,
+        }
+      ),
+    ]);
+  } catch (error) {
+    console.error(
+      "ORDER_CANCEL_PUSHER_ERROR:",
+      error
+    );
+  }
+
+  return updatedOrder;
+}
+
+
+static async validateWebhookOrder(
+  orderId: string,
+  orderNumber: string | undefined,
+  amount: number,
+  customerEmail: string
+) {
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            userId: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+  if (!order) {
+    throw notFound(
+      "Order not found."
+    );
+  }
+
+  if (
+    orderNumber &&
+    order.orderNumber !==
+      orderNumber
+  ) {
+    throw badRequest(
+      "Order number mismatch"
+    );
+  }
+
+  const expectedAmount =
+    Math.round(
+      Number(order.total) * 100
+    );
+
+  if (
+    expectedAmount !== amount
+  ) {
+    throw badRequest(
+      "Payment amount mismatch"
+    );
+  }
+
+  if (
+    order.email &&
+    customerEmail &&
+    order.email.toLowerCase() !==
+      customerEmail
+  ) {
+    throw badRequest(
+      "Customer email mismatch"
+    );
+  }
+
+  return order;
+}
+
+
+
+static async completeOrderPayment(
+  transaction: any
+) {
+  const metadata =
+    transaction.metadata ?? {};
+
+  if (!metadata.orderId) {
+    throw badRequest(
+      "Order ID missing from payment metadata."
+    );
+  }
+
+  await this.validateVerifiedPayment(
+    metadata.orderId,
+    transaction
+  );
+
+  const order =
+    await this.completePaidOrder(
+      metadata.orderId,
+      transaction.reference
+    );
+
+  return {
+    success: true,
+    order,
+    returnUrl:
+      typeof metadata.returnUrl === "string"
+        ? metadata.returnUrl
+        : `/thank-you?orderNumber=${order.orderNumber}`,
+  };
 }
    
 

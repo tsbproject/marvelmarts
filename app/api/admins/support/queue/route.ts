@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { MessageService } from "@/app/lib/services/message.service";
-
-import { requireManageSupport } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageSupport } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

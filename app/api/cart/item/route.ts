@@ -5,9 +5,7 @@ import {
 
 import { CartService } from "@/app/lib/services/cart.service";
 
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
-
+import { requireAuth, handleApiError } from "@/app/lib/auth/api";
 import {
   cartItemUpdateSchema,
   cartItemDeleteSchema,

@@ -4,10 +4,9 @@ import { sendVendorActionEmail } from "@/app/lib/mailer";
 
 import {
   requireManageVendors,
-  requireManageVerifications,
-} from "@/app/lib/auth/guards";
+  requireManageVerifications, handleApiError
+} from "@/app/lib/auth/api";
 
-import { handleApiError } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

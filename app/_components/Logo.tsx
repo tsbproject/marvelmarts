@@ -13,13 +13,13 @@ const sizes = {
   xs: 26,
   sm: 36,
   md: 48,
-  lg: 64,
+  lg: 120,
   xl: 200,
 };
 
 export default function Logo({
   variant = "icon",
-  size = "xl",
+  size = "lg",
   priority = false,
   className,
 }: LogoProps) {
@@ -30,7 +30,7 @@ export default function Logo({
     <Image
       src={
         variant === "icon"
-          ? "/logo1-white.png"
+          ? "/logo1-white-new.png"
           : "/images/logo/logo-full.png"
       }
       alt="Tayo Bolarinwa"

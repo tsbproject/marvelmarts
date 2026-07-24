@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { CategoryService } from "@/app/lib/services/category.service";
-
-import { requireManageCategories } from "@/app/lib/auth/guards";
 import { badRequest } from "@/app/lib/auth/errors";
-import { handleApiError } from "@/app/lib/auth/api";
+import { requireManageCategories, handleApiError } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

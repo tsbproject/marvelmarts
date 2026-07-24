@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { AuthService } from "@/app/lib/services/auth.service";
 
-import { requireSuperAdmin } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireSuperAdmin } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

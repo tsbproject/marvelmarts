@@ -5,8 +5,7 @@ import {
 
 import { CartService } from "@/app/lib/services/cart.service";
 
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireAuth } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

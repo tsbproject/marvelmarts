@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireAuth } from "@/app/lib/auth/api";
 import { CheckoutService } from "@/app/lib/services/checkout.service";
 import { OrderService } from "@/app/lib/services/order.service";
 import { PaymentService } from "@/app/lib/services/payment.service";

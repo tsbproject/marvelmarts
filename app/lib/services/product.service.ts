@@ -1,24 +1,268 @@
 import { prisma } from "@/app/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { deleteFromCloudinary } from "@/app/lib/cloudinary";
 import {
   badRequest,
   forbidden,
-  notFound,
+  notFound
 } from "@/app/lib/auth/errors";
 
 export class ProductService {
-  static async getVendorProfile(userId: string) {
-    return prisma.vendorProfile.findUnique({
+
+
+//PRIVATE HELPERS SECTION
+private static async getVendorProfileId(
+  userId: string
+) {
+  const vendor =
+    await prisma.vendorProfile.findUnique({
       where: {
         userId,
       },
-
       select: {
         id: true,
-        isSuspended: true,
       },
     });
+
+  return vendor?.id ?? null;
+}
+
+
+private static async validateProductOwnership(
+  userId: string,
+  role: string,
+  vendorProfileId: string
+) {
+  if (
+    role === "ADMIN" ||
+    role === "SUPER_ADMIN"
+  ) {
+    return;
   }
+
+  const currentVendorProfileId =
+    await this.getVendorProfileId(userId);
+
+  if (
+    currentVendorProfileId !==
+    vendorProfileId
+  ) {
+    throw forbidden(
+      "You do not have permission to modify this product."
+    );
+  }
+}
+
+
+    //QUERIES SECTION 
+    static async getProductBySlug(
+  slug: string
+) {
+  const product =
+    await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        variants: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        reviews: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+        vendorProfile: {
+          select: {
+            id: true,
+            storeName: true,
+            logoUrl: true,
+            status: true,
+            isSuspended: true,
+          },
+        },
+      },
+    });
+
+  if (!product) {
+    throw notFound(
+      "Product not found."
+    );
+  }
+
+  if (
+    product.vendorProfile.isSuspended ||
+    product.vendorProfile.status !==
+      "APPROVED"
+  ) {
+    throw forbidden(
+      "Product is unavailable."
+    );
+  }
+
+  return product;
+}
+
+
+
+//COMMAND SECTION 
+static async updateProductBySlug(
+  slug: string,
+  userId: string,
+  role: string,
+  data: any
+) {
+  const existingProduct =
+    await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+        vendorProfileId: true,
+      },
+    });
+
+  if (!existingProduct) {
+    throw notFound(
+      "Product not found."
+    );
+  }
+
+  await this.validateProductOwnership(
+    userId,
+    role,
+    existingProduct.vendorProfileId
+  );
+
+  return prisma.product.update({
+    where: {
+      slug,
+    },
+    data: {
+      title: data.title,
+      description: data.description,
+      brand: data.brand,
+      price: data.price,
+      discountPrice:
+        data.discountPrice,
+      categoryId:
+        data.categoryId,
+      status: data.status,
+      isFeatured:
+        data.isFeatured,
+      metaTitle:
+        data.metaTitle ||
+        data.title,
+      metaDescription:
+        data.metaDescription ||
+        data.description?.substring(
+          0,
+          160
+        ),
+    },
+    include: {
+      images: {
+        orderBy: {
+          order: "asc",
+        },
+      },
+      category: true,
+      variants: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+  });
+}
+
+static async deleteProductBySlug(
+  slug: string,
+  userId: string,
+  role: string
+) {
+  const existingProduct =
+    await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        images: true,
+      },
+    });
+
+  if (!existingProduct) {
+    throw notFound(
+      "Product not found."
+    );
+  }
+
+  await this.validateProductOwnership(
+    userId,
+    role,
+    existingProduct.vendorProfileId
+  );
+
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.productImage.deleteMany({
+        where: {
+          productId:
+            existingProduct.id,
+        },
+      });
+
+      await tx.variant.deleteMany({
+        where: {
+          productId:
+            existingProduct.id,
+        },
+      });
+
+      await tx.product.delete({
+        where: {
+          id: existingProduct.id,
+        },
+      });
+    }
+  );
+
+  await Promise.allSettled(
+    existingProduct.images.map(
+      async (image) => {
+        try {
+          await deleteFromCloudinary(
+            image.url
+          );
+        } catch {}
+      }
+    )
+  );
+}
+
+
+
+
+
 
   static async getProduct(
     id: string
@@ -493,85 +737,102 @@ static async getVendorProducts(
       }
 
 
-      static async createProductReview(
-      userId: string,
-      data: {
-        productId: string;
-        rating: number;
-        body?: string;
-      }
-    ) {
-      const {
+  static async createProductReview(
+  userId: string,
+  data: {
+    productId: string;
+    rating: number;
+    body?: string;
+  }
+) {
+  const {
+    productId,
+    rating,
+    body,
+  } = data;
+
+  if (!productId) {
+    throw badRequest(
+      "Product is required."
+    );
+  }
+
+  if (
+    rating < 1 ||
+    rating > 5
+  ) {
+    throw badRequest(
+      "Rating must be between 1 and 5."
+    );
+  }
+
+  const product =
+    await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!product) {
+    throw notFound(
+      "Product not found."
+    );
+  }
+
+  const existingReview =
+    await prisma.review.findFirst({
+      where: {
+        userId,
         productId,
-        rating,
-        body,
-      } = data;
+      },
+      select: {
+        id: true,
+      },
+    });
 
-      if (!productId) {
-        throw badRequest(
-          "Product is required."
-        );
-      }
+  if (existingReview) {
+    throw badRequest(
+      "You have already reviewed this product."
+    );
+  }
 
-      if (
-        rating < 1 ||
-        rating > 5
-      ) {
-        throw badRequest(
-          "Rating must be between 1 and 5."
-        );
-      }
-
-      const product =
-        await prisma.product.findUnique({
-          where: {
-            id: productId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-      if (!product) {
-        throw notFound(
-          "Product not found."
-        );
-      }
-
-      const purchased =
-        await prisma.order.findFirst({
-          where: {
-            userId,
-            status: "DELIVERED",
-            items: {
-              some: {
-                productId,
-              },
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
-
-      return prisma.review.create({
-        data: {
-          productId,
-          userId,
-          rating,
-          body,
-          isVerified: !!purchased,
-          approved: true,
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-            },
+  const purchased =
+    await prisma.order.findFirst({
+      where: {
+        userId,
+        status: "DELIVERED",
+        items: {
+          some: {
+            productId,
           },
         },
-      });
-    }
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  return prisma.review.create({
+    data: {
+      productId,
+      userId,
+      rating,
+      body,
+      isVerified: !!purchased,
+      approved: true,
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
 
 
     static async bulkApproveReviews(
@@ -675,29 +936,706 @@ static async getVendorProducts(
       });
     }
 
-    static async deleteReview(
-      reviewId: string
-    ) {
-      const review =
-        await prisma.review.findUnique({
-          where: {
-            id: reviewId,
-          },
-          select: {
-            id: true,
-          },
-        });
+  static async deleteReviewBySlug(
+  slug: string,
+  reviewId: string,
+  userId: string,
+  role: string
+) {
+  const product =
+    await prisma.product.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
 
-      if (!review) {
-        throw notFound(
-          "Review not found."
-        );
-      }
+  if (!product) {
+    throw notFound("Product not found.");
+  }
 
-      await prisma.review.delete({
+  const review =
+    await prisma.review.findUnique({
+      where: {
+        id: reviewId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        productId: true,
+      },
+    });
+
+  if (
+    !review ||
+    review.productId !== product.id
+  ) {
+    throw notFound("Review not found.");
+  }
+
+  const isAdmin =
+    role === "ADMIN" ||
+    role === "SUPER_ADMIN";
+
+  if (
+    !isAdmin &&
+    review.userId !== userId
+  ) {
+    throw forbidden(
+      "You do not have permission to delete this review."
+    );
+  }
+
+  await prisma.review.delete({
+    where: {
+      id: review.id,
+    },
+  });
+}
+
+
+static async deleteReview(
+  reviewId: string
+) {
+  const review =
+    await prisma.review.findUnique({
+      where: {
+        id: reviewId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!review) {
+    throw notFound(
+      "Review not found."
+    );
+  }
+
+  await prisma.review.delete({
+    where: {
+      id: reviewId,
+    },
+  });
+}
+
+  static async expireBoostedProducts() {
+  const now = new Date();
+
+  const result = await prisma.product.updateMany({
+    where: {
+      boostUntil: {
+        lt: now,
+      },
+      isTrending: true,
+    },
+    data: {
+      isTrending: false,
+    },
+  });
+
+  return {
+    processed: result.count,
+    timestamp: now,
+  };
+}
+
+static async getTrendingProducts() {
+  return prisma.product.findMany({
+    where: {
+      isTrending: true,
+      status: "ACTIVE",
+      vendorProfile: {
+        isSuspended: false,
+        status: "APPROVED",
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: 10,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      price: true,
+      discountPrice: true,
+      stock: true,
+      images: {
+        orderBy: {
+          order: "asc",
+        },
+        take: 1,
+        select: {
+          url: true,
+          alt: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+
+static async search(
+  query: string
+) {
+  const [products, categories, vendors] =
+    await Promise.all([
+      prisma.product.findMany({
         where: {
-          id: reviewId,
+          status: "ACTIVE",
+          isPublished: true,
+          vendorProfile: {
+            isSuspended: false,
+            status: "APPROVED",
+          },
+          OR: [
+            {
+              title: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              description: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              sku: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+        include: {
+          images: {
+            take: 1,
+            orderBy: {
+              order: "asc",
+            },
+          },
+          vendorProfile: {
+            select: {
+              id: true,
+              storeName: true,
+              logoUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            boostUntil: {
+              sort: "desc",
+              nulls: "last",
+            },
+          },
+          {
+            createdAt: "desc",
+          },
+        ],
+        take: 10,
+      }),
+
+      prisma.category.findMany({
+        where: {
+          name: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        orderBy: {
+          name: "asc",
+        },
+        take: 4,
+      }),
+
+      prisma.vendorProfile.findMany({
+        where: {
+          isSuspended: false,
+          status: "APPROVED",
+          OR: [
+            {
+              storeName: {
+                contains: query,
+                mode: "insensitive",
+              },
+            },
+            {
+              id: {
+                equals: query,
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          storeName: true,
+          logoUrl: true,
+          isVerified: true,
+        },
+        take: 3,
+      }),
+    ]);
+
+  return {
+    products,
+    categories,
+    vendors,
+  };
+}
+
+
+static async bulkToggleProductFlag({
+  ids = [],
+  updateType,
+  applyToAll = false,
+  filters,
+}: {
+  ids: string[];
+  updateType: string;
+  applyToAll?: boolean;
+  filters?: any;
+}) {
+  const fieldMapping = {
+    isFeatured: "isFeatured",
+    isFlashSale: "isFlashSale",
+    isNew: "isNewArrival",
+    isNewArrival: "isNewArrival",
+  } as const;
+
+  const dbField =
+    fieldMapping[
+      updateType as keyof typeof fieldMapping
+    ];
+
+  if (!dbField) {
+    throw badRequest("Invalid update type.");
+  }
+
+  let targetIds: string[] = [];
+
+  if (applyToAll && filters) {
+    const where: Record<string, unknown> = {};
+
+    if (filters.search) {
+      const searchConstraint = {
+        contains: filters.search,
+        mode: "insensitive" as const,
+      };
+
+      switch (filters.searchType) {
+        case "title":
+          where.title = searchConstraint;
+          break;
+
+        case "category":
+          where.category = {
+            name: searchConstraint,
+          };
+          break;
+
+        case "vendor":
+          where.vendorProfile = {
+            storeName: searchConstraint,
+          };
+          break;
+
+        default:
+          where.OR = [
+            {
+              title: searchConstraint,
+            },
+            {
+              category: {
+                name: searchConstraint,
+              },
+            },
+            {
+              vendorProfile: {
+                storeName: searchConstraint,
+              },
+            },
+          ];
+      }
+    }
+
+    if (filters.filter === "featured") {
+      where.isFeatured = true;
+    }
+
+    if (filters.filter === "new") {
+      where.isNewArrival = true;
+    }
+
+    if (filters.filter === "flash") {
+      where.isFlashSale = true;
+    }
+
+    const products =
+      await prisma.product.findMany({
+        where,
+        select: {
+          id: true,
         },
       });
-    }
+
+    targetIds = products.map(
+      (product) => product.id
+    );
+  } else {
+    targetIds = ids;
+  }
+
+  if (targetIds.length === 0) {
+    throw badRequest(
+      "No products selected."
+    );
+  }
+
+  const currentProducts =
+    await prisma.product.findMany({
+      where: {
+        id: {
+          in: targetIds,
+        },
+      },
+      select: {
+        id: true,
+        isFeatured: true,
+        isFlashSale: true,
+        isNewArrival: true,
+      },
+    });
+
+  await prisma.$transaction(
+    currentProducts.map((product) => {
+      let value = false;
+
+      switch (dbField) {
+        case "isFeatured":
+          value = !product.isFeatured;
+          break;
+
+        case "isFlashSale":
+          value = !product.isFlashSale;
+          break;
+
+        case "isNewArrival":
+          value = !product.isNewArrival;
+          break;
+      }
+
+      return prisma.product.update({
+        where: {
+          id: product.id,
+        },
+        data: {
+          [dbField]: value,
+        },
+      });
+    })
+  );
+
+  return {
+    affectedIds: targetIds,
+    count: targetIds.length,
+  };
+}
+
+//SLUG/VARIANTS
+static async getProductVariants(
+  slug: string
+) {
+  const product = await prisma.product.findUnique({
+    where: {
+      slug,
+    },
+    include: {
+      variants: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+  });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  return product.variants;
+}
+
+//COMMAND VARIANTS 
+static async createVariant(
+  productId: string,
+  data: {
+    name: string;
+    price?: number;
+    stock?: number;
+    attributes?: Record<string, string>;
+  }
+) {
+  return prisma.variant.create({
+    data: {
+      name: data.name,
+      price: data.price ?? 0,
+      stock: data.stock ?? 0,
+      attributes: data.attributes ?? {},
+      productId,
+    },
+  });
+}
+
+//DELETE VARIANTS
+static async deleteVariant(
+  variantId: string
+) {
+  const variant =
+    await prisma.variant.findUnique({
+      where: {
+        id: variantId,
+      },
+    });
+
+  if (!variant) {
+    throw notFound(
+      "Variant not found."
+    );
+  }
+
+  await prisma.variant.delete({
+    where: {
+      id: variantId,
+    },
+  });
+}
+
+
+//PRODUCT REVIEW ROUTE
+
+static async getProductReviews(
+  slug: string,
+  page: number,
+  limit: number
+) {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  const [reviews, total] =
+    await Promise.all([
+      prisma.review.findMany({
+        where: {
+          productId: product.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+
+      prisma.review.count({
+        where: {
+          productId: product.id,
+        },
+      }),
+    ]);
+
+  return {
+    reviews,
+    total,
+  };
+}
+
+//PRODUCT REVIEW COMMANDS
+static async createReview(
+  slug: string,
+  userId: string,
+  data: any
+) {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  const existingReview =
+    await prisma.review.findFirst({
+      where: {
+        productId: product.id,
+        userId,
+      },
+    });
+
+  if (existingReview) {
+    throw badRequest(
+      "You have already reviewed this product."
+    );
+  }
+
+  const purchased =
+    await prisma.order.findFirst({
+      where: {
+        userId,
+        status: "DELIVERED",
+        items: {
+          some: {
+            productId: product.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  return prisma.review.create({
+    data: {
+      ...data,
+      userId,
+      productId: product.id,
+      isVerified: !!purchased,
+      approved: true,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+  });
+}
+
+  //SLUG IMAGE ROUTE
+
+  static async getProductImages(
+  slug: string
+) {
+  const product =
+    await prisma.product.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+      },
+    });
+
+  if (!product) {
+    throw notFound(
+      "Product not found."
+    );
+  }
+
+  return product.images;
+}
+
+//IMAGE SLUG COMMANDS
+  
+   static async createProductImage(
+  productId: string,
+  data: {
+    url: string;
+    alt?: string;
+    order?: number;
+  }
+) {
+  return prisma.productImage.create({
+    data: {
+      url: data.url,
+      alt: data.alt,
+      order: data.order ?? 0,
+      productId,
+    },
+  });
+}
+
+    static async createProductImages(
+  productId: string,
+  images: {
+    url: string;
+    alt?: string;
+    order: number;
+  }[]
+) {
+  return prisma.$transaction(
+    images.map((image) =>
+      prisma.productImage.create({
+        data: {
+          ...image,
+          productId,
+        },
+      })
+    )
+  );
+}
+
+
+static async deleteProductImage(
+  imageId: string
+) {
+  const image =
+    await prisma.productImage.findUnique({
+      where: {
+        id: imageId,
+      },
+    });
+
+  if (!image) {
+    throw notFound(
+      "Image not found."
+    );
+  }
+
+  try {
+    await deleteFromCloudinary(
+      image.url
+    );
+  } catch {
+    // Ignore cleanup failures
+  }
+
+  await prisma.productImage.delete({
+    where: {
+      id: imageId,
+    },
+  });
+}
+
+  
 }

@@ -1,112 +1,118 @@
-import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { addCreditsToVendor } from "@/app/_actions/boostActions";
-import {
-  sendAdminOrderNotification,
-  sendOrderConfirmationEmail,
-} from "@/app/lib/mailer";
-import { mapOrderToOrderConfirmationEmail } from "@/app/lib/mail/mappers/order.mapper";
+
+import { PaymentService } from "@/app/lib/services/payment.service";
 import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const secret =
+      process.env.PAYSTACK_SECRET_KEY;
 
     if (!secret) {
       return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
+        {
+          error:
+            "Server configuration error",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
-    const body = await req.text();
-    const signature = req.headers.get("x-paystack-signature");
+    const body =
+      await req.text();
+
+    const signature =
+      req.headers.get(
+        "x-paystack-signature"
+      );
 
     const hash = crypto
-      .createHmac("sha512", secret)
+      .createHmac(
+        "sha512",
+        secret
+      )
       .update(body)
       .digest("hex");
 
-    if (!signature || hash !== signature) {
+    if (
+      !signature ||
+      hash !== signature
+    ) {
       return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 }
+        {
+          error:
+            "Invalid signature",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const event = JSON.parse(body);
+    const event =
+      JSON.parse(body);
 
-    if (event.event !== "charge.success") {
-      return NextResponse.json({ received: true });
+    if (
+      event.event !==
+      "charge.success"
+    ) {
+      return NextResponse.json({
+        received: true,
+      });
     }
 
-    const payment = event.data;
+    const payment =
+      event.data;
 
-    const reference = payment.reference;
-    const metadata = payment.metadata ?? {};
-    const amount = Number(payment.amount);
-    const customerEmail =
-      payment.customer?.email?.toLowerCase() ?? "";
+    const reference =
+      payment.reference;
 
     if (!reference) {
       return NextResponse.json(
-        { error: "Missing payment reference" },
-        { status: 400 }
+        {
+          error:
+            "Missing payment reference",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    // BOOST CREDIT PURCHASE
+    const metadata =
+      payment.metadata ?? {};
 
-    if (metadata.custom_fields) {
-      const vendorField = metadata.custom_fields.find(
-        (f: any) => f.variable_name === "vendor_id"
+    const boostResult =
+      await PaymentService.processBoostCreditPayment(
+        metadata,
+        reference
       );
 
-      const creditsField = metadata.custom_fields.find(
-        (f: any) => f.variable_name === "credits"
-      );
-
-      if (vendorField && creditsField) {
-        const existing =
-          await prisma.creditTransaction.findUnique({
-            where: {
-              reference,
-            },
-          });
-
-        if (existing) {
-          return NextResponse.json({
-            received: true,
-          });
-        }
-
-        const result = await addCreditsToVendor(
-          vendorField.value,
-          Number(creditsField.value),
-          reference
+    if (boostResult.handled) {
+      if (!boostResult.success) {
+        return NextResponse.json(
+          {
+            error:
+              boostResult.error ??
+              "Unable to process boost payment.",
+          },
+          {
+            status: 500,
+          }
         );
-
-        if (!result.success) {
-          return NextResponse.json(
-            {
-              error:
-                result.error ??
-                "Unable to add credits.",
-            },
-            {
-              status: 500,
-            }
-          );
-        }
-
-        return NextResponse.json({
-          received: true,
-        });
       }
+
+      return NextResponse.json({
+        received: true,
+      });
     }
 
     if (!metadata.orderId) {
@@ -115,88 +121,24 @@ export async function POST(req: Request) {
       });
     }
 
-    const existingOrder =
-      await prisma.order.findUnique({
-        where: {
-          id: metadata.orderId,
-        },
-        include: {
-          items: true,
-          vendorProfile: {
-            select: {
-              id: true,
-              userId: true,
-              storeName: true,
-            },
-          },
-        },
-      });
-
-    if (!existingOrder) {
-      return NextResponse.json(
-        {
-          error: "Order not found",
-        },
-        {
-          status: 404,
-        }
+    const order =
+      await OrderService.validateWebhookOrder(
+        metadata.orderId,
+        metadata.orderNumber,
+        Number(payment.amount),
+        payment.customer?.email?.toLowerCase() ??
+          ""
       );
-    }
 
-    if (existingOrder.paymentStatus) {
+    if (order.paymentStatus) {
       return NextResponse.json({
         received: true,
       });
     }
 
-    if (
-      metadata.orderNumber &&
-      metadata.orderNumber !==
-        existingOrder.orderNumber
-    ) {
-      return NextResponse.json(
-        {
-          error: "Order number mismatch",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const expectedAmount =
-      Math.round(Number(existingOrder.total) * 100);
-
-    if (expectedAmount !== amount) {
-      return NextResponse.json(
-        {
-          error: "Payment amount mismatch",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      existingOrder.email &&
-      customerEmail &&
-      existingOrder.email.toLowerCase() !==
-        customerEmail
-    ) {
-      return NextResponse.json(
-        {
-          error: "Customer email mismatch",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-    
     const updatedOrder =
       await OrderService.completePaidOrder(
-        existingOrder.id,
+        order.id,
         reference
       );
 
@@ -207,11 +149,13 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       received: true,
-      orderId: updatedOrder.id,
-      orderNumber: updatedOrder.orderNumber,
-      status: "processing",
+      orderId:
+        updatedOrder.id,
+      orderNumber:
+        updatedOrder.orderNumber,
+      status:
+        "processing",
     });
-  
   } catch (error: any) {
     console.error(
       "PAYSTACK_WEBHOOK_ERROR:",

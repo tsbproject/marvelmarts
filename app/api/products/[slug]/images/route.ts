@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
-import { prisma } from "@/app/lib/prisma";
-
-import {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-} from "@/app/lib/cloudinary";
-
-import {
-  handleApiError,
-  requireVendor,
-} from "@/app/lib/auth/api";
-
-import {
-  badRequest,
-  notFound,
-} from "@/app/lib/auth/errors";
-
+import { uploadToCloudinary,} from "@/app/lib/cloudinary";
+import { handleApiError, requireVendor,} from "@/app/lib/auth/api";
+import {  badRequest,} from "@/app/lib/auth/errors";
 import { requireProductOwnershipBySlug } from "@/app/lib/products/ownership";
+import { ProductService } from "@/app/lib/services/product.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,31 +36,17 @@ export async function GET(
   try {
     const { slug } = await params;
 
-    const product =
-      await prisma.product.findUnique({
-        where: {
-          slug,
-        },
+    const images =
+  await ProductService.getProductImages(
+    slug
+  );
 
-        include: {
-          images: {
-            orderBy: {
-              order: "asc",
-            },
-          },
-        },
-      });
+  return NextResponse.json({
+  success: true,
+  images,
+});
 
-    if (!product) {
-      throw notFound(
-        "Product not found."
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      images: product.images,
-    });
+    
   } catch (error) {
     return handleApiError(error);
   }
@@ -120,15 +92,10 @@ export async function POST(
         imageSchema.parse(body);
 
       const image =
-        await prisma.productImage.create({
-          data: {
-            url: parsed.url,
-            alt: parsed.alt,
-            order: parsed.order ?? 0,
-            productId: product.id,
-          },
-        });
-
+      await ProductService.createProductImage(
+        product.id,
+        parsed
+      );
       return NextResponse.json(
         {
           success: true,
@@ -209,16 +176,10 @@ export async function POST(
         }
       }
 
-      const createdImages =
-        await prisma.$transaction(
-          uploadedImages.map((image) =>
-            prisma.productImage.create({
-              data: {
-                ...image,
-                productId: product.id,
-              },
-            })
-          )
+     const createdImages =
+        await ProductService.createProductImages(
+          product.id,
+          uploadedImages
         );
 
       return NextResponse.json(
@@ -278,32 +239,9 @@ export async function DELETE(
       );
     }
 
-    const image =
-      await prisma.productImage.findUnique({
-        where: {
-          id: imageId,
-        },
-      });
-
-    if (!image) {
-      throw notFound(
-        "Image not found."
-      );
-    }
-
-    try {
-      await deleteFromCloudinary(
-        image.url
-      );
-    } catch {
-      // Ignore Cloudinary cleanup failures
-    }
-
-    await prisma.productImage.delete({
-      where: {
-        id: imageId,
-      },
-    });
+    await ProductService.deleteProductImage(
+      imageId
+    );
 
     return NextResponse.json({
       success: true,

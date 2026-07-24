@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { HelpCenterService } from "@/app/lib/services/help-center.service";
-
-import { requireManageSupport } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
-import { badRequest } from "@/app/lib/auth/errors";
+import { handleApiError, requireManageSupport } from "@/app/lib/auth/api";
+import { badRequest} from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

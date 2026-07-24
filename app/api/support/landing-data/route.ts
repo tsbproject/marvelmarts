@@ -1,42 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+
+import { handleApiError } from "@/app/lib/auth/api";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
 export async function GET() {
   try {
-    // Test database connection
-    await prisma.$connect();
+    const data =
+      await HelpCenterService.getHelpCenterHome();
 
-    // 1. Get Categories and counts using your 'category' field
-    const categoryData = await prisma.helpArticle.groupBy({
-      by: ['category'],
-      _count: { _all: true }
-    });
-
-    // 2. Get Top 4 Featured Articles based on your model fields
-    const featuredArticles = await prisma.helpArticle.findMany({
-      take: 4,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        category: true,
-      },
-      orderBy: { updatedAt: 'desc' }
-    });
-
-    return NextResponse.json({
-      categoryData,
-      featuredArticles
-    }, { status: 200 });
-
-  } catch (error: any) {
-    console.error("CRITICAL DATABASE ERROR:", error.message);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
-      { status: 500 }
+      data
     );
-  } finally {
-    await prisma.$disconnect();
+  } catch (error) {
+    return handleApiError(error);
   }
 }

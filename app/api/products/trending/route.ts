@@ -1,47 +1,11 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
 import { handleApiError } from "@/app/lib/auth/api";
+import { ProductService } from "@/app/lib/services/product.service";
 
 export async function GET() {
   try {
-    const products = await prisma.product.findMany({
-      where: {
-        isTrending: true,
-        status: "ACTIVE",
-        vendorProfile: {
-          isSuspended: false,
-          status: "APPROVED",
-        },
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        price: true,
-        discountPrice: true,
-        stock: true,
-        images: {
-          orderBy: {
-            order: "asc",
-          },
-          take: 1,
-          select: {
-            url: true,
-            alt: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const products =
+     await ProductService.getTrendingProducts();
 
     const serializedProducts = products.map((product) => ({
       ...product,

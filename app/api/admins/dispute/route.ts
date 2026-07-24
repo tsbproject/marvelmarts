@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import { VendorService } from "@/app/lib/services/vendor.service";
 import { realtimeService } from "@/app/lib/realtime/realtime.service";
-
-import { requireManageVendors } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageVendors } from "@/app/lib/auth/api";
 import {
   badRequest,
 } from "@/app/lib/auth/errors";

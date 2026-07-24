@@ -7,7 +7,7 @@ import { AuthService } from "@/app/lib/services/auth.service";
 
 import {
   requireSuperAdmin,
-} from "@/app/lib/auth/guards";
+} from "@/app/lib/auth/api";
 
 import {
   handleApiError,

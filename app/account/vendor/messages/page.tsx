@@ -15,12 +15,13 @@ interface Conversation {
   messages?: any[];
 }
 
-export default function VendorInbox({ vendorProfileId }: { vendorProfileId: string }) {
+export default function VendorInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: session, status: authStatus } = useSession();
   const { notifyError } = useNotification();
   const pusherClient = getPusherClient();
+  const activeId = session?.user?.id;
 
   const fetchConversations = useCallback(async () => {
     if (authStatus !== "authenticated") return;
@@ -30,13 +31,20 @@ export default function VendorInbox({ vendorProfileId }: { vendorProfileId: stri
       const res = await fetch(`/api/vendors/conversations`);
       if (!res.ok) throw new Error("Fetch failed");
       
-      const data = await res.json();
-      
-      const transformedData = data.map((conv: any) => ({
-        ...conv,
-        // Fallback chain to ensure we always show the latest text
-        lastMessage: conv.messages?.[0]?.content || conv.lastMessage || "No messages yet"
-      }));
+      const result = await res.json();
+      const conversations =
+                Array.isArray(result)
+                  ? result
+                  : result.conversations ?? [];
+
+              const transformedData =
+                conversations.map((conv: any) => ({
+                  ...conv,
+                  lastMessage:
+                    conv.messages?.[0]?.content ||
+                    conv.lastMessage ||
+                    "No messages yet",
+                }));
 
       setConversations(transformedData);
     } catch (error) {
@@ -55,7 +63,7 @@ export default function VendorInbox({ vendorProfileId }: { vendorProfileId: stri
     }
 
     // TACTICAL FIX: Use the vendor's actual ID from the profile or session
-    const activeId = vendorProfileId || session?.user?.id;
+  const activeId = session?.user?.id;
     if (!activeId) return;
 
     fetchConversations();
@@ -89,7 +97,7 @@ export default function VendorInbox({ vendorProfileId }: { vendorProfileId: stri
       pusherClient.unsubscribe(channelName);
       channel.unbind_all();
     };
-  }, [vendorProfileId, session?.user?.id, authStatus, fetchConversations]);
+  }, [ session?.user?.id, authStatus, fetchConversations]);
 
   if (authStatus === "unauthenticated") {
     return (
@@ -118,7 +126,7 @@ export default function VendorInbox({ vendorProfileId }: { vendorProfileId: stri
       <div className="flex items-center justify-between border-b border-gray-100 pb-4">
         <h2 className="text-2xl font-black italic uppercase text-[#002B5B]">Incoming Comms</h2>
         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
-          CH: {vendorProfileId?.slice(-8).toUpperCase() || "GLOBAL"}
+          CH: {activeId?.slice(-8).toUpperCase() || "GLOBAL"}
         </span>
       </div>
       

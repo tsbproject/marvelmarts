@@ -1,8 +1,12 @@
-import { prisma } from "@/app/lib/prisma";
-
 import { NextResponse } from "next/server";
-
 import { z } from "zod";
+
+import {
+  requireAdmin,
+  handleApiError,
+} from "@/app/lib/auth/api";
+
+import { TicketService } from "@/app/lib/services/ticket.service";
 
 const updateSchema = z.object({
   id: z
@@ -18,60 +22,33 @@ const updateSchema = z.object({
   ]),
 });
 
-export async function PUT(req: Request) {
+export async function PUT(
+  req: Request
+) {
   try {
+    await requireAdmin();
 
-    const json = await req.json();
+    const json =
+      await req.json();
 
-    const { id, status } =
-      updateSchema.parse(json);
-
-    // TODO:
-    // Add admin authentication/session protection here
+    const {
+      id,
+      status,
+    } = updateSchema.parse(
+      json
+    );
 
     const updatedTicket =
-      await prisma.ticket.update({
-        where: {
-          id,
-        },
-
-        data: {
-          status,
-        },
-      });
+      await TicketService.updateStatus(
+        id,
+        status
+      );
 
     return NextResponse.json({
       success: true,
-
       ticket: updatedTicket,
     });
-
   } catch (error) {
-
-    console.error(
-      "Ticket Update Error:",
-      error
-    );
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Invalid request data.",
-        },
-        {
-          status: 422,
-        }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error:
-          "Unauthorized or invalid request.",
-      },
-      {
-        status: 400,
-      }
-    );
+    return handleApiError(error);
   }
 }

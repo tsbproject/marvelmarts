@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { requireAuth } from "@/app/lib/auth/api";
-import { handleApiError } from "@/app/lib/auth/api";
-import { badRequest, notFound } from "@/app/lib/auth/errors";
+import { handleApiError, requireAuth } from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,25 +19,11 @@ export async function GET(
       throw badRequest("Order number is required.");
     }
 
-    const order = await prisma.order.findFirst({
-      where: {
-        orderNumber,
-        userId: session.user.id,
-      },
-      include: {
-        items: true,
-        vendorProfile: {
-          select: {
-            id: true,
-            storeName: true,
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      throw notFound("Order not found.");
-    }
+    const order =
+      await OrderService.getUserOrderByNumber(
+        session.user.id,
+        orderNumber
+      );
 
     return NextResponse.json({
       success: true,

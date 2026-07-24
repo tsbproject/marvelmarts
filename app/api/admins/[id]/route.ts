@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import {requireManageAdmins, requireSuperAdmin,
-} from "@/app/lib/auth/guards";
-
-import { handleApiError,} from "@/app/lib/auth/api";
-
-
+import {
+  requireManageAdmins,
+  requireSuperAdmin,
+  handleApiError,
+} from "@/app/lib/auth/api";
 import { AuthService } from "@/app/lib/services/auth.service";
 
 import { UserRole } from "@prisma/client";

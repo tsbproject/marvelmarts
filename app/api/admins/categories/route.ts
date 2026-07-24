@@ -4,9 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { CategoryService } from "@/app/lib/services/category.service";
-
-import { requireManageCategories } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageCategories } from "@/app/lib/auth/api";
 
 const createSchema = z.object({
   name: z.string().min(1),

@@ -1,7 +1,5 @@
 import { prisma } from "@/app/lib/prisma";
 import { forbidden, notFound, badRequest} from "@/app/lib/auth/errors";
-
-
 import {
   Prisma,
   VendorStatus,
@@ -10,15 +8,24 @@ import {
 
 
 export class VendorService {
-  static async getVendorProfile(
-    userId: string
-  ) {
-    return prisma.vendorProfile.findUnique({
-      where: {
-        userId,
-      },
-    });
-  }
+  
+  
+ static async getVendorProfile(
+  userId: string
+) {
+  return prisma.vendorProfile.findUnique({
+    where: {
+      userId,
+    },
+
+    include: {
+      boost: true,
+      onboarding: true,
+      store: true,
+      score: true,
+    },
+  });
+}
 
   static async getVendorProfileOrThrow(
     userId: string
@@ -125,57 +132,10 @@ static async activateVendor(
   });
 }
 
-static async updateProfile(
-  vendorProfileId: string,
-  data: Prisma.VendorProfileUpdateInput
-) {
-  return prisma.vendorProfile.update({
-    where: {
-      id: vendorProfileId,
-    },
-    data,
-  });
-}
-
-static async updateStatus(
-  vendorProfileId: string,
-  status: VendorStatus
-) {
-  return prisma.vendorProfile.update({
-    where: {
-      id: vendorProfileId,
-    },
-    data: {
-      status,
-    },
-  });
-}
 
 
 
-static async approveVendor(
-  vendorProfileId: string
-) {
-  return this.updateStatus(
-    vendorProfileId,
-    VendorStatus.APPROVED
-  );
-}
 
-static async rejectVendor(
-  vendorProfileId: string,
-  rejectionReason: string
-) {
-  return prisma.vendorProfile.update({
-    where: {
-      id: vendorProfileId,
-    },
-    data: {
-      status: VendorStatus.REJECTED,
-      rejectionReason,
-    },
-  });
-}
 
 
 static async listVendors() {
@@ -1132,51 +1092,91 @@ static async getVendorProfileWithStore(
 
 
     static async updateVendorSettings(
-      userId: string,
-      data: {
-        logoUrl?: string;
-        coverUrl?: string;
-        bio?: string;
-        storeName?: string;
-        instagram?: string;
-        whatsapp?: string;
-        twitter?: string;
-        bankName?: string;
-        accountNumber?: string;
-        accountName?: string;
-      }
-    ) {
-      return prisma.vendorProfile.update({
-        where: {
-          userId,
-        },
+  userId: string,
+  data: {
+    logoUrl?: string;
+    coverUrl?: string;
+    bio?: string;
+    storeName?: string;
+    instagram?: string;
+    whatsapp?: string;
+    twitter?: string;
+    facebook?: string;
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+  }
+) {
+  return prisma.$transaction(
+    async (tx) => {
+      const profile =
+        await tx.vendorProfile.update({
+          where: {
+            userId,
+          },
+          data: {
+            logoUrl:
+              data.logoUrl,
+            coverUrl:
+              data.coverUrl,
+            bio:
+              data.bio,
+            storeName:
+              data.storeName,
 
-        data: {
-          logoUrl: data.logoUrl,
-          coverUrl: data.coverUrl,
-          bio: data.bio,
-          storeName: data.storeName,
+            instagram:
+              data.instagram,
+            whatsapp:
+              data.whatsapp,
+            twitter:
+              data.twitter,
+            facebook:
+              data.facebook,
 
-          instagram: data.instagram,
-          whatsapp: data.whatsapp,
-          twitter: data.twitter,
+            bankName:
+              data.bankName,
+            accountNumber:
+              data.accountNumber,
+            accountName:
+              data.accountName,
 
-          bankName: data.bankName,
-          accountNumber: data.accountNumber,
-          accountName: data.accountName,
-
-          onboarding: {
-            update: {
-              storeDone: !!(
-                data.logoUrl &&
-                data.coverUrl &&
-                data.bio
-              ),
+            onboarding: {
+              update: {
+                storeDone: !!(
+                  data.logoUrl &&
+                  data.coverUrl &&
+                  data.bio
+                ),
+              },
             },
           },
+        });
+
+      await tx.vendorStore.updateMany({
+        where: {
+          vendorProfileId:
+            profile.id,
+        },
+        data: {
+          name:
+            data.storeName ??
+            undefined,
+          description:
+            data.bio ??
+            undefined,
+          logo:
+            data.logoUrl ??
+            undefined,
+          banner:
+            data.coverUrl ??
+            undefined,
         },
       });
+
+      return profile;
     }
+  );
+}
 
 
     static async getBankAccount(
@@ -1246,5 +1246,7 @@ static async getVendorProfileWithStore(
         },
       });
     }
+
+   
                 
 }

@@ -5,7 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
-import { requireAuth } from "./guards";
+import { requireAuth } from "./api";
 import { hasPermission, isSuperAdmin } from "./authorization";
 import {
   forbidden,

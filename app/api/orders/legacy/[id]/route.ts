@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
 import { handleApiError } from "@/app/lib/auth/api";
-import { badRequest, notFound } from "@/app/lib/auth/errors";
+import { badRequest } from "@/app/lib/auth/errors";
+import { OrderService } from "@/app/lib/services/order.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,23 +17,8 @@ export async function GET(
       throw badRequest("Order ID is required.");
     }
 
-    const order = await prisma.order.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        paymentStatus: true,
-        status: true,
-        createdAt: true,
-        paymentIntentId: true,
-      },
-    });
-
-    if (!order) {
-      throw notFound("Order not found.");
-    }
+   const order =
+  await OrderService.getOrderStatusById(id);
 
     return NextResponse.json({
       success: true,

@@ -4,9 +4,16 @@ import { Prisma, UserRole } from "@prisma/client";
 import prisma from "@/app/lib/prisma";
 import { notFound } from "@/app/lib/auth/errors";
 import { ZodError } from "zod";
+import type { Session } from "next-auth";
+
 
 import { authOptions } from "@/app/lib/auth";
 import { handleAuthError } from "./handlers";
+import type { AdminPermissions } from "./types";
+import {
+  hasPermission,
+  isSuperAdmin,
+} from "./authorization";
 import {
   unauthorized,
   forbidden,
@@ -103,18 +110,18 @@ export function handleApiError(error: unknown) {
   /* ---------------------------------------------------------------------- */
 
   if (error instanceof Error) {
-    console.error(error);
+  console.error(error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      {
-        status: 500,
-      }
-    );
-  }
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Internal server error.",
+    },
+    {
+      status: 500,
+    }
+  );
+}
 
   /* ---------------------------------------------------------------------- */
   /* UNKNOWN                                                                */
@@ -137,7 +144,7 @@ export function handleApiError(error: unknown) {
 /*                              AUTH HELPERS                                  */
 /* -------------------------------------------------------------------------- */
 
-export async function requireAuth() {
+export async function requireAuth(): Promise<Session> {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -146,10 +153,10 @@ export async function requireAuth() {
 
   return session;
 }
-
 export async function requireRole(
   ...roles: UserRole[]
-) {
+): Promise<Session> {
+  
   const session = await requireAuth();
 
   const role = session.user.role as UserRole | undefined;
@@ -201,3 +208,86 @@ export async function requireVendorProfile() {
         vendor,
     };
 }
+
+
+
+
+export async function requireSuperAdmin() {
+  const session = await requireAuth();
+
+  if (!isSuperAdmin(session)) {
+    throw forbidden(
+      "Super Administrator access required."
+    );
+  }
+
+  return session;
+}
+
+export async function requirePermission(
+  permission: keyof AdminPermissions
+) {
+  const session =
+    await requireAdmin();
+
+  if (
+    !hasPermission(
+      session,
+      permission
+    )
+  ) {
+    throw forbidden(
+      "Insufficient permissions."
+    );
+  }
+
+  return session;
+}
+
+
+
+
+export const requireManageAdmins = () =>
+  requirePermission("manageAdmins");
+
+export const requireManageUsers = () =>
+  requirePermission("manageUsers");
+
+export const requireManageProducts = () =>
+  requirePermission("manageProducts");
+
+export const requireManageOrders = () =>
+  requirePermission("manageOrders");
+
+export const requireManageMessages = () =>
+  requirePermission("manageMessages");
+
+export const requireManageSettings = () =>
+  requirePermission("manageSettings");
+
+export const requireManageCategories = () =>
+  requirePermission("manageCategories");
+
+export const requireManageVendors = () =>
+  requirePermission("manageVendors");
+
+export const requireManageVerifications = () =>
+  requirePermission("manageVerifications");
+
+export const requireManageSubscribers = () =>
+  requirePermission("manageSubscribers");
+
+export const requireManageReviews = () =>
+  requirePermission("manageReviews");
+
+export const requireManageActivity = () =>
+  requirePermission("manageActivity");
+
+export const requireManageTrending = () =>
+  requirePermission("manageTrending");
+
+export const requireManageSupport = () =>
+  requirePermission("manageSupport");
+
+export const requireManagePayout = () =>
+  requirePermission("managePayout");

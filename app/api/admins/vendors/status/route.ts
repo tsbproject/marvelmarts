@@ -4,8 +4,7 @@ import { VendorService } from "@/app/lib/services/vendor.service";
 
 import { sendVendorStatusEmail } from "@/app/lib/mailer";
 
-import { requireManageVerifications } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageVerifications } from "@/app/lib/auth/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

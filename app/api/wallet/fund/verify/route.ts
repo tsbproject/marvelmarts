@@ -42,15 +42,56 @@ export async function POST(request: Request) {
       );
     }
 
-    const wallet =
-    await WalletService.creditVerifiedPayment(
-        session.user.id,
-        Number(transaction.amount) / 100,
-        reference,
-        "Wallet funding"
-    );
+    try {
+      const wallet =
+        await WalletService.creditVerifiedPayment(
+          session.user.id,
+          Number(transaction.amount) / 100,
+          reference,
+          "Wallet funding"
+        );
 
-    return NextResponse.json(wallet);
+      console.log(
+        "Wallet verification result:",
+        wallet
+      );
+
+      if (metadata.saveCard) {
+        try {
+          const saved =
+            await PaymentService.savePaymentMethod(
+              session.user.id,
+              reference
+            );
+
+          console.log(
+            "Card save result:",
+            saved
+          );
+        } catch (error) {
+          console.error(
+            "Card save failed:",
+            error
+          );
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        wallet,
+        returnUrl:
+          typeof metadata.returnUrl === "string"
+            ? metadata.returnUrl
+            : "/account/customer/payment-methods",
+      });
+    } catch (error) {
+      console.error(
+        "VERIFY ROUTE ERROR:",
+        error
+      );
+
+      throw error;
+    }
   } catch (error) {
     return handleApiError(error);
   }

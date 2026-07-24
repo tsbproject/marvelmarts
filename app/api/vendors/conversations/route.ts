@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-
-import { prisma } from "@/app/lib/prisma";
-
-import { requireVendor } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireVendor } from "@/app/lib/auth/api";
 import { MessageService } from "@/app/lib/services/message.service";
 
 export const runtime = "nodejs";

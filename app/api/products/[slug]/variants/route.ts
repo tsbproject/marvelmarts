@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
-import { prisma } from "@/app/lib/prisma";
-
 import {
   handleApiError,
   requireVendor,
@@ -10,10 +7,10 @@ import {
 
 import {
   badRequest,
-  notFound,
 } from "@/app/lib/auth/errors";
 
 import { requireProductOwnershipBySlug } from "@/app/lib/products/ownership";
+import { ProductService } from "@/app/lib/services/product.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,30 +64,18 @@ export async function GET(
   try {
     const { slug } = await params;
 
-    const product = await prisma.product.findUnique({
-      where: {
-        slug,
-      },
+ const variants =
+  await ProductService.getProductVariants(
+    slug
+  );
 
-      include: {
-        variants: {
-          orderBy: {
-            name: "asc",
-          },
-        },
-      },
-    });
-
-    if (!product) {
-      throw notFound("Product not found.");
-    }
-
-    return NextResponse.json({
-      success: true,
-      variants: product.variants.map(
-        serializeVariant
-      ),
-    });
+return NextResponse.json({
+  success: true,
+  variants: variants.map(
+    serializeVariant
+  ),
+});
+    
   } catch (error) {
     return handleApiError(error);
   }
@@ -129,24 +114,11 @@ export async function POST(
     const parsed =
       variantSchema.parse(body);
 
-    const variant =
-      await prisma.variant.create({
-        data: {
-          name: parsed.name,
-
-          price:
-            parsed.price ?? 0,
-
-          stock:
-            parsed.stock ?? 0,
-
-          attributes:
-            parsed.attributes ?? {},
-
-          productId:
-            product.id,
-        },
-      });
+      const variant =
+      await ProductService.createVariant(
+        product.id,
+        parsed
+      );
 
     return NextResponse.json(
       {
@@ -203,24 +175,11 @@ export async function DELETE(
       );
     }
 
-    const variant =
-      await prisma.variant.findUnique({
-        where: {
-          id: variantId,
-        },
-      });
+  await ProductService.deleteVariant(
+      variantId
+    );
 
-    if (!variant) {
-      throw notFound(
-        "Variant not found."
-      );
-    }
-
-    await prisma.variant.delete({
-      where: {
-        id: variantId,
-      },
-    });
+  
 
     return NextResponse.json({
       success: true,

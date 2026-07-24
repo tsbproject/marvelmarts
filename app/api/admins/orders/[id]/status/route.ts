@@ -9,8 +9,7 @@ import {
 
 import { pusherServer } from "@/app/lib/pusherServer";
 
-import { requireManageOrders } from "@/app/lib/auth/guards";
-import { handleApiError } from "@/app/lib/auth/api";
+import { handleApiError, requireManageOrders } from "@/app/lib/auth/api";
 import { badRequest } from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
