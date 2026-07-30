@@ -197,7 +197,7 @@ export default function ProductCard({
         router.push(`/products/${slug}`);
         }
     }}
-    className={`group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white transition-all duration-500 cursor-pointer
+    className={`group relative overflow-hidden  rounded-3xl  border-slate-200/80 bg-white transition-all duration-500 cursor-pointer
     hover:-translate-y-2
     hover:border-brand-primary/30
     hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]
@@ -226,7 +226,7 @@ export default function ProductCard({
         src={getValidImage()}
         alt={product.title}
         fill
-        className="object-center p-4 md:p-5 transition-transform duration-700 group-hover:scale-105 group-hover:rotate-[1deg]"
+        className="object-center p-2 md:p-5 transition-transform duration-700 group-hover:scale-105 group-hover:rotate-[1deg]"
         />
 
       {/* MOBILE WISHLIST */}
@@ -245,7 +245,7 @@ export default function ProductCard({
       <div className="absolute inset-0 z-20 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex items-center justify-center gap-3">
         <button
           onClick={(e) => { e.stopPropagation(); onQuickView?.(product); }}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl backdrop-blur transition-all duration-300 hover:bg-brand-primary hover:text-white translate-y-3 group-hover:translate-y-0"
+          className="flex h-10 w-10 lg:h-11 lg:w-11 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl backdrop-blur transition-all duration-300 hover:bg-brand-primary hover:text-white translate-y-3 group-hover:translate-y-0"
         >
           <Eye size={20} />
         </button>
@@ -275,7 +275,7 @@ export default function ProductCard({
             isList ? "" : "justify-between"
         }`}
         >
-        <span className="text-xs font-bold uppercase tracking-wide text-brand-primary">
+        <span className="text-xs font-bold uppercase tracking-wide text-brand-primary hidden">
           {product.brand || "Original"}
         </span>
         
@@ -285,7 +285,7 @@ export default function ProductCard({
             <Link
               href={`/store/${product.vendorProfile?.store?.slug || product.vendorProfileId}`} 
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 group/store overflow-hidden"
+              className="flex items-center gap-1 group/store overflow-hidden "
             >
               <span className="truncate text-xs font-medium text-slate-500 transition-colors group-hover/store:text-slate-900">
                 {product.vendorProfile?.storeName}
@@ -299,16 +299,16 @@ export default function ProductCard({
       </div>
 
       {/* TITLE */}
-      <h3 className={`mt-3 line-clamp-2 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-primary ${
+      <h3 className={`mt-0 line-clamp-5 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-primary ${
         isList
-            ? "text-lg"
-            : "min-h-[52px] text-sm lg:text-base"
+            ? "text-md"
+            : "min-h-[30px] text-xs lg:text-xs"
         }`}>
         {product.title}
       </h3>
 
       {/* STAR RATING */}
-      <div className={`mt-2 flex items-center gap-2 ${isList ? "" : "justify-center"}`}>
+      <div className={`mt-2 flex items-center gap-2 ${isList ? "" : "justify-center hidden"}`}>
         <div className="flex items-center">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
@@ -334,7 +334,7 @@ export default function ProductCard({
         }`}
         >
         <div className="flex flex-col">
-            <span className="text-[13px]  font-extrabold tracking-tight text-accent-navy lg:text-xl">
+            <span className="text-[10px]  font-extrabold tracking-tight text-accent-navy lg:text-xl">
             {formatNaira(displayPrice)}
             </span>
 

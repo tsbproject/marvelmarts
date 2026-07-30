@@ -27,7 +27,7 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
   return (
     <section className="py-16 px-4 max-w-[1400px] mx-auto">
       {/* Tactical Header */}
-      <div className="flex items-end justify-between mb-10">
+      <div className="grid grid-cols-2 items-end justify-between mb-10">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-[2px] bg-blue-600" />
@@ -49,7 +49,7 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-6">
         {categories.map((category) => (
           <Link 
             key={category.id} 
