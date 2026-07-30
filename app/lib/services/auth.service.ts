@@ -1048,109 +1048,107 @@ static async verifyVendorRegistration(
     }
 
     static async deleteAdministrator(
-      id: string,
-      sessionUser: {
-        id: string;
-        email: string | null;
-      }
-    ) {
-      if (
-        sessionUser.id === id
-      ) {
-        throw badRequest(
-          "You cannot delete your own administrator account."
-        );
-      }
+  id: string,
+  sessionUser: {
+    id: string;
+    email: string | null;
+  }
+) {
+  // Prevent self-deletion
+  if (sessionUser.id === id) {
+    throw badRequest(
+      "You cannot delete your own administrator account."
+    );
+  }
 
-      const target =
-        await prisma.user.findUnique({
-          where: {
-            id,
-          },
-          select: {
-            id: true,
-            email: true,
-            role: true,
-          },
-        });
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+    },
+  });
 
-      if (!target) {
-      throw notFound(
-        "Administrator not found."
-      );
-    }
+  if (!target) {
+    throw notFound("Administrator not found.");
+  }
 
-    if (
-      target.role ===
-      UserRole.SUPER_ADMIN
-    ) {
-      throw forbidden(
-        "Super Administrators cannot be deleted."
-      );
-    }
+  // Ensure only administrator accounts can be deleted
+  if (
+    target.role !== UserRole.ADMIN &&
+    target.role !== UserRole.SUPER_ADMIN
+  ) {
+    throw forbidden(
+      "Only administrator accounts can be deleted."
+    );
+  }
 
-      await prisma.$transaction(
-        async (tx) => {
-         
+  // Super Admin accounts are protected
+  if (target.role === UserRole.SUPER_ADMIN) {
+    throw forbidden(
+      "Super Administrators cannot be deleted."
+    );
+  }
 
-          try {
-            await tx.order.updateMany({
-              where: {
-                userId: id,
-              },
-              data: {
-                userId: null,
-              },
-            });
-          } catch {
-            console.warn(
-              "Order detachment skipped."
-            );
-          }
+  await prisma.$transaction(async (tx) => {
+    // Preserve order history by detaching the deleted user
+    await tx.order.updateMany({
+      where: {
+        userId: id,
+      },
+      data: {
+        userId: null,
+      },
+    });
 
-          await tx.account.deleteMany({
-            where: {
-              userId: id,
-            },
-          });
+    await tx.account.deleteMany({
+      where: {
+        userId: id,
+      },
+    });
 
-          await tx.address.deleteMany({
-            where: {
-              userId: id,
-            },
-          });
+    await tx.address.deleteMany({
+      where: {
+        userId: id,
+      },
+    });
 
-          await tx.review.deleteMany({
-            where: {
-              userId: id,
-            },
-          });
+    await tx.review.deleteMany({
+      where: {
+        userId: id,
+      },
+    });
 
-          await tx.adminProfile.deleteMany({
-            where: {
-              userId: id,
-            },
-          });
+    await tx.adminProfile.deleteMany({
+      where: {
+        userId: id,
+      },
+    });
 
-          await tx.vendorProfile.deleteMany({
-            where: {
-              userId: id,
-            },
-          });
+    await tx.vendorProfile.deleteMany({
+      where: {
+        userId: id,
+      },
+    });
 
-          await tx.user.delete({
-            where: {
-              id,
-            },
-          });
-        }
-      );
+    await tx.user.delete({
+      where: {
+        id,
+      },
+    });
+  });
 
-      console.log(
-        `[Admin Deleted] By: ${sessionUser.email} → ${target.email}`
-      );
-    }
+  // TODO:
+  // Replace with AuditLogService when audit logging is implemented.
+  console.info(
+    `[Admin Deleted] Actor: ${sessionUser.email ?? sessionUser.id} | Target: ${target.email ?? target.id}`
+  );
 
+  return {
+    success: true,
+  };
+}
       static async resetUserPassword(
       userId: string,
       newPassword: string

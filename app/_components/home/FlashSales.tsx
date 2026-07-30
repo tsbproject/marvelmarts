@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Zap, ShoppingBag } from "lucide-react";
-import ProductCard from "./ProductCard";
-import ProductSkeleton from "./ProductSkeleton";
+import ProductCardv2 from "../ProductCardv2";
+import ProductSkeleton from "../ProductSkeleton";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 import { useRouter } from "next/navigation";
-import ProductQuickViewDrawer from "./ProductQuickViewDrawer";
+import ProductQuickViewDrawer from "../ProductQuickViewDrawer";
 import { SerializedProduct } from "@/types/product"; 
 
 interface FlashSalesProps {
@@ -86,7 +86,7 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
       ) : products && products.length > 0 ? (
         <div className={gridLayoutClass}>
           {products.slice(0, 6).map((product) => (
-            <ProductCard
+            <ProductCardv2
               key={product.id}
               product={product}
               onQuickView={(p) => {

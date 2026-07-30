@@ -1,9 +1,9 @@
 import prisma from "@/app/lib/prisma";
 import { SerializedProduct } from "@/types/product";
-import EcommerceCarousel from './_components/EcommerceCarousel';
-import FlashSales from './_components/FlashSales';
-import NewArrival from './_components/NewArrival';
-import FeaturedProducts from './_components/FeaturedProducts';
+import EcommerceCarousel from './_components/home/EcommerceCarousel';
+import FlashSales from './_components/home/FlashSales';
+import NewArrival from './_components/home/NewArrival';
+import FeaturedProducts from './_components/home/FeaturedProducts';
 import StoreHydrator from './_components/StoreHydrator';
 import FeaturedCategoriesHome from './_components/home/FeaturedCategoriesHome';
 import TrendingCarousel from './_components/home/TrendingCarousel';

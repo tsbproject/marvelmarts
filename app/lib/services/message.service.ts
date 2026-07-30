@@ -70,10 +70,10 @@ export class MessageService {
         });
         }
 
-          static async getConversations(
-            userId: string,
-            type?: string | null
-          ) {
+        static async getConversations(
+              userId: string,
+              type?: ConversationType
+            ) {
             return prisma.conversation.findMany({
               where: {
                 participantIds: {
@@ -85,8 +85,8 @@ export class MessageService {
                   },
                 },
                 ...(type && {
-                  type: type as any,
-                }),
+                      type,
+                    }),
               },
               include: {
                 participants: {

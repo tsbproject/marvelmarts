@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Image from "next/image";
 import { LayoutGrid, List, Search, Loader2 } from "lucide-react";
-import ProductCard from "@/app/_components/ProductCard";
+import ProductCardv2 from "@/app/_components/ProductCardv2";
 import ProductQuickViewDrawer from "@/app/_components/ProductQuickViewDrawer"; // Import your drawer
 import { SerializedProduct } from "@/types/product";
 
@@ -97,7 +97,7 @@ export default function ShopContent({ initialProducts }: { initialProducts: Seri
       {/* Product Display Area */}
       <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" : "flex flex-col gap-6"}>
         {initialProducts.map((product) => (
-          <ProductCard 
+          <ProductCardv2 
             key={product.id} 
             product={product} 
             viewMode={viewMode}

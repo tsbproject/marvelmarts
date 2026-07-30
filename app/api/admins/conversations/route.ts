@@ -1,31 +1,51 @@
+import { ConversationType } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
 import { MessageService } from "@/app/lib/services/message.service";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import {
+  handleApiError,
+  requireAuth,
+} from "@/app/lib/auth/api";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const querySchema = z.object({
+  type: z.nativeEnum(ConversationType).optional(),
+});
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await requireAuth();
 
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get("type");
+
+    const parsed = querySchema.safeParse({
+      type: searchParams.get("type") ?? undefined,
+    });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid query parameters.",
+          errors: parsed.error.flatten().fieldErrors,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const conversations =
       await MessageService.getConversations(
         session.user.id,
-        type
+        parsed.data.type
       );
 
     return NextResponse.json(conversations);
   } catch (error) {
-    console.error("CONV_LIST_ERROR:", error);
-    return NextResponse.json(
-      { error: "Failed to load threads" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

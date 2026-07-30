@@ -17,41 +17,60 @@ const categoryInclude = {
 } satisfies Prisma.CategoryInclude;
 
 export class CategoryService {
-  static async createCategory(
-    data: {
-      name: string;
-      slug: string;
-      parentId?: string;
-      position?: number;
-    }
-  ) {
-    const normalizedData = {
-      ...data,
-      parentId:
-        data.parentId &&
-        data.parentId.trim() !== ""
-          ? data.parentId
-          : null,
-      position: data.position ?? 0,
-    };
+  static async createCategory(data: {
+  name: string;
+  slug: string;
+  parentId?: string;
+  position?: number;
+}) {
+  const normalizedData = {
+    ...data,
+    parentId:
+      data.parentId &&
+      data.parentId.trim() !== ""
+        ? data.parentId
+        : null,
+    position: data.position ?? 0,
+  };
 
-    const existing =
+  const existing =
+    await prisma.category.findUnique({
+      where: {
+        slug: normalizedData.slug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (existing) {
+    throw badRequest(
+      "Slug already exists."
+    );
+  }
+
+  if (normalizedData.parentId) {
+    const parent =
       await prisma.category.findUnique({
         where: {
-          slug: normalizedData.slug,
+          id: normalizedData.parentId,
+        },
+        select: {
+          id: true,
         },
       });
 
-    if (existing) {
+    if (!parent) {
       throw badRequest(
-        "Slug already exists."
+        "Parent category does not exist."
       );
     }
-
-    return prisma.category.create({
-      data: normalizedData,
-    });
   }
+
+  return prisma.category.create({
+    data: normalizedData,
+  });
+}
 
   static async getCategories(options: {
     all: boolean;
@@ -139,41 +158,91 @@ export class CategoryService {
     };
   }
 
-    static async reorderCategories(
-    updates: {
-        id: string;
-        position: number;
-    }[]
-    ) {
-    await prisma.$transaction(
-        updates.map(({ id, position }) =>
-        prisma.category.update({
-            where: {
-            id,
-            },
-            data: {
-            position,
-            },
-        })
-        )
+
+  static async reorderCategories(
+  updates: {
+    id: string;
+    position: number;
+  }[]
+) {
+  if (updates.length === 0) {
+    throw badRequest(
+      "No category updates were provided."
     );
-    }
+  }
+
+  const ids = updates.map(
+    ({ id }) => id
+  );
+
+  const uniqueIds = new Set(ids);
+
+  if (uniqueIds.size !== ids.length) {
+    throw badRequest(
+      "Duplicate category IDs were provided."
+    );
+  }
+
+  const existingCount =
+    await prisma.category.count({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+  if (existingCount !== ids.length) {
+    throw badRequest(
+      "One or more categories do not exist."
+    );
+  }
+
+  await prisma.$transaction(
+    updates.map(
+      ({ id, position }) =>
+        prisma.category.update({
+          where: {
+            id,
+          },
+          data: {
+            position,
+          },
+        })
+    )
+  );
+
+  return {
+    success: true,
+  };
+}
+
+    
 
     static async categorySlugExists(
-    slug: string
-    ) {
-    const category =
-        await prisma.category.findUnique({
-        where: {
-            slug,
-        },
-        select: {
-            id: true,
-        },
-        });
+  slug: string
+) {
+  const normalizedSlug =
+    slug.trim();
 
-    return !!category;
-    }
+  if (!normalizedSlug) {
+    throw badRequest(
+      "Slug is required."
+    );
+  }
+
+  const category =
+    await prisma.category.findUnique({
+      where: {
+        slug: normalizedSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  return !!category;
+}
 
     static async getCategoryById(
     id: string
@@ -195,118 +264,204 @@ export class CategoryService {
     return category;
     }
 
-    static async updateCategory(
-    id: string,
-    data: {
-        name?: string;
-        slug?: string;
-        parentId?: string;
-        position?: number;
-        imageUrl?: string;
-        metaTitle?: string;
-        metaDescription?: string;
-    }
-    ) {
-    const existingCategory =
-        await prisma.category.findUnique({
+  static async updateCategory(
+  id: string,
+  data: {
+    name?: string;
+    slug?: string;
+    parentId?: string;
+    position?: number;
+    imageUrl?: string;
+    metaTitle?: string;
+    metaDescription?: string;
+  }
+) {
+  const existingCategory =
+    await prisma.category.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existingCategory) {
+    throw notFound(
+      "Category not found."
+    );
+  }
+
+  const normalizedData = {
+    ...data,
+
+    parentId:
+      data.parentId &&
+      data.parentId.trim() !== ""
+        ? data.parentId
+        : null,
+
+    position:
+      data.position ?? 0,
+
+    imageUrl:
+      data.imageUrl &&
+      data.imageUrl.trim() !== ""
+        ? data.imageUrl
+        : null,
+
+    metaTitle:
+      data.metaTitle &&
+      data.metaTitle.trim() !== ""
+        ? data.metaTitle
+        : null,
+
+    metaDescription:
+      data.metaDescription &&
+      data.metaDescription.trim() !== ""
+        ? data.metaDescription
+        : null,
+  };
+
+  if (normalizedData.slug) {
+    const slugConflict =
+      await prisma.category.findUnique({
         where: {
-            id,
+          slug: normalizedData.slug,
         },
         select: {
-            id: true,
+          id: true,
         },
-        });
+      });
 
-    if (!existingCategory) {
-        throw notFound(
-        "Category not found."
-        );
+    if (
+      slugConflict &&
+      slugConflict.id !== id
+    ) {
+      throw badRequest(
+        "Slug already exists."
+      );
     }
+  }
 
-    const normalizedData = {
-        ...data,
-        parentId:
-        data.parentId &&
-        data.parentId.trim() !== ""
-            ? data.parentId
-            : null,
+  // Prevent self-parenting
+  if (
+    normalizedData.parentId === id
+  ) {
+    throw badRequest(
+      "A category cannot be its own parent."
+    );
+  }
 
-        position:
-        data.position ?? 0,
-
-        imageUrl:
-        data.imageUrl &&
-        data.imageUrl.trim() !== ""
-            ? data.imageUrl
-            : null,
-
-        metaTitle:
-        data.metaTitle &&
-        data.metaTitle.trim() !== ""
-            ? data.metaTitle
-            : null,
-
-        metaDescription:
-        data.metaDescription &&
-        data.metaDescription.trim() !== ""
-            ? data.metaDescription
-            : null,
-    };
-
-    if (normalizedData.slug) {
-        const slugConflict =
-        await prisma.category.findUnique({
-            where: {
-            slug: normalizedData.slug,
-            },
-            select: {
-            id: true,
-            },
-        });
-
-        if (
-        slugConflict &&
-        slugConflict.id !== id
-        ) {
-        throw badRequest(
-            "Slug already exists."
-        );
-        }
-    }
-
-    return prisma.category.update({
+  // Validate parent and prevent circular hierarchy
+  if (normalizedData.parentId) {
+    let current =
+      await prisma.category.findUnique({
         where: {
-        id,
+          id: normalizedData.parentId,
         },
-        data: normalizedData,
-    });
+        select: {
+          id: true,
+          parentId: true,
+        },
+      });
+
+    if (!current) {
+      throw badRequest(
+        "Parent category does not exist."
+      );
     }
+
+    while (current) {
+      if (current.id === id) {
+        throw badRequest(
+          "Circular category hierarchy is not allowed."
+        );
+      }
+
+      if (!current.parentId) {
+        break;
+      }
+
+      current =
+        await prisma.category.findUnique({
+          where: {
+            id: current.parentId,
+          },
+          select: {
+            id: true,
+            parentId: true,
+          },
+        });
+    }
+  }
+
+  return prisma.category.update({
+    where: {
+      id,
+    },
+    data: normalizedData,
+  });
+}
 
     static async deleteCategory(
-    id: string
-    ) {
-    const category =
-        await prisma.category.findUnique({
-        where: {
-            id,
-        },
-        select: {
-            id: true,
-        },
-        });
-
-    if (!category) {
-        throw notFound(
-        "Category not found."
-        );
-    }
-
-    await prisma.category.delete({
-        where: {
+  id: string
+) {
+  const category =
+    await prisma.category.findUnique({
+      where: {
         id,
-        },
+      },
+      select: {
+        id: true,
+      },
     });
-    }
+
+  if (!category) {
+    throw notFound(
+      "Category not found."
+    );
+  }
+
+  const [
+    childCount,
+    productCount,
+  ] = await Promise.all([
+    prisma.category.count({
+      where: {
+        parentId: id,
+      },
+    }),
+
+    prisma.product.count({
+      where: {
+        categoryId: id,
+      },
+    }),
+  ]);
+
+  if (childCount > 0) {
+    throw badRequest(
+      "Cannot delete a category that has child categories."
+    );
+  }
+
+  if (productCount > 0) {
+    throw badRequest(
+      "Cannot delete a category that contains products."
+    );
+  }
+
+  await prisma.category.delete({
+    where: {
+      id,
+    },
+  });
+
+  return {
+    success: true,
+  };
+}
 
     static async getCategoryTree() {
   return prisma.category.findMany({
@@ -434,4 +589,7 @@ static async getCategoryBySlug(
       ),
   };
 }
+
+
+
 }

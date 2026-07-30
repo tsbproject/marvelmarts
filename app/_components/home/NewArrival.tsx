@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import ProductCard from "./ProductCard";
-import ProductSkeleton from "./ProductSkeleton";
+import ProductCard from "../ProductCard";
+import ProductSkeleton from "../ProductSkeleton";
 import { SerializedProduct } from "@/types/product";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-import ProductQuickViewDrawer from "./ProductQuickViewDrawer"; // Updated to Drawer
+import ProductQuickViewDrawer from "../ProductQuickViewDrawer"; // Updated to Drawer
 
 export default function NewArrival({ products }: { products: SerializedProduct[] }) {
   const router = useRouter();

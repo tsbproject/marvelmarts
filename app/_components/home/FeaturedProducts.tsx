@@ -7,12 +7,11 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import ProductCard from "./ProductCard";
-import ProductSkeleton from "./ProductSkeleton"; 
+import ProductCardv2 from "../ProductCardv2";
+import ProductSkeleton from "../ProductSkeleton"; 
 import { SerializedProduct } from "@/types/product";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
-// import ProductQuickView from "./ProductQuickView"; 
-import ProductQuickViewDrawer from "./ProductQuickViewDrawer";
+import ProductQuickViewDrawer from "../ProductQuickViewDrawer";
 
 export default function FeaturedProducts({ products }: { products: SerializedProduct[] }) {
   const router = useRouter();
@@ -46,7 +45,7 @@ export default function FeaturedProducts({ products }: { products: SerializedPro
         {loading 
           ? [...Array(4)].map((_, i) => <ProductSkeleton key={i} />) 
           : products.map((product) => (
-              <ProductCard 
+              <ProductCardv2
                 key={product.id} 
                 product={product} 
                 onQuickView={() => handleQuickView(product)} 
