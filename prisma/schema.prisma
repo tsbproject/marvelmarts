@@ -326,7 +326,7 @@ model Category {
   metaDescription String?
   metaTitle       String?
   isFeatured      Boolean    @default(false)
-  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
   children        Category[] @relation("CategoryToCategory")
   primaryProducts Product[]  @relation("PrimaryProductCategory")
   products        Product[]  @relation("ProductCategories")
@@ -380,7 +380,7 @@ model ProductImage {
   url       String
   alt       String?
   order     Int     @default(0)
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Variant {
@@ -393,7 +393,7 @@ model Variant {
   sku        String?     @unique
   cartItems  CartItem[]
   orderItems OrderItem[]
-  product    Product     @relation(fields: [productId], references: [id])
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Review {
@@ -464,8 +464,8 @@ model CartItem {
   qty       Int      @default(1)
   unitPrice Decimal  @db.Decimal(10, 2)
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id])
-  variant   Variant? @relation(fields: [variantId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }
 
 model Order {
@@ -503,8 +503,8 @@ model Order {
   shippingFirstName    String?
   shippingLastName     String?
   paymentTypes         PaymentTypes?
-  user                 User?         @relation(fields: [userId], references: [id])
-  vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  user                 User?         @relation(fields: [userId], references: [id],  onDelete: SetNull)
+  vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
   items                OrderItem[]
 }
 
@@ -518,8 +518,8 @@ model OrderItem {
   imageUrl  String?
   title     String?
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id])
-  variant   Variant? @relation(fields: [variantId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }
 
 model Address {

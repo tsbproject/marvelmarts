@@ -6,6 +6,8 @@ import {
   conflict
 } from "@/app/lib/auth/errors";
 
+import { TransactionStatus } from "@prisma/client";
+
 export class PayoutService {
   static async getVendorPayouts(
     vendorId: string
@@ -267,7 +269,7 @@ export class PayoutService {
     }
 
 
-    static async requestWithdrawal(
+  static async requestWithdrawal(
   userId: string,
   amount: number
 ) {
@@ -326,4 +328,75 @@ export class PayoutService {
 
   return withdrawal;
 }
+
+
+ static async calculateVendorPayout(orderId: string) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        vendorProfile: {
+          include: {
+            score: true,
+          },
+        },
+      },
+    });
+
+    if (!order || !order.vendorProfile?.score) {
+      throw new Error("Order or Vendor Score configuration not found");
+    }
+
+    const totalAmount = Number(order.total);
+    const commissionRate = order.vendorProfile.score.commissionRate;
+
+    const platformFee = totalAmount * commissionRate;
+    const vendorNetPayout = totalAmount - platformFee;
+
+    return {
+      totalAmount,
+      platformFee,
+      vendorNetPayout,
+      commissionRate,
+      tier: order.vendorProfile.score.tier,
+      vendorProfileId: order.vendorProfileId,
+    };
+  }
+
+  static async finalizeVendorPayout(orderId: string) {
+    const payout = await this.calculateVendorPayout(orderId);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.marketplaceTransaction.create({
+        data: {
+          orderId,
+          vendorProfileId: payout.vendorProfileId,
+          grossAmount: payout.totalAmount,
+          platformFee: payout.platformFee,
+          netAmount: payout.vendorNetPayout,
+          commissionRate: payout.commissionRate,
+          vendorTier: payout.tier,
+          status: TransactionStatus.SUCCESS,
+          reference: `TRX-${orderId}-${Date.now()}`,
+        },
+      });
+
+      await tx.vendorProfile.update({
+        where: {
+          id: payout.vendorProfileId,
+        },
+        data: {
+          balance: {
+            increment: payout.vendorNetPayout,
+          },
+        },
+      });
+    });
+
+    return {
+      success: true,
+      totalAmount: payout.totalAmount,
+      platformFee: payout.platformFee,
+      vendorNetPayout: payout.vendorNetPayout,
+    };
+  }
 }

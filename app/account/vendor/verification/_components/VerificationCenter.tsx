@@ -11,7 +11,12 @@ import { submitVendorDocs } from "@/app/_actions/admin-actions";
 import { getCloudinarySignature } from "@/app/_actions/upload-actions";
 import { useRouter } from "next/navigation";
 
-type VerificationStatus = "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED" | "PENDING_REVIEW";
+type VerificationStatus =
+  | "NOT_STARTED"
+  | "AWAITING_DOCUMENTS"
+  | "APPROVED"
+  | "REJECTED"
+  | "PENDING_REVIEW";
 
 type StepId = "IDENTITY" | "BUSINESS" | "LOCATION";
 
@@ -38,12 +43,6 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
   const [activeStep, setActiveStep] = useState<StepId | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { update } = useSession();
-  const uploadsLocked = isRedirecting || currentStatus === "APPROVED";
-
-
-  
-
-
   const isApproved = currentStatus === "APPROVED";
 
   const [uploadedSteps, setUploadedSteps] = useState<Partial<Record<StepId, boolean>>>({});
@@ -56,9 +55,9 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                   title: string;
                   desc: string;
                   icon: React.ReactNode;
-                  hasExistingDoc: boolean;
                   isDone: boolean;
                   isRejected: boolean;
+                  isOptional?: boolean;
                 }[] => [
               {
                 id: "IDENTITY",
@@ -69,7 +68,6 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                     className={currentStatus === "REJECTED" ? "text-red-500" : "text-blue-500"}
                   />
                 ),
-                hasExistingDoc: !!profileData?.identityDoc,
                 isDone:
                   currentStatus === "REJECTED"
                     ? !!uploadedSteps.IDENTITY
@@ -79,18 +77,18 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
               {
                 id: "BUSINESS",
                 title: "Business Registration",
-                desc: "Upload CAC or Certificate of Incorporation",
+                desc: "Upload CAC or Certificate of Incorporation (Optional)",
                 icon: (
                   <Briefcase
                     className={currentStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}
                   />
                 ),
-                hasExistingDoc: !!profileData?.businessDoc,
                 isDone:
                   currentStatus === "REJECTED"
                     ? !!uploadedSteps.BUSINESS
                     : !!profileData?.businessDoc,
                 isRejected: currentStatus === "REJECTED",
+                isOptional: true,
               },
               {
                 id: "LOCATION",
@@ -101,7 +99,6 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                     className={currentStatus === "REJECTED" ? "text-red-500" : "text-green-500"}
                   />
                 ),
-                hasExistingDoc: !!profileData?.locationDoc,
                 isDone:
                   currentStatus === "REJECTED"
                     ? !!uploadedSteps.LOCATION
@@ -165,7 +162,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                 uploadedStep
               );
 
-              if (dbResult?.success) {
+              if (dbResult.success) {
                 setUploadedSteps((prev) => ({
                   ...prev,
                   [uploadedStep]: true,
@@ -174,8 +171,8 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                 notifySuccess("Upload successful!");
 
                 if (
-                  dbResult?.allDocsSubmitted ||
-                  dbResult?.verificationStatus === "PENDING_REVIEW"
+                  dbResult.allDocsSubmitted ||
+                  dbResult.verificationStatus === "PENDING_REVIEW"
                 ) {
                   setIsRedirecting(true);
 
@@ -183,7 +180,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                     try {
 
                       await update({
-                        vendorStatus: dbResult?.verificationStatus,
+                        vendorStatus: dbResult.verificationStatus,
                       });
 
                       await new Promise(resolve => setTimeout(resolve, 300));
@@ -199,7 +196,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
                   }, 1500);
                 }
                               } else {
-                notifyError(dbResult?.error || "Upload failed");
+                notifyError(dbResult.error || "Upload failed");
               }
             } catch (error: any) {
               notifyError(error.message || "Upload failed");
@@ -270,10 +267,12 @@ return (
                 <StatusBadge
                   status={
                     step.isDone
-                      ? "PENDING"
+                      ? currentStatus === "REJECTED"
+                        ? "AWAITING_DOCUMENTS"
+                        : currentStatus
                       : currentStatus === "REJECTED"
-                      ? "REJECTED"
-                      : currentStatus
+                        ? "REJECTED"
+                        : currentStatus
                   }
                 />
               </div>
@@ -343,11 +342,11 @@ export default function VerificationCenter(props: Props) {
 }
 
 // Status badge
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: VerificationStatus }) {
   const safeStatus = status || "NOT_STARTED";
-  const styles: any = {
+  const styles: Record<VerificationStatus, string> = {
     NOT_STARTED: "bg-gray-100 text-gray-400 border-transparent",
-    PENDING: "bg-blue-50 text-blue-600 border-blue-100",
+    AWAITING_DOCUMENTS: "bg-amber-50 text-amber-700 border-amber-100",
     APPROVED: "bg-green-50 text-green-600 border-green-100",
     REJECTED: "bg-red-50 text-red-600 border-red-100",
     PENDING_REVIEW: "bg-blue-50 text-blue-600 border-blue-100",

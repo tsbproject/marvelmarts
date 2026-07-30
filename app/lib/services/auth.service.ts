@@ -1091,11 +1091,7 @@ static async verifyVendorRegistration(
 
       await prisma.$transaction(
         async (tx) => {
-          await tx.product.deleteMany({
-            where: {
-              vendorProfileId: id,
-            },
-          });
+         
 
           try {
             await tx.order.updateMany({

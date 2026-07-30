@@ -220,7 +220,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   } else if (isAuthenticated) {
     menuItems.push({ 
       label: "Become A Vendor", 
-      link: "/auth/register/vendor-registration", 
+      link: "/auth/register/vendor-signup", 
       icon: <Store size={20} />,
       variant: "special" 
     });

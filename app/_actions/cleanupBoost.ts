@@ -1,30 +1,29 @@
 "use server";
 
-import prisma from "@/app/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+import { requireManageTrending } from "@/app/lib/auth/api";
+import { BoostService } from "@/app/lib/services/boost.service";
 
 export async function cleanupExpiredBoosts() {
-  const now = new Date();
-
   try {
-    const result = await prisma.product.updateMany({
-      where: {
-        boostUntil: {
-          lt: now, // "Less Than" now means it has expired
-        },
-        isTrending: true, // Only update if it's currently trending
-      },
-      data: {
-        isTrending: false,
-      },
-    });
+    await requireManageTrending();
 
-    return { 
-      success: true, 
-      count: result.count, 
-      message: `Cleaned up ${result.count} expired boosts.` 
+    const result =
+      await BoostService.cleanupExpiredBoosts();
+
+    revalidatePath("/");
+    revalidatePath("/products");
+    revalidatePath("/account/vendor/products");
+
+    return result;
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to cleanup boosts.",
     };
-  } catch (error) {
-    console.error("Cleanup Error:", error);
-    return { success: false, error: "Failed to cleanup boosts" };
   }
 }

@@ -231,11 +231,31 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
 
-      <div className={`fixed bottom-24 right-6 w-[380px] bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 transform z-[999] ${
-        isOpen ? "translate-y-0 opacity-100 scale-100" : "translate-y-10 opacity-0 scale-95 pointer-events-none"
-      }`}>
+      <div className={`fixed
+          bottom-20
+          right-3
+          left-3
+          sm:left-auto
+          sm:right-6
+          w-auto
+          sm:w-[380px]
+          max-w-[380px]
+          bg-white
+          rounded-3xl
+          shadow-2xl
+          border border-gray-100
+          overflow-hidden
+          transition-all
+          duration-300
+          transform
+          z-[999]
+          ${
+            isOpen
+              ? "translate-y-0 opacity-100 scale-100"
+              : "translate-y-10 opacity-0 scale-95 pointer-events-none"
+          }`}>
         
-        <div className="bg-accent-navy p-6 text-white">
+       <div className="bg-accent-navy p-4 sm:p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Logo */}
@@ -263,7 +283,7 @@ export default function SupportDrawer({ isOpen: externalIsOpen, onClose }: Suppo
           </div>
         </div>
 
-        <div className="p-6 h-[450px] flex flex-col">
+        <div className="p-4 sm:p-6 h-[65vh] sm:h-[450px]  flex flex-col">
           {step === "FORM" ? (
             <form onSubmit={handleInitiate} className="space-y-4">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-tight mb-4">

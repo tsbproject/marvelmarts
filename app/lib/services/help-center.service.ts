@@ -1,6 +1,13 @@
 import { prisma } from "@/app/lib/prisma";
 
-import { badRequest } from "@/app/lib/auth/errors";
+import { badRequest, notFound  } from "@/app/lib/auth/errors";
+
+import {
+  sendSupportProgressEmail,
+  sendSupportResolvedEmail,
+} from "@/app/lib/mailer";
+
+
 
 interface HelpArticleData {
   title: string;
@@ -197,4 +204,132 @@ export class HelpCenterService {
     featuredArticles,
   };
 }
+
+
+
+static async replyToTicket({
+  ticketId,
+  message,
+  status,
+}: {
+  ticketId: string;
+  message: string;
+  status: string;
+}) {
+  const ticket =
+    await prisma.ticket.findUnique({
+      where: {
+        id: ticketId,
+      },
+    });
+
+  if (!ticket) {
+    throw notFound("Ticket not found.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.ticketReply.create({
+      data: {
+        ticketId,
+        senderType: "ADMIN",
+        message,
+      },
+    });
+
+    await tx.ticket.update({
+      where: {
+        id: ticketId,
+      },
+      data: {
+        status,
+      },
+    });
+  });
+
+  if (status === "RESOLVED") {
+    await sendSupportResolvedEmail({
+      to: ticket.userEmail,
+      ticketId: ticket.id,
+      subject: ticket.subject,
+      message,
+    });
+  } else {
+    await sendSupportProgressEmail({
+      to: ticket.userEmail,
+      ticketId: ticket.id,
+      subject: ticket.subject,
+      status,
+      message,
+    });
+  }
+
+  return {
+    success: true,
+  };
+}
+
+
+static async sendTicketReply({
+    ticketId,
+    message,
+    status,
+  }: {
+    ticketId: string;
+    message: string;
+    status: string;
+  }) {
+    const ticket =
+      await prisma.ticket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!ticket) {
+      throw notFound("Ticket not found.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.ticketReply.create({
+        data: {
+          ticketId,
+          senderType: "ADMIN",
+          message,
+        },
+      });
+
+      await tx.ticket.update({
+        where: {
+          id: ticketId,
+        },
+        data: {
+          status,
+        },
+      });
+    });
+
+    if (status === "RESOLVED") {
+      await sendSupportResolvedEmail({
+        to: ticket.userEmail,
+        ticketId: ticket.id,
+        subject: ticket.subject,
+        message,
+      });
+    } else {
+      await sendSupportProgressEmail({
+        to: ticket.userEmail,
+        ticketId: ticket.id,
+        subject: ticket.subject,
+        status,
+        message,
+      });
+    }
+
+    return {
+      success: true,
+    };
+  }
+
+
+
 }

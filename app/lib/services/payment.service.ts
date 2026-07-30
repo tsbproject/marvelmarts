@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { badRequest } from "@/app/lib/auth/errors";
 import { prisma } from "@/app/lib/prisma";
 import { paymentClient } from "@/app/lib/payments";
-import { addCreditsToVendor } from "@/app/_actions/boostActions";
+import { BoostService } from "./boost.service";
 import { WalletService } from "./wallet.service";
 import { OrderService } from "./order.service";
 
@@ -259,7 +259,7 @@ static async processBoostCreditPayment(
 }
 
   const result =
-    await addCreditsToVendor(
+    await BoostService.addCreditsToVendor(
       vendorField.value,
       Number(creditsField.value),
       reference
@@ -267,10 +267,18 @@ static async processBoostCreditPayment(
 
 
 
+    if (!result.success) {
+      return {
+        handled: true,
+        success: false,
+        error: result.error,
+        returnUrl: metadata.returnUrl,
+      };
+    }
+
     return {
       handled: true,
-      success: !!result.success,
-      error: result.error,
+      success: true,
       returnUrl: metadata.returnUrl,
     };
 }
@@ -353,6 +361,124 @@ static async completePayment(reference: string) {
     default:
       throw badRequest("Unsupported payment type.");
   }
+}
+
+
+
+
+
+  static async setDefaultPaymentMethod(
+  userId: string,
+  methodId: string
+) {
+  const paymentMethod =
+    await prisma.paymentMethod.findFirst({
+      where: {
+        id: methodId,
+        userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!paymentMethod) {
+    return {
+      success: false,
+      error: "Payment method not found.",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.paymentMethod.updateMany({
+      where: {
+        userId,
+      },
+      data: {
+        isDefault: false,
+      },
+    });
+
+    await tx.paymentMethod.update({
+      where: {
+        id: methodId,
+      },
+      data: {
+        isDefault: true,
+      },
+    });
+  });
+
+  return {
+    success: true,
+  };
+}
+
+
+static async deletePaymentMethod(
+  userId: string,
+  cardId: string
+) {
+  const userCards =
+    await prisma.paymentMethod.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        isDefault: true,
+      },
+    });
+
+  if (userCards.length <= 1) {
+    return {
+      success: false,
+      error:
+        "You must have at least one payment method. Please add another before deleting this one.",
+    };
+  }
+
+  const cardToDelete =
+    userCards.find(
+      (card) => card.id === cardId
+    );
+
+  if (!cardToDelete) {
+    return {
+      success: false,
+      error: "Payment method not found.",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (cardToDelete.isDefault) {
+      const nextCard =
+        userCards.find(
+          (card) => card.id !== cardId
+        );
+
+      if (nextCard) {
+        await tx.paymentMethod.update({
+          where: {
+            id: nextCard.id,
+          },
+          data: {
+            isDefault: true,
+          },
+        });
+      }
+    }
+
+    await tx.paymentMethod.delete({
+      where: {
+        id: cardId,
+      },
+    });
+  });
+
+  return {
+    success: true,
+  };
 }
 
        

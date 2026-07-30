@@ -3,6 +3,7 @@ import { badRequest } from "@/app/lib/auth/errors";
 import { walletRepository } from "@/app/lib/repositories/wallet-repository";
 import { OrderService } from "@/app/lib/services/order.service";
 import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
+import { PaymentService } from "@/app/lib/services/payment.service";
 
 
 import {
@@ -470,6 +471,60 @@ static async completeWalletFunding(
 
   return {
     success: true,
+    wallet,
+    returnUrl:
+      typeof metadata.returnUrl === "string"
+        ? metadata.returnUrl
+        : "/account/customer/payment-methods",
+  };
+}
+
+
+static async verifyWalletFunding({
+  userId,
+  reference,
+}: {
+  userId: string;
+  reference: string;
+}) {
+  const transaction =
+    await PaymentService.verifyTransaction(reference);
+
+  const metadata = transaction.metadata ?? {};
+
+  if (metadata.type !== "wallet") {
+    throw badRequest("Invalid payment type.");
+  }
+
+  if (metadata.userId !== userId) {
+    throw badRequest(
+      "Payment does not belong to this user."
+    );
+  }
+
+  const wallet =
+    await WalletService.creditVerifiedPayment(
+      userId,
+      Number(transaction.amount) / 100,
+      reference,
+      "Wallet funding"
+    );
+
+  if (metadata.saveCard) {
+    try {
+      await PaymentService.savePaymentMethod(
+        userId,
+        reference
+      );
+    } catch (error) {
+      console.error(
+        "Card save failed:",
+        error
+      );
+    }
+  }
+
+  return {
     wallet,
     returnUrl:
       typeof metadata.returnUrl === "string"

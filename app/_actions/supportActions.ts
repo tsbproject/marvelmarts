@@ -1,90 +1,24 @@
 "use server";
 
-import { prisma } from "@/app/lib/prisma";
+import { requireManageSupport } from "@/app/lib/auth/api";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
-import {
-  sendSupportProgressEmail,
-  sendSupportResolvedEmail,
-} from "@/app/lib/mailer";
-
-export async function sendTicketReply({
-  ticketId,
-  message,
-  status,
-}: {
+export async function sendTicketReply(input: {
   ticketId: string;
-
   message: string;
-
   status: string;
 }) {
+  try {
+    await requireManageSupport();
 
-  // GET TICKET
-  const ticket =
-    await prisma.ticket.findUnique({
-      where: {
-        id: ticketId,
-      },
-    });
-
-  if (!ticket) {
-    throw new Error(
-      "Ticket not found"
-    );
+    return await HelpCenterService.replyToTicket(input);
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to send support reply.",
+    };
   }
-
-  // CREATE REPLY
-  await prisma.ticketReply.create({
-    data: {
-      ticketId,
-
-      senderType: "ADMIN",
-
-      message,
-    },
-  });
-
-  // UPDATE STATUS
-  await prisma.ticket.update({
-    where: {
-      id: ticketId,
-    },
-
-    data: {
-      status,
-    },
-  });
-
-  // SEND RESOLUTION EMAIL
-  if (status === "RESOLVED") {
-
-    await sendSupportResolvedEmail({
-      to: ticket.userEmail,
-
-      ticketId: ticket.id,
-
-      subject: ticket.subject,
-
-      message,
-    });
-
-  } else {
-
-    // SEND PROGRESS EMAIL
-    await sendSupportProgressEmail({
-      to: ticket.userEmail,
-
-      ticketId: ticket.id,
-
-      subject: ticket.subject,
-
-      status,
-
-      message,
-    });
-  }
-
-  return {
-    success: true,
-  };
 }

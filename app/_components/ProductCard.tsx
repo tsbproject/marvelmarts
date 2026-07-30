@@ -69,7 +69,7 @@ export default function ProductCard({
   const handleToggleStatus = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const result = await toggleProductStatus(product.id, !!product.isPublished);
+    const result = await toggleProductStatus(product.id);
     if (result.success) {
       notifySuccess(result.newState ? "Product is now LIVE" : "Product is now HIDDEN");
       router.refresh();

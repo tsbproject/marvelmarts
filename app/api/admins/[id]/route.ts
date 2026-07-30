@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 /* ========================================================================== */
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   {
     params,
   }: {
@@ -85,7 +85,7 @@ interface UpdateAdminRequest {
 }
 
 export async function PUT(
-  req: NextRequest,
+  request: NextRequest,
   {
     params,
   }: {
@@ -115,7 +115,7 @@ export async function PUT(
     }
 
     const body =
-      (await req.json()) as UpdateAdminRequest;
+      (await request.json()) as UpdateAdminRequest;
 
     const user =
       await AuthService.updateAdministrator(
@@ -150,7 +150,7 @@ export async function PUT(
 /* ========================================================================== */
 
 export async function DELETE(
-  req: NextRequest,
+  request: NextRequest,
   {
     params,
   }: {

@@ -1,7 +1,9 @@
 "use server";
 
-import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+import { requireManageVendors } from "@/app/lib/auth/api";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 export async function reviewVendorAccount(
   vendorProfileId: string,
@@ -9,35 +11,26 @@ export async function reviewVendorAccount(
   reason?: string
 ) {
   try {
-    if (action === "APPROVE") {
-      await prisma.vendorProfile.update({
-          where: { id: vendorProfileId },
-          data: {
-            status: "APPROVED",
-            isVerified: true,
+    const session = await requireManageVendors();
 
-            user: {
-              update: {
-                role: "VENDOR",
-                roles: ["CUSTOMER", "VENDOR"],
-              }
-            }
-          },
-        });
-    } else {
-      await prisma.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: {
-          status: "REJECTED",
-          rejectionReason: reason,
-          isVerified: false,
-        },
-      });
-    }
+    const result = await VendorService.reviewVendorAccount(
+      vendorProfileId,
+      action,
+      reason,
+      {
+        id: session.user.id,
+        email: session.user.email ?? null,
+        role: session.user.role,
+      }
+    );
 
     revalidatePath("/dashboard/admins/vendors");
-    return { success: true };
+
+    return result;
   } catch (error) {
-    return { error: "Action failed." };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Action failed.",
+    };
   }
 }

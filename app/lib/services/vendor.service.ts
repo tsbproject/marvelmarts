@@ -5,6 +5,8 @@ import {
   VendorStatus,
   UserRole,
 } from "@prisma/client";
+import { sendVendorReviewEmail } from "@/app/lib/mailer";
+import type { VerificationStatus } from "@/types/vendor";
 
 
 export class VendorService {
@@ -336,36 +338,40 @@ static async getVendorProfileWithStore(
 
       static async getVendorPublicStats(
         vendorId: string,
-        userId: string
+        userId?: string
       ) {
-        const [vendor, follow] = await Promise.all([
-          prisma.vendorProfile.findUnique({
-            where: {
-              id: vendorId,
-            },
-            select: {
-              id: true,
-              followerCount: true,
-              shippingScore: true,
-              qualityScore: true,
-              avgRating: true,
-              cancellationRate: true,
-            },
-          }),
+        const vendor = await prisma.vendorProfile.findUnique({
+          where: {
+            id: vendorId,
+          },
+          select: {
+            id: true,
+            followerCount: true,
+            shippingScore: true,
+            qualityScore: true,
+            avgRating: true,
+            cancellationRate: true,
+          },
+        });
 
-          prisma.vendorFollow.findUnique({
+        let isFollowing = false;
+
+        if (userId) {
+          const follow = await prisma.vendorFollow.findUnique({
             where: {
               userId_vendorProfileId: {
                 userId,
                 vendorProfileId: vendorId,
               },
             },
-          }),
-        ]);
+          });
+
+          isFollowing = !!follow;
+        }
 
         return {
           vendor,
-          isFollowing: !!follow,
+          isFollowing,
         };
       }
 
@@ -914,11 +920,99 @@ static async getVendorProfileWithStore(
       }
 
       if (action === "DELETE") {
-        await prisma.vendorProfile.delete({
-          where: {
-            id: vendorProfileId,
-          },
-        });
+        const vendor =
+          await prisma.vendorProfile.findUnique({
+            where: {
+              id: vendorProfileId,
+            },
+            select: {
+              id: true,
+              _count: {
+                select: {
+                  orders: true,
+                  disputes: true,
+                  payouts: true,
+                  withdrawal: true,
+                  marketplaceTransactions: true,
+                  products: true,
+                },
+              },
+            },
+          });
+
+        if (!vendor) {
+          throw notFound(
+            "Vendor not found."
+          );
+        }
+
+        const blockingRelations: string[] =
+          [];
+
+        if (vendor._count.orders > 0) {
+          blockingRelations.push(
+            "orders"
+          );
+        }
+
+        if (
+          vendor._count.disputes > 0
+        ) {
+          blockingRelations.push(
+            "disputes"
+          );
+        }
+
+        if (
+          vendor._count.payouts > 0
+        ) {
+          blockingRelations.push(
+            "payouts"
+          );
+        }
+
+        if (
+          vendor._count.withdrawal > 0
+        ) {
+          blockingRelations.push(
+            "withdrawals"
+          );
+        }
+
+        if (
+          vendor._count.marketplaceTransactions >
+          0
+        ) {
+          blockingRelations.push(
+            "transactions"
+          );
+        }
+
+        if (
+          blockingRelations.length
+        ) {
+          throw badRequest(
+            `Cannot delete vendor with existing ${blockingRelations.join(
+              ", "
+            )}. Suspend the vendor instead.`
+          );
+        }
+
+        await prisma.$transaction(
+          async (tx) => {
+            await tx.vendorScore.deleteMany({
+              where: {
+                vendorProfileId,
+              },
+            });
+
+            await tx.vendorProfile.delete({
+              where: {
+                id: vendorProfileId,
+              },
+            });
+          }
+        );
 
         return {
           deleted: true,
@@ -957,14 +1051,6 @@ static async getVendorProfileWithStore(
                 ) {
                   missingDocs.push(
                     "Identity"
-                  );
-                }
-
-                if (
-                  !currentVendor.businessDoc
-                ) {
-                  missingDocs.push(
-                    "Business"
                   );
                 }
 
@@ -1246,6 +1332,249 @@ static async getVendorProfileWithStore(
         },
       });
     }
+
+
+
+    static async reviewVendorAccount(
+  vendorProfileId: string,
+  action: "APPROVE" | "REJECT",
+  reason: string | undefined,
+  actor: {
+    id: string;
+    email: string | null;
+    role: UserRole;
+  }
+) {
+  // Permission checks specific to the business domain can go here if needed.
+
+  if (action === "APPROVE") {
+    await prisma.vendorProfile.update({
+      where: { id: vendorProfileId },
+      data: {
+        status: "APPROVED",
+        isVerified: true,
+        user: {
+          update: {
+            role: "VENDOR",
+            roles: ["CUSTOMER", "VENDOR"],
+          },
+        },
+      },
+    });
+  } else {
+    await prisma.vendorProfile.update({
+      where: { id: vendorProfileId },
+      data: {
+        status: "REJECTED",
+        rejectionReason: reason,
+        isVerified: false,
+      },
+    });
+  }
+
+  return { success: true };
+}
+
+
+static async submitVerificationDocuments(
+  vendorProfileId: string,
+  url: string,
+  step: "IDENTITY" | "BUSINESS" | "LOCATION",
+  actor: {
+    id: string;
+    email: string | null;
+    role: UserRole;
+  }
+): Promise<
+  | {
+      success: true;
+      allDocsSubmitted: boolean;
+      status: VendorStatus;
+      verificationStatus: VerificationStatus;
+      emailSent: boolean;
+    }
+  | {
+      success: false;
+      error: string;
+    }
+> {
+    const fieldMap = {
+      IDENTITY: "identityDoc",
+      BUSINESS: "businessDoc",
+      LOCATION: "locationDoc",
+    } as const;
+
+    const field = fieldMap[step];
+
+    if (!field) {
+      throw new Error("Invalid verification step");
+    }
+
+    const vendor = await prisma.$transaction(async (tx) => {
+      await tx.vendorProfile.update({
+        where: { id: vendorProfileId },
+        data: {
+          [field]: url,
+        },
+      });
+
+      const vendor = await tx.vendorProfile.findUnique({
+        where: { id: vendorProfileId },
+        include: {
+          user: true,
+        },
+      });
+
+      if (!vendor) {
+        throw new Error("Vendor profile not found");
+      }
+
+      const hasAllDocs = Boolean(
+        vendor.identityDoc &&
+        vendor.locationDoc
+      );
+
+      let finalStatus = vendor.status;
+
+      if (
+        hasAllDocs &&
+        (
+          vendor.status === VendorStatus.AWAITING_DOCUMENTS ||
+          vendor.status === VendorStatus.REJECTED
+        )
+      ) {
+        const updatedVendor =
+          await tx.vendorProfile.update({
+            where: {
+              id: vendorProfileId,
+            },
+            data: {
+              status: VendorStatus.PENDING_REVIEW,
+              rejectionReason: null,
+            },
+          });
+
+        finalStatus = updatedVendor.status;
+
+        return {
+          vendor,
+          hasAllDocs,
+          finalStatus,
+          shouldSendEmail: true,
+        };
+      }
+
+      return {
+        vendor,
+        hasAllDocs,
+        finalStatus,
+        shouldSendEmail: false,
+      };
+    });
+
+    let emailSent = false;
+
+    if (vendor.shouldSendEmail) {
+      try {
+        await sendVendorReviewEmail({
+          email: vendor.vendor.user.email,
+          firstName: vendor.vendor.user.name || "Vendor",
+          storeName: vendor.vendor.storeName || "Your Store",
+        });
+
+        emailSent = true;
+      } catch (error) {
+        console.error(
+          "[VendorService.submitVerificationDocuments]",
+          error
+        );
+      }
+    }
+
+    let verificationStatus: VerificationStatus =
+      "NOT_STARTED";
+
+    if (
+      !vendor.vendor.identityDoc &&
+      !vendor.vendor.businessDoc &&
+      !vendor.vendor.locationDoc
+    ) {
+      verificationStatus = "NOT_STARTED";
+    } else if (
+      vendor.finalStatus === VendorStatus.PENDING_REVIEW
+    ) {
+      verificationStatus = "PENDING_REVIEW";
+    } else if (
+      vendor.finalStatus === VendorStatus.REJECTED
+    ) {
+      verificationStatus = "REJECTED";
+    } else if (
+      vendor.finalStatus === VendorStatus.APPROVED
+    ) {
+      verificationStatus = "APPROVED";
+    } else {
+      verificationStatus = "AWAITING_DOCUMENTS";
+    }
+
+    return {
+      success: true,
+      allDocsSubmitted: vendor.hasAllDocs,
+      status: vendor.finalStatus,
+      verificationStatus,
+      emailSent,
+    };
+}
+
+
+static async completeStoreSetup(
+  vendorProfileId: string,
+  formData: FormData
+) {
+  const name = formData.get("name") as string;
+  const slug = formData.get("slug") as string;
+  const bio = formData.get("bio") as string;
+
+  const formattedSlug = slug
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-");
+
+  try {
+    await prisma.$transaction([
+      prisma.vendorStore.update({
+        where: { vendorProfileId },
+        data: {
+          name,
+          slug: formattedSlug,
+          description: bio,
+        },
+      }),
+
+      prisma.vendorOnboarding.update({
+        where: { vendorProfileId },
+        data: {
+          storeDone: true,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    if (error.code === "P2002") {
+      return {
+        success: false,
+        error: "This store slug is already taken.",
+      };
+    }
+
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+    };
+  }
+}
 
    
                 

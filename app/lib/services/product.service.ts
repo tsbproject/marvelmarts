@@ -1637,5 +1637,83 @@ static async deleteProductImage(
   });
 }
 
+
+
+
+
+static async updateRating(productId: string) {
+  const reviews = await prisma.review.findMany({
+    where: {
+      productId,
+    },
+    select: {
+      rating: true,
+    },
+  });
+
+  const ratingCount = reviews.length;
+
+  const averageRating =
+    ratingCount > 0
+      ? reviews.reduce(
+          (sum, review) => sum + review.rating,
+          0
+        ) / ratingCount
+      : 5.0;
+
+  const updatedProduct =
+    await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        rating: Number(
+          averageRating.toFixed(1)
+        ),
+        ratingCount,
+      },
+    });
+
+  return {
+    averageRating,
+    ratingCount,
+    updatedProduct,
+  };
+}
+
+
+
+static async togglePublicationStatus(
+  productId: string
+) {
+  const product =
+    await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+      select: {
+        id: true,
+        isPublished: true,
+      },
+    });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  return prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      isPublished: !product.isPublished,
+    },
+    select: {
+      id: true,
+      isPublished: true,
+    },
+  });
+}
+
   
 }

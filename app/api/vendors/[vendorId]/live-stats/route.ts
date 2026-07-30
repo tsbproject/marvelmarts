@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { VendorService } from "@/app/lib/services/vendor.service";
 
-import { handleApiError, requireAuth  } from "@/app/lib/auth/api";
+import { handleApiError, getOptionalSession  } from "@/app/lib/auth/api";
 import { notFound } from "@/app/lib/auth/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   {
     params,
   }: {
@@ -19,42 +19,43 @@ export async function GET(
   }
 ) {
   try {
-    const { vendorId } = await params;
+  const { vendorId } = await params;
 
-    const session = await requireAuth();
+  const session = await getOptionalSession();
 
-    const { vendor, isFollowing } =
-      await VendorService.getVendorPublicStats(
-        vendorId,
-        session.user.id
-      );
+  const userId = session?.user?.id;
 
-    if (!vendor) {
-      throw notFound("Vendor not found.");
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        followerCount: vendor.followerCount,
-
-        shippingScore: vendor.shippingScore,
-
-        qualityScore: vendor.qualityScore,
-
-        avgRating: vendor.avgRating,
-
-        cancellationRate:
-          vendor.cancellationRate,
-
-        isFollowing,
-      },
-      {
-        status: 200,
-      }
+  const { vendor, isFollowing } =
+    await VendorService.getVendorPublicStats(
+      vendorId,
+      userId
     );
-  } catch (error) {
-    return handleApiError(error);
+
+  if (!vendor) {
+    throw notFound("Vendor not found.");
   }
+
+  return NextResponse.json(
+    {
+      success: true,
+
+      followerCount: vendor.followerCount,
+
+      shippingScore: vendor.shippingScore,
+
+      qualityScore: vendor.qualityScore,
+
+      avgRating: vendor.avgRating,
+
+      cancellationRate: vendor.cancellationRate,
+
+      isFollowing,
+    },
+    {
+      status: 200,
+    }
+  );
+} catch (error) {
+  return handleApiError(error);
+}
 }

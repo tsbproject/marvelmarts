@@ -81,7 +81,6 @@ export default async function VendorDashboardPage() {
   // VERIFICATION GATE
   const docsMissing =
     !vendorData.identityDoc ||
-    !vendorData.businessDoc ||
     !vendorData.locationDoc;
 
   if (docsMissing) {

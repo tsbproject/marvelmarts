@@ -151,8 +151,31 @@ export async function requireAuth(): Promise<Session> {
     throw unauthorized();
   }
 
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.user.id,
+    },
+    select: {
+      id: true,
+      isSuspended: true,
+    },
+  });
+
+  if (!user) {
+    throw unauthorized(
+      "Your account no longer exists."
+    );
+  }
+
+  if (user.isSuspended) {
+    throw forbidden(
+      "Your account has been suspended."
+    );
+  }
+
   return session;
 }
+
 export async function requireRole(
   ...roles: UserRole[]
 ): Promise<Session> {
@@ -242,6 +265,14 @@ export async function requirePermission(
   }
 
   return session;
+}
+
+
+
+
+
+export async function getOptionalSession(): Promise<Session | null> {
+  return getServerSession(authOptions);
 }
 
 

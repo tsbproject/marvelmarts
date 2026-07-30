@@ -19,7 +19,7 @@ function ContactContent() {
     <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-start">
 
       {/* LEFT SIDEBAR */}
-      <div className="lg:w-[340px] w-full space-y-8 sticky top-28">
+      <div className="lg:w-[340px] w-full space-y-8 ">
 
         {/* BACK BUTTON */}
         <div>

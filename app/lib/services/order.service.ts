@@ -1299,6 +1299,25 @@ static async completeOrderPayment(
         : `/thank-you?orderNumber=${order.orderNumber}`,
   };
 }
+
+
+static async getRecentActivity(limit = 5) {
+  return prisma.order.findMany({
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      total: true,
+      firstName: true,
+      lastName: true,
+      paymentStatus: true,
+      createdAt: true,
+    },
+  });
+}
    
 
 }

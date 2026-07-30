@@ -131,7 +131,6 @@ export default function UnifiedAccountLayout({ children }: { children: React.Rea
 
 const hasAllDocs = !!(
   session?.user?.identityDoc &&
-  session?.user?.businessDoc &&
   session?.user?.locationDoc
 );
 

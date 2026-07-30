@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { pusherServer } from "@/app/lib/pusherServer";
-import { finalizeVendorPayout } from "@/app/lib/payouts-calculation";
+import { PayoutService } from "@/app/lib/services/payout.service";
 
 import { OrderService } from "@/app/lib/services/order.service";
 
@@ -89,7 +89,7 @@ export async function POST(
       "DELIVERED"
     ) {
       try {
-        await finalizeVendorPayout(
+        await PayoutService.finalizeVendorPayout(
           orderId
         );
       } catch (error) {

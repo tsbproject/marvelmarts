@@ -1,120 +1,54 @@
 "use server";
 
-import { prisma } from "@/app/lib/prisma";
-import { VendorStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { sendVendorReviewEmail } from "@/app/lib/mailer";
 
-export type VerificationStatus =
-  | "NOT_STARTED"
-  | "AWAITING_DOCUMENTS"
-  | "APPROVED"
-  | "REJECTED"
-  | "PENDING_REVIEW";
+import { requireVendor } from "@/app/lib/auth/api";
+import { VendorService } from "@/app/lib/services/vendor.service";
+import type { VerificationStatus } from "@/types/vendor";
+
+type SubmitVendorDocsResult =
+  | {
+      success: true;
+      allDocsSubmitted: boolean;
+      status: import("@prisma/client").VendorStatus;
+      verificationStatus: VerificationStatus;
+      emailSent: boolean;
+    }
+  | {
+      success: false;
+      error: string;
+    };
 
 export async function submitVendorDocs(
   vendorProfileId: string,
   url: string,
   step: "IDENTITY" | "BUSINESS" | "LOCATION"
-) {
+): Promise<SubmitVendorDocsResult> {
   try {
-    const fieldMap = {
-      IDENTITY: "identityDoc",
-      BUSINESS: "businessDoc",
-      LOCATION: "locationDoc",
-    } as const;
+    const session = await requireVendor();
 
-    const field = fieldMap[step];
-    if (!field) {
-      return { success: false, error: "Invalid verification step" };
-    }
-
-    await prisma.vendorProfile.update({
-      where: { id: vendorProfileId },
-      data: { [field]: url },
-    });
-
-    const vendor = await prisma.vendorProfile.findUnique({
-      where: { id: vendorProfileId },
-      include: { user: true },
-    });
-
-    if (!vendor) {
-      return { success: false, error: "Vendor profile not found" };
-    }
-
-    const identityDoc = vendor.identityDoc;
-    const businessDoc = vendor.businessDoc;
-    const locationDoc = vendor.locationDoc;
-    const hasAllDocs = Boolean(identityDoc && businessDoc && locationDoc);
-
-    let finalStatus = vendor.status;
-    let emailSent = false;
-
-    if (
-      hasAllDocs &&
-      (
-        vendor.status === VendorStatus.AWAITING_DOCUMENTS ||
-        vendor.status === VendorStatus.REJECTED
-      )
-    ) {
-      const updatedVendor = await prisma.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: {
-          status: VendorStatus.PENDING_REVIEW,
-          rejectionReason: null,
-        },
-      });
-
-      finalStatus = updatedVendor.status;
-
-      try {
-        console.log(
-          `[submitVendorDocs] Attempting to send review email to: ${vendor.user.email}`
-        );
-
-        await sendVendorReviewEmail({
-          email: vendor.user.email,
-          firstName: vendor.user.name || "Vendor",
-          storeName: vendor.storeName || "Your Store",
-        });
-
-        emailSent = true;
-        console.log(`[submitVendorDocs] Review email successfully sent.`);
-      } catch (emailError) {
-        console.error("[submitVendorDocs] Email sending FAILED:", emailError);
+    const result = await VendorService.submitVerificationDocuments(
+      vendorProfileId,
+      url,
+      step,
+      {
+        id: session.user.id,
+        email: session.user.email ?? null,
+        role: session.user.role,
       }
-    }
-
-    let verificationStatus: VerificationStatus = "NOT_STARTED";
-
-    if (!identityDoc && !businessDoc && !locationDoc) {
-      verificationStatus = "NOT_STARTED";
-    } else if (finalStatus === VendorStatus.PENDING_REVIEW) {
-      verificationStatus = "PENDING_REVIEW";
-    } else if (finalStatus === VendorStatus.REJECTED) {
-      verificationStatus = "REJECTED";
-    } else if (finalStatus === VendorStatus.APPROVED) {
-      verificationStatus = "APPROVED";
-    } else {
-      verificationStatus = "AWAITING_DOCUMENTS";
-    }
+    );
 
     revalidatePath("/account/vendor");
     revalidatePath("/account/vendor/verification");
 
-    return {
-      success: true,
-      allDocsSubmitted: hasAllDocs,
-      status: finalStatus,
-      verificationStatus,
-      emailSent,
-    };
-  } catch (error: any) {
-    console.error("[submitVendorDocs] Error:", error);
+    return result;
+  } catch (error) {
     return {
       success: false,
-      error: error?.message || "Unexpected error occurred",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unexpected error occurred",
     };
   }
 }
