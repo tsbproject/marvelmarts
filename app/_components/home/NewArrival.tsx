@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import ProductCard from "../ProductCard";
+import ProductCardv2 from "../ProductCardv2";
 import ProductSkeleton from "../ProductSkeleton";
 import { SerializedProduct } from "@/types/product";
 import { ArrowRight } from "lucide-react";
@@ -51,7 +51,7 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
         {loading 
           ? [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
           : products.map((product) => (
-              <ProductCard 
+              <ProductCardv2 
                 key={product.id} 
                 product={product} 
                 onQuickView={() => handleQuickView(product)}
