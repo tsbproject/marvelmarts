@@ -25,9 +25,9 @@ export default function FeaturedCategoriesHome({ categories }: FeaturedCategorie
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="py-16 px-4 max-w-[1400px] mx-auto">
+    <section className="py-16 px-0 max-w-[1400px] mx-auto">
       {/* Tactical Header */}
-      <div className="grid grid-cols-2 items-end justify-between mb-10">
+      <div className="grid grid-cols-2 items-end justify-between mb-5">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-[2px] bg-blue-600" />

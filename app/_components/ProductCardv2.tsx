@@ -226,7 +226,7 @@ export default function ProductCard({
         src={getValidImage()}
         alt={product.title}
         fill
-        className="object-center p-2 md:p-5 transition-transform duration-700 group-hover:scale-105 group-hover:rotate-[1deg]"
+        className="object-center p-3 md:p-5 transition-transform duration-700 group-hover:scale-105 group-hover:rotate-[1deg]"
         />
 
       {/* MOBILE WISHLIST */}
@@ -299,10 +299,10 @@ export default function ProductCard({
       </div>
 
       {/* TITLE */}
-      <h3 className={`mt-0 line-clamp-5 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-primary ${
+      <h3 className={`mt-0 line-clamp-5 font-medium leading-snug text-slate-900 transition-colors group-hover:text-brand-primary ${
         isList
-            ? "text-md"
-            : "min-h-[30px] text-xs lg:text-xs"
+            ? "text-sm"
+            : "max-h-[15px] text-xs lg:text-xs"
         }`}>
         {product.title}
       </h3>

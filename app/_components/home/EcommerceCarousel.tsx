@@ -59,7 +59,7 @@ export default function EcommerceCarousel() {
   return (
     <div className="relative w-full mx-auto overflow-hidden group">
       {/* Container Height */}
-      <div className="relative w-full h-[50vh] md:h-[70vh]  overflow-hidden">
+      <div className="relative w-full h-[45vh] md:h-[70vh]  overflow-hidden">
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={current}
@@ -83,7 +83,7 @@ export default function EcommerceCarousel() {
                 fill
                 priority
                 quality={100}
-                className="object-cover object-center"
+                className="object-center"
               />
               {/* Subtle Gradient Overlay for Readability */}
               <div className="absolute inset-0 bg-black/20" />
@@ -95,7 +95,7 @@ export default function EcommerceCarousel() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-xs md:text-sm font-black uppercase tracking-[0.4em] text-white/80 mb-4"
+                className="text-xs md:text-sm font-black uppercase tracking-[0.4em] text-white/80 mt-6 mb-4"
               >
                 New Arrival 2026
               </motion.span>
@@ -104,7 +104,7 @@ export default function EcommerceCarousel() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
-                className={`text-4xl md:text-8xl font-black italic uppercase tracking-tighter leading-none mb-6 drop-shadow-2xl ${slides[current].accent}`}
+                className={`text-lg md:text-5xl font-black italic uppercase tracking-tighter leading-none mb-6 drop-shadow-2xl ${slides[current].accent}`}
               >
                 {slides[current].title}
               </motion.h1>
@@ -125,7 +125,7 @@ export default function EcommerceCarousel() {
               >
                 <Link
                   href="/shop"
-                  className="group relative inline-flex items-center gap-3 bg-white text-accent-navy px-10 py-4 rounded-full font-black uppercase text-sm transition-all hover:bg-brand-primary hover:text-white overflow-hidden"
+                  className="group relative inline-flex items-center gap-3 bg-white text-accent-navy px-8 py-4 rounded-full font-black uppercase text-xs transition-all hover:bg-brand-primary hover:text-white overflow-hidden"
                 >
                   <span className="relative z-10">Shop Collection</span>
                   <ShoppingBag className="w-4 h-4 relative z-10 transition-transform group-hover:rotate-12" />

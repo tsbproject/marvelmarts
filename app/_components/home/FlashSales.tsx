@@ -41,10 +41,10 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 gap-0 md:gap-6";
+  const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 ";
 
   return (
-    <section className="bg-white p-4 md:p-6 rounded-[2.5rem] shadow-sm border border-red-50">
+    <section className="bg-white p-2 md:p-6 rounded-[2.5rem] shadow-sm border border-red-50">
       {/* Header & Timer UI */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 px-2">
         <div className="flex items-center gap-2 text-red-600">
