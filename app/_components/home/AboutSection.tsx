@@ -88,10 +88,10 @@ export default function AboutPage() {
       </section>
 
       {/* Core Belief & Tech */}
-      <section className="py-15 max-w-5xl mx-auto px-2 text-center">
+      <section className="py-20 max-w-5xl mx-auto px-4 text-left">
         <h2 className="text-lg font-bold mb-8">Modern Technology, Local Soul</h2>
-        <div className="space-y-4 text-lg text-gray-600 leading-relaxed">
-          <p>
+        <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
+          <p className="text-gray-900 text-sm font-normal">
             Built with modern technology, <span className="text-gray-900 text-sm font-semibold">MarvelMarts</span> combines global best practices with deep local understanding. We support popular Nigerian payment methods, partner with reliable logistics providers, and continuously improve based on real feedback from both vendors and customers.
           </p>
           <div className="py-8">
@@ -99,7 +99,7 @@ export default function AboutPage() {
               "At the heart of everything we do is a simple belief: Commerce should create opportunities for everyone, helping vendors grow sustainable businesses while giving customers convenience, choice, and trust."
             </blockquote>
           </div>
-          <p>
+          <p className="text-gray-900 text-sm ">
             Today, <span className="text-gray-900 text-sm font-semibold">MarvelMarts</span> is more than just an online marketplace. We are building the foundation for a vibrant digital commerce ecosystem that supports Nigerian entrepreneurship and makes quality products accessible to millions of people across the country.
           </p>
         </div>
@@ -108,8 +108,8 @@ export default function AboutPage() {
       {/* Footer Call to Action */}
       <section className="py-20 bg-[#f8f9fa] border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-6">Welcome to MarvelMarts</h2>
-          <p className="text-xl text-gray-500 mb-10">Where vendors thrive and customers shop with confidence.</p>
+          <h2 className="text-xl md:text-2xl font-bold mb-6">Welcome to MarvelMarts</h2>
+          <p className="text-lg text-gray-500 mb-10">Where vendors thrive and customers shop with confidence.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register/vendor-registration" className="px-10 py-4 bg-[#001f3f] text-white rounded-full font-bold hover:bg-blue-900 transition-all">
               Start Selling
