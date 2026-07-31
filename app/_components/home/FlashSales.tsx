@@ -1,13 +1,16 @@
+
+
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Zap, ShoppingBag } from "lucide-react";
-import ProductCardv2 from "../ProductCardv2";
+import ProductCardv3 from "../product-cardv3/ProductCardv3";
 import ProductSkeleton from "../ProductSkeleton";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 import { useRouter } from "next/navigation";
 import ProductQuickViewDrawer from "../ProductQuickViewDrawer";
-import { SerializedProduct } from "@/types/product"; 
+import { SerializedProduct } from "@/types/product";
 
 interface FlashSalesProps {
   products: SerializedProduct[];
@@ -41,35 +44,43 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  const gridLayoutClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 ";
+  // Tight, aligned grid — reduced X & Y spacing
+  const gridLayoutClass =
+  "grid grid-cols-2 gap-x-1 gap-y-2 sm:gap-x-2 sm:gap-y-3 md:grid-cols-3 md:gap-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6";
 
   return (
-    <section className="bg-white p-2 md:p-6 rounded-[2.5rem] shadow-sm border border-red-50">
-      {/* Header & Timer UI */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 px-2">
+    <section className="rounded-3xl border border-red-50/80 bg-white p-1 sm:p-3 md:p-5">
+      {/* Header & Timer */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-red-600">
-          <Zap size={24} fill="currentColor" className="animate-pulse" />
-          <h2 className="text-sm font-black uppercase tracking-tighter italic">
-             Flash <span className="text-(--brand-primary)">Sales</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50">
+            <Zap size={16} fill="currentColor" className="animate-pulse" />
+          </div>
+          <h2 className="text-sm font-black uppercase italic tracking-tighter text-[var(--accent-navy)] md:text-base">
+            Flash <span className="text-[var(--brand-primary)]">Sales</span>
           </h2>
         </div>
 
-        {/* Timer UI */}
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-            Ends In:
+        {/* Timer */}
+        <div className="flex items-center gap-2.5">
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+            Ends In
           </span>
-          <div className="flex gap-2 font-mono font-bold text-xs lg:text-md">
+          <div className="flex items-center gap-1 font-mono text-xs font-bold md:text-sm">
             {[
               { label: "hrs", value: timeLeft.hrs },
               { label: "mins", value: timeLeft.mins },
               { label: "secs", value: timeLeft.secs },
             ].map((unit, i) => (
               <div key={unit.label} className="flex items-center">
-                <div className="bg-(--accent-navy) text-white px-2 py-1 rounded-xl min-w-[42px] text-center shadow-lg shadow-blue-900/20">
+                <div className="min-w-[36px] rounded-lg bg-[var(--accent-navy)] px-1.5 py-1 text-center text-white shadow-md shadow-blue-900/15 md:min-w-[40px]">
                   {unit.value.toString().padStart(2, "0")}
                 </div>
-                {i < 2 && <span className="mx-1 text-(--accent-navy) font-black animate-pulse">:</span>}
+                {i < 2 && (
+                  <span className="mx-0.5 font-black text-[var(--accent-navy)] opacity-60">
+                    :
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -86,20 +97,20 @@ export default function FlashSales({ products, endTime }: FlashSalesProps) {
       ) : products && products.length > 0 ? (
         <div className={gridLayoutClass}>
           {products.slice(0, 6).map((product) => (
-            <ProductCardv2
-              key={product.id}
-              product={product}
-              onQuickView={(p) => {
-                setSelectedProduct(p);
-                setIsQuickViewOpen(true);
-              }}
-            />
+         <ProductCardv3
+          key={product.id}
+          product={product}
+          onQuickView={(p) => {
+            setSelectedProduct(p);
+            setIsQuickViewOpen(true);
+          }}
+        />
           ))}
         </div>
       ) : (
-        <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem] bg-gray-50/50">
-          <ShoppingBag className="mx-auto h-12 w-12 text-gray-200 mb-4" />
-          <p className="text-gray-400 font-medium italic">
+        <div className="rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 py-14 text-center">
+          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+          <p className="text-sm font-medium italic text-gray-400">
             No Flash Sale products available right now.
           </p>
         </div>

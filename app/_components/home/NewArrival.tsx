@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import ProductCardv2 from "../ProductCardv2";
+// import ProductCardv2 from "../ProductCardv2";
+import ProductCardv2 from "@/app/_components/product-cardv2/ProductCardv2";
 import ProductSkeleton from "../ProductSkeleton";
 import { SerializedProduct } from "@/types/product";
 import { ArrowRight } from "lucide-react";

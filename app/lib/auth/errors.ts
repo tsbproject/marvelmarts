@@ -25,9 +25,12 @@ export class AuthError extends Error {
 /*                           FACTORIES                                        */
 /* -------------------------------------------------------------------------- */
 
-export function unauthorized(message = "Unauthorized") {
-  return new ApiError(401, message);
+export function unauthorized(
+  message = "Authentication required."
+) {
+  return new AuthError(message, 401);
 }
+
 export function forbidden(
   message = "Forbidden.",
   status = 403

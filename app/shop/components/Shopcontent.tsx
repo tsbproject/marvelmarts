@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Image from "next/image";
 import { LayoutGrid, List, Search, Loader2 } from "lucide-react";
-import ProductCardv2 from "@/app/_components/ProductCardv2";
+import ProductCardv2 from "@/app/_components/product-cardv2/ProductCardv2";
 import ProductQuickViewDrawer from "@/app/_components/ProductQuickViewDrawer"; // Import your drawer
 import { SerializedProduct } from "@/types/product";
 
