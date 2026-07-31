@@ -12,7 +12,7 @@ import {
   Facebook,
   Twitter,
 } from "lucide-react";
-import ProductCard from "@/app/_components/ProductCard";
+import ProductCardv2 from "@/app/_components/product-cardv2/ProductCardv2";
 import { SerializedProduct } from "@/types/product";
 import ShareActions from "./_components/ShareActions"; 
 import ReportButton from "./_components/ReportButton";
@@ -66,7 +66,7 @@ if (!storeData) {
   const vendor = storeData.vendorProfile;
   const displayStoreName = storeData.name || vendor.storeName || "Official Store";
   
-  const baseUrl = "https://marvelmarts.vercel.app";
+  const baseUrl = "https://marvelmarts.com";
   const storeUrl = `${baseUrl}/store/${slug}`;
   const shareText = encodeURIComponent(`Check out ${displayStoreName} on MarvelMarts!`);
 
@@ -262,7 +262,7 @@ if (!storeData) {
         {products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCardv2 key={product.id} product={product} />
             ))}
           </div>
         ) : (

@@ -7,7 +7,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import ProductCardv2 from "../ProductCardv2";
+import ProductCardv2 from "@/app/_components/product-cardv2/ProductCardv2";
 import ProductSkeleton from "../ProductSkeleton"; 
 import { SerializedProduct } from "@/types/product";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext"; 
