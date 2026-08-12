@@ -1,4 +1,4 @@
-import { prisma } from "@/app/lib/prisma";
+
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { 
@@ -16,6 +16,7 @@ import ProductCardv2 from "@/app/_components/product-cardv2/ProductCardv2";
 import { SerializedProduct } from "@/types/product";
 import ShareActions from "./_components/ShareActions"; 
 import ReportButton from "./_components/ReportButton";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 export default async function PublicStorePage({ 
   params 
@@ -24,41 +25,18 @@ export default async function PublicStorePage({
 }) {
   const { slug } = await params;
 
-// 1. Fetch Store + Products + Score + Verification Status + Suspension Status
-const storeData = await prisma.vendorStore.findFirst({
-  where: {
-    OR: [
-      { slug: slug },           // Try matching the slug 
-      { id: slug },             // Try matching the VendorStore ID
-      { vendorProfileId: slug } // Try matching the VendorProfile ID (the cmll... ID)
-    ]
-  },
-  include: {
-    vendorProfile: {
-      include: {
-        products: {
-          where: { 
-            isPublished: true,
-            status: "ACTIVE" 
-          },
-          orderBy: { createdAt: "desc" },
-          include: {
-            category: { select: { name: true } },
-            images: true,
-            // Important: Include store inside vendorProfile for the ProductCard link!
-            vendorProfile: {
-               include: { store: true }
-            }
-          }
-        },
-        score: true 
-      }
-    }
-  }
-});
 
-if (!storeData) {
-  return notFound();
+/* -------------------------------------------------------------------------- */
+/*                            FETCH PUBLIC STORE                              */
+/* -------------------------------------------------------------------------- */
+
+const storeData =
+  await VendorService.getPublicStoreBySlug(
+    slug
+  );
+
+if (!storeData?.vendorProfile) {
+  notFound();
 }
 
   if (!storeData || !storeData.vendorProfile) notFound();

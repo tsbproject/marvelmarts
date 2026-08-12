@@ -88,12 +88,6 @@ export interface AuthUser extends NextAuthUser {
   balance: number;
 
   rejectionReason?: string | null;
-
-  identityDoc?: string | null;
-
-  businessDoc?: string | null;
-
-  locationDoc?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -112,6 +106,7 @@ export type AuthDatabaseUser =
           rejectionReason: true;
           isSuspended: true;
           balance: true;
+
           identityDoc: true;
           businessDoc: true;
           locationDoc: true;
@@ -119,3 +114,4 @@ export type AuthDatabaseUser =
       };
     };
   }>;
+  

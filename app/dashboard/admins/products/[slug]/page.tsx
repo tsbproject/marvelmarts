@@ -1,7 +1,7 @@
-import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Edit, Package, ChevronLeft, Tag, Layers } from "lucide-react";
+import { ProductService } from "@/app/lib/services/product.service";
 
 export default async function ProductDetailPage({ 
           params 
@@ -15,15 +15,10 @@ export default async function ProductDetailPage({
             notFound();
           }
 
-          const product = await prisma.product.findUnique({
-            where: { slug: slug }, // Use the awaited slug here
-            include: {
-              images: { orderBy: { order: "asc" } },
-              category: true,
-            },
-          });
-
-          if (!product) notFound();
+          const product =
+          await ProductService.getAdminProductBySlug(
+            slug
+          );
   
           const formatPrice = (n: any) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(Number(n));

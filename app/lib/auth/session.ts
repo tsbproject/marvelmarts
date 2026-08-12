@@ -1,10 +1,12 @@
 import type { NextAuthOptions } from "next-auth";
-import type { VendorStatus } from "@prisma/client";
 
 import { AUTH_REFRESH_INTERVAL } from "./constants";
 import { getFreshUserData } from "./helper";
 import { mapAuthUser } from "./mappers";
-import { applyAuthUserToToken, applyTokenToSession,} from "./token";
+import {
+  applyAuthUserToToken,
+  applyTokenToSession,
+} from "./token";
 
 import type { AuthUser } from "./types";
 
@@ -13,32 +15,20 @@ export const callbacks: NextAuthOptions["callbacks"] = {
     token,
     user,
     trigger,
-    session,
   }) {
     /* ---------------------------------------------------------------------- */
-    /* FIRST LOGIN                                                             */
+    /* FIRST LOGIN                                                            */
     /* ---------------------------------------------------------------------- */
 
-        if (user) {
-            return applyAuthUserToToken(
-                token,
-                user as AuthUser
-                );
-        }
-
-    /* ---------------------------------------------------------------------- */
-    /* MANUAL SESSION UPDATE                                                   */
-    /* ---------------------------------------------------------------------- */
-
-    if (trigger === "update") {
-      if (session?.vendorStatus) {
-        token.vendorStatus =
-          session.vendorStatus as VendorStatus;
-      }
+    if (user) {
+      return applyAuthUserToToken(
+        token,
+        user as AuthUser
+      );
     }
 
     /* ---------------------------------------------------------------------- */
-    /* PERIODIC DATABASE REFRESH                                               */
+    /* PERIODIC / MANUAL DATABASE REFRESH                                     */
     /* ---------------------------------------------------------------------- */
 
     if (

@@ -47,7 +47,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
   const { notifySuccess } = useNotification();
   const { setLoading } = useLoadingOverlay();
   
-  const { status, data: session, update } = useSession();
+  const { status, data: session } = useSession();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   
   // Workspace Toggle State
@@ -57,32 +57,64 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
  
 
   // Checking actual permissions from the session
-  const vendorStatus = session?.user?.vendorStatus;
-  const isApprovedVendor = vendorStatus === "APPROVED";
-  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
-  const hasAdminAccess = isAdmin;
-  const hasActiveVendorAccess = isApprovedVendor || isAdmin;
+ const roles = session?.user?.roles ?? [];
 
-  useEffect(() => {
+const primaryRole =
+  session?.user?.role;
 
-  if (!isAuthenticated) return;
+/* ------------------------------------------------------------------ */
+/* CUSTOMER CAPABILITY                                                */
+/* ------------------------------------------------------------------ */
 
-  // AUTO SYNC VIEW MODE
-  if (hasActiveVendorAccess) {
+const hasCustomerRole =
+  primaryRole === "CUSTOMER" ||
+  roles.includes("CUSTOMER");
 
-    dispatch(setViewMode("VENDOR"));
+/* ------------------------------------------------------------------ */
+/* VENDOR CAPABILITY                                                  */
+/* ------------------------------------------------------------------ */
 
-  } else {
+const vendorProfileId =
+  session?.user?.vendorProfileId;
 
-    dispatch(setViewMode("CUSTOMER"));
+const vendorStatus =
+  session?.user?.vendorStatus;
 
-  }
+const hasVendorProfile =
+  !!vendorProfileId;
 
-}, [
-  hasActiveVendorAccess,
-  isAuthenticated,
-  dispatch,
-]);
+/*
+ * A vendor profile is authoritative evidence that
+ * this user has already entered the vendor lifecycle.
+ *
+ * This prevents existing vendors from being incorrectly
+ * sent back through vendor registration.
+ */
+const hasVendorRole =
+  primaryRole === "VENDOR" ||
+  roles.includes("VENDOR") ||
+  hasVendorProfile;
+
+const isApprovedVendor =
+  vendorStatus === "APPROVED";
+
+const isSuspended =
+  session?.user?.isSuspended ?? false;
+
+const hasActiveVendorAccess =
+  hasVendorRole &&
+  isApprovedVendor &&
+  !isSuspended;
+
+/* ------------------------------------------------------------------ */
+/* ADMIN CAPABILITY                                                   */
+/* ------------------------------------------------------------------ */
+
+const hasAdminAccess =
+  primaryRole === "ADMIN" ||
+  primaryRole === "SUPER_ADMIN" ||
+  roles.includes("ADMIN") ||
+  roles.includes("SUPER_ADMIN");
 
   const isLoading = status === "loading";
 
@@ -183,7 +215,7 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
 
           {
             label: "Bank Details",
-            link: "/bank-details",
+            link: "account/customer/bank-details",
             icon: <UserIcon size={20} />,
           },
         ];
@@ -229,67 +261,147 @@ export default function UserMenu({ open, onClose }: UserMenuProps) {
 
 const isNextAuthAuthenticated = status === "authenticated";
 
+
+
+const switchWorkspace = async (
+  target: "CUSTOMER" | "VENDOR" | "ADMIN"
+) => {
+  if (!session?.user) {
+    return;
+  }
+
+  setLoading(true);
+
+  /* ------------------------------------------------------------------ */
+  /* CUSTOMER WORKSPACE                                                 */
+  /* ------------------------------------------------------------------ */
+
+  if (target === "CUSTOMER") {
+    if (!hasCustomerRole) {
+      notifySuccess(
+        "Please create a customer account first."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    dispatch(setViewMode("CUSTOMER"));
+
+    window.location.assign("/account/customer");
+    return;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* ADMIN WORKSPACE                                                    */
+  /* ------------------------------------------------------------------ */
+
+  if (target === "ADMIN") {
+    if (!hasAdminAccess) {
+      setLoading(false);
+      return;
+    }
+
+    dispatch(setViewMode("ADMIN"));
+
+    window.location.assign("/dashboard/admins");
+    return;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* VENDOR WORKSPACE                                                   */
+  /* ------------------------------------------------------------------ */
+
+  if (!hasVendorRole) {
+    window.location.assign(
+      "/auth/register/vendor-signup"
+    );
+
+    return;
+  }
+
+  switch (vendorStatus) {
+    case "AWAITING_DOCUMENTS":
+      window.location.assign(
+        "/account/vendor/verification"
+      );
+      return;
+
+    case "PENDING_REVIEW":
+    case "REJECTED":
+    case "APPROVED":
+      dispatch(setViewMode("VENDOR"));
+
+      window.location.assign(
+        "/account/vendor"
+      );
+      return;
+
+    default:
+      window.location.assign(
+        "/auth/register/vendor-signup"
+      );
+      return;
+  }
+};
+
 const handleClick = async (item: MenuItem) => {
-  // Use the Session Status instead of Redux state here to prevent "Ghost Logouts"
-  if (!isNextAuthAuthenticated && item.link.startsWith("/account")) {
+  /* ------------------------------------------------------------------ */
+  /* REQUIRE LOGIN FOR ACCOUNT PAGES                                    */
+  /* ------------------------------------------------------------------ */
+
+  if (
+    !isNextAuthAuthenticated &&
+    item.link.startsWith("/account")
+  ) {
     onClose();
+
     setLoading(true);
-    router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(item.link)}`);
+
+    router.push(
+      `/auth/sign-in?callbackUrl=${encodeURIComponent(
+        item.link
+      )}`
+    );
+
     return;
   }
 
   onClose();
 
-  // 2. WORKSPACE SWITCHER
-    if (item.variant === "switcher") {
-    const nextMode =
-      viewMode === "CUSTOMER"
-        ? (
-            hasAdminAccess
-              ? "ADMIN"
-              : "VENDOR"
-          )
-        : "CUSTOMER";
+  /* ------------------------------------------------------------------ */
+  /* WORKSPACE SWITCHER                                                 */
+  /* ------------------------------------------------------------------ */
 
-    setLoading(true);
-    
-    try {
-      dispatch(setViewMode(nextMode));
-
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          role: nextMode
-        }
-      });
-      
-      notifySuccess(`Workspace: ${nextMode} Mode Active`);
-      
-      window.location.assign(
-        nextMode === "VENDOR"
-          ? "/account/vendor"
-          : "/account/customer"
+  if (item.variant === "switcher") {
+    if (viewMode === "CUSTOMER") {
+      await switchWorkspace(
+        hasAdminAccess
+          ? "ADMIN"
+          : "VENDOR"
       );
-
-    } catch (error) {
-      console.error("Switch Error:", error);
-      setLoading(false);
+    } else {
+      await switchWorkspace("CUSTOMER");
     }
 
     return;
   }
 
-  // 3. NORMAL NAVIGATION
-  if (item.link !== "toggle_workspace") {
-    // Only push if we aren't already there
-    if (window.location.pathname !== item.link) {
-      setLoading(true);
-      router.push(item.link);
-    }
+  /* ------------------------------------------------------------------ */
+  /* NORMAL NAVIGATION                                                  */
+  /* ------------------------------------------------------------------ */
+
+  if (
+    item.link !== "toggle_workspace" &&
+    window.location.pathname !== item.link
+  ) {
+    setLoading(true);
+
+    router.push(item.link);
   }
 };
-  
+
+
 
   const handleLogout = async () => {
     setLoading(true);

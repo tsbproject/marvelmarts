@@ -101,4 +101,29 @@ export class WishlistService {
 
   return deletion.count > 0;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/*                    CUSTOMER WISHLIST PAGE SECTION                          */
+/* -------------------------------------------------------------------------- */
+
+static async getCustomerWishlist(
+  userId: string
+) {
+  return prisma.wishlist.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      product: {
+        include: {
+          images: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
 }

@@ -1,11 +1,11 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import VerificationCenter from "../verification/_components/VerificationCenter";
 import { PendingApprovalView } from "../verification/_components/PendingApprovalView"; 
 import { Loader2 } from "lucide-react";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 export default async function VendorVerificationPage() {
   // 1. Authenticate
@@ -16,21 +16,15 @@ export default async function VendorVerificationPage() {
   }
 
   // 2. Fetch vendor profile
-  const vendor = await prisma.vendorProfile.findUnique({
-    where: { userId: session.user.id },
-    select: { 
-      id: true, 
-      status: true,
-      identityDoc: true,
-      businessDoc: true,
-      locationDoc: true
-    }
-  });
-
-  // 3. Guard: No vendor profile → force registration
-  if (!vendor) {
-    redirect("/auth/register/vendor-signup");
-  }
+  let vendor;
+        try {
+              vendor =
+                await VendorService.getVendorVerificationProfile(
+                  session.user.id
+                );
+            } catch {
+              redirect("/auth/register/vendor-signup");
+            }
 
   // 4. Auto-redirect if already fully APPROVED
   if (vendor.status === "APPROVED") {

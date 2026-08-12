@@ -8,6 +8,11 @@ import {
 } from "@/app/lib/mailer";
 
 
+import {
+  ConversationType,
+} from "@prisma/client";
+
+
 
 interface HelpArticleData {
   title: string;
@@ -331,5 +336,238 @@ static async sendTicketReply({
   }
 
 
+
+
+
+
+  /* -------------------------------------------------------------------------- */
+  /*                          HELP ARTICLE QUERIES                              */
+  /* -------------------------------------------------------------------------- */
+
+  static async getHelpArticles() {
+    return prisma.helpArticle.findMany({
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+  }
+
+  static async getHelpArticleById(
+    id: string
+  ) {
+    return prisma.helpArticle.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                         SUPPORT TICKET QUERIES                             */
+/* -------------------------------------------------------------------------- */
+
+static async getTickets() {
+  return prisma.ticket.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+static async getTicketById(
+  id: string
+) {
+  return prisma.ticket.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      replies: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+}
+
+static async getTicketArticle(
+  articleId: string
+) {
+  return prisma.helpArticle.findUnique({
+    where: {
+      id: articleId,
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                        ADMIN CONVERSATION QUERIES                           */
+/* -------------------------------------------------------------------------- */
+
+static async getAdminConversations(
+  type: ConversationType,
+  currentUserId?: string
+) {
+  return prisma.conversation.findMany({
+    where: {
+      type,
+
+      ...(currentUserId
+        ? {
+            NOT: {
+              deletedByParticipantIds: {
+                has: currentUserId,
+              },
+            },
+          }
+        : {}),
+    },
+
+    include: {
+      participants: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          vendorProfile: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+
+      messages: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+    },
+
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                      PUBLIC HELP CENTER QUERIES                            */
+/* -------------------------------------------------------------------------- */
+
+static async getPublicArticleBySlug(
+  slug: string
+) {
+  return prisma.helpArticle.findUnique({
+    where: {
+      slug,
+    },
+  });
+}
+
+static async getRelatedArticles(
+  category: string,
+  articleId: string
+) {
+  return prisma.helpArticle.findMany({
+    where: {
+      category,
+
+      NOT: {
+        id: articleId,
+      },
+    },
+
+    take: 5,
+  });
+}
+
+static async getArticleSlugs() {
+  return prisma.helpArticle.findMany({
+    select: {
+      slug: true,
+    },
+  });
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                          PUBLIC ARTICLES SECTION                           */
+/* -------------------------------------------------------------------------- */
+
+static async getPublishedArticles() {
+  return prisma.helpArticle.findMany({
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                    PUBLIC CATEGORY ARTICLES SECTION                         */
+/* -------------------------------------------------------------------------- */
+
+static async getArticlesByCategory(
+  category: string
+) {
+  return prisma.helpArticle.findMany({
+    where: {
+      category: {
+        equals: category,
+        mode: "insensitive",
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                           GET VENDOR TICKET                                  */
+/* -------------------------------------------------------------------------- */
+
+static async getUserTickets(
+  email: string
+) {
+  return prisma.ticket.findMany({
+    where: {
+      userEmail: email,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+
+
+static async getUserTicket(
+  ticketId: string,
+  email: string
+) {
+  return prisma.ticket.findFirst({
+    where: {
+      id: ticketId,
+      userEmail: email,
+    },
+    include: {
+      replies: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+}
 
 }

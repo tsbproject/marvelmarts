@@ -18,6 +18,8 @@ export const AUTH_USER_INCLUDE = {
       rejectionReason: true,
       isSuspended: true,
       balance: true,
+
+      // Vendor verification state
       identityDoc: true,
       businessDoc: true,
       locationDoc: true,

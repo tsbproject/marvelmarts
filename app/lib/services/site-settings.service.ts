@@ -36,4 +36,14 @@ export class SiteSettingsService {
       data,
     });
   }
+
+
+
+  static async getHomepageSettings() {
+  return prisma.siteSettings.findUnique({
+    where: {
+      id: 1,
+    },
+  });
+}
 }

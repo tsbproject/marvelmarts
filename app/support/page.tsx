@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import SupportDrawer from "@/app/_components/SupportDrawer";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+import { CategoryService } from "../lib/services/category.service";
+
 
 const categoryIcons: Record<string, any> = {
   "Order": ShoppingBag, 

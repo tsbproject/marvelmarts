@@ -2,8 +2,8 @@ import "@/app/_styles/globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./_components/ClientLayout"; 
-import prisma from "@/app/lib/prisma";
 import type { Category } from "@prisma/client";
+import { CategoryService } from "@/app/lib/services/category.service";
 
 // Define the recursive type to match your nested children include
 
@@ -35,26 +35,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   try {
     // Parallel fetch: DB data is ready before the page hits the browser
-    const [dbCategories] = await Promise.all([
-   
-      prisma.category.findMany({
-        where: { 
-          OR: [
-            { parentId: null },
-            { parentId: "" } 
-          ]
-        },
-        include: {
-          children: {
-            include: { children: true }
-          }
-        },
-        orderBy: { position: 'asc' }
-      })
-    ]);
+    const [dbCategories] =
+        await Promise.all([
+          CategoryService.getNavigationCategories(),
+        ]);
 
-   
-    categories = dbCategories as CategoryWithChildren[];
+      categories =
+        dbCategories as CategoryWithChildren[];
+        
+          categories = dbCategories as CategoryWithChildren[];
 
     // If database returned nothing but didn't throw an error
     if (categories.length === 0) {
@@ -67,34 +56,42 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     //FALLBACK: Prevent UI disappearance when Neon DB is ENOTFOUND
     
   
-  try{
-    } catch (error) {
-  console.error("Database fetch failed:", error);
-  // This fallback ensures the array is NOT empty
+  let categories: CategoryWithChildren[] = [];
+
+try {
+  const [dbCategories] = await Promise.all([
+    CategoryService.getNavigationCategories(),
+  ]);
+
+  categories =
+    dbCategories as CategoryWithChildren[];
+
+  if (categories.length === 0) {
+    console.warn(
+      "Database connected but returned 0 categories."
+    );
+  }
+} catch (error) {
+  console.error(
+    "Database fetch failed in RootLayout:",
+    error
+  );
+
   categories = [
-    { 
-      id: "fallback-mobile", 
-      name: "Browse All Categories", 
-      slug: "all", 
-      children: [] 
-    }
+    {
+      id: "emergency-all",
+      name: "Browse Armory",
+      slug: "all",
+      parentId: null,
+      children: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      image: null,
+      description: null,
+      position: 0,
+    },
   ] as any;
 }
-    
-    categories = [
-      { 
-        id: "emergency-all", 
-        name: "Browse Armory", 
-        slug: "all", 
-        parentId: null, 
-        children: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        image: null,
-        description: null,
-        position: 0
-      }
-    ] as any;
   }
 
   return (

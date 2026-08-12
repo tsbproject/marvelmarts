@@ -1,4 +1,3 @@
-import prisma from "@/app/lib/prisma";
 import { SerializedProduct } from "@/types/product";
 import EcommerceCarousel from './_components/home/EcommerceCarousel';
 import FlashSales from './_components/home/FlashSales';
@@ -8,87 +7,30 @@ import StoreHydrator from './_components/StoreHydrator';
 import FeaturedCategoriesHome from './_components/home/FeaturedCategoriesHome';
 import TrendingCarousel from './_components/home/TrendingCarousel';
 import AboutSection from "./_components/home/AboutSection";
+import { ProductService } from "@/app/lib/services/product.service";
+import { CategoryService } from "@/app/lib/services/category.service";
+import { SiteSettingsService } from "@/app/lib/services/site-settings.service";
 
 // Helper function to serialize Prisma objects into plain JSON for Client Components
 const serialize = (obj: any): any => {
   return JSON.parse(JSON.stringify(obj));
 };
 
-export default async function HomePage() {
-  const now = new Date();
-
-  // 1. Fetch Data in parallel
+  export default async function HomePage() {
   const [
     dbSettings,
     flashRaw,
     newRaw,
     featuredRaw,
     trendingRaw,
-    featuredCatsRaw
+    featuredCatsRaw,
   ] = await Promise.all([
-    prisma.siteSettings.findUnique({ where: { id: 1 } }),
-    
-    prisma.product.findMany({ 
-      where: { isFlashSale: true, isPublished: true }, 
-      take: 8,
-      include: {
-        images: true, 
-        vendorProfile: true 
-      }
-    }),
-    
-    prisma.product.findMany({ 
-      where: { isPublished: true },
-      orderBy: { createdAt: 'desc' }, 
-      take: 8,
-      include: {
-        images: { select: { url: true } },
-        vendorProfile: {
-          select: { storeName: true, isVerified: true }
-        }
-      }
-    }),
-
-    prisma.product.findMany({ 
-      where: { isFeatured: true, isPublished: true }, 
-      take: 8,
-      include: {
-        images: { select: { url: true } },
-        vendorProfile: {
-          select: { storeName: true, isVerified: true }
-        }
-      }
-    }),
-
-    // --- UPDATED TRENDING QUERY FOR BOOSTING ---
-    prisma.product.findMany({ 
-      where: { 
-        isPublished: true,
-        OR: [
-          { isTrending: true },
-          { boostUntil: { gte: now } } // Include active boosts
-        ]
-      }, 
-      orderBy: [
-        { boostUntil: { sort: 'desc', nulls: 'last' } }, // Boosted first
-        { salesCount: 'desc' }
-      ],
-      take: 12, // Increased slightly for better carousel variety
-      include: {
-        images: { select: { url: true } },
-        vendorProfile: {
-          select: { storeName: true, isVerified: true }
-        }
-      }
-    }),
-    
-    prisma.category.findMany({ 
-      where: { isFeatured: true }, 
-      take: 6,
-      include: {
-        _count: { select: { products: true } }
-      }
-    })
+    SiteSettingsService.getHomepageSettings(),
+    ProductService.getFlashSaleProducts(),
+    ProductService.getNewArrivalProducts(),
+    ProductService.getFeaturedProducts(),
+    ProductService.getTrendingProducts(),
+    CategoryService.getFeaturedCategories(),
   ]);
 
   // 2. Fallback Settings

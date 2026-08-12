@@ -16,38 +16,59 @@ const categoryInclude = {
   children: true,
 } satisfies Prisma.CategoryInclude;
 
-export class CategoryService {
-  static async createCategory(data: {
+
+type CategoryTree = {
+  id: string;
   name: string;
   slug: string;
-  parentId?: string;
+  children: CategoryTree[];
+};
+
+export class CategoryService {
+  
+static async createCategory(data: {
+  name: string;
+  slug: string;
+  parentId?: string | null;
   position?: number;
+  imageUrl?: string | null;
+  isFeatured?: boolean;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
 }) {
   const normalizedData = {
-    ...data,
-    parentId:
-      data.parentId &&
-      data.parentId.trim() !== ""
-        ? data.parentId
-        : null,
-    position: data.position ?? 0,
-  };
+  name: data.name,
+  slug: data.slug,
 
-  const existing =
-    await prisma.category.findUnique({
-      where: {
-        slug: normalizedData.slug,
-      },
-      select: {
-        id: true,
-      },
-    });
+  parentId:
+    data.parentId &&
+    data.parentId.trim() !== ""
+      ? data.parentId
+      : null,
 
-  if (existing) {
-    throw badRequest(
-      "Slug already exists."
-    );
-  }
+  position: data.position ?? 0,
+
+  imageUrl:
+    data.imageUrl &&
+    data.imageUrl.trim() !== ""
+      ? data.imageUrl
+      : null,
+
+  isFeatured:
+    data.isFeatured ?? false,
+
+  metaTitle:
+    data.metaTitle &&
+    data.metaTitle.trim() !== ""
+      ? data.metaTitle
+      : null,
+
+  metaDescription:
+    data.metaDescription &&
+    data.metaDescription.trim() !== ""
+      ? data.metaDescription
+      : null,
+};
 
   if (normalizedData.parentId) {
     const parent =
@@ -72,7 +93,212 @@ export class CategoryService {
   });
 }
 
-  static async getCategories(options: {
+
+static async updateCategory(
+  id: string,
+  data: {
+    name?: string;
+    slug?: string;
+    parentId?: string | null;
+    position?: number;
+    imageUrl?: string | null;
+    isFeatured?: boolean;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+  }
+) {
+  const existingCategory =
+    await prisma.category.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existingCategory) {
+    throw notFound(
+      "Category not found."
+    );
+  }
+
+  const normalizedData = {
+  ...data,
+
+  parentId:
+    data.parentId &&
+    data.parentId.trim() !== ""
+      ? data.parentId
+      : null,
+
+  position:
+    data.position ?? 0,
+
+  imageUrl:
+    data.imageUrl &&
+    data.imageUrl.trim() !== ""
+      ? data.imageUrl
+      : null,
+
+  isFeatured:
+    data.isFeatured ?? false,
+
+  metaTitle:
+    data.metaTitle &&
+    data.metaTitle.trim() !== ""
+      ? data.metaTitle
+      : null,
+
+  metaDescription:
+    data.metaDescription &&
+    data.metaDescription.trim() !== ""
+      ? data.metaDescription
+      : null,
+};
+
+  if (normalizedData.slug) {
+    const slugConflict =
+      await prisma.category.findUnique({
+        where: {
+          slug: normalizedData.slug,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (
+      slugConflict &&
+      slugConflict.id !== id
+    ) {
+      throw badRequest(
+        "Slug already exists."
+      );
+    }
+  }
+
+  // Prevent self-parenting
+  if (
+    normalizedData.parentId === id
+  ) {
+    throw badRequest(
+      "A category cannot be its own parent."
+    );
+  }
+
+  // Validate parent and prevent circular hierarchy
+  if (normalizedData.parentId) {
+    let current =
+      await prisma.category.findUnique({
+        where: {
+          id: normalizedData.parentId,
+        },
+        select: {
+          id: true,
+          parentId: true,
+        },
+      });
+
+    if (!current) {
+      throw badRequest(
+        "Parent category does not exist."
+      );
+    }
+
+    while (current) {
+      if (current.id === id) {
+        throw badRequest(
+          "Circular category hierarchy is not allowed."
+        );
+      }
+
+      if (!current.parentId) {
+        break;
+      }
+
+      current =
+        await prisma.category.findUnique({
+          where: {
+            id: current.parentId,
+          },
+          select: {
+            id: true,
+            parentId: true,
+          },
+        });
+    }
+  }
+
+  return prisma.category.update({
+    where: {
+      id,
+    },
+    data: normalizedData,
+  });
+}
+
+    static async deleteCategory(
+  id: string
+) {
+  const category =
+    await prisma.category.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!category) {
+    throw notFound(
+      "Category not found."
+    );
+  }
+
+  const [
+    childCount,
+    productCount,
+  ] = await Promise.all([
+    prisma.category.count({
+      where: {
+        parentId: id,
+      },
+    }),
+
+    prisma.product.count({
+      where: {
+        categoryId: id,
+      },
+    }),
+  ]);
+
+  if (childCount > 0) {
+    throw badRequest(
+      "Cannot delete a category that has child categories."
+    );
+  }
+
+  if (productCount > 0) {
+    throw badRequest(
+      "Cannot delete a category that contains products."
+    );
+  }
+
+  await prisma.category.delete({
+    where: {
+      id,
+    },
+  });
+
+  return {
+    success: true,
+  };
+}
+  
+
+static async getCategories(options: {
     all: boolean;
     page: number;
     pageSize: number;
@@ -264,206 +490,9 @@ export class CategoryService {
     return category;
     }
 
-  static async updateCategory(
-  id: string,
-  data: {
-    name?: string;
-    slug?: string;
-    parentId?: string;
-    position?: number;
-    imageUrl?: string;
-    metaTitle?: string;
-    metaDescription?: string;
-  }
-) {
-  const existingCategory =
-    await prisma.category.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-      },
-    });
+  
 
-  if (!existingCategory) {
-    throw notFound(
-      "Category not found."
-    );
-  }
-
-  const normalizedData = {
-    ...data,
-
-    parentId:
-      data.parentId &&
-      data.parentId.trim() !== ""
-        ? data.parentId
-        : null,
-
-    position:
-      data.position ?? 0,
-
-    imageUrl:
-      data.imageUrl &&
-      data.imageUrl.trim() !== ""
-        ? data.imageUrl
-        : null,
-
-    metaTitle:
-      data.metaTitle &&
-      data.metaTitle.trim() !== ""
-        ? data.metaTitle
-        : null,
-
-    metaDescription:
-      data.metaDescription &&
-      data.metaDescription.trim() !== ""
-        ? data.metaDescription
-        : null,
-  };
-
-  if (normalizedData.slug) {
-    const slugConflict =
-      await prisma.category.findUnique({
-        where: {
-          slug: normalizedData.slug,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (
-      slugConflict &&
-      slugConflict.id !== id
-    ) {
-      throw badRequest(
-        "Slug already exists."
-      );
-    }
-  }
-
-  // Prevent self-parenting
-  if (
-    normalizedData.parentId === id
-  ) {
-    throw badRequest(
-      "A category cannot be its own parent."
-    );
-  }
-
-  // Validate parent and prevent circular hierarchy
-  if (normalizedData.parentId) {
-    let current =
-      await prisma.category.findUnique({
-        where: {
-          id: normalizedData.parentId,
-        },
-        select: {
-          id: true,
-          parentId: true,
-        },
-      });
-
-    if (!current) {
-      throw badRequest(
-        "Parent category does not exist."
-      );
-    }
-
-    while (current) {
-      if (current.id === id) {
-        throw badRequest(
-          "Circular category hierarchy is not allowed."
-        );
-      }
-
-      if (!current.parentId) {
-        break;
-      }
-
-      current =
-        await prisma.category.findUnique({
-          where: {
-            id: current.parentId,
-          },
-          select: {
-            id: true,
-            parentId: true,
-          },
-        });
-    }
-  }
-
-  return prisma.category.update({
-    where: {
-      id,
-    },
-    data: normalizedData,
-  });
-}
-
-    static async deleteCategory(
-  id: string
-) {
-  const category =
-    await prisma.category.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-  if (!category) {
-    throw notFound(
-      "Category not found."
-    );
-  }
-
-  const [
-    childCount,
-    productCount,
-  ] = await Promise.all([
-    prisma.category.count({
-      where: {
-        parentId: id,
-      },
-    }),
-
-    prisma.product.count({
-      where: {
-        categoryId: id,
-      },
-    }),
-  ]);
-
-  if (childCount > 0) {
-    throw badRequest(
-      "Cannot delete a category that has child categories."
-    );
-  }
-
-  if (productCount > 0) {
-    throw badRequest(
-      "Cannot delete a category that contains products."
-    );
-  }
-
-  await prisma.category.delete({
-    where: {
-      id,
-    },
-  });
-
-  return {
-    success: true,
-  };
-}
-
-    static async getCategoryTree() {
+  static async getCategoryTree() {
   return prisma.category.findMany({
     where: {
       parentId: null,
@@ -588,6 +617,239 @@ static async getCategoryBySlug(
         })
       ),
   };
+}
+
+
+static async getAdminCategoryDirectory(options: {
+  page: number;
+  pageSize: number;
+  search: string;
+  sortBy: CategorySortField;
+  sortOrder: "asc" | "desc";
+}) {
+  const {
+    page,
+    pageSize,
+    search,
+    sortBy,
+    sortOrder,
+  } = options;
+
+  const where: Prisma.CategoryWhereInput =
+    search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        }
+      : {};
+
+  const [
+    total,
+    categories,
+    featuredCount,
+  ] = await Promise.all([
+    prisma.category.count({
+      where,
+    }),
+
+    prisma.category.findMany({
+      where,
+
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        position: true,
+        isFeatured: true,
+        createdAt: true,
+
+        parent: {
+          select: {
+            name: true,
+          },
+        },
+
+        children: {
+          orderBy: {
+            position: "asc",
+          },
+
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+
+            children: {
+              orderBy: {
+                position: "asc",
+              },
+
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+
+    prisma.category.count({
+      where: {
+        isFeatured: true,
+      },
+    }),
+  ]);
+
+  return {
+    categories,
+    total,
+    featuredCount,
+  };
+}
+
+
+static async getCategoryOptions() {
+  return prisma.category.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
+
+
+static async getFeaturedCategories(limit = 6) {
+  return prisma.category.findMany({
+    where: {
+      isFeatured: true,
+    },
+    take: limit,
+    include: {
+      _count: {
+        select: {
+          products: true,
+        },
+      },
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               FETCH QUERIES                                */
+/* -------------------------------------------------------------------------- */
+
+static async getRootCategories() {
+  return prisma.category.findMany({
+    where: {
+      parentId: null,
+    },
+    include: {
+      children: true,
+    },
+    orderBy: {
+      position: "asc",
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                         PUBLIC CATEGORY QUERIES                            */
+/* -------------------------------------------------------------------------- */
+static async getPublicCategoryBySlug(
+  slug: string
+) {
+  return prisma.category.findUnique({
+    where: {
+      slug,
+    },
+
+    include: {
+      children: true,
+
+      products: {
+        include: {
+          images: true,
+          variants: true,
+        },
+      },
+    },
+  });
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                      PUBLIC NAVIGATION SECTION                              */
+/* -------------------------------------------------------------------------- */
+
+static async getNavigationCategories() {
+  return prisma.category.findMany({
+    where: {
+      OR: [
+        {
+          parentId: null,
+        },
+        {
+          parentId: "",
+        },
+      ],
+    },
+    include: {
+      children: {
+        include: {
+          children: true,
+        },
+      },
+    },
+    orderBy: {
+      position: "asc",
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                      TOGGLE FEATURED STATUS                                */
+/* -------------------------------------------------------------------------- */
+
+static async toggleFeaturedStatus(
+  id: string,
+  currentStatus: boolean
+) {
+  return prisma.category.update({
+    where: {
+      id,
+    },
+    data: {
+      isFeatured: !currentStatus,
+    },
+  });
 }
 
 

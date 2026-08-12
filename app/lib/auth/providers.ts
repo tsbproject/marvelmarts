@@ -82,6 +82,10 @@ export const credentialsProvider = CredentialsProvider({
 /*                       VERIFIED LOGIN PROVIDER                              */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/*                       VERIFIED LOGIN PROVIDER                              */
+/* -------------------------------------------------------------------------- */
+
 export const verifiedLoginProvider =
   CredentialsProvider({
     id: "verified-login",
@@ -101,9 +105,20 @@ export const verifiedLoginProvider =
           return null;
         }
 
+        const secret =
+          process.env.NEXTAUTH_SECRET;
+
+        if (!secret) {
+          console.error(
+            "VERIFIED_LOGIN_ERROR: NEXTAUTH_SECRET is missing."
+          );
+
+          return null;
+        }
+
         const decoded = jwt.verify(
           credentials.token,
-          process.env.NEXTAUTH_SECRET!
+          secret
         ) as {
           purpose: string;
           uid: string;

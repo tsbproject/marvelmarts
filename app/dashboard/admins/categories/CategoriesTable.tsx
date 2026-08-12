@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-import { Prisma } from "@prisma/client";
+
 import { 
   Edit3, 
   Trash2, 
@@ -11,12 +11,13 @@ import {
   Layers, 
   Calendar, 
   Link as LinkIcon, 
-  Plus,
-  Star 
+  Plus, 
 } from "lucide-react";
 import FeaturedToggle from "./FeaturedToggle"; 
 
 /* ---------------- Types ---------------- */
+/* ---------------- Types ---------------- */
+
 export type CategoryChild = {
   id: string;
   name: string;
@@ -29,11 +30,18 @@ export type CategoryRow = {
   name: string;
   slug: string;
   position: number;
-  isFeatured: boolean; 
+  isFeatured: boolean;
   parentName: string | null;
   children: CategoryChild[];
   createdAt: string;
 };
+
+export type CategorySortField =
+  | "position"
+  | "name"
+  | "slug"
+  | "createdAt"
+  | "updatedAt";
 
 type CategoriesTableProps = {
   categories: CategoryRow[];
@@ -42,10 +50,9 @@ type CategoriesTableProps = {
   page: number;
   pageSize: number;
   search: string;
-  sortBy: keyof Prisma.CategoryOrderByWithRelationInput;
+  sortBy: CategorySortField;
   sortOrder: "asc" | "desc";
 };
-
 /* ---------------- Pagination Helper ---------------- */
 function getSummarizedPages(current: number, total: number) {
   const delta = 1;

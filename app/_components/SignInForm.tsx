@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { setViewMode } from "@/store/appSlice";
-import { email } from "zod";
+
 
 export default function SignInForm() {
   const router = useRouter();
@@ -28,16 +28,16 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const ROLE_PRIORITY = ["SUPER_ADMIN", "ADMIN", "VENDOR", "CUSTOMER"] as const;
+  // const ROLE_PRIORITY = ["SUPER_ADMIN", "ADMIN", "VENDOR", "CUSTOMER"] as const;
 
-  const getHighestRole = (
-    singleRole: string | undefined,
-    multiRoles: string[] | undefined
-  ) => {
-    if (singleRole) return singleRole;
-    if (!multiRoles || multiRoles.length === 0) return "CUSTOMER";
-    return ROLE_PRIORITY.find((role) => multiRoles.includes(role)) ?? "CUSTOMER";
-  };
+  // const getHighestRole = (
+  //   singleRole: string | undefined,
+  //   multiRoles: string[] | undefined
+  // ) => {
+  //   if (singleRole) return singleRole;
+  //   if (!multiRoles || multiRoles.length === 0) return "CUSTOMER";
+  //   return ROLE_PRIORITY.find((role) => multiRoles.includes(role)) ?? "CUSTOMER";
+  // };
 
   const redirectParam = searchParams.get("redirect");
   const callbackUrl = searchParams.get("callbackUrl");
@@ -68,42 +68,51 @@ export default function SignInForm() {
       return;
     }
 
-    const singleRole = session.user?.role;
-    const multiRoles = session.user?.roles;
-    const highestRole = getHighestRole(singleRole, multiRoles);
+    const role = session.user?.role;
 
-    if (highestRole === "SUPER_ADMIN" || highestRole === "ADMIN") {
-      dispatch(setViewMode("ADMIN"));
-    } else if (highestRole === "VENDOR") {
-      dispatch(setViewMode("VENDOR"));
-    } else {
-      dispatch(setViewMode("CUSTOMER"));
-    }
+if (!role) {
+  setError(
+    "Your account role could not be determined. Please try again."
+  );
+  setLoading(false);
+  return;
+}
 
-    const allowedLanding: Record<string, string> = {
-      SUPER_ADMIN: "/dashboard/admins",
-      ADMIN: "/dashboard/admins",
-      VENDOR: "/account/vendor",
-      CUSTOMER: "/account/customer",
-    };
+if (
+  role === "SUPER_ADMIN" ||
+  role === "ADMIN"
+) {
+  dispatch(setViewMode("ADMIN"));
+} else if (role === "VENDOR") {
+  dispatch(setViewMode("VENDOR"));
+} else {
+  dispatch(setViewMode("CUSTOMER"));
+}
 
-    const safeSharedRoutes = ["/checkout"];
+const allowedLanding: Record<string, string> = {
+  SUPER_ADMIN: "/dashboard/admins",
+  ADMIN: "/dashboard/admins",
+  VENDOR: "/account/vendor",
+  CUSTOMER: "/account/customer",
+};
 
-    let redirectPath = allowedLanding[highestRole];
+const safeSharedRoutes = ["/checkout"];
 
-    if (
-      intendedPath &&
-      (
-        safeSharedRoutes.includes(intendedPath) ||
-        intendedPath.startsWith(allowedLanding[highestRole])
-      )
-    ) {
-      redirectPath = intendedPath;
-    }
+let redirectPath =
+  allowedLanding[role] ??
+  "/account/customer";
 
- 
+if (
+  intendedPath &&
+  (
+    safeSharedRoutes.includes(intendedPath) ||
+    intendedPath.startsWith(redirectPath)
+  )
+) {
+  redirectPath = intendedPath;
+}
 
- setLoading(false);
+setLoading(false);
 
 window.location.href = redirectPath;
 

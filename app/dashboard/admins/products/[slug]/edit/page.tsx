@@ -1,6 +1,6 @@
-import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import ProductFormParent from "./ProductFormParent"; // We'll create this helper
+import { ProductService } from "@/app/lib/services/product.service";
 
 export default async function EditProductPage({ 
   params 
@@ -10,13 +10,8 @@ export default async function EditProductPage({
   const { slug } = await params;
 
   // Fetch product with images and category
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      images: { orderBy: { order: "asc" } },
-      category: true,
-    },
-  });
+  const product =
+  await ProductService.getProductForEdit(slug);
 
   if (!product) notFound();
 

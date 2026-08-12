@@ -77,7 +77,7 @@ export default function ShopContent({ initialProducts }: { initialProducts: Seri
                   className="flex items-center gap-4 p-3 hover:bg-neutral-light cursor-pointer group"
                 >
                   <div className="w-10 h-10 relative bg-neutral-light rounded-lg overflow-hidden">
-                    <Image src={p.imageUrl || "/logo.png"} alt="" fill className="object-contain p-1" />
+                    <Image src={p.imageUrl || "/placeholder-image.png"} alt="" fill className="object-contain p-1" />
                   </div>
                   <span className="text-[11px] font-black uppercase text-accent-navy truncate group-hover:text-brand-primary">
                     {p.title}
@@ -95,7 +95,7 @@ export default function ShopContent({ initialProducts }: { initialProducts: Seri
       </div>
 
       {/* Product Display Area */}
-      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" : "flex flex-col gap-6"}>
+      <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8" : "flex flex-col gap-6"}>
         {initialProducts.map((product) => (
           <ProductCardv2 
             key={product.id} 

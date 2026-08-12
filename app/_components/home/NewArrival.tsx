@@ -48,7 +48,7 @@ export default function NewArrival({ products }: { products: SerializedProduct[]
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 md:gap-8">
         {loading 
           ? [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
           : products.map((product) => (

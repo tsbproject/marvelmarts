@@ -64,39 +64,61 @@ private static async validateProductOwnership(
         slug,
       },
       include: {
+        category: true,
+
         images: {
           orderBy: {
             order: "asc",
           },
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        variants: {
-          orderBy: {
-            name: "asc",
-          },
-        },
-        reviews: {
+
+        variants: true,
+
+        vendorProfile: {
           include: {
-            user: {
+            store: {
               select: {
-                name: true,
-                image: true,
+                slug: true,
               },
             },
           },
         },
-        vendorProfile: {
-          select: {
-            id: true,
-            storeName: true,
-            logoUrl: true,
-            status: true,
-            isSuspended: true,
+
+        reviews: {
+          where: {
+            approved: true,
+          },
+
+          include: {
+            user: {
+              select: {
+                name: true,
+                orders: {
+                  where: {
+                    items: {
+                      some: {
+                        productId: {
+                          not: undefined,
+                        },
+                      },
+                    },
+                    status: "DELIVERED",
+                  },
+
+                  select: {
+                    items: {
+                      select: {
+                        productId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          orderBy: {
+            createdAt: "desc",
           },
         },
       },
@@ -1711,6 +1733,404 @@ static async togglePublicationStatus(
     select: {
       id: true,
       isPublished: true,
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                           GET ADMIN PRODUCT PAG                             */
+/* -------------------------------------------------------------------------- */
+
+
+static async getAdminProductBySlug(slug: string) {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: {
+      images: {
+        orderBy: {
+          order: "asc",
+        },
+      },
+      category: true,
+    },
+  });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  return {
+    ...product,
+    price: Number(product.price),
+    discountPrice: product.discountPrice
+      ? Number(product.discountPrice)
+      : null,
+  };
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                               FETCH QUERIES                                */
+/* -------------------------------------------------------------------------- */
+static async getFlashSaleProducts(limit = 8) {
+  return prisma.product.findMany({
+    where: {
+      isFlashSale: true,
+      isPublished: true,
+    },
+    take: limit,
+    include: {
+      images: true,
+      vendorProfile: true,
+    },
+  });
+}
+
+static async getNewArrivalProducts(limit = 8) {
+  return prisma.product.findMany({
+    where: {
+      isPublished: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: limit,
+    include: {
+      images: {
+        select: {
+          url: true,
+        },
+      },
+      vendorProfile: {
+        select: {
+          storeName: true,
+          isVerified: true,
+        },
+      },
+    },
+  });
+}
+
+static async getFeaturedProducts(limit = 8) {
+  return prisma.product.findMany({
+    where: {
+      isFeatured: true,
+      isPublished: true,
+    },
+    take: limit,
+    include: {
+      images: {
+        select: {
+          url: true,
+        },
+      },
+      vendorProfile: {
+        select: {
+          storeName: true,
+          isVerified: true,
+        },
+      },
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                               FETCH QUERIES                                */
+/* -------------------------------------------------------------------------- */
+
+static async getHomepageTrendingProducts(limit = 12) {
+  const now = new Date();
+
+  return prisma.product.findMany({
+    where: {
+      isPublished: true,
+      OR: [
+        {
+          isTrending: true,
+        },
+        {
+          boostUntil: {
+            gte: now,
+          },
+        },
+      ],
+    },
+    orderBy: [
+      {
+        boostUntil: {
+          sort: "desc",
+          nulls: "last",
+        },
+      },
+      {
+        salesCount: "desc",
+      },
+    ],
+    take: limit,
+    include: {
+      images: {
+        select: {
+          url: true,
+        },
+      },
+      vendorProfile: {
+        select: {
+          storeName: true,
+          isVerified: true,
+        },
+      },
+    },
+  });
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                               FETCH QUERIES                                */
+/* -------------------------------------------------------------------------- */
+
+static async getShopProducts(filters: {
+  category?: string;
+  subcategory?: string;
+  brand?: string;
+  minPrice?: string;
+  maxPrice?: string;
+}) {
+  const where: Prisma.ProductWhereInput = {
+    isPublished: true,
+  };
+
+  if (filters.category) {
+    where.category = {
+      slug: filters.category,
+    };
+  }
+
+  if (filters.subcategory) {
+    where.category = {
+      slug: filters.subcategory,
+    };
+  }
+
+  if (filters.brand) {
+    where.brand = filters.brand;
+  }
+
+  if (filters.minPrice || filters.maxPrice) {
+    where.price = {
+      gte: filters.minPrice
+        ? new Prisma.Decimal(filters.minPrice)
+        : new Prisma.Decimal(0),
+
+      lte: filters.maxPrice
+        ? new Prisma.Decimal(filters.maxPrice)
+        : new Prisma.Decimal(9999999),
+    };
+  }
+
+  return prisma.product.findMany({
+    where,
+    include: {
+      images: true,
+      variants: true,
+      category: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                        GET SIMILAR PRODUCTS FRONTEND                        */
+/* -------------------------------------------------------------------------- */  
+
+static async getSimilarProducts(
+  categoryId: string,
+  productId: string
+) {
+  return prisma.product.findMany({
+    where: {
+      categoryId,
+      id: {
+        not: productId,
+      },
+      status: "ACTIVE",
+    },
+
+    take: 4,
+
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      price: true,
+      discountPrice: true,
+
+      images: {
+        take: 1,
+        select: {
+          url: true,
+        },
+      },
+    },
+  });
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                        BUILD SHOP FILTERS FRONTEND                        */
+/* -------------------------------------------------------------------------- */
+
+static buildShopFilters(filters: {
+  category?: string;
+  subcategory?: string;
+  brand?: string;
+  minPrice?: string;
+  maxPrice?: string;
+}) {
+  const where: Prisma.ProductWhereInput = {};
+
+  if (filters.category) {
+    where.category = {
+      slug: filters.category,
+    };
+  }
+
+  if (filters.subcategory) {
+    where.category = {
+      slug: filters.subcategory,
+    };
+  }
+
+  if (filters.brand) {
+    where.brand = filters.brand;
+  }
+
+  if (filters.minPrice || filters.maxPrice) {
+    where.price = {
+      gte: filters.minPrice
+        ? parseFloat(filters.minPrice)
+        : 0,
+
+      lte: filters.maxPrice
+        ? parseFloat(filters.maxPrice)
+        : 9999999,
+    };
+  }
+
+  return where;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        GET ADMIN PRODUCT FOR EDIT                        */
+/* -------------------------------------------------------------------------- */
+static async getProductForEdit(slug: string) {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: {
+      images: {
+        orderBy: {
+          order: "asc",
+        },
+      },
+      category: true,
+    },
+  });
+
+  if (!product) {
+    throw notFound("Product not found.");
+  }
+
+  return product;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        GET TRNDING PRODUCTS FOR ADMIN                       */
+/* -------------------------------------------------------------------------- */
+static async getTrendingProductsForAdmin(
+  query: string,
+  skip: number,
+  take: number
+) {
+  const where: Prisma.ProductWhereInput = {
+    status: "ACTIVE",
+    OR: [
+      {
+        title: {
+          contains: query,
+          mode: "insensitive",
+        },
+      },
+      {
+        sku: {
+          contains: query,
+          mode: "insensitive",
+        },
+      },
+    ],
+  };
+
+  const [products, totalCount] =
+    await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          sku: true,
+          isTrending: true,
+          price: true,
+          images: {
+            take: 1,
+            select: {
+              url: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            isTrending: "desc",
+          },
+          {
+            title: "asc",
+          },
+        ],
+        skip,
+        take,
+      }),
+
+      prisma.product.count({
+        where,
+      }),
+    ]);
+
+  return {
+    products,
+    totalCount,
+  };
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                        ADMIN TRENDING PRODUCT TOGGLE                       */
+/* -------------------------------------------------------------------------- */
+static async toggleTrendingStatus(
+  id: string,
+  currentStatus: boolean
+) {
+  return prisma.product.update({
+    where: {
+      id,
+    },
+    data: {
+      isTrending: !currentStatus,
     },
   });
 }

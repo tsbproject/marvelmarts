@@ -2,13 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import ChatList from "./_components/ChatLists";
 import AdminChatThread from "./_components/AdminChatThred";
 import VendorIdentityCard from "./_components/VendorIdentityCard";
+
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 import { ShieldCheck, Users, AlertCircle, Info } from "lucide-react";
 import { UserRole, ConversationType } from "@prisma/client";
 import Link from "next/link";
@@ -59,37 +60,11 @@ export default async function AdminLiveSupportPage({
   const selectedConversationId = params.id;
   const currentUserId = session?.user?.id;
 
-  const conversations = await prisma.conversation.findMany({
-    where: {
-      type: activeType,
-      ...(currentUserId
-        ? {
-            NOT: {
-              deletedByParticipantIds: {
-                has: currentUserId,
-              },
-            },
-          }
-        : {}),
-    },
-    include: {
-      participants: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-          vendorProfile: {
-            select: { id: true },
-          },
-        },
-      },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const conversations =
+  await HelpCenterService.getAdminConversations(
+    activeType,
+    currentUserId
+  );
 
   const activeConversation =
     conversations.find((c) => c.id === selectedConversationId) || null;

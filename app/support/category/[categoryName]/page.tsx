@@ -1,7 +1,7 @@
-import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, ChevronRight, HelpCircle } from "lucide-react";
 import Link from "next/link";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
 // Define the valid categories to ensure we don't fetch junk
 const VALID_CATEGORIES = [
@@ -32,16 +32,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const articles = await prisma.helpArticle.findMany({
-    where: {
-      category: {
-        equals: normalizedCategory,
-        mode: 'insensitive', 
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
+ const articles =
+  await HelpCenterService.getArticlesByCategory(
+    normalizedCategory
+  );
+  
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header Section: Navy Branding */}

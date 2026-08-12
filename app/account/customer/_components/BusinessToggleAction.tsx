@@ -1,194 +1,353 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { RefreshCw, ShoppingCart } from "lucide-react";
-// import { useDispatch, useSelector } from "react-redux";
-// import { setViewMode } from "@/store/appSlice";
-// import { useSession } from "next-auth/react";
-// import { useNotification } from "@/app/_context/NotificationContext";
-// import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
-// import { RootState } from "@/store";
-
-// export default function BusinessToggleAction() {
-//   const [mounted, setMounted] = useState(false);
-//   const dispatch = useDispatch();
-//   const { update } = useSession();
-//   const { notifySuccess } = useNotification();
-//   const { setLoading } = useLoadingOverlay();
-  
-//   const viewMode = useSelector((state: RootState) => state.app.viewMode);
-
-//   // UseEffect only runs on the client after the first render
-//   useEffect(() => {
-//     setMounted(true);
-//   }, []);
-
-//   const handleSwitch = async () => {
-//     setLoading(true);
-//     const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
-    
-//     try {
-//       // 1. Update Redux (and its internal localStorage logic)
-//       dispatch(setViewMode(nextMode));
-
-//       // 2. Update the NextAuth session cookie
-//       await update({ role: nextMode });
-
-//       // 3. Essential delay for cookie persistence
-//       await new Promise((resolve) => setTimeout(resolve, 200));
-
-//       notifySuccess(nextMode === "VENDOR" ? "Merchant Console Activated" : "Marketplace View Activated");
-      
-//       // 4. Force hard redirect to ensure Middleware picks up the new role
-//       const destination = nextMode === "VENDOR" ? "/account/vendor" : "/";
-//       window.location.assign(destination);
-      
-//     } catch (error) {
-//       console.error("Switch error:", error);
-//       setLoading(false);
-//     }
-//   };
-
-//   /**
-//    * FIX: Hydration Mismatch
-//    * We render a "skeleton" of the button on the server. 
-//    * This matches the layout structure so React doesn't complain.
-//    */
-//   if (!mounted) {
-//     return (
-//       <button 
-//         className="flex items-center gap-3 px-6 py-4 rounded-2xl font-black transition-all shadow-xl backdrop-blur-md uppercase text-sm tracking-widest border bg-white/10 border-white/20 text-white opacity-50 cursor-not-allowed"
-//         disabled
-//       >
-//         <RefreshCw size={20} className="text-brand-primary opacity-50" />
-//         Switching...
-//       </button>
-//     );
-//   }
-
-//   return (
-//     <button 
-//       onClick={handleSwitch}
-//       className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-black transition-all shadow-xl backdrop-blur-md group uppercase text-sm tracking-widest border
-//         ${viewMode === "CUSTOMER" 
-//           ? "bg-white/10 hover:bg-white/20 border-white/20 text-white" 
-//           : "bg-accent-navy text-white border-accent-navy hover:bg-[#003d82]"
-//         }`}
-//     >
-//       {viewMode === "CUSTOMER" ? (
-//         <>
-//           <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500 text-brand-primary" />
-//           Switch to Vendor View
-//         </>
-//       ) : (
-//         <>
-//           <ShoppingCart size={20} className="text-brand-primary" />
-//           Back to Shopping
-//         </>
-//       )}
-//     </button>
-//   );
-// }
-
-
-
-
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw, ShoppingCart } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { setViewMode } from "@/store/appSlice";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  RefreshCw,
+  Store,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
 import { useSession } from "next-auth/react";
-import { useNotification } from "@/app/_context/NotificationContext";
-import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
+
+import { setViewMode } from "@/store/appSlice";
 import { RootState } from "@/store";
 
-export default function BusinessToggleAction() {
-  const [mounted, setMounted] = useState(false);
-  const dispatch = useDispatch();
-  const { update } = useSession();
-  const { notifySuccess } = useNotification();
-  const { setLoading } = useLoadingOverlay();
+import { useNotification } from "@/app/_context/NotificationContext";
+import { useLoadingOverlay } from "@/app/_context/LoadingOverlayContext";
 
-  const viewMode = useSelector((state: RootState) => state.app.viewMode);
+export default function BusinessToggleAction() {
+  const [mounted, setMounted] =
+    useState(false);
+
+  const dispatch = useDispatch();
+
+  const {
+    data: session,
+    status,
+  } = useSession();
+
+  const { notifySuccess } =
+    useNotification();
+
+  const { setLoading } =
+    useLoadingOverlay();
+
+  const viewMode = useSelector(
+    (state: RootState) =>
+      state.app.viewMode
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSwitch = async () => {
+  /* ---------------------------------------------------------------------- */
+  /* ACCOUNT CAPABILITIES                                                   */
+  /* ---------------------------------------------------------------------- */
+
+  const roles =
+    session?.user?.roles?.length
+      ? session.user.roles
+      : session?.user?.role
+        ? [session.user.role]
+        : [];
+
+  const hasVendorRole =
+    roles.includes("VENDOR");
+
+  const hasVendorProfile =
+    !!session?.user?.vendorProfileId;
+
+  const hasVendorAccount =
+    hasVendorRole ||
+    hasVendorProfile;
+
+  const vendorStatus =
+    session?.user?.vendorStatus;
+
+  const isSuspended =
+    session?.user?.isSuspended ??
+    false;
+
+  /* ---------------------------------------------------------------------- */
+  /* SWITCH TO VENDOR                                                       */
+  /* ---------------------------------------------------------------------- */
+
+  const handleSwitch = () => {
+    if (
+      status !== "authenticated" ||
+      !session?.user
+    ) {
+      return;
+    }
+
     setLoading(true);
-    const nextMode = viewMode === "CUSTOMER" ? "VENDOR" : "CUSTOMER";
 
-    try {
-      // 1. Update Redux
-      dispatch(setViewMode(nextMode));
-
-      // 2. Update NextAuth session cookie
-      await update({ role: nextMode });
-
-      // 3. Delay for cookie persistence
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      notifySuccess(
-        nextMode === "VENDOR"
-          ? "Merchant Console Activated"
-          : "Marketplace View Activated"
+    /*
+     * No vendor capability/profile exists.
+     * User must register first.
+     */
+    if (!hasVendorAccount) {
+      window.location.assign(
+        "/auth/register/vendor-signup"
       );
 
-      // 4. Hard redirect so middleware/server-side checks pick up new role
-      const destination = nextMode === "VENDOR" ? "/account/vendor" : "/";
-      window.location.assign(destination);
-    } catch (error) {
-      console.error("Switch error:", error);
-      setLoading(false);
+      return;
+    }
+
+    /*
+     * Suspended vendors must never
+     * activate normal vendor workspace.
+     */
+    if (isSuspended) {
+      dispatch(
+        setViewMode("VENDOR")
+      );
+
+      window.location.assign(
+        "/account/vendor"
+      );
+
+      return;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* VENDOR LIFECYCLE                                                   */
+    /* ------------------------------------------------------------------ */
+
+    switch (vendorStatus) {
+      case "AWAITING_DOCUMENTS":
+        dispatch(
+          setViewMode("VENDOR")
+        );
+
+        window.location.assign(
+          "/account/vendor/verification"
+        );
+
+        return;
+
+      case "PENDING_REVIEW":
+        dispatch(
+          setViewMode("VENDOR")
+        );
+
+        window.location.assign(
+          "/account/vendor"
+        );
+
+        return;
+
+      case "REJECTED":
+        dispatch(
+          setViewMode("VENDOR")
+        );
+
+        window.location.assign(
+          "/account/vendor"
+        );
+
+        return;
+
+      case "APPROVED":
+        dispatch(
+          setViewMode("VENDOR")
+        );
+
+        notifySuccess(
+          "Merchant Console Activated"
+        );
+
+        window.location.assign(
+          "/account/vendor"
+        );
+
+        return;
+
+      default:
+        /*
+         * Vendor profile/capability exists,
+         * but its lifecycle state is not
+         * usable yet.
+         *
+         * Do not fake vendor access.
+         */
+        setLoading(false);
+
+        return;
     }
   };
 
-  /**
-   * HYDRATION SYMMETRY LOGIC:
-   * The server renders the "Initializing" state. 
-   * The client renders the "Initializing" state on the very first frame.
-   * Then, useEffect flips 'mounted' to true, and the real viewMode appears.
-   * This guarantees the HTML matches exactly at the moment of hydration.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* HYDRATION GUARD                                                        */
+  /* ---------------------------------------------------------------------- */
+
   if (!mounted) {
     return (
       <button
         disabled
-        className="flex items-center gap-3 px-6 py-4 rounded-2xl font-black transition-all shadow-xl backdrop-blur-md uppercase text-sm tracking-widest border bg-white/10 border-white/20 text-white opacity-50 cursor-not-allowed"
+        className="
+          flex items-center gap-3
+          px-6 py-4
+          rounded-2xl
+          font-black
+          transition-all
+          shadow-xl
+          backdrop-blur-md
+          uppercase
+          text-sm
+          tracking-widest
+          border
+          bg-white/10
+          border-white/20
+          text-white
+          opacity-50
+          cursor-not-allowed
+        "
       >
-        <RefreshCw size={20} className="animate-spin text-brand-primary opacity-50" />
+        <RefreshCw
+          size={20}
+          className="
+            animate-spin
+            text-brand-primary
+          "
+        />
+
         Synchronizing...
+      </button>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STATUS-SPECIFIC BUTTON                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  if (
+    vendorStatus ===
+    "AWAITING_DOCUMENTS"
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={handleSwitch}
+        className="
+          flex items-center gap-3
+          bg-brand-primary
+          text-white
+          px-6 py-4
+          rounded-2xl
+          font-black
+          uppercase
+          text-sm
+          tracking-widest
+          shadow-lg
+          transition-all
+          hover:scale-[1.02]
+          active:scale-95
+        "
+      >
+        <Store size={20} />
+
+        Complete Vendor Registration
+      </button>
+    );
+  }
+
+  if (
+    vendorStatus ===
+    "PENDING_REVIEW"
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={handleSwitch}
+        className="
+          flex items-center gap-3
+          bg-white/10
+          border border-white/20
+          text-white
+          px-6 py-4
+          rounded-2xl
+          font-black
+          uppercase
+          text-sm
+          tracking-widest
+        "
+      >
+        <Clock size={20} />
+
+        Vendor Review Pending
+      </button>
+    );
+  }
+
+  if (
+    vendorStatus === "REJECTED"
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={handleSwitch}
+        className="
+          flex items-center gap-3
+          bg-red-500/20
+          border border-red-400/30
+          text-white
+          px-6 py-4
+          rounded-2xl
+          font-black
+          uppercase
+          text-sm
+          tracking-widest
+        "
+      >
+        <AlertCircle size={20} />
+
+        Review Vendor Application
       </button>
     );
   }
 
   return (
     <button
+      type="button"
       onClick={handleSwitch}
-      className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-black transition-all shadow-xl backdrop-blur-md group uppercase text-sm tracking-widest border
-        ${
-          viewMode === "CUSTOMER"
-            ? "bg-white/10 hover:bg-white/20 border-white/20 text-white"
-            : "bg-accent-navy text-white border-accent-navy hover:bg-[#003d82]"
-        }`}
+      disabled={
+        status !==
+        "authenticated"
+      }
+      className="
+        flex items-center gap-3
+        bg-brand-primary
+        hover:bg-orange-600
+        text-white
+        px-6 py-4
+        rounded-2xl
+        font-black
+        transition-all
+        shadow-lg
+        hover:scale-[1.02]
+        active:scale-95
+        uppercase
+        text-sm
+        tracking-widest
+        disabled:opacity-50
+        disabled:cursor-not-allowed
+      "
     >
-      {viewMode === "CUSTOMER" ? (
-        <>
-          <RefreshCw
-            size={20}
-            className="group-hover:rotate-180 transition-transform duration-500 text-brand-primary"
-          />
-          Switch to Vendor View
-        </>
-      ) : (
-        <>
-          <ShoppingCart size={20} className="text-brand-primary" />
-          Back to Shopping
-        </>
-      )}
+      <Store size={20} />
+
+      Switch to Vendor View
     </button>
   );
 }

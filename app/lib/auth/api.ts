@@ -177,14 +177,23 @@ export async function requireAuth(): Promise<Session> {
 }
 
 export async function requireRole(
-  ...roles: UserRole[]
+  ...requiredRoles: UserRole[]
 ): Promise<Session> {
-  
   const session = await requireAuth();
 
-  const role = session.user.role as UserRole | undefined;
+  const userRoles: UserRole[] =
+    session.user.roles?.length
+      ? (session.user.roles as UserRole[])
+      : session.user.role
+        ? [session.user.role as UserRole]
+        : [];
 
-  if (!role || !roles.includes(role)) {
+  const hasRequiredRole =
+    requiredRoles.some((role) =>
+      userRoles.includes(role)
+    );
+
+  if (!hasRequiredRole) {
     throw forbidden(
       "You do not have permission to perform this action."
     );

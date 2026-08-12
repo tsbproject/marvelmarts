@@ -1444,4 +1444,204 @@ static async verifyVendorRegistration(
       };
     }
 
+
+    static async getAdministratorsForSuperAdmin(
+  currentUserId: string
+) {
+  const admins = await prisma.user.findMany({
+    where: {
+      roles: {
+        hasSome: [
+          UserRole.ADMIN,
+          UserRole.SUPER_ADMIN,
+        ],
+      },
+    },
+
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      roles: true,
+      createdAt: true,
+      updatedAt: true,
+
+      adminProfile: {
+        select: {
+          manageAdmins: true,
+          manageUsers: true,
+          manageBlogs: true,
+          manageProducts: true,
+          manageOrders: true,
+          manageMessages: true,
+          manageSettings: true,
+          manageCategories: true,
+          manageVendors: true,
+          manageVerifications: true,
+          manageSubscribers: true,
+          manageReviews: true,
+          manageActivity: true,
+          manageTrending: true,
+          manageSupport: true,
+          managePayout: true,
+        },
+      },
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return admins.filter(
+    (admin) =>
+      admin.id !== currentUserId
+  );
+}
+
+
+/**
+ * Get all users for admin user management.
+ *
+ * Get all non-administrator users for admin user management.
+ *
+ * Accounts with ADMIN or SUPER_ADMIN authority are excluded
+ * because they are managed through the dedicated Admins domain.
+ */
+static async getUsersForAdmin({
+  page = 1,
+  pageSize = 20,
+  search = "",
+  filter = "ALL",
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  filter?: string;
+} = {}) {
+  const safePage = Math.max(1, page);
+
+  const safePageSize = Math.min(
+    Math.max(1, pageSize),
+    100
+  );
+
+  const normalizedSearch =
+    search.trim();
+
+  const where: Prisma.UserWhereInput = {
+    // Admin accounts belong on the dedicated Admin page.
+    NOT: {
+      roles: {
+        hasSome: [
+          UserRole.ADMIN,
+          UserRole.SUPER_ADMIN,
+        ],
+      },
+    },
+
+    ...(normalizedSearch && {
+      OR: [
+        {
+          name: {
+            contains: normalizedSearch,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: normalizedSearch,
+            mode: "insensitive",
+          },
+        },
+      ],
+    }),
+
+    ...(filter === "CUSTOMER" && {
+      role: UserRole.CUSTOMER,
+    }),
+
+    ...(filter === "VENDOR" && {
+      role: UserRole.VENDOR,
+    }),
+
+    ...(filter === "SUSPENDED" && {
+      isSuspended: true,
+    }),
+  };
+
+  const [users, total] =
+    await Promise.all([
+      prisma.user.findMany({
+        where,
+
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          image: true,
+          createdAt: true,
+          IsVerified: true,
+          isSuspended: true,
+
+          vendorProfile: {
+            select: {
+              storeName: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        skip:
+          (safePage - 1) *
+          safePageSize,
+
+        take: safePageSize,
+      }),
+
+      prisma.user.count({
+        where,
+      }),
+    ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      total / safePageSize
+    )
+  );
+
+  return {
+    users,
+
+    pagination: {
+      page: safePage,
+      pageSize: safePageSize,
+      total,
+      totalPages,
+    },
+  };
+}
+
+/**
+ * Get a single user for admin editing.
+ */
+static async getUserForAdminEdit(
+  userId: string
+) {
+  return prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+
+    include: {
+      vendorProfile: true,
+    },
+  });
+}
+
 }

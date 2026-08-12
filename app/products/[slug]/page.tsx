@@ -1,9 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { prisma } from "@/app/lib/prisma";
 import ProductDetails from "./ProductDetails";
 import type { Product, Category, ProductImage } from "@prisma/client";
+import { ProductService } from "@/app/lib/services/product.service";
+
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -56,60 +57,23 @@ export default async function ProductPage({ params }: Props) {
 
   if (!slug) return notFound();
 
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      images: { orderBy: { order: "asc" } },
-      variants: true,
-      // Included metrics in the vendorProfile query
-      vendorProfile: {
-        include: {
-          store: {
-            select: { slug: true }
-          }
-        }
-      },
-      reviews: {
-        where: { approved: true },
-        include: {
-          user: {
-            select: {
-              name: true,
-              orders: {
-                where: {
-                  items: { some: { productId: { not: undefined } } },
-                  status: "DELIVERED"
-                },
-                select: { items: { select: { productId: true } } }
-              }
-            }
-          }
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+      
+  const product =
+    await ProductService.getProductBySlug(
+      slug
+    );
 
   if (!product) return notFound();
 
-  const similarProducts = await prisma.product.findMany({
-    where: {
-      categoryId: product.categoryId,
-      id: { not: product.id },
-      status: "ACTIVE",
-    },
-    take: 4,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      price: true,
-      discountPrice: true,
-      images: { take: 1, select: { url: true } },
-    },
-  });
+  const similarProducts =
+  product.categoryId
+    ? await ProductService.getSimilarProducts(
+        product.categoryId,
+        product.id
+      )
+    : [];
 
+  
   const formattedProduct: ProductWithRelations = {
     ...product,
     price: Number(product.price),

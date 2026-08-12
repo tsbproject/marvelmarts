@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
 import PaymentMethodsClient from "../_components/PaymentMethodsClient";
+import { CustomerService } from "@/app/lib/services/customer.service";
 
 export const dynamic = "force-dynamic";
 
@@ -18,25 +18,12 @@ export default async function PaymentMethodsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
 
-  const [rawCards, walletData] = await Promise.all([
-    prisma.paymentMethod.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      orderBy: { isDefault: "desc" },
-    }),
-    
-    
-    prisma.wallet.findUnique({
-      where: { userId: session.user.id },
-      include: {
-        transactions: {
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-      },
-    }),
-  ]);
+      const {
+          cards: rawCards,
+          wallet: walletData,
+        } = await CustomerService.getPaymentMethodsData(
+          session.user.id
+        );
 
   const initialCards: CardItem[] = rawCards.map((card) => ({
     id: card.id,

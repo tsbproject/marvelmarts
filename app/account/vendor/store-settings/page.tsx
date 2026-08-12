@@ -1,11 +1,9 @@
-
-
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import StoreSettingsForm from "./StoreSettingForm";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 export default async function VendorSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -13,10 +11,15 @@ export default async function VendorSettingsPage() {
   if (!session?.user?.id) redirect("/auth/sign-in");
   if (session.user.vendorStatus === "REJECTED") redirect("/account/vendor");
 
-  const vendor = await prisma.vendorProfile.findUnique({
-    where: { userId: session.user.id },
-    include: { store: true }
-  });
+  let vendor;
+      try {
+            vendor =
+              await VendorService.getVendorSettingsProfile(
+                session.user.id
+              );
+          } catch {
+            redirect("/account/vendor");
+          }
 
   if (!vendor) redirect("/account/vendor");
 

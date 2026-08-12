@@ -8,6 +8,12 @@ import {
 import { sendVendorReviewEmail } from "@/app/lib/mailer";
 import type { VerificationStatus } from "@/types/vendor";
 
+import {
+  startOfDay,
+  startOfMonth,
+  subDays,
+} from "date-fns";
+
 
 export class VendorService {
   
@@ -1576,6 +1582,402 @@ static async completeStoreSetup(
   }
 }
 
-   
+  
+
+/* -------------------------------------------------------------------------- */
+/*                          PUBLIC STORE QUERIES                              */
+/* -------------------------------------------------------------------------- */
+static async getPublicStoreBySlug(slug: string) {
+  return prisma.vendorStore.findFirst({
+    where: {
+      OR: [
+        {
+          slug,
+        },
+        {
+          id: slug,
+        },
+        {
+          vendorProfileId: slug,
+        },
+      ],
+    },
+
+    include: {
+      vendorProfile: {
+        include: {
+          products: {
+            where: {
+              isPublished: true,
+              status: "ACTIVE",
+            },
+
+            orderBy: {
+              createdAt: "desc",
+            },
+
+            include: {
+              category: {
+                select: {
+                  name: true,
+                },
+              },
+
+              images: true,
+
+              vendorProfile: {
+                include: {
+                  store: true,
+                },
+              },
+            },
+          },
+
+          score: true,
+        },
+      },
+    },
+  });
+}
+
+
+/*-------------------------------------------------------------------------------*/
+/*                    VENDOR DASHBOARD PROFILE FRONTEND EXTRACTION                 */                                      
+/*---------------------------------------------------------------------------------*/
+
+static async getVendorDashboardProfile(userId: string) {
+  return prisma.vendorProfile.findUnique({
+    where: {
+      userId,
+    },
+
+    include: {
+      onboarding: true,
+      store: true,
+      score: true,
+      boost: true,
+
+      products: {
+        take: 3,
+        orderBy: {
+          salesCount: "desc",
+        },
+
+        include: {
+          images: true,
+        },
+      },
+    },
+  });
+}
+
+
+/*-------------------------------------------------------------------------------*/
+/*                         VENDOR SCORE FRONTEND                                  */                                      
+/*---------------------------------------------------------------------------------*/
+
+static async ensureVendorScore(
+  vendorProfileId: string
+) {
+  const existing =
+    await prisma.vendorScore.findUnique({
+      where: {
+        vendorProfileId,
+      },
+    });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.vendorScore.create({
+    data: {
+      vendorProfileId,
+      commissionRate: 0.1,
+      tier: "BRONZE",
+      rating: 0,
+      fulfillmentRate: 100,
+      reviewsCount: 0,
+    },
+  });
+}
+
+
+
+/*-------------------------------------------------------------------------------*/
+/*                         VENDOR STATS FRONTEND                                  */                                      
+/*---------------------------------------------------------------------------------*/
+
+static async getVendorDashboardStats(
+  vendorProfileId: string,
+  userId: string
+) {
+  const [
+    liveProductsCount,
+    newOrdersCount,
+    unreadCount,
+  ] = await Promise.all([
+    prisma.product.count({
+      where: {
+        vendorProfileId,
+        isPublished: true,
+      },
+    }),
+
+    prisma.order.count({
+      where: {
+        vendorProfileId,
+        status: "PENDING",
+      },
+    }),
+
+    prisma.message.count({
+      where: {
+        conversation: {
+          participantIds: {
+            has: userId,
+          },
+        },
+        isRead: false,
+        senderId: {
+          not: userId,
+        },
+      },
+    }),
+  ]);
+
+  return {
+    liveProductsCount,
+    newOrdersCount,
+    unreadCount,
+  };
+}
+
+
+/*-------------------------------------------------------------------------------*/
+/*                         VENDOR ONBOARDING FRONTEND                              */                                      
+/*---------------------------------------------------------------------------------*/
+
+static async getVendorDashboardData(userId: string) {
+  const vendor = await prisma.vendorProfile.findUnique({
+    where: {
+      userId,
+    },
+    include: {
+      onboarding: true,
+      store: true,
+      score: true,
+      boost: true,
+      products: {
+        take: 3,
+        orderBy: {
+          salesCount: "desc",
+        },
+        include: {
+          images: true,
+        },
+      },
+    },
+  });
+
+  if (!vendor) {
+    throw notFound("Vendor profile not found.");
+  }
+
+  return vendor;
+}
+
+
+/*-------------------------------------------------------------------------------*/
+/*                         VENDOR PROFILE SETTINGS FRONTEND                        */                                      
+/*---------------------------------------------------------------------------------*/
+static async getVendorSettingsProfile(
+  userId: string
+) {
+  const vendor =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        userId,
+      },
+      include: {
+        store: true,
+      },
+    });
+
+  if (!vendor) {
+    throw notFound(
+      "Vendor profile not found."
+    );
+  }
+
+  return vendor;
+}
+
+
+/*-------------------------------------------------------------------------------*/
+/*                        VENDOR VERIFICATION PROFILE FRONTEND                   */                                      
+/*---------------------------------------------------------------------------------*/
+static async getVendorVerificationProfile(
+  userId: string
+) {
+  const vendor =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        identityDoc: true,
+        businessDoc: true,
+        locationDoc: true,
+      },
+    });
+
+  if (!vendor) {
+    throw notFound(
+      "Vendor profile not found."
+    );
+  }
+
+  return vendor;
+}
+
+/*-------------------------------------------------------------------------------*/
+/*                        VENDOR ANALYTICS DASHBOARD FRONTEND                      */                                      
+/*---------------------------------------------------------------------------------*/
+static async getVendorAnalyticsDashboard(
+  vendorProfileId: string
+) {
+  const today = startOfDay(new Date());
+  const monthStart = startOfMonth(new Date());
+  const thirtyDaysAgo = subDays(today, 30);
+
+  const revenueStatuses = [
+    "DELIVERED",
+    "COMPLETED",
+    "SUCCESS",
+    "PAID",
+  ];
+
+  return Promise.all([
+    prisma.order.aggregate({
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+        createdAt: { gte: today },
+      },
+      _sum: { total: true },
+    }),
+
+    prisma.order.aggregate({
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+        createdAt: { gte: monthStart },
+      },
+      _sum: { total: true },
+    }),
+
+    prisma.order.findMany({
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        total: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+
+    prisma.product.count({
+      where: {
+        vendorProfileId,
+        isPublished: true,
+      },
+    }),
+
+    prisma.order.count({
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+      },
+    }),
+
+    prisma.order.findMany({
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+      },
+      select: {
+        userId: true,
+        createdAt: true,
+      },
+    }),
+
+    prisma.order.groupBy({
+      by: ["userId"],
+      where: {
+        vendorProfileId,
+        status: { in: revenueStatuses },
+      },
+      _count: {
+        userId: true,
+      },
+    }),
+
+    prisma.marketplaceTransaction.findMany({
+      where: {
+        vendorProfileId,
+        status: "SUCCESS",
+        createdAt: {
+          gte: monthStart,
+        },
+      },
+      select: {
+        grossAmount: true,
+        platformFee: true,
+        netAmount: true,
+        commissionRate: true,
+      },
+    }),
+  ]);
+}
+
+/*-------------------------------------------------------------------------------*/
+/*                        VENDOR ANALYTICS PROFILE FRONTEND                      */                                      
+/*---------------------------------------------------------------------------------*/
+static async getVendorAnalyticsProfile(
+  userId: string
+) {
+  const vendor =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        userId,
+      },
+      include: {
+        score: true,
+        boost: true,
+        products: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    });
+
+  if (!vendor) {
+    throw notFound(
+      "Vendor profile not found."
+    );
+  }
+
+  return vendor;
+}
+
                 
 }

@@ -1,5 +1,4 @@
-import { prisma } from "@/app/lib/prisma";
-import { notFound } from "next/navigation";
+import { OrderService } from "@/app/lib/services/order.service";
 import OrderDetailView from "./OrderDetailView";
 
 export const dynamic = "force-dynamic";
@@ -11,15 +10,8 @@ export default async function OrderDetailPage({
 }) {
   const { id } = await params;
 
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      user: { select: { name: true, email: true, image: true } },
-      items: true,
-    },
-  });
-
-  if (!order) notFound();
+  const order =
+    await OrderService.getAdminOrderById(id);
 
   const serializedOrder = {
     ...order,
@@ -35,7 +27,9 @@ export default async function OrderDetailPage({
 
   return (
     <div className="p-6 md:p-10 bg-gray-50/30 min-h-screen">
-      <OrderDetailView order={serializedOrder} />
+      <OrderDetailView
+        order={serializedOrder}
+      />
     </div>
   );
 }

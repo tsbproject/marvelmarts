@@ -20,13 +20,15 @@ import {
 } from "lucide-react";
 
 import Link from "next/link";
-import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 
 import BusinessToggleAction from "./_components/BusinessToggleActions";
 import VendorMessageBadge from "./_components/VendorMessageBadge";
 import { PendingApprovalView } from "./verification/_components/PendingApprovalView";
 import BoostButton from "./_components/BoostButton";
+import { VendorService } from "@/app/lib/services/vendor.service";
+
+
 
 interface PendingApprovalViewProps {
   status: VendorStatus;
@@ -35,48 +37,28 @@ interface PendingApprovalViewProps {
 export default async function VendorDashboardPage() {
   const session = await getServerSession(authOptions);
 
-  const allowedRoles = ["VENDOR", "ADMIN", "SUPER_ADMIN"];
-
-  if (!session?.user || !allowedRoles.includes(session.user.role as string)) {
+  if (!session?.user?.id) {
     redirect("/auth/sign-in");
   }
 
-  const vendorData = await prisma.vendorProfile.findUnique({
-    where: { userId: session.user.id },
-
-    include: {
-      onboarding: true,
-      store: true,
-      score: true,
-      boost: true,
-
-      products: {
-        take: 3,
-        orderBy: { salesCount: "desc" },
-
-        include: {
-          images: true,
-        },
-      },
-    },
-  });
-
-  if (vendorData && !vendorData.score) {
-    await prisma.vendorScore.create({
-      data: {
-        vendorProfileId: vendorData.id,
-        commissionRate: 0.1,
-        tier: "BRONZE",
-        rating: 0,
-        fulfillmentRate: 100,
-        reviewsCount: 0,
-      },
-    });
-  }
+  
+  //GET VENDOR DASHBOARD PROFILE
+  const vendorData =
+      await VendorService.getVendorDashboardProfile(
+        session.user.id
+      );
 
   if (!vendorData) {
     redirect("/auth/register/vendor-signup");
   }
+
+ 
+ // VENDOR SCORE
+  if (!vendorData.score) {
+      await VendorService.ensureVendorScore(
+        vendorData.id
+      );
+    }
 
   // VERIFICATION GATE
   const docsMissing =
@@ -84,17 +66,24 @@ export default async function VendorDashboardPage() {
     !vendorData.locationDoc;
 
   if (docsMissing) {
-    redirect("/account/vendor/verification");
+    redirect(
+      "/account/vendor/verification"
+    );
   }
 
   // APPROVAL GATE
-  if (vendorData.status !== "APPROVED") {
+  if (
+    vendorData.status !==
+    VendorStatus.APPROVED
+  ) {
     return (
       <PendingApprovalView
-        status={vendorData.status as VendorStatus}
+        status={vendorData.status}
       />
     );
   }
+
+
 
   // ONBOARDING FLAGS
   const storeStepDone = !!vendorData.storeDone;
@@ -110,41 +99,14 @@ export default async function VendorDashboardPage() {
   const showPendingBanner = !onboardingComplete;
 
   // COUNTS
-  const [
-    liveProductsCount,
-    newOrdersCount,
-    unreadCount,
-  ] = await Promise.all([
-    prisma.product.count({
-      where: {
-        vendorProfileId: vendorData.id,
-        isPublished: true,
-      },
-    }),
-
-    prisma.order.count({
-      where: {
-        vendorProfileId: vendorData.id,
-        status: "PENDING",
-      },
-    }),
-
-    prisma.message.count({
-      where: {
-        conversation: {
-          participantIds: {
-            has: session.user.id,
-          },
-        },
-
-        isRead: false,
-
-        senderId: {
-          not: session.user.id,
-        },
-      },
-    }),
-  ]);
+ const {
+      liveProductsCount,
+      newOrdersCount,
+      unreadCount,
+    } = await VendorService.getVendorDashboardStats(
+      vendorData.id,
+      session.user.id
+    );
 
   const mappedProducts = vendorData.products.map((p) => ({
     ...p,

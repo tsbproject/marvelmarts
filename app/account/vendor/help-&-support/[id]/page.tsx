@@ -1,14 +1,6 @@
-
-
-
-import { prisma } from "@/app/lib/prisma";
-
 import { getServerSession } from "next-auth";
-
 import { authOptions } from "@/app/lib/auth";
-
 import { redirect } from "next/navigation";
-
 import Link from "next/link";
 
 import {
@@ -17,6 +9,7 @@ import {
   Calendar,
   User,
 } from "lucide-react";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
 export default async function VendorTicketDetailPage({
   params,
@@ -34,22 +27,10 @@ export default async function VendorTicketDetailPage({
   const { id } = await params;
 
   const ticket =
-    await prisma.ticket.findFirst({
-      where: {
-        id,
-
-        userEmail:
-          session.user.email,
-      },
-
-      include: {
-        replies: {
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
-    });
+  await HelpCenterService.getUserTicket(
+    id,
+    session.user.email
+  );
 
   if (!ticket) {
     redirect(

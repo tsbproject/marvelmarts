@@ -1,11 +1,11 @@
-import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
 import { MessageSquare, Clock, User, ArrowRight, AlertCircle } from "lucide-react";
 
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
+
 export default async function AdminTicketsPage() {
-  const tickets = await prisma.ticket.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  const tickets =
+  await HelpCenterService.getTickets();
 
   return (
     <div className="p-8">

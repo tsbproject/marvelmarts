@@ -1318,6 +1318,296 @@ static async getRecentActivity(limit = 5) {
     },
   });
 }
-   
+
+
+
+static async getAdminActivityFeed({
+  page = 1,
+  search = "",
+  status = "all",
+  pageSize = 10,
+}: {
+  page?: number;
+  search?: string;
+  status?: string;
+  pageSize?: number;
+}) {
+  const safePage =
+    Math.max(1, page);
+
+  const safePageSize =
+    Math.max(1, pageSize);
+
+  const query =
+    search.trim();
+
+  const skip =
+    (safePage - 1) *
+    safePageSize;
+
+  const where: Prisma.OrderWhereInput = {
+    AND: [
+      query
+        ? {
+            OR: [
+              {
+                orderNumber: {
+                  contains: query,
+                  mode: "insensitive",
+                },
+              },
+              {
+                firstName: {
+                  contains: query,
+                  mode: "insensitive",
+                },
+              },
+              {
+                lastName: {
+                  contains: query,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
+        : {},
+
+      status === "paid"
+        ? {
+            paymentStatus: true,
+          }
+        : status === "pending"
+          ? {
+              paymentStatus: false,
+            }
+          : {},
+    ],
+  };
+
+  const [
+    rawActivities,
+    totalCount,
+  ] = await Promise.all([
+    prisma.order.findMany({
+      where,
+
+      take: safePageSize,
+      skip,
+
+      orderBy: {
+        createdAt: "desc",
+      },
+
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        firstName: true,
+        lastName: true,
+        paymentStatus: true,
+        createdAt: true,
+        status: true,
+      },
+    }),
+
+    prisma.order.count({
+      where,
+    }),
+  ]);
+
+  const activities =
+    rawActivities.map(
+      (order) => ({
+        ...order,
+        total: Number(
+          order.total
+        ),
+      })
+    );
+
+  return {
+    activities,
+    totalCount,
+    totalPages: Math.ceil(
+      totalCount /
+        safePageSize
+    ),
+    page: safePage,
+    pageSize: safePageSize,
+  };
+}
+
+static async getAdminOrderById(
+  orderId: string
+) {
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        items: true,
+      },
+    });
+
+  if (!order) {
+    throw notFound(
+      "Order not found."
+    );
+  }
+
+  return order;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                      ADMIN REFUND OPERATIONS                               */
+/* -------------------------------------------------------------------------- */
+
+static async getPendingRefundQueue() {
+  const rawPendingRefunds =
+    await prisma.order.findMany({
+      where: {
+        refundStatus: {
+          in: ["requested", "pending"],
+        },
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        items: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+  const totalPendingVolume =
+    rawPendingRefunds.reduce(
+      (acc, order) =>
+        acc + Number(order.total),
+      0
+    );
+
+  const pendingRefunds =
+    rawPendingRefunds.map(
+      (order) => ({
+        ...order,
+
+        subtotal: Number(
+          order.subtotal
+        ),
+
+        shipping: Number(
+          order.shipping
+        ),
+
+        tax: Number(
+          order.tax
+        ),
+
+        total: Number(
+          order.total
+        ),
+
+        createdAt:
+          order.createdAt.toISOString(),
+
+        items: order.items.map(
+          (item) => ({
+            ...item,
+
+            unitPrice: Number(
+              item.unitPrice
+            ),
+          })
+        ),
+      })
+    );
+
+  return {
+    pendingRefunds,
+    totalPendingVolume,
+  };
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                      ADMIN DASHBOARD STATISTICS                            */
+/* -------------------------------------------------------------------------- */
+   static async getTodayRevenue() {
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const stats = await prisma.order.aggregate({
+    where: {
+      createdAt: {
+        gte: today,
+      },
+      paymentStatus: true,
+    },
+    _sum: {
+      total: true,
+    },
+  });
+
+  return Number(stats._sum.total ?? 0);
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                      ADMIN PROCESS REFUND DECISION                          */
+/* -------------------------------------------------------------------------- */
+static async processRefundDecision(
+  orderId: string,
+  action: "approved" | "rejected",
+  reason: string
+) {
+  const currentOrder = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+  });
+
+  if (!currentOrder) {
+    throw notFound("Order not found.");
+  }
+
+  return prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status:
+        action === "approved"
+          ? "refunded"
+          : currentOrder.status,
+
+      refundStatus: action,
+      refundReason:
+        reason || "Administrative decision",
+      cancelReason:
+        reason || "Administrative decision",
+    },
+    include: {
+      items: true,
+    },
+  });
+}
+
+
+
 
 }

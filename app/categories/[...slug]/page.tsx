@@ -1,20 +1,11 @@
-import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import type { Prisma } from "@prisma/client";
 
-type CategoryWithRelations = Prisma.CategoryGetPayload<{
-  include: {
-    children: true;
-    products: {
-      include: {
-        images: true;
-        variants: true;
-      };
-    };
-  };
-}>;
+
+import { CategoryService } from "@/app/lib/services/category.service";
+
+
 
 // Next.js 15: Params MUST be a Promise
 type PageProps = {
@@ -33,19 +24,15 @@ export default async function CategoryPage({ params }: PageProps) {
   // 2. Join the slug array into a path string (e.g., "tactical/gear")
   const slugPath = slugArray.join("/");
 
-  const category: CategoryWithRelations | null = await prisma.category.findUnique({
-    where: { slug: slugPath },
-    include: {
-      children: true,
-      products: {
-        include: {
-          images: true,
-          variants: true,
-        },
-      },
-    },
-  });
+/* -------------------------------------------------------------------------- */
+/*                         FETCH PUBLIC CATEGORY                              */
+/* -------------------------------------------------------------------------- */
 
+const category =
+  await CategoryService.getPublicCategoryBySlug(
+    slugPath
+  );
+  
   // 3. Debugging: If this triggers, your DB doesn't have a record matching slugPath
   if (!category) {
     console.error(`Dev Error: No category found in database for slug: "${slugPath}"`);

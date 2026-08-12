@@ -1,8 +1,8 @@
-import prisma from "@/app/lib/prisma";
 import TrendingClient from "./TrendingClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
+import { ProductService } from "@/app/lib/services/product.service";
 
 interface PageProps {
   searchParams: Promise<{
@@ -23,43 +23,15 @@ export default async function TrendingPage({ searchParams }: PageProps) {
   const skip = (currentPage - 1) * pageSize;
 
   // 2. Parallel Data Fetching (Products + Total Count)
-  const [rawProducts, totalCount] = await Promise.all([
-    prisma.product.findMany({
-      where: {
-        status: "ACTIVE",
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { sku: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        sku: true,
-        isTrending: true,
-        price: true,
-        images: {
-          take: 1,
-          select: { url: true },
-        },
-      },
-      orderBy: [
-        { isTrending: "desc" }, // Trending items first for easier management
-        { title: "asc" },
-      ],
-      skip: skip,
-      take: pageSize,
-    }),
-    prisma.product.count({
-      where: {
-        status: "ACTIVE",
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { sku: { contains: query, mode: "insensitive" } },
-        ],
-      },
-    }),
-  ]);
+      const {
+          products: rawProducts,
+          totalCount,
+        } =
+          await ProductService.getTrendingProductsForAdmin(
+            query,
+            skip,
+            pageSize
+          );
 
   // 3. Serialization (Decimal to Number & Flatten Images)
   const products = rawProducts.map((p) => ({

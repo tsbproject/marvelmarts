@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
+import { AuthService } from "@/app/lib/services/auth.service";
 import AdminsTable, { Admin } from "./AdminsTable";
 import { redirect } from "next/navigation";
 import AdminNotificationBell from "@/app/_components/AdminNotificationBell";
@@ -10,87 +10,83 @@ import { serializeAdminPermissions } from "@/app/lib/auth/admin-permissions";
 import { defaultPermissions } from "@/types/admin";
 
 export default async function AdminsPage() {
-  const session = await getServerSession(authOptions);
+  const session =
+    await getServerSession(authOptions);
+
   const user = session?.user;
 
-  if (!user) redirect("/auth/sign-in");
+  if (!user) {
+    redirect("/auth/sign-in");
+  }
 
-  const isSuperAdmin = user.role === "SUPER_ADMIN";
-  const isAdmin = user.role === "ADMIN";
+  const isSuperAdmin =
+    user.role === "SUPER_ADMIN";
 
-  // Only allow SUPER_ADMIN or ADMIN to access this page
-  if (!isSuperAdmin && !isAdmin) {
-    redirect("/dashboard"); // or "/unauthorized"
+  const isAdmin =
+    user.role === "ADMIN";
+
+  if (
+    !isSuperAdmin &&
+    !isAdmin
+  ) {
+    redirect("/dashboard");
   }
 
   let normalizedAdmins: Admin[] = [];
 
   if (isSuperAdmin) {
-    // SUPER_ADMIN sees ALL admins (including themselves, but we filter out self)
-    const admins = await prisma.user.findMany({
-      where: { roles: { hasSome: ["ADMIN", "SUPER_ADMIN"] } },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roles: true,
-        createdAt: true,
-        updatedAt: true,
-        adminProfile: {
-        select: {
-          manageAdmins: true,
-          manageUsers: true,
-          manageBlogs: true,
-          manageProducts: true,
-          manageOrders: true,
-          manageMessages: true,
-          manageSettings: true,
-          manageCategories: true,
-          manageVendors: true,
-          manageVerifications: true,
-          manageSubscribers: true,
-          manageReviews: true,
-          manageActivity: true,
-          manageTrending: true,
-          manageSupport: true,
-          managePayout: true,
-        },
-      },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  const admins =
+    await AuthService.getAdministratorsForSuperAdmin(
+      user.id
+    );
 
-    normalizedAdmins = admins
-      .filter((a) => a.id !== user.id)
-      .map((a) => ({
-        id: a.id,
-        name: a.name ?? "",
-        email: a.email,
-        role: (a.roles[0] ?? "ADMIN") as "ADMIN" | "SUPER_ADMIN",
-        createdAt: a.createdAt.toISOString(),
-        lastLogin: a.updatedAt.toISOString(),
-        adminProfile: {
-        permissions: a.adminProfile
-          ? serializeAdminPermissions(a.adminProfile)
-          : defaultPermissions,
+  normalizedAdmins = admins.map((a) => ({
+    id: a.id,
+    name: a.name ?? "",
+    email: a.email,
+
+    role: (a.roles[0] ?? "ADMIN") as
+      | "ADMIN"
+      | "SUPER_ADMIN",
+
+    createdAt:
+      a.createdAt.toISOString(),
+
+    lastLogin:
+      a.updatedAt.toISOString(),
+
+    adminProfile: {
+      permissions: a.adminProfile
+        ? serializeAdminPermissions(
+            a.adminProfile
+          )
+        : defaultPermissions,
+    },
+  }));
+} else if (isAdmin) {
+  normalizedAdmins = [
+    {
+      id: user.id,
+      name: user.name ?? "",
+      email: user.email ?? "",
+      role: "ADMIN",
+
+      createdAt:
+        new Date().toISOString(),
+
+      lastLogin:
+        new Date().toISOString(),
+
+      adminProfile: {
+        permissions:
+          user.admin ??
+          defaultPermissions,
       },
-      }));
-  } else if (isAdmin) {
-    // Regular ADMIN only sees themselves (read-only view)
-    normalizedAdmins = [
-      {
-        id: user.id,
-        name: user.name ?? "",
-        email: user.email ?? "",
-        role: "ADMIN",
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        adminProfile: {
-          permissions: user.admin ?? defaultPermissions
-        },
-      },
-    ];
-  }
+    },
+  ];
+}
+
+
 
   return (
     <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 space-y-8">

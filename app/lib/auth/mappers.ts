@@ -42,15 +42,16 @@ export function mapAdminPermissions(
 export function mapAuthUser(
   user: AuthDatabaseUser
 ): AuthUser {
-  const roles: UserRoleType[] = 
+  const roles: UserRoleType[] =
     user.roles.length > 0
       ? user.roles
       : [UserRole.CUSTOMER];
 
-  const role: UserRoleType =
-    user.role ??
-    roles[0] ??
-    UserRole.CUSTOMER;
+      const role: UserRoleType =
+      user.role ??
+      UserRole.CUSTOMER;
+
+ ;
 
   return {
     id: user.id,
@@ -63,14 +64,19 @@ export function mapAuthUser(
 
     roles,
 
-    admin: mapAdminPermissions(user.adminProfile),
+    admin: mapAdminPermissions(
+      user.adminProfile
+    ),
 
-    vendorProfileId: user.vendorProfile?.id,
+    vendorProfileId:
+      user.vendorProfile?.id,
 
-    vendorStatus: user.vendorProfile?.status,
+    vendorStatus:
+      user.vendorProfile?.status,
 
     isSuspended:
-      user.vendorProfile?.isSuspended ?? false,
+      user.vendorProfile?.isSuspended ??
+      false,
 
     balance: Number(
       user.vendorProfile?.balance ?? 0
@@ -87,5 +93,5 @@ export function mapAuthUser(
 
     locationDoc:
       user.vendorProfile?.locationDoc,
-  };
+};
 }

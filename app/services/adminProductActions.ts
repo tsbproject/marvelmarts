@@ -1,21 +1,26 @@
-// app/services/adminProductActions.ts
 "use server";
 
-import prisma from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { ProductService } from "@/app/lib/services/product.service";
 
-export async function toggleTrendingAction(id: string, currentStatus: boolean) {
+export async function toggleTrendingAction(
+  id: string,
+  currentStatus: boolean
+) {
   try {
-    await prisma.product.update({
-      where: { id },
-      data: { isTrending: !currentStatus },
-    });
+    await ProductService.toggleTrendingStatus(
+      id,
+      currentStatus
+    );
 
     revalidatePath("/dashboard/admins/products");
-    revalidatePath("/"); // Revalidate homepage where trending products live
-    
+    revalidatePath("/");
+
     return { success: true };
-  } catch (error) {
-    return { success: false, error: "Failed to update trending status." };
+  } catch {
+    return {
+      success: false,
+      error: "Failed to update trending status.",
+    };
   }
 }

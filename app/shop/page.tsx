@@ -1,8 +1,10 @@
 // app/shop/page.tsx
-import { prisma } from "@/app/lib/prisma";
 import ShopSidebar from "@/app/_components/ShopSidebar";
 import ShopContent from "@/app/shop/components/Shopcontent"; 
 import { SerializedProduct } from "@/types/product"; 
+
+import { ProductService } from "@/app/lib/services/product.service";
+import { CategoryService } from "@/app/lib/services/category.service";
 
 export default async function ShopPage({
   searchParams,
@@ -18,32 +20,12 @@ export default async function ShopPage({
   const filters = await searchParams;
 
   // 1. Fetch real categories for the sidebar
-  const categories = await prisma.category.findMany({
-    where: { parentId: null },
-    include: { children: true },
-  });
+  const categories =
+  await CategoryService.getRootCategories();
 
   // 2. Build the query
-  const where: any = {};
-  
-  // Roadmap: Only show published products in the public shop
-  where.isPublished = true;
-
-  if (filters.category) where.category = { slug: filters.category };
-  if (filters.subcategory) where.category = { slug: filters.subcategory };
-  if (filters.brand) where.brand = filters.brand;
-  if (filters.minPrice || filters.maxPrice) {
-    where.price = {
-      gte: filters.minPrice ? parseFloat(filters.minPrice) : 0,
-      lte: filters.maxPrice ? parseFloat(filters.maxPrice) : 9999999,
-    };
-  }
-
-  const rawProducts = await prisma.product.findMany({
-    where,
-    include: { images: true, variants: true, category: true },
-    orderBy: { createdAt: 'desc' }
-  });
+  const rawProducts =
+  await ProductService.getShopProducts(filters);
 
 
   // SINGLE SOURCE OF TRUTH: Map raw DB data to SerializedProduct interface

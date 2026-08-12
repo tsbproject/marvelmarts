@@ -1,14 +1,10 @@
-
-
-
-
 "use server";
 
-import { prisma } from "@/app/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { sendRefundStatusEmail } from "@/app/lib/mailer";
+import { OrderService } from "@/app/lib/services/order.service";
 
 /**
  * CORE LOGIC: Unified Refund Decision Handler
@@ -32,26 +28,12 @@ export async function processRefundDecision(
 
   try {
     // 2. Fetch current order to preserve status on rejection
-    const currentOrder = await prisma.order.findUnique({
-      where: { id: orderId }
-    });
-
-    if (!currentOrder) {
-      return { success: false, message: "Order not found in MarvelMarts Vault." };
-    }
-
-    // 3. Database Update
-    const updated = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        // If approved, set status to 'refunded'. If rejected, keep existing status.
-        status: action === "approved" ? "refunded" : currentOrder.status,
-        refundStatus: action, 
-        refundReason: reason || "Administrative decision",
-        cancelReason: reason || "Administrative decision", 
-      },
-      include: { items: true }
-    });
+    const updated =
+      await OrderService.processRefundDecision(
+        orderId,
+        action,
+        reason
+      );
 
     // 4. Dispatch Email Notification
     try {

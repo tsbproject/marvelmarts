@@ -1,12 +1,11 @@
-import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
 import { Plus, Edit, FileText, ExternalLink, ThumbsUp, AlertTriangle } from "lucide-react";
 import DeleteArticleButton from "./DeleteArticleButton";
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
 export default async function AdminSupportPage() {
-  const articles = await prisma.helpArticle.findMany({
-    orderBy: { updatedAt: 'desc' },
-  });
+  const articles =
+  await HelpCenterService.getHelpArticles();
 
   return (
     <div className="p-8">

@@ -40,4 +40,21 @@ static async exportSubscribersToCSV() {
     data: csvContent,
   };
 }
+
+
+
+
+  /* -------------------------------------------------------------------------- */
+  /*                            NEWSLETTER QUERIES                              */
+  /* -------------------------------------------------------------------------- */
+
+  static async getSubscribers() {
+    return prisma.newsletterSubscriber.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+
 }
