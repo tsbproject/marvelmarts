@@ -231,8 +231,48 @@ static normalizeCart(
         ),
     }));
 
+  // Merge duplicate products (including variants)
+  const aggregated = new Map<
+    string,
+    NormalizedCartItem
+  >();
+
+  for (const item of items) {
+    if (
+      !item.productId ||
+      item.quantity === null
+    ) {
+      continue;
+    }
+
+    const key = `${item.productId}:${
+      item.variantId ?? "default"
+    }`;
+
+    const existing =
+      aggregated.get(key);
+
+    if (existing) {
+      existing.quantity +=
+        item.quantity;
+    } else {
+      aggregated.set(key, {
+        productId:
+          item.productId,
+        variantId:
+          item.variantId,
+        quantity:
+          item.quantity,
+      });
+    }
+  }
+
+  const normalized = [
+    ...aggregated.values(),
+  ];
+
   const invalid =
-    items.some(
+    normalized.some(
       (item) =>
         !item.productId ||
         item.quantity === null ||
@@ -247,7 +287,7 @@ static normalizeCart(
     );
   }
 
-  return items;
+  return normalized;
 }
 
 /**

@@ -91,15 +91,7 @@ export class HelpCenterService {
     });
   }
 
-  static async deleteArticle(
-    id: string
-  ) {
-    await prisma.helpArticle.delete({
-      where: {
-        id,
-      },
-    });
-  }
+
 
   static async searchArticles(
     query: string
@@ -566,6 +558,74 @@ static async getUserTicket(
           createdAt: "asc",
         },
       },
+    },
+  });
+}
+
+
+static async deleteArticle(
+  id: string
+) {
+  const article =
+    await prisma.helpArticle.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!article) {
+    throw notFound(
+      "Help article not found."
+    );
+  }
+
+  await prisma.helpArticle.delete({
+    where: {
+      id,
+    },
+  });
+}
+
+
+static async getOpenTicketCount() {
+  return prisma.ticket.count({
+    where: {
+      status: "OPEN",
+    },
+  });
+}
+
+
+
+static async updateTicketNotes(
+  ticketId: string,
+  notes: string
+) {
+  const ticket =
+    await prisma.ticket.findUnique({
+      where: {
+        id: ticketId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!ticket) {
+    throw notFound(
+      "Ticket not found."
+    );
+  }
+
+  return prisma.ticket.update({
+    where: {
+      id: ticketId,
+    },
+    data: {
+      notes,
     },
   });
 }

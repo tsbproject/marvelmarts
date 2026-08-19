@@ -1,4 +1,3 @@
-import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import EditArticleForm from "./EditArticleForm";
 import { HelpCenterService } from "@/app/lib/services/help-center.service";

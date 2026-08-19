@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
-import { prisma } from "@/app/lib/prisma";
 import { redirect } from "next/navigation";
 import StoreSettingsForm from "./StoreSettingForm";
 import { VendorService } from "@/app/lib/services/vendor.service";

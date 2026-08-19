@@ -650,50 +650,63 @@ static async getVendorProfileWithStore(
         calculatedBalance: number;
       }[] = [];
 
-      for (const vendor of vendors) {
-        const aggregation =
-          await prisma.order.aggregate({
-            where: {
-              OR: [
-                {
-                  vendorProfileId:
-                    vendor.userId,
-                },
-                {
-                  vendorProfileId:
-                    vendor.id,
-                },
-              ],
-              status: {
-                in: [
-                  "DELIVERED",
-                  "delivered",
-                  "APPROVED",
-                  "approved",
-                ],
-              },
-            },
-            _sum: {
-              total: true,
-            },
-          });
+      const balances =
+        await prisma.order.groupBy({
+          by: [
+            "vendorProfileId",
+          ],
 
+          where: {
+            status: {
+              in: [
+                "DELIVERED",
+                "delivered",
+                "APPROVED",
+                "approved",
+              ],
+            },
+          },
+
+          _sum: {
+            total: true,
+          },
+        });
+
+      const balanceMap =
+        new Map(
+          balances.map(
+            (balance) => [
+              balance.vendorProfileId,
+              Number(
+                balance._sum.total ?? 0
+              ),
+            ]
+          )
+        );
+
+      for (const vendor of vendors) {
         const totalSum =
-          aggregation._sum.total
-            ? Number(
-                aggregation._sum.total
-              )
-            : 0;
+          balanceMap.get(
+            vendor.id
+          ) ??
+
+          balanceMap.get(
+            vendor.userId
+          ) ??
+
+          0;
 
         await prisma.vendorProfile.update({
           where: {
             id: vendor.id,
           },
+
           data: {
             balance:
               new Prisma.Decimal(
                 totalSum
               ),
+
             lastSyncedAt:
               new Date(),
           },
@@ -703,6 +716,7 @@ static async getVendorProfileWithStore(
           store:
             vendor.storeName ??
             "Unknown",
+
           calculatedBalance:
             totalSum,
         });
@@ -1978,6 +1992,8 @@ static async getVendorAnalyticsProfile(
 
   return vendor;
 }
+
+
 
                 
 }

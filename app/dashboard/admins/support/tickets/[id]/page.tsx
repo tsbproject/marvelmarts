@@ -10,9 +10,9 @@ import {
   Save,
   MessageSquare,
 } from "lucide-react";
-import StatusToggleButton from "./StatusToggleButton"; 
-import { updateTicketNotes } from "@/app/_components/actions"; 
+import StatusToggleButton from "./StatusToggleButton";  
 import AdminTicketReplyForm from "@/app/_components/support/AdminTicketReplyForm";
+import { updateTicketNotes } from "../../actions";
 
 import { HelpCenterService } from "@/app/lib/services/help-center.service";
 

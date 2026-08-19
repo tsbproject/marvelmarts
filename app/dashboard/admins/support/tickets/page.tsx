@@ -3,6 +3,7 @@ import { MessageSquare, Clock, User, ArrowRight, AlertCircle } from "lucide-reac
 
 import { HelpCenterService } from "@/app/lib/services/help-center.service";
 
+
 export default async function AdminTicketsPage() {
   const tickets =
   await HelpCenterService.getTickets();

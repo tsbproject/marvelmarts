@@ -10,17 +10,11 @@ import { prisma } from "@/app/lib/prisma";
 
 import { sendPasswordResetEmail } from "@/app/lib/mailer";
 
-import {
-  getLatestVerification,
-  validateVerification,
-  cleanupVerification,
-} from "@/app/lib/registration";
+
 import { sendVerificationEmail } from "@/app/lib/mailer";
-
-
 import { Prisma, } from "@prisma/client";
-
 import type { AdminPermissions, } from "@/app/lib/auth/types";
+import type { VerificationCode } from "@prisma/client";
 
 import {
   PERMISSION_KEYS,
@@ -232,27 +226,15 @@ static async registerCustomer(
     );
   }
 
+
+
   const verification =
-    await getLatestVerification(
+  this.validateVerification(
+    await this.getLatestVerification(
       email,
       VerificationType.CUSTOMER_REGISTRATION
-    );
-
-  const check =
-    validateVerification(verification);
-
-  if (!check.valid) {
-    throw badRequest(
-      check.error ??
-      "Verification failed."
-    );
-  }
-
-  if (!verification?.hashedPassword) {
-    throw badRequest(
-      "Password missing from verification record."
-    );
-  }
+    )
+  );
 
   const user =
     await prisma.user.create({
@@ -278,7 +260,7 @@ static async registerCustomer(
       },
     });
 
-  await cleanupVerification(
+  await this.cleanupVerification(
     email,
     VerificationType.CUSTOMER_REGISTRATION
   );
@@ -587,17 +569,13 @@ static async registerVendor(data: {
     !isReapplication &&
     !existingUser
   ) {
-    const verification =
-      await getLatestVerification(
-        email,
-        VerificationType.VENDOR_REGISTRATION
-      );
-
-    if (!verification) {
-      throw badRequest(
-        "Email not verified. Please verify your email first."
-      );
-    }
+        const verification =
+          this.validateVerification(
+            await this.getLatestVerification(
+              email,
+              VerificationType.CUSTOMER_REGISTRATION
+            )
+          );
   }
 
   const passwordHash =
@@ -693,7 +671,7 @@ static async registerVendor(data: {
     !isReapplication &&
     !existingUser
   ) {
-    await cleanupVerification(
+    await this.cleanupVerification(
       email,
       VerificationType.VENDOR_REGISTRATION
     );
@@ -1640,6 +1618,55 @@ static async getUserForAdminEdit(
 
     include: {
       vendorProfile: true,
+    },
+  });
+}
+
+
+private static async getLatestVerification(
+  email: string,
+  type: VerificationType
+) {
+  return prisma.verificationCode.findFirst({
+    where: {
+      email,
+      type,
+      used: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+private static validateVerification(
+  verification: VerificationCode | null
+): VerificationCode {
+  if (!verification) {
+    throw badRequest("Email not verified.");
+  }
+
+  if (verification.expiresAt < new Date()) {
+    throw badRequest("Verification expired.");
+  }
+
+  if (!verification.hashedPassword) {
+    throw badRequest(
+      "Password missing from verification record."
+    );
+  }
+
+  return verification;
+}
+
+private static async cleanupVerification(
+  email: string,
+  type: VerificationType
+) {
+  await prisma.verificationCode.deleteMany({
+    where: {
+      email,
+      type,
     },
   });
 }

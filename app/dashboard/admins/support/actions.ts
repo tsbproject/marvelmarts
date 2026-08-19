@@ -1,45 +1,76 @@
 "use server";
 
-import { prisma } from "@/app/lib/prisma"; 
 import { revalidatePath } from "next/cache";
 
-export async function deleteArticleAction(formData: FormData) {
-  const id = formData.get("id") as string;
-  if (!id) throw new Error("Missing article ID");
+import { HelpCenterService } from "@/app/lib/services/help-center.service";
+
+
+export async function deleteArticleAction(
+  formData: FormData
+) {
+  const id =
+    formData.get("id") as string;
+
+  if (!id) {
+    throw new Error(
+      "Missing article ID"
+    );
+  }
 
   try {
-    await prisma.helpArticle.delete({ where: { id } });
-    revalidatePath("/dashboard/admins/support");
-    return { success: true };
+    await HelpCenterService.deleteArticle(
+      id
+    );
+
+    revalidatePath(
+      "/dashboard/admins/support"
+    );
+
+    return {
+      success: true,
+    };
   } catch (error) {
-    console.error("Delete Article Error:", error);
-    return { success: false, error: "Failed to delete article" };
+    console.error(
+      "Delete Article Error:",
+      error
+    );
+
+    return {
+      success: false,
+      error:
+        "Failed to delete article",
+    };
   }
 }
 
-
 export async function getOpenTicketCount() {
   try {
-    // Matches 'model Ticket' in schema
-    const count = await prisma.ticket.count({
-      where: { status: "OPEN" },
-    });
-    return count;
-  } catch (error) {
+    return await HelpCenterService.getOpenTicketCount();
+  } catch {
     return 0;
   }
 }
 
-export async function updateTicketNotes(ticketId: string, notes: string) {
+export async function updateTicketNotes(
+  ticketId: string,
+  notes: string
+) {
   try {
-    // Matches 'model Ticket' in schema
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: { notes },
-    });
-    revalidatePath(`/dashboard/admins/support/tickets/${ticketId}`);
-    return { success: true };
-  } catch (error) {
-    return { success: false };
+    await HelpCenterService.updateTicketNotes(
+      ticketId,
+      notes
+    );
+
+    revalidatePath(
+      `/dashboard/admins/support/tickets/${ticketId}`
+    );
+
+    return {
+      success: true,
+    };
+  } catch {
+    return {
+      success: false,
+    };
   }
 }
