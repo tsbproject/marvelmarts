@@ -59,6 +59,12 @@ model VerificationCode {
   createdAt      DateTime         @default(now())
   vendorData     Json?
   user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  @@index([email])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([used])
 }
 
 model AdminProfile {
@@ -199,6 +205,9 @@ model CreditTransaction {
   emailSent       Boolean       @default(false)
   emailSentAt     DateTime?
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+
+  @@index([vendorProfileId])
+  @@index([createdAt])
 }
 
 model VendorScore {
@@ -224,6 +233,11 @@ model Dispute {
   raisedById      String
   raisedBy        User          @relation("UserDisputes", fields: [raisedById], references: [id])
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+
+  @@index([vendorProfileId])
+  @@index([orderId])
+  @@index([raisedById])
+  @@index([status])
 }
 
 model Withdrawal {
@@ -235,6 +249,10 @@ model Withdrawal {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id])
+
+  @@index([vendorProfileId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model MarketplaceTransaction {
@@ -372,6 +390,17 @@ model Product {
   wishlists         Wishlist[]
   categories        Category[]     @relation("ProductCategories")
   flashSales        FlashSale[]    @relation("ProductToFlashSale")
+
+
+  @@index([vendorProfileId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@index([createdAt])
+  @@index([salesCount])
+  @@index([boostUntil])
 }
 
 model ProductImage {
@@ -381,6 +410,8 @@ model ProductImage {
   alt       String?
   order     Int     @default(0)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Variant {
@@ -394,6 +425,9 @@ model Variant {
   cartItems  CartItem[]
   orderItems OrderItem[]
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+
+  @@index([productId])
 }
 
 model Review {
@@ -412,6 +446,12 @@ model Review {
   isVerified Boolean  @default(false)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  @@index([productId])
+  @@index([userId])
+  @@index([approved])
+  @@index([createdAt])
 }
 
 model Coupon {
@@ -466,6 +506,11 @@ model CartItem {
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+
+  @@index([cartId])
+  @@index([productId])
+  @@index([variantId])
 }
 
 model Order {
@@ -506,6 +551,17 @@ model Order {
   user                 User?         @relation(fields: [userId], references: [id],  onDelete: SetNull)
   vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
   items                OrderItem[]
+
+
+  @@index([vendorProfileId])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+
+  @@index([vendorProfileId, status])
+  @@index([vendorProfileId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {
@@ -520,6 +576,10 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
 }
 
 model Address {
@@ -534,6 +594,8 @@ model Address {
   zip     String
   phone   String?
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {
@@ -592,6 +654,11 @@ model Ticket {
   category   String?
   priority   String?       @default("MEDIUM")
   replies    TicketReply[]
+
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
 }
 
 model TicketReply {
@@ -601,6 +668,8 @@ model TicketReply {
   message    String
   createdAt  DateTime @default(now())
   ticket     Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
 }
 
 model Blog {
@@ -615,7 +684,7 @@ model Blog {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@index([slug])
+ 
 }
 
 model SiteSettings {
@@ -688,6 +757,10 @@ model Conversation {
   deletedByParticipantIds String[]           @default([])
   messages                Message[]
   participants            User[]             @relation("UserConversations")
+
+  @@index([status])
+  @@index([updatedAt])
+  @@index([endedAt])
 }
 
 model Message {
@@ -702,6 +775,10 @@ model Message {
   productImage   String?
   productPrice   String?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([isRead])
 }
 
 model Notification {
@@ -714,6 +791,11 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
 }
 
 model NewsletterSubscriber {
