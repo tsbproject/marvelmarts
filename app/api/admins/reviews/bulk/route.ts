@@ -1,10 +1,12 @@
-import {
-  NextRequest,
-  NextResponse,
-} from "next/server";
+import { NextResponse } from "next/server";
 
 import { ProductService } from "@/app/lib/services/product.service";
-import { handleApiError, requireManageReviews } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireManageReviews,
+} from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,66 +15,69 @@ export const dynamic = "force-dynamic";
 /*                           BULK APPROVE / REJECT                            */
 /* -------------------------------------------------------------------------- */
 
-export async function PATCH(
-  req: NextRequest
-) {
-  try {
-    await requireManageReviews();
+export const PATCH =
+  withApiLogging(
+    async (req: Request) => {
+      try {
+        verifyOrigin(req);
 
-    const {
-      ids,
-      approved,
-    } = await req.json();
+        await requireManageReviews();
 
-    const updated =
-      await ProductService.bulkApproveReviews(
-        ids,
-        approved
-      );
+        const {
+          ids,
+          approved,
+        } = await req.json();
 
-    return NextResponse.json(
-      {
-        success: true,
-        updated,
-      },
-      {
-        status: 200,
+        const updated =
+          await ProductService.bulkApproveReviews(
+            ids,
+            approved
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            updated,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );
 
 /* -------------------------------------------------------------------------- */
 /*                             BULK DELETE                                    */
 /* -------------------------------------------------------------------------- */
 
-export async function DELETE(
-  req: NextRequest
-) {
-  try {
-    await requireManageReviews();
+export const DELETE =
+  withApiLogging(
+    async (req: Request) => {
+      try {
+        await requireManageReviews();
 
-    const {
-      ids,
-    } = await req.json();
+        const { ids } =
+          await req.json();
 
-    const deleted =
-      await ProductService.bulkDeleteReviews(
-        ids
-      );
+        const deleted =
+          await ProductService.bulkDeleteReviews(
+            ids
+          );
 
-    return NextResponse.json(
-      {
-        success: true,
-        deleted,
-      },
-      {
-        status: 200,
+        return NextResponse.json(
+          {
+            success: true,
+            deleted,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );

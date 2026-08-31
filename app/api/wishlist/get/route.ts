@@ -6,54 +6,60 @@ import {
 } from "@/app/lib/auth/api";
 
 import { WishlistService } from "@/app/lib/services/wishlist.service";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const session =
-      await requireAuth();
+export const GET = withApiLogging(
+  async () => {
+    try {
+      const session =
+        await requireAuth();
 
-    const wishlistItems =
-      await WishlistService.getWishlist(
-        session.user.id
+      const wishlistItems =
+        await WishlistService.getWishlist(
+          session.user.id
+        );
+
+      return NextResponse.json(
+        wishlistItems.map(
+          (item) => ({
+            id: item.id,
+            productId:
+              item.product.id,
+            name:
+              item.product.title,
+            slug:
+              item.product.slug,
+            price: Number(
+              item.product.price
+            ),
+            image:
+              item.product.images[0]
+                ?.url ??
+              "/placeholder-product.png",
+          })
+        )
       );
+    } catch (error) {
+      /**
+       * Keep existing frontend behaviour.
+       * Wishlist page expects an array.
+       */
+      if (
+        error instanceof Error &&
+        error.name === "ApiError"
+      ) {
+        return NextResponse.json(
+          [],
+          {
+            status: 200,
+          }
+        );
+      }
 
-    return NextResponse.json(
-      wishlistItems.map(
-        (item) => ({
-          id: item.id,
-          productId:
-            item.product.id,
-          name:
-            item.product.title,
-          slug:
-            item.product.slug,
-          price: Number(
-            item.product.price
-          ),
-          image:
-            item.product.images[0]
-              ?.url ??
-            "/placeholder-product.png",
-        })
-      )
-    );
-  } catch (error) {
-    /**
-     * Keep existing frontend behaviour.
-     * Wishlist page expects an array.
-     */
-    if (
-      error instanceof Error &&
-      error.name === "ApiError"
-    ) {
-      return NextResponse.json([], {
-        status: 200,
-      });
+      return handleApiError(error);
     }
-
-    return handleApiError(error);
   }
-}
+);

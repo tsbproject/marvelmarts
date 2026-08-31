@@ -23,50 +23,104 @@ export class PayoutService {
   }
 
   static async createPayoutRequest(
-        profile: {
-            id: string;
-            bankName: string;
-            accountName: string;
-            accountNumber: string;
-        },
-        userId: string,
-        amount: number
-        ) {
-        return prisma.$transaction(async (tx) => {
-            const payout = await tx.payout.create({
-            data: {
-                amount,
-                status: "PENDING",
-                vendorId: userId,
-                vendorProfileId: profile.id,
-                bankName: profile.bankName,
-                accountNumber: profile.accountNumber,
-                accountName: profile.accountName,
-                reference: `PAYOUT-${Date.now()}-${Math.floor(
-                Math.random() * 100000
-                )}`,
+      profile: {
+        id: string;
+        bankName: string;
+        accountName: string;
+        accountNumber: string;
+      },
+      userId: string,
+      amount: number
+    ) {
+      return prisma.$transaction(async (tx) => {
+        /*
+        * Re-confirm ownership inside the service boundary.
+        *
+        * The route already resolves the profile from the authenticated
+        * session, but this prevents future callers from accidentally
+        * creating a payout against another vendor's profile.
+        */
+        const vendorProfile =
+          await tx.vendorProfile.findFirst({
+            where: {
+              id: profile.id,
+              userId,
             },
-            });
+            select: {
+              id: true,
+              balance: true,
+              isSuspended: true,
+            },
+          });
 
-            const updatedProfile =
-            await tx.vendorProfile.update({
-                where: {
-                id: profile.id,
-                },
-                data: {
-                balance: {
-                    decrement: amount,
-                },
-                },
-            });
-
-            return {
-            payout,
-            newBalance: Number(updatedProfile.balance),
-            };
-        });
+        if (!vendorProfile) {
+          throw forbidden(
+            "You do not have permission to request a payout from this vendor profile."
+          );
         }
 
+        if (vendorProfile.isSuspended) {
+          throw forbidden(
+            "Your vendor account is suspended."
+          );
+        }
+
+        /*
+        * The balance must be checked inside the same transaction
+        * that performs the deduction.
+        */
+        if (
+          Number(vendorProfile.balance) <
+          amount
+        ) {
+          throw badRequest(
+            "Insufficient balance."
+          );
+        }
+
+        /*
+        * Create the payout only after ownership and balance
+        * have been verified.
+        */
+        const payout =
+          await tx.payout.create({
+            data: {
+              amount,
+              status: "PENDING",
+              vendorId: userId,
+              vendorProfileId: vendorProfile.id,
+              bankName: profile.bankName,
+              accountNumber: profile.accountNumber,
+              accountName: profile.accountName,
+              reference: `PAYOUT-${Date.now()}-${Math.floor(
+                Math.random() * 100000
+              )}`,
+            },
+          });
+
+        /*
+        * Deduct from the exact profile that belongs to the
+        * authenticated user.
+        */
+        const updatedProfile =
+          await tx.vendorProfile.update({
+            where: {
+              id: vendorProfile.id,
+            },
+            data: {
+              balance: {
+                decrement: amount,
+              },
+            },
+          });
+
+        return {
+          payout,
+          newBalance:
+            Number(updatedProfile.balance),
+        };
+      });
+    }
         static async validatePayoutRequest(
             userId: string,
             amount: number
@@ -270,64 +324,80 @@ export class PayoutService {
 
 
   static async requestWithdrawal(
-  userId: string,
-  amount: number
-) {
-  if (!amount || amount <= 0) {
-    throw badRequest(
-      "Invalid withdrawal amount."
-    );
-  }
+      userId: string,
+      amount: number
+    ) {
+      if (!amount || amount <= 0) {
+        throw badRequest(
+          "Invalid withdrawal amount."
+        );
+      }
 
-  const vendor =
-    await prisma.vendorProfile.findUnique({
-      where: {
-        userId,
-      },
-    });
+      return prisma.$transaction(async (tx) => {
+        const vendor =
+          await tx.vendorProfile.findUnique({
+            where: {
+              userId,
+            },
+            select: {
+              id: true,
+              balance: true,
+              isSuspended: true,
+            },
+          });
 
-  if (!vendor) {
-    throw notFound(
-      "Vendor profile not found."
-    );
-  }
+        if (!vendor) {
+          throw notFound(
+            "Vendor profile not found."
+          );
+        }
 
-  if (vendor.isSuspended) {
-    throw forbidden(
-      "Account suspended. Withdrawals are locked."
-    );
-  }
+        if (vendor.isSuspended) {
+          throw forbidden(
+            "Account suspended. Withdrawals are locked."
+          );
+        }
 
-  if (amount > Number(vendor.balance)) {
-    throw badRequest(
-      "Insufficient balance."
-    );
-  }
+        /*
+        * Atomically reserve the requested amount.
+        *
+        * The balance condition is included in the UPDATE itself,
+        * so a concurrent withdrawal cannot spend the same balance
+        * after this check.
+        */
+        const updated =
+          await tx.vendorProfile.updateMany({
+            where: {
+              id: vendor.id,
+              balance: {
+                gte: amount,
+              },
+            },
+            data: {
+              balance: {
+                decrement: amount,
+              },
+            },
+          });
 
-  const [withdrawal] =
-    await prisma.$transaction([
-      prisma.withdrawal.create({
-        data: {
-          vendorProfileId: vendor.id,
-          amount,
-          status: "PENDING",
-        },
-      }),
+        if (updated.count !== 1) {
+          throw badRequest(
+            "Insufficient balance."
+          );
+        }
 
-      prisma.vendorProfile.update({
-        where: {
-          id: vendor.id,
-        },
-        data: {
-          balance: {
-            decrement: amount,
-          },
-        },
-      }),
-    ]);
+        const withdrawal =
+          await tx.withdrawal.create({
+            data: {
+              vendorProfileId: vendor.id,
+              amount,
+              status: "PENDING",
+            },
+          });
 
-  return withdrawal;
-}
+        return withdrawal;
+      });
+    }
 
 
  static async calculateVendorPayout(orderId: string) {

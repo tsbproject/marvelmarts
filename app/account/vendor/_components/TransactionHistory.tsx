@@ -28,7 +28,7 @@ export default function TransactionHistory({ vendorProfileId }: { vendorProfileI
 
           async function fetchHistory() {
             try {
-              const res = await getTransactionHistory(vendorProfileId);
+              const res = await getTransactionHistory();
               if (res?.success) {
                 setTransactions(res.transactions ?? []);
               } else {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireVendor } from "@/app/lib/auth/api";
 import { BoostService } from "@/app/lib/services/boost.service";
+import { VendorService } from "@/app/lib/services/vendor.service";
 
 type BoostProductResult =
   | {
@@ -12,16 +13,6 @@ type BoostProductResult =
       expiry: Date;
     }
   | {
-      error: string;
-    };
-
-type AddCreditsResult =
-  | {
-      success: true;
-      newBalance: number;
-    }
-  | {
-      success: false;
       error: string;
     };
 
@@ -77,39 +68,17 @@ export async function boostProduct(
   }
 }
 
-export async function addCreditsToVendor(
-  vendorProfileId: string,
-  amount: number,
-  reference: string
-): Promise<AddCreditsResult> {
+export async function getTransactionHistory(): Promise<TransactionHistoryResult> {
   try {
-    const result = await BoostService.addCreditsToVendor(
-      vendorProfileId,
-      amount,
-      reference
-    );
+    const session = await requireVendor();
 
-    revalidatePath("/account/vendor");
-    revalidatePath("/account/vendor/credit-boost");
+    const vendor =
+      await VendorService.getVendorProfileOrThrow(
+        session.user.id
+      );
 
-    return result;
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update credits.",
-    };
-  }
-}
-
-export async function getTransactionHistory(
-  vendorProfileId: string
-): Promise<TransactionHistoryResult> {
-  try {
     return await BoostService.getTransactionHistory(
-      vendorProfileId
+      vendor.id
     );
   } catch (error) {
     return {

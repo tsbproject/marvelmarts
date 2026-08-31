@@ -5,7 +5,12 @@ import {
 
 import { VendorService } from "@/app/lib/services/vendor.service";
 
-import { handleApiError, requireAuth } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireAuth,
+} from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,60 +19,64 @@ export const dynamic = "force-dynamic";
 /*                          GET BANK ACCOUNT                                  */
 /* -------------------------------------------------------------------------- */
 
-export async function GET() {
-  try {
-    const session =
-      await requireAuth();
+export const GET = withApiLogging(
+  async () => {
+    try {
+      const session =
+        await requireAuth();
 
-    const bankAccount =
-      await VendorService.getBankAccount(
-        session.user.id
+      const bankAccount =
+        await VendorService.getBankAccount(
+          session.user.id
+        );
+
+      return NextResponse.json(
+        {
+          success: true,
+          bankAccount,
+        },
+        {
+          status: 200,
+        }
       );
-
-    return NextResponse.json(
-      {
-        success: true,
-        bankAccount,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /*                     CREATE / UPDATE BANK ACCOUNT                           */
 /* -------------------------------------------------------------------------- */
 
-export async function POST(
-  req: NextRequest
-) {
-  try {
-    const session =
-      await requireAuth();
+export const POST = withApiLogging(
+  async (req: NextRequest) => {
+    try {
+      verifyOrigin(req);
 
-    const body =
-      await req.json();
+      const session =
+        await requireAuth();
 
-    const bankAccount =
-      await VendorService.saveBankAccount(
-        session.user.id,
-        body
+      const body =
+        await req.json();
+
+      const bankAccount =
+        await VendorService.saveBankAccount(
+          session.user.id,
+          body
+        );
+
+      return NextResponse.json(
+        {
+          success: true,
+          bankAccount,
+        },
+        {
+          status: 200,
+        }
       );
-
-    return NextResponse.json(
-      {
-        success: true,
-        bankAccount,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

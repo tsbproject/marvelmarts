@@ -1,87 +1,97 @@
 import { MessageService } from "@/app/lib/services/message.service";
 import { NextResponse } from "next/server";
 import { pusherServer } from "@/app/lib/pusherServer";
+import { logger } from "@/app/lib/logger";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
+export const POST =
+  withApiLogging(
+    async (req: Request) => {
+      try {
+        verifyOrigin(req);
 
-    const {
-      email,
-      name,
-      isVendor,
-    } = body;
+        const body =
+          await req.json();
 
-    const result =
-      await MessageService.initiateSupportConversation(
-        email,
-        name,
-        isVendor
-      );
+        const {
+          email,
+          name,
+          isVendor,
+        } = body;
 
-    if (!result.userExists) {
-      return new NextResponse(
-        "User not found. Please use your registered email.",
-        {
-          status: 404,
+        const result =
+          await MessageService.initiateSupportConversation(
+            email,
+            name,
+            isVendor
+          );
+
+        if (!result.userExists) {
+          return new NextResponse(
+            "User not found. Please use your registered email.",
+            {
+              status: 404,
+            }
+          );
         }
-      );
-    }
 
-    if (!result.adminAvailable) {
-      return new NextResponse(
-        "Support is currently offline.",
-        {
-          status: 503,
+        if (!result.adminAvailable) {
+          return new NextResponse(
+            "Support is currently offline.",
+            {
+              status: 503,
+            }
+          );
         }
-      );
-    }
 
-    if (
-  result.created &&
-  result.welcomeMessage
-) {
-  // Notify admin that a new support ticket exists
-  await pusherServer.trigger(
-    "global-admin-support",
-    "new-support-ticket",
-    {
-      conversationId:
-        result.conversation!.id,
-      type:
-        result.conversation!.type,
-      customerName: name,
-      customerEmail: email,
-    }
-  );
+        if (
+          result.created &&
+          result.welcomeMessage
+        ) {
+          // Notify admin that a new support ticket exists
+          await pusherServer.trigger(
+            "global-admin-support",
+            "new-support-ticket",
+            {
+              conversationId:
+                result.conversation!.id,
+              type:
+                result.conversation!.type,
+              customerName: name,
+              customerEmail: email,
+            }
+          );
 
-  // Deliver the welcome message to the conversation
-  await pusherServer.trigger(
-    result.conversation!.id,
-    "new-message",
-    result.welcomeMessage
-  );
-}
+          // Deliver the welcome message to the conversation
+          await pusherServer.trigger(
+            result.conversation!.id,
+            "new-message",
+            result.welcomeMessage
+          );
+        }
 
-    const conversation = result.conversation!;
+        const conversation =
+          result.conversation!;
 
-    return NextResponse.json({
-      conversationId:
-       conversation.id,
-      type:
-        conversation.type,
-    });
-  } catch (error: any) {
-    console.error(
-      "--- CHAT INITIATION ERROR ---",
-      error.message
-    );
+        return NextResponse.json({
+          conversationId:
+            conversation.id,
+          type:
+            conversation.type,
+        });
+      } catch (error: any) {
+        logger.error(
+          "--- CHAT INITIATION ERROR ---",
+          error.message
+        );
 
-    return new NextResponse(
-      "Internal Server Error",
-      {
-        status: 500,
+        return new NextResponse(
+          "Internal Server Error",
+          {
+            status: 500,
+          }
+        );
       }
-    );
-  }
-}
+    }
+  );

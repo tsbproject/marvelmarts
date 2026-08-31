@@ -7,6 +7,8 @@ import {
 } from "@/app/lib/auth/api";
 
 import { TicketService } from "@/app/lib/services/ticket.service";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 const updateSchema = z.object({
   id: z
@@ -22,33 +24,33 @@ const updateSchema = z.object({
   ]),
 });
 
-export async function PUT(
-  req: Request
-) {
-  try {
-    await requireAdmin();
+export const PUT = withApiLogging(
+  async (req: Request) => {
+    try {
+      verifyOrigin(req);
 
-    const json =
-      await req.json();
+      await requireAdmin();
 
-    const {
-      id,
-      status,
-    } = updateSchema.parse(
-      json
-    );
+      const json =
+        await req.json();
 
-    const updatedTicket =
-      await TicketService.updateStatus(
+      const {
         id,
-        status
-      );
+        status,
+      } = updateSchema.parse(json);
 
-    return NextResponse.json({
-      success: true,
-      ticket: updatedTicket,
-    });
-  } catch (error) {
-    return handleApiError(error);
+      const updatedTicket =
+        await TicketService.updateStatus(
+          id,
+          status
+        );
+
+      return NextResponse.json({
+        success: true,
+        ticket: updatedTicket,
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

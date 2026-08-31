@@ -44,6 +44,11 @@ model User {
   wallet             Wallet?
   wishlists          Wishlist[]
   conversations      Conversation[]      @relation("UserConversations")
+
+  auditLogs    AuditLog[]    @relation("UserAuditLogs")
+  authLogs     AuthLog[]     @relation("UserAuthLogs")
+  securityLogs SecurityLog[] @relation("UserSecurityLogs")
+  apiLogs      ApiLog[]      @relation("UserApiLogs")
 }
 
 model VerificationCode {
@@ -59,7 +64,6 @@ model VerificationCode {
   createdAt      DateTime         @default(now())
   vendorData     Json?
   user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
 
   @@index([email])
   @@index([userId])
@@ -391,7 +395,6 @@ model Product {
   categories        Category[]     @relation("ProductCategories")
   flashSales        FlashSale[]    @relation("ProductToFlashSale")
 
-
   @@index([vendorProfileId])
   @@index([categoryId])
   @@index([status])
@@ -426,7 +429,6 @@ model Variant {
   orderItems OrderItem[]
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-
   @@index([productId])
 }
 
@@ -446,7 +448,6 @@ model Review {
   isVerified Boolean  @default(false)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
 
   @@index([productId])
   @@index([userId])
@@ -507,7 +508,6 @@ model CartItem {
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
-
   @@index([cartId])
   @@index([productId])
   @@index([variantId])
@@ -548,17 +548,15 @@ model Order {
   shippingFirstName    String?
   shippingLastName     String?
   paymentTypes         PaymentTypes?
-  user                 User?         @relation(fields: [userId], references: [id],  onDelete: SetNull)
+  user                 User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
   items                OrderItem[]
-
 
   @@index([vendorProfileId])
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
   @@index([createdAt])
-
   @@index([vendorProfileId, status])
   @@index([vendorProfileId, createdAt])
   @@index([userId, createdAt])
@@ -655,7 +653,6 @@ model Ticket {
   priority   String?       @default("MEDIUM")
   replies    TicketReply[]
 
-
   @@index([status])
   @@index([priority])
   @@index([createdAt])
@@ -683,8 +680,6 @@ model Blog {
   authorId   String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
- 
 }
 
 model SiteSettings {
@@ -950,4 +945,128 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+/**
+ * ===================================================
+ */
+/**
+ * ALL SECURITY AUDIT
+ */
+/**
+ * ===================================================
+ */
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  requestId String?
+
+  actorId String?
+  actor   User?   @relation("UserAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  actorRole Role?
+
+  action   String
+  entity   String
+  entityId String?
+
+  oldValues Json?
+  newValues Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([actorId])
+  @@index([actorRole])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+model AuthLog {
+  id String @id @default(cuid())
+
+  requestId String?
+
+  userId String?
+  user   User?   @relation("UserAuthLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  email String?
+
+  action  String
+  success Boolean
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([email])
+  @@index([action])
+  @@index([success])
+  @@index([createdAt])
+}
+
+model SecurityLog {
+  id String @id @default(cuid())
+
+  requestId String?
+
+  userId String?
+
+  user User? @relation("UserSecurityLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  event    String
+  severity String
+
+  ipAddress String?
+  userAgent String?
+
+  requestPath   String?
+  requestMethod String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([event])
+  @@index([severity])
+  @@index([requestPath])
+  @@index([createdAt])
+}
+
+model ApiLog {
+  id String @id @default(cuid())
+
+  requestId String?
+
+  userId String?
+  user   User?   @relation("UserApiLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  method String
+  path   String
+
+  statusCode Int
+  durationMs Int
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([method])
+  @@index([path])
+  @@index([statusCode])
+  @@index([createdAt])
 }

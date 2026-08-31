@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
 import {
   handleApiError,
   requireVendor,
 } from "@/app/lib/auth/api";
 
-import {
-  badRequest,
-} from "@/app/lib/auth/errors";
+import { badRequest } from "@/app/lib/auth/errors";
 
 import { requireProductOwnershipBySlug } from "@/app/lib/products/ownership";
 import { ProductService } from "@/app/lib/services/product.service";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,142 +52,150 @@ function serializeVariant(
 /* GET                                                                         */
 /* -------------------------------------------------------------------------- */
 
-export async function GET(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      slug: string;
-    }>;
-  }
-) {
-  try {
-    const { slug } = await params;
+export const GET = withApiLogging(
+  async (
+    request: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{
+        slug: string;
+      }>;
+    }
+  ) => {
+    try {
+      const { slug } =
+        await params;
 
- const variants =
-  await ProductService.getProductVariants(
-    slug
-  );
+      const variants =
+        await ProductService.getProductVariants(
+          slug
+        );
 
-return NextResponse.json({
-  success: true,
-  variants: variants.map(
-    serializeVariant
-  ),
-});
-    
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json({
+        success: true,
+        variants: variants.map(
+          serializeVariant
+        ),
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /* POST                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export async function POST(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      slug: string;
-    }>;
-  }
-) {
-  try {
-    const session =
-      await requireVendor();
+export const POST = withApiLogging(
+  async (
+    request: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{
+        slug: string;
+      }>;
+    }
+  ) => {
+    try {
+      verifyOrigin(request);
 
-    const { slug } =
-      await params;
+      const session =
+        await requireVendor();
 
-    const product =
-      await requireProductOwnershipBySlug(
-        slug,
-        session
-      );
+      const { slug } =
+        await params;
 
-    const body =
-      await request.json();
+      const product =
+        await requireProductOwnershipBySlug(
+          slug,
+          session
+        );
 
-    const parsed =
-      variantSchema.parse(body);
+      const body =
+        await request.json();
+
+      const parsed =
+        variantSchema.parse(body);
 
       const variant =
-      await ProductService.createVariant(
-        product.id,
-        parsed
-      );
+        await ProductService.createVariant(
+          product.id,
+          parsed
+        );
 
-    return NextResponse.json(
-      {
-        success: true,
-        variant:
-          serializeVariant(
-            variant
-          ),
-      },
-      {
-        status: 201,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json(
+        {
+          success: true,
+          variant:
+            serializeVariant(
+              variant
+            ),
+        },
+        {
+          status: 201,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /* DELETE                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function DELETE(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      slug: string;
-    }>;
-  }
-) {
-  try {
-    const session =
-      await requireVendor();
-
-    const { slug } =
-      await params;
-
-    await requireProductOwnershipBySlug(
-      slug,
-      session
-    );
-
-    const { searchParams } =
-      new URL(request.url);
-
-    const variantId =
-      searchParams.get("id");
-
-    if (!variantId) {
-      throw badRequest(
-        "Variant ID is required."
-      );
+export const DELETE = withApiLogging(
+  async (
+    request: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{
+        slug: string;
+      }>;
     }
+  ) => {
+    try {
+      verifyOrigin(request);
 
-  await ProductService.deleteVariant(
-      variantId
-    );
+      const session =
+        await requireVendor();
 
-  
+      const { slug } =
+        await params;
 
-    return NextResponse.json({
-      success: true,
-      message:
-        "Variant deleted successfully.",
-    });
-  } catch (error) {
-    return handleApiError(error);
+      await requireProductOwnershipBySlug(
+        slug,
+        session
+      );
+
+      const { searchParams } =
+        new URL(request.url);
+
+      const variantId =
+        searchParams.get("id");
+
+      if (!variantId) {
+        throw badRequest(
+          "Variant ID is required."
+        );
+      }
+
+      await ProductService.deleteVariant(
+        variantId
+      );
+
+      return NextResponse.json({
+        success: true,
+        message:
+          "Variant deleted successfully.",
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

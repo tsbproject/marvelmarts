@@ -1,16 +1,15 @@
 "use server";
 
-
 import { requireVendorProfile } from "@/app/lib/auth/api";
 import { CloudinaryService } from "@/app/lib/services/cloudinary.service";
 
-export async function getCloudinarySignature(
-  folder = "vendor-docs"
-) {
+export async function getCloudinarySignature() {
   try {
     await requireVendorProfile();
 
-    return await CloudinaryService.getUploadSignature(folder);
+    return await CloudinaryService.getUploadSignature(
+      "vendor-docs"
+    );
   } catch (error) {
     console.error("SIGNATURE_ERROR:", error);
 

@@ -1,76 +1,78 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+
 import {
   requireManageAdmins,
   requireSuperAdmin,
   handleApiError,
 } from "@/app/lib/auth/api";
+
 import { AuthService } from "@/app/lib/services/auth.service";
 
 import { UserRole } from "@prisma/client";
 
-import type { AdminPermissions, } from "@/app/lib/auth/types";
+import type { AdminPermissions } from "@/app/lib/auth/types";
 
+import { verifyOrigin } from "@/app/lib/auth/csrf";
 
-
-
-
-
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 
 /* ========================================================================== */
 /* GET: Fetch Administrator                                                   */
 /* ========================================================================== */
 
-export async function GET(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    await requireManageAdmins();
-
-    const { id } =
-      await params;
-
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Invalid administrator id.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const user =
-      await AuthService.getAdministratorById(
-        id
-      );
-
-    return NextResponse.json(
+export const GET =
+  withApiLogging(
+    async (
+      request: Request,
       {
-        success: true,
-        user,
-      },
-      {
-        status: 200,
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    ) => {
+      try {
+        await requireManageAdmins();
+
+        const { id } =
+          await params;
+
+        if (!id) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Invalid administrator id.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        const user =
+          await AuthService.getAdministratorById(
+            id
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            user,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+  );
 
 /* ========================================================================== */
 /* PUT: Update Administrator                                                  */
@@ -84,121 +86,134 @@ interface UpdateAdminRequest {
   permissions?: Partial<AdminPermissions>;
 }
 
-export async function PUT(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    const session =
-      await requireManageAdmins();
-
-    const { id } =
-      await params;
-
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Invalid administrator id.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const body =
-      (await request.json()) as UpdateAdminRequest;
-
-    const user =
-      await AuthService.updateAdministrator(
-        id,
-        body,
-        {
-          id: session.user.id,
-       email: session.user.email ?? null,
-          role:
-            session.user.role,
-        }
-      );
-
-    return NextResponse.json(
+export const PUT =
+  withApiLogging(
+    async (
+      request: Request,
       {
-        success: true,
-        message:
-          "Administrator updated successfully.",
-        user,
-      },
-      {
-        status: 200,
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    ) => {
+      try {
+        verifyOrigin(request);
+
+        const session =
+          await requireManageAdmins();
+
+        const { id } =
+          await params;
+
+        if (!id) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Invalid administrator id.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        const body =
+          (await request.json()) as UpdateAdminRequest;
+
+        const user =
+          await AuthService.updateAdministrator(
+            id,
+            body,
+            {
+              id: session.user.id,
+              email:
+                session.user.email ??
+                null,
+              role:
+                session.user.role,
+            }
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            message:
+              "Administrator updated successfully.",
+            user,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+  );
 
 /* ========================================================================== */
 /* DELETE: Remove Administrator                                               */
 /* ========================================================================== */
 
-export async function DELETE(
-  request: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    const session =
-      await requireSuperAdmin();
+export const DELETE =
+  withApiLogging(
+    async (
+      request: Request,
+      {
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
+      }
+    ) => {
+      try {
+        verifyOrigin(request);
 
-    const { id } =
-      await params;
+        const session =
+          await requireSuperAdmin();
 
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Invalid administrator id.",
-        },
-        {
-          status: 400,
+        const { id } =
+          await params;
+
+        if (!id) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Invalid administrator id.",
+            },
+            {
+              status: 400,
+            }
+          );
         }
-      );
+
+        await AuthService.deleteAdministrator(
+          id,
+          {
+            id: session.user.id,
+            email:
+              session.user.email ??
+              null,
+          }
+        );
+
+        return NextResponse.json(
+          {
+            success: true,
+            message:
+              "Administrator removed successfully.",
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
     }
-
-    await AuthService.deleteAdministrator(
-      id,
-      {
-        id:
-          session.user.id,
-        email: session.user.email ?? null,
-      }
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          "Administrator removed successfully.",
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  );

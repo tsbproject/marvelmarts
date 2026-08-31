@@ -11,26 +11,34 @@ export async function reviewVendorAccount(
   reason?: string
 ) {
   try {
-    const session = await requireManageVendors();
+    const session =
+      await requireManageVendors();
 
-    const result = await VendorService.reviewVendorAccount(
-      vendorProfileId,
-      action,
-      reason,
-      {
-        id: session.user.id,
-        email: session.user.email ?? null,
-        role: session.user.role,
-      }
+    const result =
+      await VendorService.reviewVendorAccount(
+        vendorProfileId,
+        action,
+        reason,
+        {
+          id: session.user.id,
+          email:
+            session.user.email ?? null,
+          role: session.user.role,
+        }
+      );
+
+    revalidatePath(
+      "/dashboard/admins/vendors"
     );
-
-    revalidatePath("/dashboard/admins/vendors");
 
     return result;
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Action failed.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Action failed.",
     };
   }
 }

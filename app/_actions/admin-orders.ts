@@ -7,14 +7,16 @@ export async function updateOrderStatus(
   orderId: string,
   status: string
 ) {
-  const session = await requireManageOrders();
+  const session =
+    await requireManageOrders();
 
   return AdminOrderService.updateOrderStatus(
     orderId,
     status,
     {
       id: session.user.id,
-      email: session.user.email ?? null,
+      email:
+        session.user.email ?? null,
       role: session.user.role,
     }
   );

@@ -11,6 +11,7 @@ import { pusherServer } from "@/app/lib/pusherServer";
 import { conversationService } from "./conversation.service";
 
 import type { ConversationAccess } from "@/app/lib/auth/conversation";
+import { logger } from "@/app/lib/logger";
 
 
 
@@ -653,7 +654,7 @@ static async sendSupportMessage(
         : Promise.resolve(),
     ]);
   } catch (error) {
-    console.error(
+    logger.error(
       "PUSHER_ERROR:",
       error
     );

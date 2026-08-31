@@ -1,10 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { CategoryService } from "@/app/lib/services/category.service";
 
-import { requireManageCategories, handleApiError  } from "@/app/lib/auth/api";
+import {
+  requireManageCategories,
+  handleApiError,
+} from "@/app/lib/auth/api";
+
 import { badRequest } from "@/app/lib/auth/errors";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,146 +30,164 @@ const updateSchema = z.object({
 /*                                   GET                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function GET(
-  _req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    await requireManageCategories();
-
-    const { id } = await params;
-
-    if (!id) {
-      throw badRequest(
-        "Category ID is required."
-      );
-    }
-
-    const category =
-      await CategoryService.getCategoryById(
-        id
-      );
-
-    return NextResponse.json(
+export const GET =
+  withApiLogging(
+    async (
+      _req: Request,
       {
-        success: true,
-        category,
-      },
-      {
-        status: 200,
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    ) => {
+      try {
+        await requireManageCategories();
+
+        const { id } =
+          await params;
+
+        if (!id) {
+          throw badRequest(
+            "Category ID is required."
+          );
+        }
+
+        const category =
+          await CategoryService.getCategoryById(
+            id
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            category,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+  );
 
 /* -------------------------------------------------------------------------- */
 /*                                   PUT                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function PUT(
-  req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    await requireManageCategories();
-
-    const { id } = await params;
-
-    if (!id) {
-      throw badRequest(
-        "Category ID is required."
-      );
-    }
-
-    const body = await req.json();
-
-    const parsed =
-      updateSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid payload",
-          details: parsed.error.format(),
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const category =
-      await CategoryService.updateCategory(
-        id,
-        parsed.data
-      );
-
-    return NextResponse.json(
+export const PUT =
+  withApiLogging(
+    async (
+      req: Request,
       {
-        success: true,
-        category,
-      },
-      {
-        status: 200,
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    ) => {
+      try {
+        verifyOrigin(req);
+
+        await requireManageCategories();
+
+        const { id } =
+          await params;
+
+        if (!id) {
+          throw badRequest(
+            "Category ID is required."
+          );
+        }
+
+        const body =
+          await req.json();
+
+        const parsed =
+          updateSchema.safeParse(body);
+
+        if (!parsed.success) {
+          return NextResponse.json(
+            {
+              error: "Invalid payload",
+              details:
+                parsed.error.format(),
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        const category =
+          await CategoryService.updateCategory(
+            id,
+            parsed.data
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            category,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+  );
 
 /* -------------------------------------------------------------------------- */
 /*                                 DELETE                                     */
 /* -------------------------------------------------------------------------- */
 
-export async function DELETE(
-  _req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    await requireManageCategories();
-
-    const { id } = await params;
-
-    if (!id) {
-      throw badRequest(
-        "Category ID is required."
-      );
-    }
-
-    await CategoryService.deleteCategory(
-      id
-    );
-
-    return NextResponse.json(
+export const DELETE =
+  withApiLogging(
+    async (
+      req: Request,
       {
-        success: true,
-      },
-      {
-        status: 200,
+        params,
+      }: {
+        params: Promise<{
+          id: string;
+        }>;
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    ) => {
+      try {
+        verifyOrigin(req);
+
+        await requireManageCategories();
+
+        const { id } =
+          await params;
+
+        if (!id) {
+          throw badRequest(
+            "Category ID is required."
+          );
+        }
+
+        await CategoryService.deleteCategory(
+          id
+        );
+
+        return NextResponse.json(
+          {
+            success: true,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+  );

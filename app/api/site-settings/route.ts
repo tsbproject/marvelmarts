@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+
 import { SiteSettingsService } from "@/app/lib/services/site-settings.service";
 
-import { requireAdmin,
+import {
+  requireAdmin,
   handleApiError,
 } from "@/app/lib/auth/api";
 
@@ -9,6 +11,8 @@ import {
   badRequest,
   notFound,
 } from "@/app/lib/auth/errors";
+
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,42 +72,48 @@ const DEFAULT_SETTINGS = {
 /*                                   GET                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function GET() {
-  try {
-   const settings =
-    await SiteSettingsService.getSettings();
+export const GET = withApiLogging(
+  async () => {
+    try {
+      const settings =
+        await SiteSettingsService.getSettings();
 
-    return NextResponse.json(
-      settings ?? DEFAULT_SETTINGS
-    );
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json(
+        settings ?? DEFAULT_SETTINGS
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /*                                  PATCH                                     */
 /* -------------------------------------------------------------------------- */
 
-export async function PATCH(request: Request) {
-  try {
-    await requireAdmin();
-
-    let body: Record<string, unknown>;
-
+export const PATCH = withApiLogging(
+  async (request: Request) => {
     try {
-      body = await request.json();
-    } catch {
-      throw badRequest("Invalid JSON payload.");
+      await requireAdmin();
+
+      let body: Record<string, unknown>;
+
+      try {
+        body = await request.json();
+      } catch {
+        throw badRequest(
+          "Invalid JSON payload."
+        );
+      }
+
+      const updated =
+        await SiteSettingsService.updateSettings(
+          body
+        );
+
+      return NextResponse.json(updated);
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    const updated =
-      await SiteSettingsService.updateSettings(
-        body
-      );
-
-    return NextResponse.json(updated);
-  } catch (error) {
-    return handleApiError(error);
   }
-}
+);

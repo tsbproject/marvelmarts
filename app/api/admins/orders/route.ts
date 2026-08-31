@@ -2,28 +2,36 @@ import { NextResponse } from "next/server";
 
 import { OrderService } from "@/app/lib/services/order.service";
 
-import { handleApiError, requireManageOrders  } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireManageOrders,
+} from "@/app/lib/auth/api";
+
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    await requireManageOrders();
+export const GET =
+  withApiLogging(
+    async (_req: Request) => {
+      try {
+        await requireManageOrders();
 
-    const orders =
-      await OrderService.getAdminOrders();
+        const orders =
+          await OrderService.getAdminOrders();
 
-    return NextResponse.json(
-      {
-        success: true,
-        orders,
-      },
-      {
-        status: 200,
+        return NextResponse.json(
+          {
+            success: true,
+            orders,
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );

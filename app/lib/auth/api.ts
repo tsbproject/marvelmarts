@@ -5,6 +5,8 @@ import prisma from "@/app/lib/prisma";
 import { notFound } from "@/app/lib/auth/errors";
 import { ZodError } from "zod";
 import type { Session } from "next-auth";
+import { logger } from "@/app/lib/logger";
+import { SecurityLogService } from "@/app/lib/services/logging/security-log.service";
 
 
 import { authOptions } from "@/app/lib/auth";
@@ -90,7 +92,7 @@ export function handleApiError(error: unknown) {
         );
 
       default:
-        console.error(error);
+       logger.error("PRISMA_ERROR", error);
 
         return NextResponse.json(
           {
@@ -110,7 +112,7 @@ export function handleApiError(error: unknown) {
   /* ---------------------------------------------------------------------- */
 
   if (error instanceof Error) {
-  console.error(error);
+  logger.error("AUTH_ERROR", error);
 
   return NextResponse.json(
     {
@@ -127,7 +129,7 @@ export function handleApiError(error: unknown) {
   /* UNKNOWN                                                                */
   /* ---------------------------------------------------------------------- */
 
-  console.error(error);
+    logger.error("UNHANDLED_API_ERROR", error);
 
   return NextResponse.json(
     {
@@ -144,12 +146,30 @@ export function handleApiError(error: unknown) {
 /*                              AUTH HELPERS                                  */
 /* -------------------------------------------------------------------------- */
 
+async function logPermissionDenied(
+  session: Session | null,
+  reason: string
+) {
+  await SecurityLogService.permissionDenied({
+    userId: session?.user?.id,
+    metadata: {
+      reason,
+      role: session?.user?.role,
+    },
+  });
+}
+
 export async function requireAuth(): Promise<Session> {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
-    throw unauthorized();
-  }
+ if (!session?.user?.id) {
+  await logPermissionDenied(
+    session,
+    "Unauthenticated request"
+  );
+
+  throw unauthorized();
+}
 
   const user = await prisma.user.findUnique({
     where: {
@@ -162,12 +182,22 @@ export async function requireAuth(): Promise<Session> {
   });
 
   if (!user) {
+    await logPermissionDenied(
+      session,
+      "Account no longer exists"
+    );
+
     throw unauthorized(
       "Your account no longer exists."
     );
   }
 
   if (user.isSuspended) {
+    await logPermissionDenied(
+      session,
+      "Suspended account"
+    );
+
     throw forbidden(
       "Your account has been suspended."
     );
@@ -194,10 +224,15 @@ export async function requireRole(
     );
 
   if (!hasRequiredRole) {
-    throw forbidden(
-      "You do not have permission to perform this action."
-    );
-  }
+      await logPermissionDenied(
+        session,
+        `Missing role: ${requiredRoles.join(", ")}`
+      );
+
+      throw forbidden(
+        "You do not have permission to perform this action."
+      );
+    }
 
   return session;
 }
@@ -248,6 +283,11 @@ export async function requireSuperAdmin() {
   const session = await requireAuth();
 
   if (!isSuperAdmin(session)) {
+    await logPermissionDenied(
+      session,
+      "Super Administrator required"
+    );
+
     throw forbidden(
       "Super Administrator access required."
     );
@@ -268,6 +308,11 @@ export async function requirePermission(
       permission
     )
   ) {
+    await logPermissionDenied(
+      session,
+      `Missing permission: ${permission}`
+    );
+
     throw forbidden(
       "Insufficient permissions."
     );

@@ -4,49 +4,56 @@ import { pusherServer } from "@/app/lib/pusherServer";
 
 import { requireConversationAccess } from "@/app/lib/auth/conversation";
 import { handleApiError } from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
-) {
-  try {
-    const { id: conversationId } =
-      await params;
+export const POST = withApiLogging(
+  async (
+    req: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{
+        id: string;
+      }>;
+    }
+  ) => {
+    try {
+      verifyOrigin(req);
 
-    const access =
-      await requireConversationAccess(
-        conversationId
+      const { id: conversationId } =
+        await params;
+
+      const access =
+        await requireConversationAccess(
+          conversationId
+        );
+
+      const body =
+        await req.json();
+
+      await pusherServer.trigger(
+        `chat-${conversationId}`,
+        "typing",
+        {
+          userId: access.userId,
+          typing: !!body.typing,
+        }
       );
 
-    const body = await req.json();
-
-    await pusherServer.trigger(
-      `chat-${conversationId}`,
-      "typing",
-      {
-        userId: access.userId,
-        typing: !!body.typing,
-      }
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json(
+        {
+          success: true,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

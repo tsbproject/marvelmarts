@@ -1,6 +1,7 @@
 import { prisma } from "@/app/lib/prisma";
 import { sendAdminAlert } from "@/app/lib/mailer";
 import { pusherServer } from "@/app/lib/pusherServer";
+import { logger } from "@/app/lib/logger";
 
 export class DisputeService {
   static async createDispute({
@@ -64,7 +65,7 @@ export class DisputeService {
         }
       );
     } catch (err) {
-      console.error("Pusher Error:", err);
+      logger.error("Pusher Error:", err);
     }
 
     try {
@@ -78,7 +79,7 @@ Description: ${description}
 Action required immediately in the Admin Control Center.`,
       });
     } catch (err) {
-      console.error("Admin Email Error:", err);
+      logger.error("Admin Email Error:", err);
     }
 
     return dispute;

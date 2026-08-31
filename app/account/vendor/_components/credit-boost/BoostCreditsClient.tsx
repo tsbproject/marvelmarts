@@ -26,7 +26,7 @@ export default function BoostCreditsClient({
 }: BoostCreditsClientProps) {
   const boostPlans = [
     { days: 3, credits: 15, label: "Starter" },
-    { days: 7, credits: 30, label: "Popular", discount: "Save 15%" },
+    { days: 7, credits: 45, label: "Popular", discount: "Save 15%" },
     { days: 30, credits: 100, label: "Pro Growth", discount: "Save 33%" },
   ];
 

@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
+
 import { HelpCenterService } from "@/app/lib/services/help-center.service";
 import { handleApiError } from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
-export async function POST(
-  req: Request
-) {
-  try {
-    const {
-      id,
-      type,
-    } = await req.json();
+export const POST = withApiLogging(
+  async (req: Request) => {
+    try {
+      verifyOrigin(req);
 
-    const count =
-      await HelpCenterService.voteArticle(
+      const {
         id,
-        type
-      );
+        type,
+      } = await req.json();
 
-    return NextResponse.json({
-      success: true,
-      count,
-    });
-  } catch (error) {
-    return handleApiError(error);
+      const count =
+        await HelpCenterService.voteArticle(
+          id,
+          type
+        );
+
+      return NextResponse.json({
+        success: true,
+        count,
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

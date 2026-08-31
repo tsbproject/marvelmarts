@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import {
   requireManageVendors,
-  requireAuth, handleApiError
+  requireAuth,
+  handleApiError,
 } from "@/app/lib/auth/api";
-import { badRequest} from "@/app/lib/auth/errors";
+
+import { badRequest } from "@/app/lib/auth/errors";
 import { VendorService } from "@/app/lib/services/vendor.service";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,81 +18,85 @@ export const dynamic = "force-dynamic";
 /*                               GET VENDORS                                  */
 /* -------------------------------------------------------------------------- */
 
-export async function GET() {
-  try {
-    await requireManageVendors();
+export const GET = withApiLogging(
+  async () => {
+    try {
+      await requireManageVendors();
 
-    const vendors =
-      await VendorService.listVendors();
+      const vendors =
+        await VendorService.listVendors();
 
-        return NextResponse.json(
-          {
-            success: true,
-            vendors,
-          },
-          {
-            status: 200,
-          }
-        );
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json(
+        {
+          success: true,
+          vendors,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /*                           UPDATE STORE SETUP                               */
 /* -------------------------------------------------------------------------- */
 
-export async function PATCH(
-  req: NextRequest
-) {
-  try {
-    const session =
-      await requireAuth();
+export const PATCH = withApiLogging(
+  async (req: NextRequest) => {
+    try {
+      verifyOrigin(req);
 
-    const body = await req.json();
+      const session =
+        await requireAuth();
 
-    const {
-      storeName,
-      storePhone,
-      storeAddress,
-      logoUrl,
-      coverUrl,
-    } = body;
+      const body =
+        await req.json();
 
-    await VendorService.getVendorProfileOrThrow(
+      const {
+        storeName,
+        storePhone,
+        storeAddress,
+        logoUrl,
+        coverUrl,
+      } = body;
+
+      await VendorService.getVendorProfileOrThrow(
         session.user.id
       );
 
-    if (
-      !storeName?.trim()
-    ) {
-      throw badRequest(
-        "Store name is required."
-      );
-    }
+      if (!storeName?.trim()) {
+        throw badRequest(
+          "Store name is required."
+        );
+      }
 
-    const updatedVendor =
-      await VendorService.updateStoreSetup(
-        session.user.id,
+      const updatedVendor =
+        await VendorService.updateStoreSetup(
+          session.user.id,
+          {
+            storeName,
+            storePhone,
+            storeAddress,
+            logoUrl,
+            coverUrl,
+          }
+        );
+
+      return NextResponse.json(
         {
-          storeName,
-          storePhone,
-          storeAddress,
-          logoUrl,
-          coverUrl,
+          success: true,
+          vendor: updatedVendor,
+        },
+        {
+          status: 200,
         }
       );
-    return NextResponse.json(
-      {
-        success: true,
-        vendor: updatedVendor,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

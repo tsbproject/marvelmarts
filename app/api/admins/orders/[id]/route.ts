@@ -1,11 +1,14 @@
-import {
-  NextRequest,
-  NextResponse,
-} from "next/server";
+import { NextResponse } from "next/server";
 
 import { OrderService } from "@/app/lib/services/order.service";
 
-import { handleApiError, requireManageOrders } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireManageOrders,
+} from "@/app/lib/auth/api";
+
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,54 +19,59 @@ type Context = {
   }>;
 };
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: Context
-) {
-  try {
-    const session =
-      await requireManageOrders();
+export const PATCH =
+  withApiLogging(
+    async (
+      req: Request,
+      { params }: Context
+    ) => {
+      try {
+        verifyOrigin(req);
 
-    const { id } =
-      await params;
+        const session =
+          await requireManageOrders();
 
-    const body =
-      await req.json();
+        const { id } =
+          await params;
 
-    const status = String(
-      body.status ?? ""
-    )
-      .trim()
-      .toUpperCase();
+        const body =
+          await req.json();
 
-    const refundReason =
-      body.refundReason?.trim() ??
-      "Administrative Reversal";
+        const status = String(
+          body.status ?? ""
+        )
+          .trim()
+          .toUpperCase();
 
-    const updatedOrder =
-      await OrderService.updateAdminOrderState(
-        id,
-        status,
-        refundReason,
-        session.user.role ===
-          "SUPER_ADMIN"
-      );
+        const refundReason =
+          body.refundReason?.trim() ??
+          "Administrative Reversal";
 
-    return NextResponse.json(
-      {
-        success: true,
-        order: {
-          ...updatedOrder,
-          total: Number(
-            updatedOrder.total
-          ),
-        },
-      },
-      {
-        status: 200,
+        const updatedOrder =
+          await OrderService.updateAdminOrderState(
+            id,
+            status,
+            refundReason,
+            session.user.role ===
+              "SUPER_ADMIN"
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            order: {
+              ...updatedOrder,
+              total: Number(
+                updatedOrder.total
+              ),
+            },
+          },
+          {
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );

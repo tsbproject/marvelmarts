@@ -2,34 +2,38 @@ import { NextResponse } from "next/server";
 
 import { AuthService } from "@/app/lib/services/auth.service";
 import { handleApiError } from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: Request
-) {
-  try {
-    const {
-      name,
-      email,
-      password,
-    } = await request.json();
+export const POST = withApiLogging(
+  async (request: Request) => {
+    try {
+      verifyOrigin(request);
 
-    const result =
-      await AuthService.sendCustomerRegistrationCode(
+      const {
         name,
         email,
-        password
-      );
+        password,
+      } = await request.json();
 
-    return NextResponse.json(
-      result,
-      {
-        status: 201,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
+      const result =
+        await AuthService.sendCustomerRegistrationCode(
+          name,
+          email,
+          password
+        );
+
+      return NextResponse.json(
+        result,
+        {
+          status: 201,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

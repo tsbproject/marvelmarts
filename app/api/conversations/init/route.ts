@@ -2,119 +2,123 @@ import { NextRequest, NextResponse } from "next/server";
 import { ConversationType } from "@prisma/client";
 
 import { prisma } from "@/app/lib/prisma";
-import { handleApiError, requireAuth } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireAuth,
+} from "@/app/lib/auth/api";
 import {
   badRequest,
   notFound,
 } from "@/app/lib/auth/errors";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  req: NextRequest
-) {
-  try {
-    const session =
-      await requireAuth();
+export const POST = withApiLogging(
+  async (req: NextRequest) => {
+    try {
+      const session =
+        await requireAuth();
 
-    const {
-      targetUserId,
-      type,
-      subject,
-    } = await req.json();
+      const {
+        targetUserId,
+        type,
+        subject,
+      } = await req.json();
 
-    if (!targetUserId) {
-      throw badRequest(
-        "Target participant is required."
-      );
-    }
+      if (!targetUserId) {
+        throw badRequest(
+          "Target participant is required."
+        );
+      }
 
-    const vendor =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          id: targetUserId,
-        },
-        select: {
-          userId: true,
-        },
-      });
-
-    const participantId =
-      vendor?.userId ??
-      targetUserId;
-
-    const participant =
-      await prisma.user.findUnique({
-        where: {
-          id: participantId,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!participant) {
-      throw notFound(
-        "Target participant not found."
-      );
-    }
-
-    let conversation =
-      await prisma.conversation.findFirst({
-        where: {
-          type:
-            type as ConversationType,
-          participantIds: {
-            hasEvery: [
-              session.user.id,
-              participantId,
-            ],
+      const vendor =
+        await prisma.vendorProfile.findUnique({
+          where: {
+            id: targetUserId,
           },
-        },
-      });
+          select: {
+            userId: true,
+          },
+        });
 
-    if (!conversation) {
-      conversation =
-        await prisma.conversation.create({
-          data: {
+      const participantId =
+        vendor?.userId ??
+        targetUserId;
+
+      const participant =
+        await prisma.user.findUnique({
+          where: {
+            id: participantId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+      if (!participant) {
+        throw notFound(
+          "Target participant not found."
+        );
+      }
+
+      let conversation =
+        await prisma.conversation.findFirst({
+          where: {
             type:
               type as ConversationType,
-
-            subject:
-              subject ||
-              "Product Inquiry",
-
-            participantIds: [
-              session.user.id,
-              participantId,
-            ],
-
-            participants: {
-              connect: [
-                {
-                  id: session.user.id,
-                },
-                {
-                  id: participantId,
-                },
+            participantIds: {
+              hasEvery: [
+                session.user.id,
+                participantId,
               ],
             },
           },
         });
-    }
 
-    return NextResponse.json(
-      {
-        success: true,
-        conversationId:
-          conversation.id,
-      },
-      {
-        status: 200,
+      if (!conversation) {
+        conversation =
+          await prisma.conversation.create({
+            data: {
+              type:
+                type as ConversationType,
+
+              subject:
+                subject ||
+                "Product Inquiry",
+
+              participantIds: [
+                session.user.id,
+                participantId,
+              ],
+
+              participants: {
+                connect: [
+                  {
+                    id: session.user.id,
+                  },
+                  {
+                    id: participantId,
+                  },
+                ],
+              },
+            },
+          });
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
+
+      return NextResponse.json(
+        {
+          success: true,
+          conversationId:
+            conversation.id,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

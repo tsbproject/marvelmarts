@@ -57,12 +57,8 @@ static async initializeWalletFunding({
   };
 }
 
- static async verifyTransaction(reference: string) {
-  const payment =
-    await paymentClient.verify(reference);
-
-
-  return payment.raw;
+static async verifyTransaction(reference: string) {
+  return paymentClient.verify(reference);
 }
    
 
@@ -136,10 +132,10 @@ static async savePaymentMethod(
   reference: string
 ) {
   const transaction =
-    await this.verifyTransaction(reference);
+  await this.verifyTransaction(reference);
 
-  const authorization =
-    transaction.authorization;
+const authorization =
+  transaction.raw?.authorization;
 
   if (!authorization?.authorization_code) {
     throw badRequest(
@@ -197,7 +193,7 @@ static async savePaymentMethod(
             .slice(-2),
         isDefault:
           !hasDefaultCard,
-        metadata: transaction,
+        metadata: transaction.raw,
       },
     });
 
@@ -335,31 +331,156 @@ static async initializeBoostCreditPayment({
 }
 
 
-static async completePayment(reference: string) {
-  const transaction =
-    await this.verifyTransaction(reference);
+static async completePayment(
+  reference: string,
+  userId: string
+) {
+  if (!reference?.trim()) {
+    throw badRequest(
+      "Payment reference is required."
+    );
+  }
 
-  const metadata = transaction.metadata ?? {};
+  if (!userId?.trim()) {
+    throw badRequest(
+      "Authenticated user is required."
+    );
+  }
+
+  const transaction =
+    await this.verifyTransaction(
+      reference.trim()
+    );
+
+  if (!transaction.success) {
+    throw badRequest(
+      "Payment verification failed."
+    );
+  }
+
+  const metadata =
+    transaction.metadata ?? {};
 
   switch (metadata.type) {
-    case "wallet":
+    case "wallet": {
+      if (
+        typeof metadata.userId !== "string" ||
+        metadata.userId !== userId
+      ) {
+        throw badRequest(
+          "Payment does not belong to this user."
+        );
+      }
+
       return WalletService.completeWalletFunding(
         transaction
       );
+    }
 
-    case "order":
+    case "order": {
+      if (
+        typeof metadata.orderId !== "string" ||
+        !metadata.orderId
+      ) {
+        throw badRequest(
+          "Order ID missing from payment metadata."
+        );
+      }
+
+      const order =
+        await prisma.order.findUnique({
+          where: {
+            id: metadata.orderId,
+          },
+          select: {
+            id: true,
+            userId: true,
+          },
+        });
+
+      if (!order) {
+        throw badRequest(
+          "Order not found."
+        );
+      }
+
+      if (
+        !order.userId ||
+        order.userId !== userId
+      ) {
+        throw badRequest(
+          "Payment does not belong to this user."
+        );
+      }
+
       return OrderService.completeOrderPayment(
         transaction
       );
+    }
 
-    case "vendor-credit":
+    case "vendor-credit": {
+      const vendorProfileId =
+        metadata.custom_fields &&
+        Array.isArray(
+          metadata.custom_fields
+        )
+          ? (
+              metadata.custom_fields as Array<{
+                variable_name?: unknown;
+                value?: unknown;
+              }>
+            ).find(
+              (field) =>
+                field.variable_name ===
+                "vendor_id"
+            )?.value
+          : undefined;
+
+      if (
+        typeof vendorProfileId !==
+          "string" ||
+        !vendorProfileId
+      ) {
+        throw badRequest(
+          "Vendor profile is missing from payment metadata."
+        );
+      }
+
+      const vendor =
+        await prisma.vendorProfile.findUnique({
+          where: {
+            id: vendorProfileId,
+          },
+          select: {
+            id: true,
+            userId: true,
+          },
+        });
+
+      if (!vendor) {
+        throw badRequest(
+          "Vendor profile not found."
+        );
+      }
+
+      if (
+        vendor.userId !== userId
+      ) {
+        throw badRequest(
+          "Payment does not belong to this vendor."
+        );
+      }
+
       return this.processBoostCreditPayment(
         transaction.metadata ?? {},
         transaction.reference
       );
+    }
 
     default:
-      throw badRequest("Unsupported payment type.");
+      throw badRequest(
+        "Unsupported payment type."
+      );
   }
 }
 

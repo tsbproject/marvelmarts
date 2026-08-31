@@ -28,16 +28,7 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // const ROLE_PRIORITY = ["SUPER_ADMIN", "ADMIN", "VENDOR", "CUSTOMER"] as const;
-
-  // const getHighestRole = (
-  //   singleRole: string | undefined,
-  //   multiRoles: string[] | undefined
-  // ) => {
-  //   if (singleRole) return singleRole;
-  //   if (!multiRoles || multiRoles.length === 0) return "CUSTOMER";
-  //   return ROLE_PRIORITY.find((role) => multiRoles.includes(role)) ?? "CUSTOMER";
-  // };
+  
 
   const redirectParam = searchParams.get("redirect");
   const callbackUrl = searchParams.get("callbackUrl");
@@ -55,8 +46,15 @@ export default function SignInForm() {
   callbackUrl: "/",
 });
 
-    if (result?.error) {
-      setError("Invalid credentials. Please try again.");
+   if (result?.error) {
+      if (result.error === "RATE_LIMIT") {
+        setError(
+          "Too many failed login attempts. Please wait one hour before trying again."
+        );
+      } else {
+        setError("Invalid credentials. Please try again.");
+      }
+
       setLoading(false);
       return;
     }

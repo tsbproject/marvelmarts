@@ -1,47 +1,55 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { ProductService } from "@/app/lib/services/product.service";
 
-import { handleApiError, requireAuth  } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireAuth,
+} from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  req: NextRequest
-) {
-  try {
-    const session =
-      await requireAuth();
+export const POST =
+  withApiLogging(
+    async (req: Request) => {
+      try {
+        verifyOrigin(req);
 
-    const body =
-      await req.json();
+        const session =
+          await requireAuth();
 
-    const review =
-      await ProductService.createProductReview(
-        session.user.id,
-        {
-          productId:
-            body.productId,
+        const body =
+          await req.json();
 
-          rating:
-            Number(body.rating),
+        const review =
+          await ProductService.createProductReview(
+            session.user.id,
+            {
+              productId:
+                body.productId,
 
-          body:
-            body.body,
-        }
-      );
+              rating:
+                Number(body.rating),
 
-    return NextResponse.json(
-      {
-        success: true,
-        review,
-      },
-      {
-        status: 201,
+              body:
+                body.body,
+            }
+          );
+
+        return NextResponse.json(
+          {
+            success: true,
+            review,
+          },
+          {
+            status: 201,
+          }
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );

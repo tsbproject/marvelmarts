@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireVendor } from "@/app/lib/auth/api";
+
+import {
+  handleApiError,
+  requireVendor,
+} from "@/app/lib/auth/api";
+
 import { VendorService } from "@/app/lib/services/vendor.service";
-import  { OrderService } from "@/app/lib/services/order.service";
+import { OrderService } from "@/app/lib/services/order.service";
+
 import {
   badRequest,
   forbidden,
 } from "@/app/lib/auth/errors";
+
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,178 +22,186 @@ export const dynamic = "force-dynamic";
 /*                          UPDATE ORDER STATUS                               */
 /* -------------------------------------------------------------------------- */
 
-export async function PATCH(
-  req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{ id: string }>;
-  }
-) {
-  try {
-    const session = await requireVendor();
-
-    const { id } = await params;
-
-    const body = await req.json();
-
-    const status = String(
-      body.status ?? ""
-    )
-      .trim()
-      .toUpperCase();
-
-    const trackingNumber =
-      body.trackingNumber ?? null;
-
-    if (!status) {
-      throw badRequest(
-        "Order status is required."
-      );
+export const PATCH = withApiLogging(
+  async (
+    req: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{ id: string }>;
     }
+  ) => {
+    try {
+      const session =
+        await requireVendor();
 
-    const vendor =
-      await VendorService.getVendorProfileOrThrow(
-        session.user.id
-      );
-   
-      const order =
-      await OrderService.getOrderByIdOrThrow(
-        id
-      );
+      const { id } =
+        await params;
 
-    if (
-      order.vendorProfileId !==
-      vendor.id
-    ) {
-      throw forbidden(
-        "You do not have permission to update this order."
-      );
-    }
+      const body =
+        await req.json();
 
-   const updatedOrder =
-      await OrderService.updateOrderStatus(
-        id,
-        status,
-        trackingNumber
-      );
+      const status = String(
+        body.status ?? ""
+      )
+        .trim()
+        .toUpperCase();
 
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          "Order updated successfully.",
-        order: updatedOrder,
-      },
-      {
-        status: 200,
+      const trackingNumber =
+        body.trackingNumber ?? null;
+
+      if (!status) {
+        throw badRequest(
+          "Order status is required."
+        );
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
+
+      const vendor =
+        await VendorService.getVendorProfileOrThrow(
+          session.user.id
+        );
+
+      const order =
+        await OrderService.getOrderByIdOrThrow(
+          id
+        );
+
+      if (
+        order.vendorProfileId !==
+        vendor.id
+      ) {
+        throw forbidden(
+          "You do not have permission to update this order."
+        );
+      }
+
+      const updatedOrder =
+        await OrderService.updateOrderStatus(
+          id,
+          status,
+          trackingNumber
+        );
+
+      return NextResponse.json(
+        {
+          success: true,
+          message:
+            "Order updated successfully.",
+          order: updatedOrder,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);
 
 /* -------------------------------------------------------------------------- */
 /*                          GET SINGLE ORDER                                  */
 /* -------------------------------------------------------------------------- */
 
-export async function GET(
-  req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{ id: string }>;
-  }
-) {
-  try {
-    const session =
-      await requireVendor();
+export const GET = withApiLogging(
+  async (
+    _req: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{ id: string }>;
+    }
+  ) => {
+    try {
+      const session =
+        await requireVendor();
 
-    const { id } =
-      await params;
+      const { id } =
+        await params;
 
-    const vendor =
-    await VendorService.getVendorProfileOrThrow(
-      session.user.id
-    );
-    const order =
-      await OrderService.getVendorOrderDetails(
-        id
-      );
+      const vendor =
+        await VendorService.getVendorProfileOrThrow(
+          session.user.id
+        );
 
-        if (
-          order.vendorProfileId !==
-          vendor.id
-        ) {
-          throw forbidden(
-            "You do not have permission to access this order."
-          );
-        }
+      const order =
+        await OrderService.getVendorOrderDetails(
+          id
+        );
 
-    return NextResponse.json(
-      {
-        success: true,
-        order: {
-          ...order,
-
-          total: Number(
-            order.total
-          ),
-
-          subtotal: Number(
-            order.subtotal
-          ),
-
-          shipping: Number(
-            order.shipping
-          ),
-
-          customerName:
-            `${order.firstName ?? ""} ${order.lastName ?? ""}`.trim() ||
-            order.user?.name,
-
-          customerEmail:
-            order.email ??
-            order.user?.email,
-
-          useDifferentShipping:
-            order.useDifferentShipping,
-
-          shippingDetails:
-            order.useDifferentShipping
-              ? {
-                  firstName:
-                    order.shippingFirstName,
-                  lastName:
-                    order.shippingLastName,
-                  streetAddress:
-                    order.shippingAddress,
-                  city:
-                    order.shippingCity,
-                  state:
-                    order.shippingState,
-                }
-              : null,
-
-          productTitle:
-            order.items[0]?.title ??
-            order.items[0]?.product
-              ?.title,
-
-          productImage:
-            order.items[0]
-              ?.imageUrl ??
-            order.items[0]
-              ?.product
-              ?.images?.[0]?.url,
-        },
-      },
-      {
-        status: 200,
+      if (
+        order.vendorProfileId !==
+        vendor.id
+      ) {
+        throw forbidden(
+          "You do not have permission to access this order."
+        );
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
+
+      return NextResponse.json(
+        {
+          success: true,
+          order: {
+            ...order,
+
+            total: Number(
+              order.total
+            ),
+
+            subtotal: Number(
+              order.subtotal
+            ),
+
+            shipping: Number(
+              order.shipping
+            ),
+
+            customerName:
+              `${order.firstName ?? ""} ${order.lastName ?? ""}`.trim() ||
+              order.user?.name,
+
+            customerEmail:
+              order.email ??
+              order.user?.email,
+
+            useDifferentShipping:
+              order.useDifferentShipping,
+
+            shippingDetails:
+              order.useDifferentShipping
+                ? {
+                    firstName:
+                      order.shippingFirstName,
+                    lastName:
+                      order.shippingLastName,
+                    streetAddress:
+                      order.shippingAddress,
+                    city:
+                      order.shippingCity,
+                    state:
+                      order.shippingState,
+                  }
+                : null,
+
+            productTitle:
+              order.items[0]?.title ??
+              order.items[0]?.product
+                ?.title,
+
+            productImage:
+              order.items[0]
+                ?.imageUrl ??
+              order.items[0]
+                ?.product
+                ?.images?.[0]?.url,
+          },
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

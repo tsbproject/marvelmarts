@@ -1,6 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma"
 import { PayoutService } from "./payout.service";
+import { logger } from "@/app/lib/logger";
 
  
 
@@ -25,7 +26,7 @@ export class AdminOrderService {
     try {
       await PayoutService.finalizeVendorPayout(orderId);
     } catch (error) {
-      console.error(
+      logger.error(
         "[AdminOrderService.updateOrderStatus]",
         error
       );

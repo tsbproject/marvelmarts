@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 
 import { VendorService } from "@/app/lib/services/vendor.service";
 import { realtimeService } from "@/app/lib/realtime/realtime.service";
-import { handleApiError, requireManageVendors } from "@/app/lib/auth/api";
 import {
-  badRequest,
-} from "@/app/lib/auth/errors";
+  handleApiError,
+  requireManageVendors,
+} from "@/app/lib/auth/api";
+import { badRequest } from "@/app/lib/auth/errors";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,71 +17,74 @@ type DisputeAction =
   | "SUSPEND"
   | "RESTORE";
 
-export async function PATCH(
-  req: Request
-) {
-  try {
-    const session =
-      await requireManageVendors();
+export const PATCH =
+  withApiLogging(
+    async (req: Request) => {
+      try {
+        verifyOrigin(req);
 
-    const body =
-      await req.json();
+        const session =
+          await requireManageVendors();
 
-    const {
-      vendorProfileId,
-      action,
-      reason,
-    } = body;
+        const body =
+          await req.json();
 
-    if (!vendorProfileId) {
-      throw badRequest(
-        "Vendor profile is required."
-      );
-    }
+        const {
+          vendorProfileId,
+          action,
+          reason,
+        } = body;
 
-    const result =
-      await VendorService.handleVendorEnforcementAction(
-        vendorProfileId,
-        action,
-        reason,
-        session.user.id
-      );
+        if (!vendorProfileId) {
+          throw badRequest(
+            "Vendor profile is required."
+          );
+        }
 
-    if (
-      result.conversation &&
-      result.logMessage
-    ) {
-      await Promise.all([
-        realtimeService.broadcastMessage(
-          result.conversation.id,
+        const result =
+          await VendorService.handleVendorEnforcementAction(
+            vendorProfileId,
+            action,
+            reason,
+            session.user.id
+          );
+
+        if (
+          result.conversation &&
           result.logMessage
-        ),
+        ) {
+          await Promise.all([
+            realtimeService.broadcastMessage(
+              result.conversation.id,
+              result.logMessage
+            ),
 
-        realtimeService.broadcastIncomingSupport(
-          result.conversation.id,
+            realtimeService.broadcastIncomingSupport(
+              result.conversation.id,
+              {
+                content:
+                  `🚨 [ENFORCEMENT]: ${action}`,
+                senderName:
+                  "SYSTEM",
+                createdAt:
+                  new Date(),
+              }
+            ),
+          ]);
+        }
+
+        return NextResponse.json(
           {
-            content:
-              `🚨 [ENFORCEMENT]: ${action}`,
-            senderName:
-              "SYSTEM",
-            createdAt:
-              new Date(),
+            success: true,
+            vendor:
+              result.vendor,
+          },
+          {
+            status: 200,
           }
-        ),
-      ]);
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        vendor:
-          result.vendor,
-      },
-      {
-        status: 200,
+        );
+      } catch (error) {
+        return handleApiError(error);
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    }
+  );

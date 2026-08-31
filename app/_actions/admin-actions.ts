@@ -22,24 +22,35 @@ type SubmitVendorDocsResult =
 export async function submitVendorDocs(
   vendorProfileId: string,
   url: string,
-  step: "IDENTITY" | "BUSINESS" | "LOCATION"
+  step:
+    | "IDENTITY"
+    | "BUSINESS"
+    | "LOCATION"
 ): Promise<SubmitVendorDocsResult> {
   try {
-    const session = await requireVendor();
+    const session =
+      await requireVendor();
 
-    const result = await VendorService.submitVerificationDocuments(
-      vendorProfileId,
-      url,
-      step,
-      {
-        id: session.user.id,
-        email: session.user.email ?? null,
-        role: session.user.role,
-      }
+    const result =
+      await VendorService.submitVerificationDocuments(
+        vendorProfileId,
+        url,
+        step,
+        {
+          id: session.user.id,
+          email:
+            session.user.email ?? null,
+          role: session.user.role,
+        }
+      );
+
+    revalidatePath(
+      "/account/vendor"
     );
 
-    revalidatePath("/account/vendor");
-    revalidatePath("/account/vendor/verification");
+    revalidatePath(
+      "/account/vendor/verification"
+    );
 
     return result;
   } catch (error) {
@@ -52,12 +63,3 @@ export async function submitVendorDocs(
     };
   }
 }
-
-
-
-
-
-
-
-
-

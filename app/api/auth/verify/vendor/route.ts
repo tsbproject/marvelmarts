@@ -4,30 +4,35 @@ import {
   handleApiError,
 } from "@/app/lib/auth/api";
 
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+
 import { AuthService } from "@/app/lib/services/auth.service";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: Request
-) {
-  try {
-    const {
-      uid,
-      code,
-    } = await request.json();
+export const POST = withApiLogging(
+  async (request: Request) => {
+    try {
+      verifyOrigin(request);
 
-    const result =
-      await AuthService.verifyVendorRegistration(
+      const {
         uid,
-        code
-      );
+        code,
+      } = await request.json();
 
-    return NextResponse.json(
-      result
-    );
-  } catch (error) {
-    return handleApiError(error);
+      const result =
+        await AuthService.verifyVendorRegistration(
+          uid,
+          code
+        );
+
+      return NextResponse.json(
+        result
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

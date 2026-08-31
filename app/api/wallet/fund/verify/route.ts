@@ -8,30 +8,38 @@ import {
 import { badRequest } from "@/app/lib/auth/errors";
 
 import { WalletService } from "@/app/lib/services/wallet.service";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
-export async function POST(request: Request) {
-  try {
-    const session = await requireAuth();
+export const POST = withApiLogging(
+  async (request: Request) => {
+    try {
+      verifyOrigin(request);
 
-    const { reference } = await request.json();
+      const session =
+        await requireAuth();
 
-    if (!reference) {
-      throw badRequest(
-        "Payment reference is required."
-      );
-    }
+      const { reference } =
+        await request.json();
 
-    const result =
-      await WalletService.verifyWalletFunding({
-        userId: session.user.id,
-        reference,
+      if (!reference) {
+        throw badRequest(
+          "Payment reference is required."
+        );
+      }
+
+      const result =
+        await WalletService.verifyWalletFunding({
+          userId: session.user.id,
+          reference,
+        });
+
+      return NextResponse.json({
+        success: true,
+        ...result,
       });
-
-    return NextResponse.json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    return handleApiError(error);
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

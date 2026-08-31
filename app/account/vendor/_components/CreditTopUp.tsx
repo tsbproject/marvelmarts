@@ -82,9 +82,7 @@ export default function CreditTopUp({
               "application/json",
           },
           body: JSON.stringify({
-            vendorProfileId,
-            credits: plan.credits,
-            amount: plan.price,
+            planId: plan.id,
           }),
         }
       );

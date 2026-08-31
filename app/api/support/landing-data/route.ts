@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 
 import { handleApiError } from "@/app/lib/auth/api";
 import { HelpCenterService } from "@/app/lib/services/help-center.service";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
-export async function GET() {
-  try {
-    const data =
-      await HelpCenterService.getHelpCenterHome();
+export const GET = withApiLogging(
+  async () => {
+    try {
+      const data =
+        await HelpCenterService.getHelpCenterHome();
 
-    return NextResponse.json(
-      data
-    );
-  } catch (error) {
-    return handleApiError(error);
+      return NextResponse.json(
+        data
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

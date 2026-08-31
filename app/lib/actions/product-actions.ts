@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireVendorProfile } from "@/app/lib/auth/api";
+import {
+  requireVendorProfile,
+} from "@/app/lib/auth/api";
+
+import { forbidden } from "@/app/lib/auth/errors";
+
 import { ProductService } from "@/app/lib/services/product.service";
 
 export async function createProduct(
@@ -10,30 +15,39 @@ export async function createProduct(
   data: any
 ) {
   try {
-    await requireVendorProfile();
+    const { session, vendor } =
+      await requireVendorProfile();
+
+    if (vendorProfileId !== vendor.id) {
+      throw forbidden(
+        "You do not have permission to create products for this vendor."
+      );
+    }
 
     const product =
-      await ProductService.createProduct(
-        {
-          vendorId: vendorProfileId,
-          data,
-          slug: data.slug,
-          parsedTags: Array.isArray(data.tags)
-            ? data.tags
-            : [],
-          parsedCategoryIds: Array.isArray(data.categoryIds)
+      await ProductService.createProduct({
+        userId: session.user.id,
+        vendorId: vendor.id,
+        data,
+        slug: data.slug,
+        parsedTags: Array.isArray(data.tags)
+          ? data.tags
+          : [],
+        parsedCategoryIds:
+          Array.isArray(data.categoryIds)
             ? data.categoryIds
             : data.categoryId
               ? [data.categoryId]
               : [],
-          imageUrls: Array.isArray(data.imageUrls)
+        imageUrls:
+          Array.isArray(data.imageUrls)
             ? data.imageUrls
             : [],
-          variants: Array.isArray(data.variants)
+        variants:
+          Array.isArray(data.variants)
             ? data.variants
             : [],
-        }
-      );
+      });
 
     revalidatePath("/account/vendor");
 
@@ -47,7 +61,7 @@ export async function createProduct(
       error:
         error instanceof Error
           ? error.message
-          : "Failed to list product.",
+          : "Failed to create product.",
     };
   }
 }
@@ -60,7 +74,9 @@ export async function updateProductRating(
       productId
     );
 
-  revalidatePath(`/product/${productId}`);
+  revalidatePath(
+    `/product/${productId}`
+  );
 
   return result;
 }
@@ -69,19 +85,27 @@ export async function toggleProductStatus(
   productId: string
 ) {
   try {
-    await requireVendorProfile();
+    const { vendor } =
+      await requireVendorProfile();
 
     const updated =
       await ProductService.togglePublicationStatus(
-        productId
+        productId,
+        vendor.id
       );
 
-    revalidatePath("/account/vendor");
-    revalidatePath(`/product/${updated.id}`);
+    revalidatePath(
+      "/account/vendor"
+    );
+
+    revalidatePath(
+      `/product/${updated.id}`
+    );
 
     return {
       success: true,
-      newState: updated.isPublished,
+      newState:
+        updated.isPublished,
     };
   } catch {
     return {

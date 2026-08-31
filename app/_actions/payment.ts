@@ -6,17 +6,26 @@ import { requireCustomer } from "@/app/lib/auth/api";
 import { PaymentService } from "@/app/lib/services/payment.service";
 
 export async function savePaymentMethod(data: {
-  provider: string;
   providerId: string;
 }) {
   try {
-    const session =
-      await requireCustomer();
+    const session = await requireCustomer();
+
+    if (
+      !data ||
+      typeof data.providerId !== "string" ||
+      !data.providerId.trim()
+    ) {
+      return {
+        success: false,
+        error: "Payment method ID is required.",
+      };
+    }
 
     const result =
       await PaymentService.savePaymentMethod(
         session.user.id,
-        data.providerId
+        data.providerId.trim()
       );
 
     if (result.existing || result.paymentMethod) {
@@ -44,8 +53,7 @@ export async function setDefaultPaymentMethod(
   methodId: string
 ) {
   try {
-    const session =
-      await requireCustomer();
+    const session = await requireCustomer();
 
     const result =
       await PaymentService.setDefaultPaymentMethod(
@@ -75,8 +83,7 @@ export async function deletePaymentMethod(
   cardId: string
 ) {
   try {
-    const session =
-      await requireCustomer();
+    const session = await requireCustomer();
 
     const result =
       await PaymentService.deletePaymentMethod(

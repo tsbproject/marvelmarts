@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { logger } from "@/app/lib/logger";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -56,6 +57,6 @@ export const deleteFromCloudinary = async (url: string) => {
 
     return await cloudinary.uploader.destroy(publicId);
   } catch (error) {
-    console.error("Cloudinary Delete Error:", error);
+    logger.error("Cloudinary Delete Error:", error);
   }
 };

@@ -6,6 +6,7 @@ import {
   forbidden,
   notFound
 } from "@/app/lib/auth/errors";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 export class ProductService {
 
@@ -338,7 +339,8 @@ static async deleteProductBySlug(
     });
   }
 
-  static async createProduct({
+ static async createProduct({
+  userId,
   vendorId,
   data,
   slug,
@@ -347,6 +349,7 @@ static async deleteProductBySlug(
   imageUrls,
   variants,
 }: {
+  userId: string;
   vendorId: string;
   data: any;
   slug: string;
@@ -483,11 +486,19 @@ static async deleteProductBySlug(
       },
     });
 
-    return product;
-  });
-}
+
+    await AuditService.productCreated({
+      actorId: userId,
+      entityId: product.id,
+      newValues: product,
+    });
+
+        return product;
+      });
+    }
 
 static async updateProduct({
+  userId,
   productId,
   data,
   parsedTags,
@@ -496,6 +507,7 @@ static async updateProduct({
   newImageOperations,
   variants,
 }: {
+  userId: string;
   productId: string;
   data: any;
   parsedTags: string[];
@@ -504,198 +516,269 @@ static async updateProduct({
   newImageOperations: Prisma.ProductImageCreateWithoutProductInput[];
   variants: any[];
 }) {
-  return prisma.$transaction(async (tx) => {
-    if (deletedImageIds.length > 0) {
-      await tx.productImage.deleteMany({
-        where: {
-          id: {
-            in: deletedImageIds,
+  const { existing, product } =
+    await prisma.$transaction(async (tx) => {
+      const existing =
+        await tx.product.findUnique({
+          where: {
+            id: productId,
           },
+          include: {
+            category: true,
+            categories: true,
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+            variants: true,
+          },
+        });
+
+      if (!existing) {
+        throw notFound(
+          "Product not found."
+        );
+      }
+
+      if (deletedImageIds.length > 0) {
+        await tx.productImage.deleteMany({
+          where: {
+            id: {
+              in: deletedImageIds,
+            },
+          },
+        });
+      }
+
+      await tx.variant.deleteMany({
+        where: {
+          productId,
         },
       });
-    }
 
-    await tx.variant.deleteMany({
-      where: {
-        productId,
-      },
-    });
+      const product =
+        await tx.product.update({
+          where: {
+            id: productId,
+          },
 
-    return tx.product.update({
-      where: {
-        id: productId,
-      },
+          data: {
+            title: data.title,
 
-      data: {
-        title: data.title,
+            sku: data.sku || null,
 
-        sku: data.sku || null,
+            description:
+              data.description,
 
-        description: data.description,
+            brand:
+              data.brand || null,
 
-        brand: data.brand || null,
+            price:
+              new Prisma.Decimal(
+                data.price.toString()
+              ),
 
-        price: new Prisma.Decimal(
-          data.price.toString()
-        ),
+            discountPrice:
+              data.discountPrice !=
+              null
+                ? new Prisma.Decimal(
+                    data.discountPrice.toString()
+                  )
+                : null,
 
-        discountPrice:
-          data.discountPrice != null
-            ? new Prisma.Decimal(
-                data.discountPrice.toString()
-              )
-            : null,
+            stock: data.stock,
 
-        stock: data.stock,
+            tags: parsedTags,
 
-        tags: parsedTags,
+            status: data.status,
 
-        status: data.status,
+            metaTitle:
+              data.metaTitle ||
+              null,
 
-        metaTitle:
-          data.metaTitle || null,
+            metaDescription:
+              data.metaDescription ||
+              null,
 
-        metaDescription:
-          data.metaDescription || null,
+            isFeatured:
+              data.isFeatured ??
+              false,
 
-        isFeatured:
-          data.isFeatured ?? false,
+            isFlashSale:
+              data.isFlashSale ??
+              false,
 
-        isFlashSale:
-          data.isFlashSale ?? false,
+            isNewArrival:
+              data.isNewArrival ??
+              false,
 
-        isNewArrival:
-          data.isNewArrival ?? false,
+            shippingMethod:
+              data.shippingMethod ||
+              null,
 
-        shippingMethod:
-          data.shippingMethod || null,
+            weight:
+              data.weight ?? null,
 
-        weight:
-          data.weight ?? null,
+            category:
+              parsedCategoryIds[0] ||
+              data.categoryId
+                ? {
+                    connect: {
+                      id:
+                        parsedCategoryIds[0] ??
+                        data.categoryId,
+                    },
+                  }
+                : {
+                    disconnect: true,
+                  },
 
-        category:
-          parsedCategoryIds[0] ||
-          data.categoryId
-            ? {
-                connect: {
-                  id:
-                    parsedCategoryIds[0] ??
-                    data.categoryId,
-                },
-              }
-            : {
-                disconnect: true,
-              },
+            categories: {
+              set:
+                parsedCategoryIds.map(
+                  (id) => ({
+                    id,
+                  })
+                ),
+            },
 
-        categories: {
-          set:
-            parsedCategoryIds.map(
-              (id) => ({
-                id,
-              })
-            ),
-        },
+            images:
+              newImageOperations.length
+                ? {
+                    create:
+                      newImageOperations,
+                  }
+                : undefined,
 
-        images:
-          newImageOperations.length
-            ? {
-                create:
-                  newImageOperations,
-              }
-            : undefined,
-
-        variants: {
-          create:
-            variants.map(
-              (variant) => ({
-                name:
-                  variant.name,
-
-                sku:
-                  variant.sku ||
-                  `${data.sku || "sku"}-${Math.random()
-                    .toString(36)
-                    .substring(2, 8)}`,
-
-                price:
-                  variant.price != null
-                    ? new Prisma.Decimal(
-                        variant.price.toString()
-                      )
-                    : null,
-
-                stock:
-                  Number(
-                    variant.stock
-                  ) || 0,
-
-                attributes:
-                  variant.attributes || {
+            variants: {
+              create:
+                variants.map(
+                  (variant) => ({
                     name:
                       variant.name,
-                  },
-              })
-            ),
-        },
-      },
 
-      include: {
-        category: true,
+                    sku:
+                      variant.sku ||
+                      `${
+                        data.sku ||
+                        "sku"
+                      }-${Math.random()
+                        .toString(36)
+                        .substring(2, 8)}`,
 
-        categories: true,
+                    price:
+                      variant.price !=
+                      null
+                        ? new Prisma.Decimal(
+                            variant.price.toString()
+                          )
+                        : null,
 
-        images: {
-          orderBy: {
-            order: "asc",
+                    stock:
+                      Number(
+                        variant.stock
+                      ) || 0,
+
+                    attributes:
+                      variant.attributes ||
+                      {
+                        name:
+                          variant.name,
+                      },
+                  })
+                ),
+            },
           },
-        },
 
-        variants: true,
-      },
+          include: {
+            category: true,
+
+            categories: true,
+
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+
+            variants: true,
+          },
+        });
+
+      return {
+        existing,
+        product,
+      };
     });
+
+  await AuditService.productUpdated({
+    actorId: userId,
+    entityId: product.id,
+    oldValues: existing,
+    newValues: product,
   });
+
+  return product;
 }
 
+
+
+
+
+
 static async deleteProduct(
+  userId: string,
   productId: string
 ) {
-  return prisma.$transaction(async (tx) => {
-    const product =
-      await tx.product.findUnique({
-        where: {
-          id: productId,
-        },
-        include: {
-          images: true,
-        },
-      });
+  const product =
+    await prisma.$transaction(
+      async (tx) => {
+        const product =
+          await tx.product.findUnique({
+            where: {
+              id: productId,
+            },
+            include: {
+              images: true,
+            },
+          });
 
-    if (!product) {
-      throw notFound(
-        "Product not found."
-      );
-    }
+        if (!product) {
+          throw notFound(
+            "Product not found."
+          );
+        }
 
-    await tx.productImage.deleteMany({
-      where: {
-        productId,
-      },
+        await tx.productImage.deleteMany({
+          where: {
+            productId,
+          },
+        });
+
+        await tx.variant.deleteMany({
+          where: {
+            productId,
+          },
+        });
+
+        await tx.product.delete({
+          where: {
+            id: productId,
+          },
+        });
+
+        return product;
+      }
+    );
+
+  await AuditService.productDeleted({
+      actorId: userId,
+      entityId: product.id,
+      oldValues: product,
     });
 
-    await tx.variant.deleteMany({
-      where: {
-        productId,
-      },
-    });
-
-    await tx.product.delete({
-      where: {
-        id: productId,
-      },
-    });
-
-    return product;
-  });
+  return product;
 }
 
 static async getVendorProducts(
@@ -749,15 +832,41 @@ static async getVendorProducts(
 
 
       static async deleteProductById(
-        productId: string
+        productId: string,
+        vendorProfileId: string
       ) {
+        const product =
+          await prisma.product.findUnique({
+            where: {
+              id: productId,
+            },
+            select: {
+              id: true,
+              vendorProfileId: true,
+            },
+          });
+
+        if (!product) {
+          throw notFound(
+            "Product not found."
+          );
+        }
+
+        if (
+          product.vendorProfileId !==
+          vendorProfileId
+        ) {
+          throw forbidden(
+            "You do not have permission to delete this product."
+          );
+        }
+
         return prisma.product.delete({
           where: {
             id: productId,
           },
         });
       }
-
 
   static async createProductReview(
   userId: string,
@@ -1704,14 +1813,15 @@ static async updateRating(productId: string) {
 }
 
 
-
 static async togglePublicationStatus(
-  productId: string
-) {
-  const product =
-    await prisma.product.findUnique({
+  productId: string,
+    vendorProfileId: string
+  ) {
+    const product =
+    await prisma.product.findFirst({
       where: {
         id: productId,
+        vendorProfileId,
       },
       select: {
         id: true,

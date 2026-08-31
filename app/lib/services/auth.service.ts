@@ -15,6 +15,9 @@ import { sendVerificationEmail } from "@/app/lib/mailer";
 import { Prisma, } from "@prisma/client";
 import type { AdminPermissions, } from "@/app/lib/auth/types";
 import type { VerificationCode } from "@prisma/client";
+import { AuthLogService } from "@/app/lib/services/logging/auth-log.service";
+import { SecurityLogService } from "@/app/lib/services/logging/security-log.service";
+import { AuditService } from "./logging/audit.service";
 
 import {
   PERMISSION_KEYS,
@@ -58,154 +61,191 @@ export class AuthService {
    * Authenticate a user and build the session payload.
    */
   static async login(
-    email: string,
-    password: string
-  ) {
-    if (!email || !password) {
-      throw badRequest(
-        "Email and password are required."
-      );
-    }
+  email: string,
+  password: string
+) {
+  if (!email || !password) {
+    throw badRequest(
+      "Email and password are required."
+    );
+  }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user || !user.passwordHash) {
+      await AuthLogService.loginFailure({
+      email,
     });
 
-    if (!user || !user.passwordHash) {
-      throw badRequest(
-        "Invalid email or password."
-      );
-    }
-
-    const passwordMatches =
-      await bcrypt.compare(
-        password,
-        user.passwordHash
-      );
-
-    if (!passwordMatches) {
-      throw badRequest(
-        "Invalid email or password."
-      );
-    }
-
-    let profile: {
-      id: string;
-    } | null = null;
-
-    switch (user.role) {
-      case UserRole.SUPER_ADMIN:
-      case UserRole.ADMIN:
-        profile =
-          await prisma.adminProfile.findUnique({
-            where: {
-              userId: user.id,
-            },
-          });
-        break;
-
-      case UserRole.VENDOR:
-        profile =
-          await prisma.vendorProfile.findUnique({
-            where: {
-              userId: user.id,
-            },
-          });
-        break;
-
-      case UserRole.CUSTOMER:
-        profile =
-          await prisma.customerProfile.findUnique({
-            where: {
-              userId: user.id,
-            },
-          });
-        break;
-    }
-
-    if (!profile) {
-      throw notFound(
-        "Profile not found for this user."
-      );
-    }
-
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name ?? "User",
-      profileId: profile.id,
-    };
+    throw badRequest(
+      "Invalid email or password."
+    );
   }
+
+  const passwordMatches =
+    await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
+  if (!passwordMatches) {
+    await AuthLogService.loginFailure({
+        userId: user.id,
+        email: user.email,
+      });
+
+    await SecurityLogService.suspiciousActivity({
+        userId: user.id,
+        metadata: {
+          type: "LOGIN_FAILURE",
+          email: user.email,
+          reason: "INVALID_PASSWORD",
+        },
+      });
+
+    throw badRequest(
+      "Invalid email or password."
+    );
+  }
+
+  let profile: {
+    id: string;
+  } | null = null;
+
+  switch (user.role) {
+    case UserRole.SUPER_ADMIN:
+    case UserRole.ADMIN:
+      profile =
+        await prisma.adminProfile.findUnique({
+          where: {
+            userId: user.id,
+          },
+        });
+      break;
+
+    case UserRole.VENDOR:
+      profile =
+        await prisma.vendorProfile.findUnique({
+          where: {
+            userId: user.id,
+          },
+        });
+      break;
+
+    case UserRole.CUSTOMER:
+      profile =
+        await prisma.customerProfile.findUnique({
+          where: {
+            userId: user.id,
+          },
+        });
+      break;
+  }
+
+  if (!profile) {
+    throw notFound(
+      "Profile not found for this user."
+    );
+  }
+
+  await AuthLogService.loginSuccess({
+      userId: user.id,
+      email: user.email,
+    });
+
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.name ?? "User",
+    profileId: profile.id,
+  };
+}
 
   /**
    * Send password reset code.
    */
   static async sendPasswordResetCode(
-    email: string
+  email: string
+) {
+  if (
+    !email ||
+    !/^\S+@\S+\.\S+$/.test(email)
   ) {
-    if (
-      !email ||
-      !/^\S+@\S+\.\S+$/.test(email)
-    ) {
-      throw badRequest("Invalid email.");
-    }
-
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          email,
-        },
-      });
-
-    if (!user) {
-      throw notFound(
-        "No account found with this email."
-      );
-    }
-
-   const resetCode =
-      randomInt(
-        100000,
-        999999
-      ).toString();
-
-    await prisma.passwordResetToken.upsert({
-      where: {
-        userId: user.id,
-      },
-
-      update: {
-        token: resetCode,
-        expiresAt: new Date(
-          Date.now() +
-            10 * 60 * 1000
-        ),
-      },
-
-      create: {
-        userId: user.id,
-        token: resetCode,
-        expiresAt: new Date(
-          Date.now() +
-            10 * 60 * 1000
-        ),
-      },
-    });
-
-    await sendPasswordResetEmail({
-      email: user.email,
-      token: resetCode,
-    });
-
-    return {
-      success: true,
-      message:
-        "Password reset code sent successfully.",
-    };
+    throw badRequest("Invalid email.");
   }
+
+  const normalizedEmail = email
+    .trim()
+    .toLowerCase();
+
+  const user =
+    await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+  if (!user) {
+    await AuthLogService.passwordResetRequested({
+      email: normalizedEmail,
+    });
+
+    throw notFound(
+      "No account found with this email."
+    );
+  }
+
+  const resetCode = randomInt(
+    100000,
+    999999
+  ).toString();
+
+  await prisma.passwordResetToken.upsert({
+    where: {
+      userId: user.id,
+    },
+
+    update: {
+      token: resetCode,
+      expiresAt: new Date(
+        Date.now() + 10 * 60 * 1000
+      ),
+    },
+
+    create: {
+      userId: user.id,
+      token: resetCode,
+      expiresAt: new Date(
+        Date.now() + 10 * 60 * 1000
+      ),
+    },
+  });
+
+  await sendPasswordResetEmail({
+    email: user.email,
+    token: resetCode,
+  });
+
+  await AuthLogService.passwordResetRequested({
+    userId: user.id,
+    email: user.email,
+  });
+
+  return {
+    success: true,
+    message:
+      "Password reset code sent successfully.",
+  };
+}
 
   /**
  * Complete customer registration after email verification.
@@ -264,6 +304,11 @@ static async registerCustomer(
     email,
     VerificationType.CUSTOMER_REGISTRATION
   );
+
+  await AuthLogService.customerRegistered({
+      userId: user.id,
+      email: user.email,
+    });
 
   return {
     success: true,
@@ -483,6 +528,11 @@ static async verifyCustomerRegistration(
           },
         });
 
+      await AuthLogService.customerVerified({
+          userId: user.id,
+          email: user.email,
+        });
+
       await tx.verificationCode.update({
         where: {
           id: uid,
@@ -582,63 +632,48 @@ static async registerVendor(data: {
     await bcrypt.hash(password, 12);
 
   const user =
-    await prisma.$transaction(
-      async (tx) => {
-        return tx.user.upsert({
+  await prisma.$transaction(
+    async (tx) => {
+      const existingUserInTx =
+        await tx.user.findUnique({
           where: {
             email,
           },
+          select: {
+            id: true,
+            roles: true,
+          },
+        });
 
-          update: {
-            name: `${firstName} ${lastName}`,
-            passwordHash,
-            IsVerified: true,
-            role: UserRole.VENDOR,
+      const existingRoles =
+        existingUserInTx?.roles ?? [];
 
-            vendorProfile: {
-              upsert: {
-                create: {
-                  firstName,
-                  lastName,
-                  phoneNumber,
-                  storePhone,
-                  storeName,
-                  storeAddress,
-                  state,
-                  country,
-                  isVerified: false,
-                  status: VendorStatus.AWAITING_DOCUMENTS,
+      const updatedRoles =
+        existingRoles.includes(
+          UserRole.VENDOR
+        )
+          ? existingRoles
+          : [
+              ...existingRoles,
+              UserRole.VENDOR,
+            ];
 
-                  boost: {
-                    create: {},
-                  },
-                },
+      return tx.user.upsert({
+        where: {
+          email,
+        },
 
-                update: {
-                  firstName,
-                  lastName,
-                  phoneNumber,
-                  storePhone,
-                  storeName,
-                  storeAddress,
-                  state,
-                  country,
-                  status:
-                    VendorStatus.AWAITING_DOCUMENTS,
-                  rejectionReason: null,
-                },
-              },
-            },
+        update: {
+          name: `${firstName} ${lastName}`,
+          passwordHash,
+          IsVerified: true,
+          role: UserRole.VENDOR,
+          roles: {
+            set: updatedRoles,
           },
 
-          create: {
-            name: `${firstName} ${lastName}`,
-            email,
-            passwordHash,
-            role: UserRole.VENDOR,
-            IsVerified: true,
-
-            vendorProfile: {
+          vendorProfile: {
+            upsert: {
               create: {
                 firstName,
                 lastName,
@@ -649,23 +684,70 @@ static async registerVendor(data: {
                 state,
                 country,
                 isVerified: false,
-                status: VendorStatus.AWAITING_DOCUMENTS,
+                status:
+                  VendorStatus.AWAITING_DOCUMENTS,
 
                 boost: {
                   create: {},
                 },
               },
-            },
-          }, 
 
-          select: {
-            id: true,
-            email: true,
-            role: true,
+              update: {
+                firstName,
+                lastName,
+                phoneNumber,
+                storePhone,
+                storeName,
+                storeAddress,
+                state,
+                country,
+                status:
+                  VendorStatus.AWAITING_DOCUMENTS,
+                rejectionReason: null,
+              },
+            },
           },
-        });
-      }
-    );
+        },
+
+        create: {
+          name: `${firstName} ${lastName}`,
+          email,
+          passwordHash,
+          role: UserRole.VENDOR,
+          roles: {
+            set: [UserRole.VENDOR],
+          },
+          IsVerified: true,
+
+          vendorProfile: {
+            create: {
+              firstName,
+              lastName,
+              phoneNumber,
+              storePhone,
+              storeName,
+              storeAddress,
+              state,
+              country,
+              isVerified: false,
+              status:
+                VendorStatus.AWAITING_DOCUMENTS,
+
+              boost: {
+                create: {},
+              },
+            },
+          },
+        },
+
+        select: {
+          id: true,
+          email: true,
+          role: true,
+        },
+      });
+    }
+  );
 
   if (
     !isReapplication &&
@@ -676,6 +758,11 @@ static async registerVendor(data: {
       VerificationType.VENDOR_REGISTRATION
     );
   }
+
+  await AuthLogService.vendorRegistered({
+  userId: user.id,
+  email: user.email,
+});
 
   return {
     success: true,
@@ -811,6 +898,10 @@ static async verifyVendorRegistration(
       used: true,
     },
   });
+
+  await AuthLogService.vendorVerified({
+      email: verification.email,
+    });
 
   return {
     success: true,
@@ -1018,20 +1109,38 @@ static async verifyVendorRegistration(
           }
         );
 
-      console.log(
-        `[Admin Updated] By: ${sessionUser.email} → ${result.email}`
-      );
+      await AuditService.adminUpdated({
+        actorId: sessionUser.id,
+        entityId: result.id,
+        oldValues: {
+          name: target.name,
+          email: target.email,
+          role: target.role,
+        },
+        newValues: {
+          name: result.name,
+          email: result.email,
+          role: result.role,
+          ...(body.permissions
+            ? {
+                permissions: {
+                  ...body.permissions,
+                },
+              }
+            : {}),
+        },
+      });
 
       return result;
     }
 
     static async deleteAdministrator(
-  id: string,
-  sessionUser: {
-    id: string;
-    email: string | null;
-  }
-) {
+      id: string,
+      sessionUser: {
+        id: string;
+        email: string | null;
+      }
+    ) {
   // Prevent self-deletion
   if (sessionUser.id === id) {
     throw badRequest(
@@ -1117,12 +1226,14 @@ static async verifyVendorRegistration(
     });
   });
 
-  // TODO:
-  // Replace with AuditLogService when audit logging is implemented.
-  console.info(
-    `[Admin Deleted] Actor: ${sessionUser.email ?? sessionUser.id} | Target: ${target.email ?? target.id}`
-  );
-
+ await AuditService.adminDeleted({
+    actorId: sessionUser.id,
+    entityId: target.id,
+    oldValues: {
+      email: target.email,
+      role: target.role,
+    },
+});
   return {
     success: true,
   };
@@ -1181,6 +1292,7 @@ static async verifyVendorRegistration(
         permissions?: Record<string, boolean>;
       },
       sessionUser: {
+        id: string;
         email: string | null;
       }
     ) {
@@ -1281,9 +1393,22 @@ static async verifyVendorRegistration(
           },
         });
 
-      console.log(
-        `[Admin Created] By: ${sessionUser.email} → ${newAdmin.email}`
-      );
+     await AuditService.adminCreated({
+          actorId: sessionUser.id,
+          entityId: newAdmin.id,
+          newValues: {
+            name: newAdmin.name,
+            email: newAdmin.email,
+            role: newAdmin.role,
+            permissions: newAdmin.adminProfile
+              ? {
+                  ...serializeAdminPermissions(
+                    newAdmin.adminProfile
+                  ),
+                }
+              : {},
+          },
+        });
 
       const {
         passwordHash: _passwordHash,
@@ -1341,6 +1466,32 @@ static async verifyVendorRegistration(
           "Permissions may only be assigned to administrators."
         );
       }
+
+
+      const existingProfile =
+      await prisma.adminProfile.findUnique({
+        where: {
+          userId: adminId,
+        },
+        select: {
+          manageActivity: true,
+          manageAdmins: true,
+          manageBlogs: true,
+          manageCategories: true,
+          manageMessages: true,
+          manageOrders: true,
+          managePayout: true,
+          manageProducts: true,
+          manageReviews: true,
+          manageSettings: true,
+          manageSubscribers: true,
+          manageSupport: true,
+          manageTrending: true,
+          manageUsers: true,
+          manageVendors: true,
+          manageVerifications: true,
+        },
+      });
 
       const sanitizedPermissions: AdminPermissions =
         {
@@ -1406,10 +1557,15 @@ static async verifyVendorRegistration(
           }
         );
 
-      console.log(
-        `[Admin Permissions Updated] By: ${currentUser.email} → ${result.user.email}`
-      );
-
+   await AuditService.adminUpdated({
+        actorId: currentUser.id,
+        entityId: result.user.id,
+        oldValues: existingProfile
+          ? { ...existingProfile }
+          : { ...defaultAdminPermissions },
+        newValues: { ...sanitizedPermissions },
+      });
+      
       return {
         id: result.user.id,
         name: result.user.name,
@@ -1669,6 +1825,117 @@ private static async cleanupVerification(
       type,
     },
   });
+}
+
+/*=========================================================*/
+/*                    PASSWORD RESET                        */
+/*===========================================================*/
+   
+  static async resetPassword(
+  email: string,
+  code: string,
+  newPassword: string
+) {
+  if (!email || !code || !newPassword) {
+    throw badRequest("Missing fields.");
+  }
+
+  const normalizedEmail = email
+    .trim()
+    .toLowerCase();
+
+  const user =
+    await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+  if (!user) {
+    throw badRequest(
+      "Invalid reset request."
+    );
+  }
+
+  const token =
+    await prisma.passwordResetToken.findUnique({
+      where: {
+        userId: user.id,
+      },
+    });
+
+  if (
+    !token ||
+    token.token !== code
+  ) {
+    throw badRequest(
+      "Invalid reset request."
+    );
+  }
+
+  if (
+    token.expiresAt < new Date()
+  ) {
+    throw badRequest(
+      "Reset code expired."
+    );
+  }
+
+  const passwordHash =
+    await bcrypt.hash(
+      newPassword,
+      12
+    );
+
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          passwordHash,
+        },
+      });
+
+      await tx.passwordResetToken.delete({
+        where: {
+          userId: user.id,
+        },
+      });
+    }
+  );
+
+  await AuditService.userUpdated({
+    actorId: user.id,
+    entityId: user.id,
+    oldValues: {
+      password: "REDACTED",
+    },
+    newValues: {
+      password: "UPDATED",
+    },
+  });
+
+  await AuthLogService.passwordChanged({
+    userId: user.id,
+    email: user.email,
+  });
+
+  await AuthLogService.passwordResetCompleted({
+    userId: user.id,
+    email: user.email,
+  });
+
+  return {
+    success: true,
+    message:
+      "Password reset successful.",
+  };
 }
 
 }

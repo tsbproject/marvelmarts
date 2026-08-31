@@ -13,6 +13,7 @@ import {
   startOfMonth,
   subDays,
 } from "date-fns";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 
 export class VendorService {
@@ -264,63 +265,116 @@ static async getVendorProfileWithStore(
       hasBranding: boolean,
       hasBankDetails: boolean
     ) {
-      return prisma.$transaction(async (tx) => {
-        await tx.vendorProfile.update({
+
+        const existingProfile =
+        await prisma.vendorProfile.findUnique({
           where: {
             id: profileId,
           },
-          data: {
-            storeName: profileData.storeName,
-            bio: profileData.bio,
-            logoUrl: profileData.logoUrl,
-            coverUrl: profileData.coverUrl,
-            instagram: profileData.instagram,
-            whatsapp: profileData.whatsapp,
-            facebook: profileData.facebook,
-            bankName: profileData.bankName,
-            accountName: profileData.accountName,
-            accountNumber: profileData.accountNumber,
-            storeDone: hasBranding,
-            payoutsDone: hasBankDetails,
+          select: {
+            id: true,
+            storeName: true,
+            bio: true,
+            logoUrl: true,
+            coverUrl: true,
+            instagram: true,
+            whatsapp: true,
+            facebook: true,
+            bankName: true,
+            accountName: true,
+            accountNumber: true,
           },
         });
 
-        await tx.vendorStore.upsert({
-          where: {
-            vendorProfileId: profileId,
-          },
-          update: {
-            name:
-              profileData.storeName ||
-              currentStoreName,
-            slug: normalizedSlug,
-          },
-          create: {
-            vendorProfileId: profileId,
-            name:
-              profileData.storeName ||
-              currentStoreName,
-            slug: normalizedSlug,
-          },
-        });
+      if (!existingProfile) {
+        throw notFound(
+          "Vendor profile not found."
+        );
+      }
 
-        return tx.vendorProfile.findUnique({
-          where: {
-            id: profileId,
-          },
-          include: {
-            store: true,
-            _count: {
-              select: {
-                products: true,
+      const updatedProfile =
+        await prisma.$transaction(async (tx) => {
+          await tx.vendorProfile.update({
+            where: {
+              id: profileId,
+            },
+            data: {
+              storeName: profileData.storeName,
+              bio: profileData.bio,
+              logoUrl: profileData.logoUrl,
+              coverUrl: profileData.coverUrl,
+              instagram: profileData.instagram,
+              whatsapp: profileData.whatsapp,
+              facebook: profileData.facebook,
+              bankName: profileData.bankName,
+              accountName: profileData.accountName,
+              accountNumber:
+                profileData.accountNumber,
+              storeDone: hasBranding,
+              payoutsDone: hasBankDetails,
+            },
+          });
+
+          await tx.vendorStore.upsert({
+            where: {
+              vendorProfileId: profileId,
+            },
+            update: {
+              name:
+                profileData.storeName ??
+                currentStoreName,
+              slug: normalizedSlug,
+            },
+            create: {
+              vendorProfileId: profileId,
+              name:
+                profileData.storeName ??
+                currentStoreName,
+              slug: normalizedSlug,
+            },
+          });
+
+          return tx.vendorProfile.findUnique({
+            where: {
+              id: profileId,
+            },
+            include: {
+              store: true,
+              _count: {
+                select: {
+                  products: true,
+                },
               },
             },
-          },
+          });
         });
-      });
-    }
 
-    static async getVendorProfileWithStoreOnly(
+    await AuditService.vendorUpdated({
+        actorId: userId,
+        entityId: profileId,
+        oldValues: existingProfile,
+        newValues: {
+          storeName: updatedProfile?.storeName,
+          bio: updatedProfile?.bio,
+          logoUrl: updatedProfile?.logoUrl,
+          coverUrl: updatedProfile?.coverUrl,
+          instagram: updatedProfile?.instagram,
+          whatsapp: updatedProfile?.whatsapp,
+          facebook: updatedProfile?.facebook,
+          bankName: updatedProfile?.bankName,
+          accountName: updatedProfile?.accountName,
+          accountNumber:
+            updatedProfile?.accountNumber,
+        },
+      });
+
+      return updatedProfile;
+
+          }
+
+    
+
+static async getVendorProfileWithStoreOnly(
         userId: string
       ) {
         const vendor =
@@ -590,14 +644,12 @@ static async getVendorProfileWithStore(
           if (conversation) {
             await tx.message.create({
               data: {
-                conversationId:
-                  conversation.id,
+                conversationId: conversation.id,
                 senderId: adminUserId,
                 senderName:
                   "MARVELMARTS COMPLIANCE",
-                content: `🚨 SYSTEM ACTION: Account has been ${action}.\nReason: ${
-                  reason ??
-                  "No reason provided"
+                content: `🚨 SYSTEM ACTION: ${action}\nReason: ${
+                  reason ?? "No reason provided"
                 }`,
               },
             });
@@ -605,6 +657,68 @@ static async getVendorProfileWithStore(
 
           return updatedVendor;
         });
+
+      switch (action) {
+        case "APPROVE":
+          await AuditService.vendorApproved({
+            actorId: adminUserId,
+            entityId: vendor.id,
+            oldValues: {
+              status: existingVendor.status,
+            },
+            newValues: {
+              status: vendor.status,
+            },
+          });
+          break;
+
+        case "REJECT":
+          await AuditService.vendorRejected({
+            actorId: adminUserId,
+            entityId: vendor.id,
+            oldValues: {
+              status: existingVendor.status,
+            },
+            newValues: {
+              status: vendor.status,
+              rejectionReason: reason,
+            },
+          });
+          break;
+
+        case "SUSPEND":
+          await AuditService.vendorSuspended({
+            actorId: adminUserId,
+            entityId: vendor.id,
+            oldValues: {
+              isSuspended:
+                existingVendor.isSuspended,
+            },
+            newValues: {
+              isSuspended: true,
+              reason,
+            },
+          });
+          break;
+
+        case "RESTORE":
+          await AuditService.vendorUnsuspended({
+            actorId: adminUserId,
+            entityId: vendor.id,
+            oldValues: {
+              isSuspended:
+                existingVendor.isSuspended,
+            },
+            newValues: {
+              isSuspended: false,
+            },
+          });
+          break;
+
+        case "FLAG":
+          // No dedicated audit method yet.
+          break;
+      }
 
       return vendor;
     }
@@ -828,6 +942,45 @@ static async getVendorProfileWithStore(
             },
           });
       }
+
+      await (action === "SUSPEND"
+        ? AuditService.vendorSuspended({
+            actorId: adminUserId,
+            entityId: updatedVendor.id,
+            oldValues: {
+              status: vendor.status,
+              isSuspended:
+                vendor.isSuspended,
+            },
+            newValues: {
+              status:
+                updatedVendor.status,
+              isSuspended:
+                updatedVendor.isSuspended,
+              reason,
+            },
+          })
+        : AuditService.vendorUnsuspended({
+            actorId: adminUserId,
+            entityId: updatedVendor.id,
+            oldValues: {
+              status: vendor.status,
+              isSuspended:
+                vendor.isSuspended,
+            },
+            newValues: {
+              status:
+                updatedVendor.status,
+              isSuspended:
+                updatedVendor.isSuspended,
+            },
+          }));
+
+      return {
+        vendor: updatedVendor,
+        conversation,
+        logMessage,
+      };
 
       return {
         vendor: updatedVendor,
@@ -1107,12 +1260,28 @@ static async getVendorProfileWithStore(
                   productDone: false,
                 };
 
+                const currentUserRoles =
+                  currentVendor.user.roles ?? [];
+
+                const updatedUserRoles =
+                  currentUserRoles.includes(
+                    UserRole.VENDOR
+                  )
+                    ? currentUserRoles
+                    : [
+                        ...currentUserRoles,
+                        UserRole.VENDOR,
+                      ];
+
                 await tx.user.update({
                   where: {
                     id: currentVendor.userId,
                   },
                   data: {
                     role: UserRole.VENDOR,
+                    roles: {
+                      set: updatedUserRoles,
+                    },
                   },
                 });
 
@@ -1198,94 +1367,143 @@ static async getVendorProfileWithStore(
 
 
     static async updateVendorSettings(
-  userId: string,
-  data: {
-    logoUrl?: string;
-    coverUrl?: string;
-    bio?: string;
-    storeName?: string;
-    instagram?: string;
-    whatsapp?: string;
-    twitter?: string;
-    facebook?: string;
-    bankName?: string;
-    accountNumber?: string;
-    accountName?: string;
-  }
-) {
-  return prisma.$transaction(
-    async (tx) => {
-      const profile =
-        await tx.vendorProfile.update({
-          where: {
-            userId,
-          },
-          data: {
-            logoUrl:
-              data.logoUrl,
-            coverUrl:
-              data.coverUrl,
-            bio:
-              data.bio,
-            storeName:
-              data.storeName,
-
-            instagram:
-              data.instagram,
-            whatsapp:
-              data.whatsapp,
-            twitter:
-              data.twitter,
-            facebook:
-              data.facebook,
-
-            bankName:
-              data.bankName,
-            accountNumber:
-              data.accountNumber,
-            accountName:
-              data.accountName,
-
-            onboarding: {
-              update: {
-                storeDone: !!(
-                  data.logoUrl &&
-                  data.coverUrl &&
-                  data.bio
-                ),
-              },
-            },
-          },
-        });
-
-      await tx.vendorStore.updateMany({
+    userId: string,
+    data: {
+      logoUrl?: string;
+      coverUrl?: string;
+      bio?: string;
+      storeName?: string;
+      instagram?: string;
+      whatsapp?: string;
+      twitter?: string;
+      facebook?: string;
+      bankName?: string;
+      accountNumber?: string;
+      accountName?: string;
+    }
+  ) {
+    const existingProfile =
+      await prisma.vendorProfile.findUnique({
         where: {
-          vendorProfileId:
-            profile.id,
+          userId,
         },
-        data: {
-          name:
-            data.storeName ??
-            undefined,
-          description:
-            data.bio ??
-            undefined,
-          logo:
-            data.logoUrl ??
-            undefined,
-          banner:
-            data.coverUrl ??
-            undefined,
+        select: {
+          id: true,
+          logoUrl: true,
+          coverUrl: true,
+          bio: true,
+          storeName: true,
+          instagram: true,
+          whatsapp: true,
+          twitter: true,
+          facebook: true,
+          bankName: true,
+          accountNumber: true,
+          accountName: true,
         },
       });
 
-      return profile;
+    if (!existingProfile) {
+      throw notFound(
+        "Vendor profile not found."
+      );
     }
-  );
-}
 
+    const updatedProfile =
+      await prisma.$transaction(
+        async (tx) => {
+          const profile =
+            await tx.vendorProfile.update({
+              where: {
+                userId,
+              },
+              data: {
+                logoUrl: data.logoUrl,
+                coverUrl: data.coverUrl,
+                bio: data.bio,
+                storeName: data.storeName,
 
-    static async getBankAccount(
+                instagram: data.instagram,
+                whatsapp: data.whatsapp,
+                twitter: data.twitter,
+                facebook: data.facebook,
+
+                bankName: data.bankName,
+                accountNumber:
+                  data.accountNumber,
+                accountName:
+                  data.accountName,
+
+                onboarding: {
+                  update: {
+                    storeDone: !!(
+                      data.logoUrl &&
+                      data.coverUrl &&
+                      data.bio
+                    ),
+                  },
+                },
+              },
+            });
+
+          await tx.vendorStore.updateMany({
+            where: {
+              vendorProfileId:
+                profile.id,
+            },
+            data: {
+              name:
+                data.storeName ??
+                undefined,
+              description:
+                data.bio ??
+                undefined,
+              logo:
+                data.logoUrl ??
+                undefined,
+              banner:
+                data.coverUrl ??
+                undefined,
+            },
+          });
+
+          return profile;
+        }
+      );
+
+    await AuditService.vendorUpdated({
+      actorId: userId,
+      entityId: existingProfile.id,
+      oldValues: existingProfile,
+      newValues: {
+        logoUrl:
+          updatedProfile.logoUrl,
+        coverUrl:
+          updatedProfile.coverUrl,
+        bio:
+          updatedProfile.bio,
+        storeName:
+          updatedProfile.storeName,
+        instagram:
+          updatedProfile.instagram,
+        whatsapp:
+          updatedProfile.whatsapp,
+        twitter:
+          updatedProfile.twitter,
+        facebook:
+          updatedProfile.facebook,
+        bankName:
+          updatedProfile.bankName,
+        accountNumber:
+          updatedProfile.accountNumber,
+        accountName:
+          updatedProfile.accountName,
+      },
+    });
+
+    return updatedProfile;
+  }
+      static async getBankAccount(
       userId: string
     ) {
       return prisma.bankAccount.findUnique({
@@ -1355,7 +1573,7 @@ static async getVendorProfileWithStore(
 
 
 
-    static async reviewVendorAccount(
+  static async reviewVendorAccount(
   vendorProfileId: string,
   action: "APPROVE" | "REJECT",
   reason: string | undefined,
@@ -1418,133 +1636,208 @@ static async submitVerificationDocuments(
       error: string;
     }
 > {
-    const fieldMap = {
-      IDENTITY: "identityDoc",
-      BUSINESS: "businessDoc",
-      LOCATION: "locationDoc",
-    } as const;
+  const fieldMap = {
+    IDENTITY: "identityDoc",
+    BUSINESS: "businessDoc",
+    LOCATION: "locationDoc",
+  } as const;
 
-    const field = fieldMap[step];
+  const field = fieldMap[step];
 
-    if (!field) {
-      throw new Error("Invalid verification step");
-    }
+  if (!field) {
+    throw new Error(
+      "Invalid verification step"
+    );
+  }
 
-    const vendor = await prisma.$transaction(async (tx) => {
-      await tx.vendorProfile.update({
-        where: { id: vendorProfileId },
-        data: {
-          [field]: url,
-        },
-      });
+  const existingVendor =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        id: vendorProfileId,
+      },
+      select: {
+        id: true,
+        status: true,
+        identityDoc: true,
+        businessDoc: true,
+        locationDoc: true,
+      },
+    });
 
-      const vendor = await tx.vendorProfile.findUnique({
-        where: { id: vendorProfileId },
-        include: {
-          user: true,
-        },
-      });
+  if (!existingVendor) {
+    throw notFound(
+      "Vendor profile not found."
+    );
+  }
 
-      if (!vendor) {
-        throw new Error("Vendor profile not found");
-      }
+  const vendor =
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.vendorProfile.update({
+          where: {
+            id: vendorProfileId,
+          },
+          data: {
+            [field]: url,
+          },
+        });
 
-      const hasAllDocs = Boolean(
-        vendor.identityDoc &&
-        vendor.locationDoc
-      );
-
-      let finalStatus = vendor.status;
-
-      if (
-        hasAllDocs &&
-        (
-          vendor.status === VendorStatus.AWAITING_DOCUMENTS ||
-          vendor.status === VendorStatus.REJECTED
-        )
-      ) {
-        const updatedVendor =
-          await tx.vendorProfile.update({
+        const vendor =
+          await tx.vendorProfile.findUnique({
             where: {
               id: vendorProfileId,
             },
-            data: {
-              status: VendorStatus.PENDING_REVIEW,
-              rejectionReason: null,
+            include: {
+              user: true,
             },
           });
 
-        finalStatus = updatedVendor.status;
+        if (!vendor) {
+          throw notFound(
+            "Vendor profile not found."
+          );
+        }
+
+        const hasAllDocs = Boolean(
+          vendor.identityDoc &&
+            vendor.businessDoc &&
+            vendor.locationDoc
+        );
+
+        let finalStatus =
+          vendor.status;
+
+        if (
+          hasAllDocs &&
+          (
+            vendor.status ===
+              VendorStatus.AWAITING_DOCUMENTS ||
+            vendor.status ===
+              VendorStatus.REJECTED
+          )
+        ) {
+          const updatedVendor =
+            await tx.vendorProfile.update({
+              where: {
+                id: vendorProfileId,
+              },
+              data: {
+                status:
+                  VendorStatus.PENDING_REVIEW,
+                rejectionReason: null,
+              },
+            });
+
+          finalStatus =
+            updatedVendor.status;
+
+          return {
+            vendor,
+            hasAllDocs,
+            finalStatus,
+            shouldSendEmail: true,
+          };
+        }
 
         return {
           vendor,
           hasAllDocs,
           finalStatus,
-          shouldSendEmail: true,
+          shouldSendEmail: false,
         };
       }
+    );
 
-      return {
-        vendor,
-        hasAllDocs,
-        finalStatus,
-        shouldSendEmail: false,
-      };
-    });
+  let emailSent = false;
 
-    let emailSent = false;
+  if (vendor.shouldSendEmail) {
+    try {
+      await sendVendorReviewEmail({
+        email:
+          vendor.vendor.user.email,
+        firstName:
+          vendor.vendor.user.name ??
+          "Vendor",
+        storeName:
+          vendor.vendor.storeName ??
+          "Your Store",
+      });
 
-    if (vendor.shouldSendEmail) {
-      try {
-        await sendVendorReviewEmail({
-          email: vendor.vendor.user.email,
-          firstName: vendor.vendor.user.name || "Vendor",
-          storeName: vendor.vendor.storeName || "Your Store",
-        });
-
-        emailSent = true;
-      } catch (error) {
-        console.error(
-          "[VendorService.submitVerificationDocuments]",
-          error
-        );
-      }
+      emailSent = true;
+    } catch (error) {
+      console.error(
+        "[VendorService.submitVerificationDocuments]",
+        error
+      );
     }
+  }
 
-    let verificationStatus: VerificationStatus =
+  let verificationStatus: VerificationStatus =
+    "NOT_STARTED";
+
+  if (
+    !vendor.vendor.identityDoc &&
+    !vendor.vendor.businessDoc &&
+    !vendor.vendor.locationDoc
+  ) {
+    verificationStatus =
       "NOT_STARTED";
+  } else if (
+    vendor.finalStatus ===
+    VendorStatus.PENDING_REVIEW
+  ) {
+    verificationStatus =
+      "PENDING_REVIEW";
+  } else if (
+    vendor.finalStatus ===
+    VendorStatus.REJECTED
+  ) {
+    verificationStatus =
+      "REJECTED";
+  } else if (
+    vendor.finalStatus ===
+    VendorStatus.APPROVED
+  ) {
+    verificationStatus =
+      "APPROVED";
+  } else {
+    verificationStatus =
+      "AWAITING_DOCUMENTS";
+  }
 
-    if (
-      !vendor.vendor.identityDoc &&
-      !vendor.vendor.businessDoc &&
-      !vendor.vendor.locationDoc
-    ) {
-      verificationStatus = "NOT_STARTED";
-    } else if (
-      vendor.finalStatus === VendorStatus.PENDING_REVIEW
-    ) {
-      verificationStatus = "PENDING_REVIEW";
-    } else if (
-      vendor.finalStatus === VendorStatus.REJECTED
-    ) {
-      verificationStatus = "REJECTED";
-    } else if (
-      vendor.finalStatus === VendorStatus.APPROVED
-    ) {
-      verificationStatus = "APPROVED";
-    } else {
-      verificationStatus = "AWAITING_DOCUMENTS";
-    }
-
-    return {
-      success: true,
-      allDocsSubmitted: vendor.hasAllDocs,
-      status: vendor.finalStatus,
+  await AuditService.vendorUpdated({
+    actorId: actor.id,
+    entityId: vendorProfileId,
+    oldValues: {
+      status:
+        existingVendor.status,
+      identityDoc:
+        existingVendor.identityDoc,
+      businessDoc:
+        existingVendor.businessDoc,
+      locationDoc:
+        existingVendor.locationDoc,
+    },
+    newValues: {
+      submittedDocument: step,
+      status:
+        vendor.finalStatus,
       verificationStatus,
-      emailSent,
-    };
-}
+      allDocumentsSubmitted:
+        vendor.hasAllDocs,
+    },
+  });
 
+  return {
+    success: true,
+    allDocsSubmitted:
+      vendor.hasAllDocs,
+    status:
+      vendor.finalStatus,
+    verificationStatus,
+    emailSent,
+  };
+}
 
 static async completeStoreSetup(
   vendorProfileId: string,

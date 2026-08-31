@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { OrderService } from "@/app/lib/services/order.service";
 
@@ -9,8 +9,16 @@ import {
 
 import { pusherServer } from "@/app/lib/pusherServer";
 
-import { handleApiError, requireManageOrders } from "@/app/lib/auth/api";
+import {
+  handleApiError,
+  requireManageOrders,
+} from "@/app/lib/auth/api";
+
 import { badRequest } from "@/app/lib/auth/errors";
+import { logger } from "@/app/lib/logger";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,94 +29,98 @@ type Context = {
   }>;
 };
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: Context
-) {
-  try {
-    await requireManageOrders();
+export const PATCH =
+  withApiLogging(
+    async (
+      req: Request,
+      { params }: Context
+    ) => {
+      try {
+        verifyOrigin(req);
 
-    const { id } =
-      await params;
+        await requireManageOrders();
 
-    const body =
-      await req.json();
+        const { id } =
+          await params;
 
-    const nextStatus = String(
-      body.status ?? ""
-    )
-      .trim()
-      .toUpperCase();
+        const body =
+          await req.json();
 
-    if (!id) {
-      throw badRequest(
-        "Order ID is required."
-      );
-    }
+        const nextStatus = String(
+          body.status ?? ""
+        )
+          .trim()
+          .toUpperCase();
 
-    const result =
-      await OrderService.updateAdminOrderStatus(
-        id,
-        nextStatus
-      );
+        if (!id) {
+          throw badRequest(
+            "Order ID is required."
+          );
+        }
 
-    try {
-      if (
-        result.previousStatus !==
-          "SHIPPED" &&
-        nextStatus ===
-          "SHIPPED" &&
-        result.updatedOrder.email
-      ) {
-        await sendShipmentNotificationEmail(
-          result.updatedOrder
+        const result =
+          await OrderService.updateAdminOrderStatus(
+            id,
+            nextStatus
+          );
+
+        try {
+          if (
+            result.previousStatus !==
+              "SHIPPED" &&
+            nextStatus === "SHIPPED" &&
+            result.updatedOrder.email
+          ) {
+            await sendShipmentNotificationEmail(
+              result.updatedOrder
+            );
+          }
+
+          if (
+            result.previousStatus !==
+              "DELIVERED" &&
+            nextStatus ===
+              "DELIVERED" &&
+            result.updatedOrder.email
+          ) {
+            await sendDeliveryConfirmationEmail(
+              result.updatedOrder
+            );
+          }
+        } catch (error) {
+          logger.error(
+            "ORDER_EMAIL_ERROR:",
+            error
+          );
+        }
+
+        try {
+          if (result.userId) {
+            await pusherServer.trigger(
+              `user-${result.userId}`,
+              "order-update",
+              result.updatedOrder
+            );
+          }
+        } catch (error) {
+          logger.error(
+            "PUSHER_ORDER_ERROR:",
+            error
+          );
+        }
+
+        return NextResponse.json(
+          {
+            success: true,
+            order:
+              result.updatedOrder,
+          },
+          {
+            status: 200,
+          }
         );
+      } catch (error) {
+        return handleApiError(error);
       }
-
-      if (
-        result.previousStatus !==
-          "DELIVERED" &&
-        nextStatus ===
-          "DELIVERED" &&
-        result.updatedOrder.email
-      ) {
-        await sendDeliveryConfirmationEmail(
-          result.updatedOrder
-        );
-      }
-    } catch (error) {
-      console.error(
-        "ORDER_EMAIL_ERROR:",
-        error
-      );
     }
-
-    try {
-      if (result.userId) {
-        await pusherServer.trigger(
-          `user-${result.userId}`,
-          "order-update",
-          result.updatedOrder
-        );
-      }
-    } catch (error) {
-      console.error(
-        "PUSHER_ORDER_ERROR:",
-        error
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        order:
-          result.updatedOrder,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  );

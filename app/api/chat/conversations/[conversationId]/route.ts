@@ -12,111 +12,117 @@ import {
   notFound,
 } from "@/app/lib/auth/errors";
 
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  req: NextRequest,
-  {
-    params,
-  }: {
-    params: Promise<{
-      conversationId: string;
-    }>;
-  }
-) {
-  try {
-    const { conversationId } =
-      await params;
-
-    const session =
-      await getServerSession(authOptions);
-
-    const guestAccessToken =
-      req.nextUrl.searchParams.get(
-        "guestAccessToken"
-      );
-
-    let conversation;
-
-    if (session?.user?.id) {
-      const access =
-        await requireConversationAccess(
-          conversationId
-        );
-
-      conversation =
-        access.conversation;
-    } else {
-      conversation =
-        await conversationService.getConversation(
-          conversationId
-        );
-
-      if (!conversation) {
-        throw notFound(
-          "Conversation not found."
-        );
-      }
-
-      if (!conversation.isGuest) {
-        throw forbidden(
-          "Authentication required."
-        );
-      }
-
-      if (
-        guestAccessToken !==
-        conversation.guestAccessToken
-      ) {
-        throw forbidden(
-          "Invalid guest access token."
-        );
-      }
+export const GET = withApiLogging(
+  async (
+    req: NextRequest,
+    {
+      params,
+    }: {
+      params: Promise<{
+        conversationId: string;
+      }>;
     }
+  ) => {
+    try {
+      const { conversationId } =
+        await params;
 
-    const messages =
-      await conversationService.getMessages(
-        conversationId
-      );
+      const session =
+        await getServerSession(
+          authOptions
+        );
 
-    return NextResponse.json(
-      {
-        success: true,
+      const guestAccessToken =
+        req.nextUrl.searchParams.get(
+          "guestAccessToken"
+        );
 
-        conversation: {
-          id: conversation.id,
-          subject:
-            conversation.subject,
-          type:
-            conversation.type,
-          status:
-            conversation.status,
-          isGuest:
-            conversation.isGuest,
-          visitorName:
-            conversation.visitorName,
-          visitorEmail:
-            conversation.visitorEmail,
-          endedAt:
-            conversation.endedAt,
-          endedById:
-            conversation.endedById,
-          endedByRole:
-            conversation.endedByRole,
-          createdAt:
-            conversation.createdAt,
-          updatedAt:
-            conversation.updatedAt,
-        },
+      let conversation;
 
-        messages,
-      },
-      {
-        status: 200,
+      if (session?.user?.id) {
+        const access =
+          await requireConversationAccess(
+            conversationId
+          );
+
+        conversation =
+          access.conversation;
+      } else {
+        conversation =
+          await conversationService.getConversation(
+            conversationId
+          );
+
+        if (!conversation) {
+          throw notFound(
+            "Conversation not found."
+          );
+        }
+
+        if (!conversation.isGuest) {
+          throw forbidden(
+            "Authentication required."
+          );
+        }
+
+        if (
+          guestAccessToken !==
+          conversation.guestAccessToken
+        ) {
+          throw forbidden(
+            "Invalid guest access token."
+          );
+        }
       }
-    );
-  } catch (error) {
-    return handleApiError(error);
+
+      const messages =
+        await conversationService.getMessages(
+          conversationId
+        );
+
+      return NextResponse.json(
+        {
+          success: true,
+
+          conversation: {
+            id: conversation.id,
+            subject:
+              conversation.subject,
+            type:
+              conversation.type,
+            status:
+              conversation.status,
+            isGuest:
+              conversation.isGuest,
+            visitorName:
+              conversation.visitorName,
+            visitorEmail:
+              conversation.visitorEmail,
+            endedAt:
+              conversation.endedAt,
+            endedById:
+              conversation.endedById,
+            endedByRole:
+              conversation.endedByRole,
+            createdAt:
+              conversation.createdAt,
+            updatedAt:
+              conversation.updatedAt,
+          },
+
+          messages,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-}
+);

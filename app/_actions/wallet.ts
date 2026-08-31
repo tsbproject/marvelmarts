@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/app/lib/auth/api";
-
 import { PaymentService } from "@/app/lib/services/payment.service";
 import { WalletService } from "@/app/lib/services/wallet.service";
 import { OrderService } from "@/app/lib/services/order.service";
@@ -13,12 +12,9 @@ export async function topUpWallet(reference: string) {
     const session = await requireAuth();
 
     const transaction =
-      await PaymentService.verifyTransaction(
-        reference
-      );
+      await PaymentService.verifyTransaction(reference);
 
-    const metadata =
-      transaction.metadata ?? {};
+    const metadata = transaction.metadata ?? {};
 
     if (metadata.type !== "wallet") {
       throw new Error("Invalid payment type.");
@@ -77,21 +73,27 @@ export async function processWalletPurchase(
   try {
     const session = await requireAuth();
 
-   const result = await WalletService.debitForOrder(
-  session.user.id,
-  orderId,
-  totalAmount
-    );
+    const result =
+      await WalletService.debitForOrder(
+        session.user.id,
+        orderId,
+        totalAmount
+      );
 
     if (!result.success) {
       return result;
     }
 
-    await OrderService.completePaidOrder(orderId);
+    await OrderService.completePaidOrder(
+      orderId
+    );
 
     revalidatePath("/checkout");
+    revalidatePath("/account/customer/orders");
+    revalidatePath("/account/vendor/orders");
+    revalidatePath("/account/vendor");
 
-return result;
+    return result;
   } catch (error) {
     console.error(
       "PURCHASE_ERROR:",

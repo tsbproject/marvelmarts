@@ -3,6 +3,7 @@ import { prisma } from "@/app/lib/prisma";
 import { InventoryService } from "@/app/lib/services/inventory.service";
 import { notFound,badRequest, forbidden } from "@/app/lib/auth/errors";
 import { pusherServer } from "@/app/lib/pusherServer";
+import { logger } from "@/app/lib/logger";
 
 
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/app/lib/mailer";
 
 import { mapOrderToOrderConfirmationEmail } from "@/app/lib/mail/mappers/order.mapper";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 
 type CreateOrderParams = {
@@ -239,20 +241,58 @@ static async getOrders(userId: string) {
     }
 
     static async updateOrderStatus(
-      orderId: string,
-      status: string,
-      trackingNumber: string | null
-    ) {
-      return prisma.order.update({
-        where: {
-          id: orderId,
-        },
-        data: {
-          status,
-          trackingNumber,
-        },
-      });
-    }
+  orderId: string,
+  status: string,
+  trackingNumber: string | null
+) {
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        trackingNumber: true,
+      },
+    });
+
+  if (!order) {
+    throw notFound(
+      "Order not found."
+    );
+  }
+
+  const updatedOrder =
+    await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status,
+        trackingNumber,
+      },
+    });
+
+  await AuditService.orderStatusChanged({
+    actorId: order.userId ?? undefined,
+    entityId: updatedOrder.id,
+    oldValues: {
+      status: order.status,
+      trackingNumber:
+        order.trackingNumber,
+    },
+    newValues: {
+      status:
+        updatedOrder.status,
+      trackingNumber:
+        updatedOrder.trackingNumber,
+    },
+  });
+
+  return updatedOrder;
+}
 
     static async getVendorOrderDetails(
       orderId: string
@@ -453,6 +493,18 @@ static async getOrders(userId: string) {
           }
         );
 
+      await AuditService.orderStatusChanged({
+        actorId:
+          existingOrder.userId ?? undefined,
+        entityId: updatedOrder.id,
+        oldValues: {
+          status: previousStatus,
+        },
+        newValues: {
+          status: updatedOrder.status,
+        },
+      });
+
       return {
         previousStatus,
         updatedOrder,
@@ -554,6 +606,22 @@ static async getOrders(userId: string) {
           }
         );
 
+
+        await AuditService.orderStatusChanged({
+            actorId: undefined, // replace with adminId when this method receives it
+            entityId: updatedOrder.id,
+            oldValues: {
+              status: order.status,
+            },
+            newValues: {
+              status: updatedOrder.status,
+              refundStatus:
+                updatedOrder.refundStatus,
+              refundReason:
+                updatedOrder.refundReason,
+            },
+          });
+
       return updatedOrder;
     }
 
@@ -608,8 +676,24 @@ static async getOrders(userId: string) {
           },
         });
 
+      await AuditService.orderRefunded({
+        actorId: undefined, // replace with adminId when available
+        entityId: updatedOrder.id,
+        oldValues: {
+          refundStatus: order.refundStatus,
+          status: order.status,
+        },
+        newValues: {
+          refundStatus:
+            updatedOrder.refundStatus,
+          status:
+            updatedOrder.status,
+          reason: adminNote,
+        },
+      });
+
       return updatedOrder;
-    }
+    };
 
 
     static async processOrderRefund(
@@ -671,6 +755,23 @@ static async getOrders(userId: string) {
             items: true,
           },
         });
+
+
+        if (action === "approved") {
+          await AuditService.orderRefunded({
+            actorId: undefined, // replace with adminId if available
+            entityId: updatedOrder.id,
+            oldValues: {
+              refundStatus: currentOrder.refundStatus,
+              status: currentOrder.status,
+            },
+            newValues: {
+              refundStatus: updatedOrder.refundStatus,
+              status: updatedOrder.status,
+              reason: adminNote,
+            },
+          });
+        }
 
       return updatedOrder;
     }
@@ -763,6 +864,20 @@ static async completePaidOrder(
     return order;
   });
 
+  await AuditService.orderStatusChanged({
+    actorId: order.userId ?? undefined,
+    entityId: order.id,
+    oldValues: {
+      paymentStatus: false,
+      status: "pending",
+    },
+    newValues: {
+      paymentStatus: true,
+      status: "processing",
+      paymentReference,
+    },
+  });
+
   try {
     if (!order.emailSent) {
       await Promise.all([
@@ -782,7 +897,7 @@ static async completePaidOrder(
       });
     }
   } catch (mailError: any) {
-    console.error(
+    logger.error(
       "ORDER_EMAIL_ERROR:",
       mailError?.message ?? mailError
     );
@@ -1052,7 +1167,7 @@ static async requestRefund(
       }
     );
   } catch (error) {
-    console.error(
+    logger.error(
       "PUSHER_REFUND_ERROR:",
       error
     );
@@ -1158,6 +1273,18 @@ static async cancelOrder(
       return updated;
     });
 
+    await AuditService.orderCancelled({
+      actorId: userId,
+      entityId: updatedOrder.id,
+      oldValues: {
+        status: order.status,
+      },
+      newValues: {
+        status: updatedOrder.status,
+        cancelReason: reason,
+      },
+    });
+
   try {
     await Promise.all([
       pusherServer.trigger(
@@ -1189,7 +1316,7 @@ static async cancelOrder(
       ),
     ]);
   } catch (error) {
-    console.error(
+    logger.error(
       "ORDER_CANCEL_PUSHER_ERROR:",
       error
     );
@@ -1289,6 +1416,21 @@ static async completeOrderPayment(
       metadata.orderId,
       transaction.reference
     );
+
+    await AuditService.orderCreated({
+      actorId: order.userId ?? undefined,
+      entityId: order.id,
+      newValues: {
+        orderNumber: order.orderNumber,
+        paymentStatus: true,
+        paymentReference:
+          transaction.reference,
+        returnUrl:
+          typeof metadata.returnUrl === "string"
+            ? metadata.returnUrl
+            : null,
+      },
+    });
 
   return {
     success: true,
