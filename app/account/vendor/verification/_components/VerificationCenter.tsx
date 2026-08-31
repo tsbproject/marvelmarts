@@ -127,7 +127,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
             setLoading(activeStep);
 
             try {
-             const sigResult = (await getCloudinarySignature("vendor-docs")) as any;
+             const sigResult = (await getCloudinarySignature()) as any;
 
                 if (!sigResult?.success) {
                   throw new Error(sigResult?.error || "Failed to generate upload signature");
