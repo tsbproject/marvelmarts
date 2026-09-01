@@ -8,6 +8,7 @@ import {
 
 import { SecurityLogRepository } from "@/app/lib/repositories/security-log.repository";
 import { getCurrentRequestId } from "@/app/lib/logging/request-context";
+import { redactJson } from "@/app/lib/logging/redaction";
 
 export class SecurityLogService {
   private static async write(
@@ -19,6 +20,7 @@ export class SecurityLogService {
       requestId:
         data.requestId ??
         getCurrentRequestId(),
+      metadata: redactJson(data.metadata),
     });
   } catch (error) {
     logger.error(

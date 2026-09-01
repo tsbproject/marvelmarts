@@ -6,6 +6,9 @@ import {
 
 import { AuthService } from "@/app/lib/services/auth.service";
 import { verifyOrigin } from "@/app/lib/auth/csrf";
+import {
+  customerResendCodeSchema,
+} from "@/app/lib/validations/auth";
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
@@ -16,8 +19,10 @@ export const POST = withApiLogging(
     try {
       verifyOrigin(request);
 
+      const body = await request.json();
+
       const { uid } =
-        await request.json();
+        customerResendCodeSchema.parse(body);
 
       const result =
         await AuthService.resendCustomerVerificationCode(

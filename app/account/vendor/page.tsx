@@ -96,7 +96,8 @@ export default async function VendorDashboardPage() {
     productStepDone;
 
   const showOnboardingSteps = !onboardingComplete;
-  const showPendingBanner = !onboardingComplete;
+ const showPendingBanner =
+  !storeStepDone || !payoutsStepDone;
 
   // COUNTS
  const {

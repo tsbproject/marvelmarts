@@ -982,11 +982,7 @@ static async getVendorProfileWithStoreOnly(
         logMessage,
       };
 
-      return {
-        vendor: updatedVendor,
-        conversation,
-        logMessage,
-      };
+    
     }
 
 
@@ -1366,209 +1362,431 @@ static async getVendorProfileWithStoreOnly(
 
 
 
-    static async updateVendorSettings(
-    userId: string,
-    data: {
-      logoUrl?: string;
-      coverUrl?: string;
-      bio?: string;
-      storeName?: string;
-      instagram?: string;
-      whatsapp?: string;
-      twitter?: string;
-      facebook?: string;
-      bankName?: string;
-      accountNumber?: string;
-      accountName?: string;
-    }
-  ) {
-    const existingProfile =
-      await prisma.vendorProfile.findUnique({
-        where: {
-          userId,
+   static async updateVendorSettings(
+  userId: string,
+  data: {
+    logoUrl?: string;
+    coverUrl?: string;
+    bio?: string;
+    storeName?: string;
+    slug?: string;
+    instagram?: string;
+    whatsapp?: string;
+    twitter?: string;
+    facebook?: string;
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+  }
+) {
+  const existingProfile =
+    await prisma.vendorProfile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+
+        logoUrl: true,
+        coverUrl: true,
+        bio: true,
+        storeName: true,
+
+        instagram: true,
+        whatsapp: true,
+        twitter: true,
+        facebook: true,
+
+        bankName: true,
+        accountNumber: true,
+        accountName: true,
+
+        storeDone: true,
+        payoutsDone: true,
+
+        store: {
+          select: {
+            slug: true,
+          },
         },
-        select: {
-          id: true,
-          logoUrl: true,
-          coverUrl: true,
-          bio: true,
-          storeName: true,
-          instagram: true,
-          whatsapp: true,
-          twitter: true,
-          facebook: true,
-          bankName: true,
-          accountNumber: true,
-          accountName: true,
-        },
-      });
-
-    if (!existingProfile) {
-      throw notFound(
-        "Vendor profile not found."
-      );
-    }
-
-    const updatedProfile =
-      await prisma.$transaction(
-        async (tx) => {
-          const profile =
-            await tx.vendorProfile.update({
-              where: {
-                userId,
-              },
-              data: {
-                logoUrl: data.logoUrl,
-                coverUrl: data.coverUrl,
-                bio: data.bio,
-                storeName: data.storeName,
-
-                instagram: data.instagram,
-                whatsapp: data.whatsapp,
-                twitter: data.twitter,
-                facebook: data.facebook,
-
-                bankName: data.bankName,
-                accountNumber:
-                  data.accountNumber,
-                accountName:
-                  data.accountName,
-
-                onboarding: {
-                  update: {
-                    storeDone: !!(
-                      data.logoUrl &&
-                      data.coverUrl &&
-                      data.bio
-                    ),
-                  },
-                },
-              },
-            });
-
-          await tx.vendorStore.updateMany({
-            where: {
-              vendorProfileId:
-                profile.id,
-            },
-            data: {
-              name:
-                data.storeName ??
-                undefined,
-              description:
-                data.bio ??
-                undefined,
-              logo:
-                data.logoUrl ??
-                undefined,
-              banner:
-                data.coverUrl ??
-                undefined,
-            },
-          });
-
-          return profile;
-        }
-      );
-
-    await AuditService.vendorUpdated({
-      actorId: userId,
-      entityId: existingProfile.id,
-      oldValues: existingProfile,
-      newValues: {
-        logoUrl:
-          updatedProfile.logoUrl,
-        coverUrl:
-          updatedProfile.coverUrl,
-        bio:
-          updatedProfile.bio,
-        storeName:
-          updatedProfile.storeName,
-        instagram:
-          updatedProfile.instagram,
-        whatsapp:
-          updatedProfile.whatsapp,
-        twitter:
-          updatedProfile.twitter,
-        facebook:
-          updatedProfile.facebook,
-        bankName:
-          updatedProfile.bankName,
-        accountNumber:
-          updatedProfile.accountNumber,
-        accountName:
-          updatedProfile.accountName,
       },
     });
 
-    return updatedProfile;
+  if (!existingProfile) {
+    throw notFound(
+      "Vendor profile not found."
+    );
   }
-      static async getBankAccount(
-      userId: string
-    ) {
-      return prisma.bankAccount.findUnique({
-        where: {
-          userId,
-        },
-      });
-    }
 
-    static async saveBankAccount(
-      userId: string,
-      data: {
-        bankName: string;
-        accountNumber: string;
-        accountName: string;
-      }
-    ) {
-      const {
-        bankName,
-        accountNumber,
-        accountName,
-      } = data;
+  /* ------------------------------------------------------------------ */
+  /* MERGED FINAL VALUES                                                */
+  /* ------------------------------------------------------------------ */
+  /*
+   * A PATCH may contain only some fields.
+   * Always calculate onboarding completion from the final
+   * persisted values rather than only from the incoming payload.
+   */
 
-      if (
-        !bankName ||
-        !accountNumber ||
-        !accountName
-      ) {
-        throw badRequest(
-          "Bank name, account number and account name are required."
-        );
-      }
+  const finalLogoUrl =
+    data.logoUrl ??
+    existingProfile.logoUrl;
 
-      const user =
-        await prisma.user.findUnique({
+  const finalCoverUrl =
+    data.coverUrl ??
+    existingProfile.coverUrl;
+
+  const finalStoreName =
+    data.storeName ??
+    existingProfile.storeName;
+
+  const finalBankName =
+    data.bankName ??
+    existingProfile.bankName;
+
+  const finalAccountNumber =
+    data.accountNumber ??
+    existingProfile.accountNumber;
+
+  const finalAccountName =
+    data.accountName ??
+    existingProfile.accountName;
+
+  const finalSlug =
+    data.slug ??
+    existingProfile.store?.slug ??
+    "";
+
+  /* ------------------------------------------------------------------ */
+  /* SLUG VALIDATION                                                    */
+  /* ------------------------------------------------------------------ */
+
+  if (
+    data.slug &&
+    data.slug !== existingProfile.store?.slug
+  ) {
+    await this.ensureStoreSlugAvailable(
+      data.slug,
+      existingProfile.id
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* ONBOARDING COMPLETION                                              */
+  /* ------------------------------------------------------------------ */
+
+  /*
+   * Store Branding is complete when the required
+   * store identity and branding fields exist.
+   */
+  const storeDone = !!(
+    finalLogoUrl &&
+    finalCoverUrl &&
+    finalStoreName &&
+    finalSlug
+  );
+
+  /*
+   * Payout Setup is complete when all required
+   * bank information exists and the account number
+   * meets the minimum length requirement.
+   */
+  const payoutsDone = !!(
+    finalBankName &&
+    finalAccountNumber &&
+    finalAccountNumber.length >= 10 &&
+    finalAccountName
+  );
+
+  /* ------------------------------------------------------------------ */
+  /* DATABASE UPDATE                                                     */
+  /* ------------------------------------------------------------------ */
+
+  const updatedProfile =
+    await prisma.$transaction(
+      async (tx) => {
+        const profile =
+          await tx.vendorProfile.update({
+            where: {
+              userId,
+            },
+
+            data: {
+              /* ------------------------------------------------------ */
+              /* Vendor Profile fields                                 */
+              /* ------------------------------------------------------ */
+
+              ...(data.logoUrl !== undefined && {
+                logoUrl: data.logoUrl,
+              }),
+
+              ...(data.coverUrl !== undefined && {
+                coverUrl: data.coverUrl,
+              }),
+
+              ...(data.bio !== undefined && {
+                bio: data.bio,
+              }),
+
+              ...(data.storeName !== undefined && {
+                storeName: data.storeName,
+              }),
+
+              ...(data.instagram !== undefined && {
+                instagram: data.instagram,
+              }),
+
+              ...(data.whatsapp !== undefined && {
+                whatsapp: data.whatsapp,
+              }),
+
+              ...(data.twitter !== undefined && {
+                twitter: data.twitter,
+              }),
+
+              ...(data.facebook !== undefined && {
+                facebook: data.facebook,
+              }),
+
+              ...(data.bankName !== undefined && {
+                bankName: data.bankName,
+              }),
+
+              ...(data.accountNumber !== undefined && {
+                accountNumber:
+                  data.accountNumber,
+              }),
+
+              ...(data.accountName !== undefined && {
+                accountName:
+                  data.accountName,
+              }),
+
+              /* ------------------------------------------------------ */
+              /* Canonical VendorProfile onboarding flags               */
+              /* ------------------------------------------------------ */
+
+              storeDone,
+              payoutsDone,
+
+              /* ------------------------------------------------------ */
+              /* Keep VendorOnboarding synchronized                     */
+              /* ------------------------------------------------------ */
+
+              onboarding: {
+                upsert: {
+                  create: {
+                    storeDone,
+                  },
+
+                  update: {
+                    storeDone,
+                  },
+                },
+              },
+            },
+          });
+
+        /* ------------------------------------------------------------ */
+        /* Keep public VendorStore synchronized                         */
+        /* ------------------------------------------------------------ */
+
+        await tx.vendorStore.updateMany({
           where: {
-            id: userId,
+            vendorProfileId:
+              profile.id,
           },
-          select: {
-            id: true,
+
+          data: {
+            ...(data.storeName !== undefined && {
+              name: data.storeName,
+            }),
+
+            ...(data.slug !== undefined && {
+              slug: finalSlug,
+            }),
+
+            ...(data.bio !== undefined && {
+              description: data.bio,
+            }),
+
+            ...(data.logoUrl !== undefined && {
+              logo: data.logoUrl,
+            }),
+
+            ...(data.coverUrl !== undefined && {
+              banner: data.coverUrl,
+            }),
           },
         });
 
-      if (!user) {
-        throw notFound(
-          "User not found."
-        );
+        return profile;
+      }
+    );
+
+  /* ------------------------------------------------------------------ */
+  /* AUDIT LOG                                                          */
+  /* ------------------------------------------------------------------ */
+
+  await AuditService.vendorUpdated({
+    actorId: userId,
+    entityId: existingProfile.id,
+
+    oldValues: {
+      logoUrl:
+        existingProfile.logoUrl,
+
+      coverUrl:
+        existingProfile.coverUrl,
+
+      bio:
+        existingProfile.bio,
+
+      storeName:
+        existingProfile.storeName,
+
+      instagram:
+        existingProfile.instagram,
+
+      whatsapp:
+        existingProfile.whatsapp,
+
+      twitter:
+        existingProfile.twitter,
+
+      facebook:
+        existingProfile.facebook,
+
+      bankName:
+        existingProfile.bankName,
+
+      accountNumber:
+        existingProfile.accountNumber,
+
+      accountName:
+        existingProfile.accountName,
+
+      storeDone:
+        existingProfile.storeDone,
+
+      payoutsDone:
+        existingProfile.payoutsDone,
+
+      slug:
+        existingProfile.store?.slug ??
+        null,
+    },
+
+    newValues: {
+      logoUrl:
+        updatedProfile.logoUrl,
+
+      coverUrl:
+        updatedProfile.coverUrl,
+
+      bio:
+        updatedProfile.bio,
+
+      storeName:
+        updatedProfile.storeName,
+
+      instagram:
+        updatedProfile.instagram,
+
+      whatsapp:
+        updatedProfile.whatsapp,
+
+      twitter:
+        updatedProfile.twitter,
+
+      facebook:
+        updatedProfile.facebook,
+
+      bankName:
+        updatedProfile.bankName,
+
+      accountNumber:
+        updatedProfile.accountNumber,
+
+      accountName:
+        updatedProfile.accountName,
+
+      storeDone,
+
+      payoutsDone,
+
+      slug:
+        finalSlug || null,
+    },
+  });
+
+  return updatedProfile;
+}
+      static async getBankAccount(
+        userId: string
+      ) {
+        return prisma.bankAccount.findUnique({
+          where: {
+            userId,
+          },
+        });
       }
 
-      return prisma.bankAccount.upsert({
-        where: {
-          userId,
-        },
-        update: {
+      static async saveBankAccount(
+        userId: string,
+        data: {
+          bankName: string;
+          accountNumber: string;
+          accountName: string;
+        }
+      ) {
+        const {
           bankName,
           accountNumber,
           accountName,
-        },
-        create: {
-          userId,
-          bankName,
-          accountNumber,
-          accountName,
-        },
-      });
+        } = data;
+
+        if (
+          !bankName ||
+          !accountNumber ||
+          !accountName
+        ) {
+          throw badRequest(
+            "Bank name, account number and account name are required."
+          );
+        }
+
+        const user =
+          await prisma.user.findUnique({
+            where: {
+              id: userId,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+        if (!user) {
+          throw notFound(
+            "User not found."
+          );
+        }
+
+        return prisma.bankAccount.upsert({
+          where: {
+            userId,
+          },
+          update: {
+            bankName,
+            accountNumber,
+            accountName,
+          },
+          create: {
+            userId,
+            bankName,
+            accountNumber,
+            accountName,
+          },
+        });
     }
 
 
@@ -1651,12 +1869,14 @@ static async submitVerificationDocuments(
   }
 
   const existingVendor =
-    await prisma.vendorProfile.findUnique({
+    await prisma.vendorProfile.findFirst({
       where: {
         id: vendorProfileId,
+        userId: actor.id,
       },
       select: {
         id: true,
+        userId: true,
         status: true,
         identityDoc: true,
         businessDoc: true,

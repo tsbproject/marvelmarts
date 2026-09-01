@@ -10,6 +10,7 @@ import confetti from "canvas-confetti";
 import DashboardHeader from "@/app/_components/DashboardHeader";
 import { Camera, Store, CheckCircle2, Loader2, CreditCard, Globe, ShieldCheck, Link as LinkIcon } from "lucide-react";
 import { useNotification } from "@/app/_context/NotificationContext";
+import { validateImageFile } from "@/app/lib/uploads/validation";
 
 export default function StoreSettingsForm({ vendor, initialStoreData }: any) {
   const { data: session, update } = useSession();
@@ -56,33 +57,64 @@ useEffect(() => {
 }, [formData.storeName, initialStoreData?.slug]);
 
   // --- Image Upload Logic (Kept from Store-settings) ---
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "cover") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+  type: "logo" | "cover"
+) => {
+  const file = e.target.files?.[0];
 
-    setUploading(type);
+  if (!file) return;
+
+  setUploading(type);
+
+  try {
     const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "marvelmartsupload");
-    data.append("folder", `vendors/${vendor.id}/branding`);
 
-    try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    data.append("file", file);
+    data.append("type", type);
+
+    const res = await fetch(
+      "/api/vendors/profile/upload",
+      {
         method: "POST",
         body: data,
-      });
-      const fileData = await res.json();
-      if (fileData.secure_url) {
-        setFormData(prev => ({ ...prev, [type === "logo" ? "logoUrl" : "coverUrl"]: fileData.secure_url }));
-        notifySuccess("Image uploaded!");
       }
-    } catch (err) {
-      notifyError("Upload failed.");
-    } finally {
-      setUploading(null);
-    }
-  };
+    );
 
+    const result = await res.json();
+
+    if (!res.ok || !result?.success) {
+      throw new Error(
+        result?.error ||
+          "Upload failed."
+      );
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [type === "logo"
+        ? "logoUrl"
+        : "coverUrl"]: result.url,
+    }));
+
+    notifySuccess(
+      type === "logo"
+        ? "Store logo uploaded!"
+        : "Store cover uploaded!"
+    );
+  } catch (error) {
+    notifyError(
+      error instanceof Error
+        ? error.message
+        : "Upload failed."
+    );
+  } finally {
+    setUploading(null);
+
+    // Allow selecting the same file again.
+    e.target.value = "";
+  }
+};
 
 
         const handleSave = async () => {

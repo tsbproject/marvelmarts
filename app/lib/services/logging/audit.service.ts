@@ -7,27 +7,36 @@ import {
 } from "@/app/lib/logging";
 
 import { AuditRepository } from "@/app/lib/repositories/audit.repository";
+import {
+  redactJson,
+} from "@/app/lib/logging/redaction";
 
 
 
 export class AuditService {
- private static async write(
-  data: AuditLogInput
-) {
-  try {
-    await AuditRepository.create({
-      ...data,
-      requestId:
-        data.requestId ??
-        getCurrentRequestId(),
-    });
-  } catch (error) {
-    logger.error(
-      "AUDIT_LOG_FAILED",
-      error
-    );
+  private static async write(
+    data: AuditLogInput
+  ) {
+    try {
+      await AuditRepository.create({
+        ...data,
+        requestId:
+          data.requestId ??
+          getCurrentRequestId(),
+        oldValues: redactJson(
+          data.oldValues
+        ),
+        newValues: redactJson(
+          data.newValues
+        ),
+      });
+    } catch (error) {
+      logger.error(
+        "AUDIT_LOG_FAILED",
+        error
+      );
+    }
   }
-}
 
   static async productCreated(
     data: Omit<AuditLogInput, "action" | "entity">

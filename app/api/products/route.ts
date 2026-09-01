@@ -516,14 +516,23 @@ export const PUT = withApiLogging(
       const formData =
         await request.formData();
 
-      const images =
-        formData
-          .getAll("images")
+      const images = [
+        ...formData
+          .getAll("mainImage")
           .filter(
             (file): file is File =>
               file instanceof File &&
               file.size > 0
-          );
+          ),
+
+        ...formData
+          .getAll("extraImages")
+          .filter(
+            (file): file is File =>
+              file instanceof File &&
+              file.size > 0
+          ),
+      ];
 
       const fields:
         Record<string, unknown> = {};

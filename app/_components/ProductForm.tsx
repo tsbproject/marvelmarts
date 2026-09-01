@@ -197,15 +197,82 @@ export default function ProductForm({
     dispatch({ type: "SET_VARIANTS", value: form.variants.filter((_, i) => i !== index) });
   };
 
-  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        // Security: Validate file size (Max 5MB) and type
-        if (file.size > 5 * 1024 * 1024) return setError("File too large (Max 5MB)");
-        if (!file.type.startsWith("image/")) return setError("Only image files are allowed");
-        dispatch({ type: "SET_FIELD", field: "mainImage", value: file });
+  const handleMainImageChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File too large (Max 5MB)");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setError("Only image files are allowed");
+        return;
+      }
+
+      /*
+      * When editing an existing product, replacing the main image
+      * means the previous main image must be deleted.
+      */
+      if (
+        typeof form.mainImage === "string" &&
+        initialData?.images
+      ) {
+        const oldImage = initialData.images.find(
+          (image: any) =>
+            image.url === form.mainImage
+        );
+
+        if (
+          oldImage?.id &&
+          !deletedImageIds.includes(oldImage.id)
+        ) {
+          setDeletedImageIds((prev) => [
+            ...prev,
+            oldImage.id,
+          ]);
+        }
+      }
+
+      dispatch({
+        type: "SET_FIELD",
+        field: "mainImage",
+        value: file,
+      });
+    };
+
+
+    const removeMainImage = () => {
+  if (
+    typeof form.mainImage === "string" &&
+    initialData?.images
+  ) {
+    const image = initialData.images.find(
+      (item: any) =>
+        item.url === form.mainImage
+    );
+
+    if (
+      image?.id &&
+      !deletedImageIds.includes(image.id)
+    ) {
+      setDeletedImageIds((prev) => [
+        ...prev,
+        image.id,
+      ]);
     }
-  };
+  }
+
+  dispatch({
+    type: "SET_FIELD",
+    field: "mainImage",
+    value: null,
+  });
+};
 
   const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter(file => {
@@ -542,7 +609,13 @@ export default function ProductForm({
           {previewMain && (
             <div className="relative mt-4 w-full max-w-sm">
               <img src={previewMain} alt="Main" className="h-56 w-full object-cover rounded-lg border shadow-md" />
-              <button type="button" onClick={() => dispatch({ type: "SET_FIELD", field: "mainImage", value: null })} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 shadow-lg">✕</button>
+              <button
+                  type="button"
+                  onClick={removeMainImage}
+                  className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 shadow-lg"
+                >
+                  ×
+                </button>
             </div>
           )}
 

@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { AuthService } from "@/app/lib/services/auth.service";
 import { handleApiError } from "@/app/lib/auth/api";
 import { verifyOrigin } from "@/app/lib/auth/csrf";
+import {
+  customerSendCodeSchema,
+} from "@/app/lib/validations/auth";
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
@@ -13,11 +16,13 @@ export const POST = withApiLogging(
     try {
       verifyOrigin(request);
 
+     const body = await request.json();
+
       const {
         name,
         email,
         password,
-      } = await request.json();
+      } = customerSendCodeSchema.parse(body);
 
       const result =
         await AuthService.sendCustomerRegistrationCode(

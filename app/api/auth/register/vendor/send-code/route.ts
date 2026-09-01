@@ -7,6 +7,9 @@ import {
 import { verifyOrigin } from "@/app/lib/auth/csrf";
 
 import { AuthService } from "@/app/lib/services/auth.service";
+import {
+  vendorSendCodeSchema,
+} from "@/app/lib/validations/auth";
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 
 export const runtime = "nodejs";
@@ -17,11 +20,13 @@ export const POST = withApiLogging(
     try {
       verifyOrigin(request);
 
+      const body = await request.json();
+
       const {
         email,
         firstName,
         lastName,
-      } = await request.json();
+      } = vendorSendCodeSchema.parse(body);
 
       const result =
         await AuthService.sendVendorRegistrationCode(

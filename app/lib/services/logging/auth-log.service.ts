@@ -7,6 +7,7 @@ import {
 
 import { AuthLogRepository } from "@/app/lib/repositories/auth-log.repository";
 import { getCurrentRequestId } from "@/app/lib/logging/request-context";
+import { redactJson } from "@/app/lib/logging/redaction";
 
 
 export class AuthLogService {
@@ -14,12 +15,13 @@ export class AuthLogService {
   data: AuthLogInput
 ) {
   try {
-    await AuthLogRepository.create({
-      ...data,
-      requestId:
-        data.requestId ??
-        getCurrentRequestId(),
-    });
+   await AuthLogRepository.create({
+    ...data,
+    requestId:
+      data.requestId ??
+      getCurrentRequestId(),
+    metadata: redactJson(data.metadata),
+});
   } catch (error) {
     logger.error(
       "AUTH_LOG_FAILED",

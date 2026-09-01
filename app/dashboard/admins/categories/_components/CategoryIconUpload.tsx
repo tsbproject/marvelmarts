@@ -5,6 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { UploadCloud, X, Loader2 } from "lucide-react"; // Import Loader2
 
+
 export default function CategoryIconUpload({ 
   initialValue, 
   onChange 
@@ -15,44 +16,65 @@ export default function CategoryIconUpload({
   const [preview, setPreview] = useState(initialValue || "");
   const [isUploading, setIsUploading] = useState(false); // Track upload status
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
 
-    // Show local preview immediately
-    const localPreview = URL.createObjectURL(file);
-    setPreview(localPreview);
-    setIsUploading(true); // Start loading
+  if (!file) return;
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "marvelmartsupload"); 
+  // Show local preview immediately.
+  const localPreview =
+    URL.createObjectURL(file);
 
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/dq0vynxci/upload`, 
-        { method: "POST", body: formData }
+  setPreview(localPreview);
+  setIsUploading(true);
+
+  try {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const res = await fetch(
+      "/api/admins/categories/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const result = await res.json();
+
+    if (!res.ok || !result?.success) {
+      throw new Error(
+        result?.error ||
+          "Category image upload failed."
       );
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        alert(`Cloudinary Error: ${errorData.error?.message || "Unknown Error"}`);
-        setPreview(initialValue || ""); // Reset on error
-        return;
-      }
-
-      const data = await res.json();
-
-      if (data.secure_url) {
-        setPreview(data.secure_url);
-        onChange(data.secure_url); // Update the parent form state
-      }
-    } catch (error) {
-      console.error("Network Error:", error);
-    } finally {
-      setIsUploading(false); // Stop loading
     }
-  };
+
+    if (!result.url) {
+      throw new Error(
+        "Upload completed without an image URL."
+      );
+    }
+
+    setPreview(result.url);
+    onChange(result.url);
+  } catch (error) {
+    setPreview(initialValue || "");
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Category image upload failed."
+    );
+  } finally {
+    setIsUploading(false);
+
+    // Allow selecting the same file again.
+    e.target.value = "";
+  }
+};
 
   const handleRemove = () => {
     setPreview("");

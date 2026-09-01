@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { useNotification } from "@/app/_context/NotificationContext";
 import { submitVendorDocs } from "@/app/_actions/admin-actions";
-import { getCloudinarySignature } from "@/app/_actions/upload-actions";
 import { useRouter } from "next/navigation";
 
 type VerificationStatus =
@@ -127,38 +126,37 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
             setLoading(activeStep);
 
             try {
-             const sigResult = (await getCloudinarySignature()) as any;
+             const formData = new FormData();
 
-                if (!sigResult?.success) {
-                  throw new Error(sigResult?.error || "Failed to generate upload signature");
+              formData.append("file", file);
+              formData.append("step", activeStep);
+
+              const uploadRes = await fetch(
+                "/api/vendors/profile/verification/upload",
+                {
+                  method: "POST",
+                  body: formData,
                 }
+              );
 
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("api_key", sigResult.apiKey);
-                formData.append("timestamp", String(sigResult.timestamp));
-                formData.append("signature", sigResult.signature);
-                formData.append("folder", "vendor-docs");
+              const uploadData = await uploadRes.json();
 
-                const uploadRes = await fetch(
-                  `https://api.cloudinary.com/v1_1/${sigResult.cloudName}/auto/upload`,
-                  { method: "POST", body: formData }
+              if (
+                !uploadRes.ok ||
+                !uploadData?.success ||
+                !uploadData?.url
+              ) {
+                throw new Error(
+                  uploadData?.error ||
+                    "Verification document upload failed."
                 );
-
-                const uploadData = await uploadRes.json();
-
-                if (!uploadRes.ok) {
-                  console.error("CLOUDINARY_UPLOAD_ERROR:", uploadData);
-                  throw new Error(
-                    uploadData?.error?.message || "Cloudinary upload failed"
-                  );
-                }
+              }
 
               const uploadedStep = activeStep;
 
               const dbResult = await submitVendorDocs(
                 vendorProfileId,
-                uploadData.secure_url,
+                uploadData.url,
                 uploadedStep
               );
 

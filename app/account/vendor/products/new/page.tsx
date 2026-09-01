@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,19 +18,28 @@ export default function NewProductPage() {
 
   // 1. Fetch categories on mount
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories");
-        const data = await res.json();
-        if (res.ok) {
-          setCategories(data);
+      async function fetchCategories() {
+        try {
+          const res = await fetch("/api/categories");
+          const data = await res.json();
+
+          if (!res.ok || !Array.isArray(data?.categories)) {
+            throw new Error(
+              data?.error ||
+                data?.message ||
+                "Failed to load categories."
+            );
+          }
+
+          setCategories(data.categories);
+        } catch (err) {
+          console.error("Failed to fetch categories", err);
+          setCategories([]);
         }
-      } catch (err) {
-        console.error("Failed to fetch categories", err);
       }
-    }
-    fetchCategories();
-  }, []);
+
+      fetchCategories();
+    }, []);
 
   // 2. Handle Authentication & Authorization
   useEffect(() => {

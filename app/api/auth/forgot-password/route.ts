@@ -3,6 +3,7 @@ import { handleApiError } from "@/app/lib/auth/api";
 import { verifyOrigin } from "@/app/lib/auth/csrf";
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
 import { NextResponse } from "next/server";
+import { forgotPasswordSchema } from "@/app/lib/validations/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +13,10 @@ export const POST = withApiLogging(
     try {
       verifyOrigin(request);
 
-      const { email } = await request.json();
+      const body = await request.json();
+
+      const { email } =
+        forgotPasswordSchema.parse(body);
 
       const result =
         await AuthService.sendPasswordResetCode(

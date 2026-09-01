@@ -185,7 +185,10 @@ export const updateVendorSettings = createAsyncThunk(
   "vendor/updateSettings",
   async (settingsData: any, { dispatch, rejectWithValue }) => {
     try {
-      const response = await axios.patch("/api/vendors/profile", settingsData);
+      const response = await axios.patch(
+          "/api/vendors/profile/settings",
+          settingsData
+        );
 
       dispatch(
         setVendorData({

@@ -516,201 +516,264 @@ static async updateProduct({
   newImageOperations: Prisma.ProductImageCreateWithoutProductInput[];
   variants: any[];
 }) {
-  const { existing, product } =
-    await prisma.$transaction(async (tx) => {
-      const existing =
-        await tx.product.findUnique({
-          where: {
-            id: productId,
-          },
-          include: {
-            category: true,
-            categories: true,
-            images: {
-              orderBy: {
-                order: "asc",
-              },
+  const {
+    existing,
+    product,
+    deletedImageUrls,
+  } = await prisma.$transaction(async (tx) => {
+    const existing =
+      await tx.product.findUnique({
+        where: {
+          id: productId,
+        },
+        include: {
+          category: true,
+          categories: true,
+          images: {
+            orderBy: {
+              order: "asc",
             },
-            variants: true,
           },
-        });
+          variants: true,
+        },
+      });
 
-      if (!existing) {
-        throw notFound(
-          "Product not found."
-        );
-      }
+    if (!existing) {
+      throw notFound(
+        "Product not found."
+      );
+    }
 
-      if (deletedImageIds.length > 0) {
-        await tx.productImage.deleteMany({
+    /*
+     * Capture the Cloudinary URLs BEFORE deleting
+     * the ProductImage records.
+     *
+     * Only images belonging to this product are considered.
+     */
+    let deletedImageUrls: string[] = [];
+
+    if (deletedImageIds.length > 0) {
+      const imagesToDelete =
+        await tx.productImage.findMany({
           where: {
             id: {
               in: deletedImageIds,
             },
+            productId,
+          },
+          select: {
+            id: true,
+            url: true,
           },
         });
-      }
 
-      await tx.variant.deleteMany({
+      deletedImageUrls =
+        imagesToDelete
+          .map((image) => image.url)
+          .filter(Boolean);
+
+      await tx.productImage.deleteMany({
         where: {
+          id: {
+            in: imagesToDelete.map(
+              (image) => image.id
+            ),
+          },
           productId,
         },
       });
+    }
 
-      const product =
-        await tx.product.update({
-          where: {
-            id: productId,
-          },
-
-          data: {
-            title: data.title,
-
-            sku: data.sku || null,
-
-            description:
-              data.description,
-
-            brand:
-              data.brand || null,
-
-            price:
-              new Prisma.Decimal(
-                data.price.toString()
-              ),
-
-            discountPrice:
-              data.discountPrice !=
-              null
-                ? new Prisma.Decimal(
-                    data.discountPrice.toString()
-                  )
-                : null,
-
-            stock: data.stock,
-
-            tags: parsedTags,
-
-            status: data.status,
-
-            metaTitle:
-              data.metaTitle ||
-              null,
-
-            metaDescription:
-              data.metaDescription ||
-              null,
-
-            isFeatured:
-              data.isFeatured ??
-              false,
-
-            isFlashSale:
-              data.isFlashSale ??
-              false,
-
-            isNewArrival:
-              data.isNewArrival ??
-              false,
-
-            shippingMethod:
-              data.shippingMethod ||
-              null,
-
-            weight:
-              data.weight ?? null,
-
-            category:
-              parsedCategoryIds[0] ||
-              data.categoryId
-                ? {
-                    connect: {
-                      id:
-                        parsedCategoryIds[0] ??
-                        data.categoryId,
-                    },
-                  }
-                : {
-                    disconnect: true,
-                  },
-
-            categories: {
-              set:
-                parsedCategoryIds.map(
-                  (id) => ({
-                    id,
-                  })
-                ),
-            },
-
-            images:
-              newImageOperations.length
-                ? {
-                    create:
-                      newImageOperations,
-                  }
-                : undefined,
-
-            variants: {
-              create:
-                variants.map(
-                  (variant) => ({
-                    name:
-                      variant.name,
-
-                    sku:
-                      variant.sku ||
-                      `${
-                        data.sku ||
-                        "sku"
-                      }-${Math.random()
-                        .toString(36)
-                        .substring(2, 8)}`,
-
-                    price:
-                      variant.price !=
-                      null
-                        ? new Prisma.Decimal(
-                            variant.price.toString()
-                          )
-                        : null,
-
-                    stock:
-                      Number(
-                        variant.stock
-                      ) || 0,
-
-                    attributes:
-                      variant.attributes ||
-                      {
-                        name:
-                          variant.name,
-                      },
-                  })
-                ),
-            },
-          },
-
-          include: {
-            category: true,
-
-            categories: true,
-
-            images: {
-              orderBy: {
-                order: "asc",
-              },
-            },
-
-            variants: true,
-          },
-        });
-
-      return {
-        existing,
-        product,
-      };
+    /*
+     * Recreate variants from the submitted state.
+     */
+    await tx.variant.deleteMany({
+      where: {
+        productId,
+      },
     });
+
+    const product =
+      await tx.product.update({
+        where: {
+          id: productId,
+        },
+
+        data: {
+          title: data.title,
+
+          sku: data.sku || null,
+
+          description:
+            data.description,
+
+          brand:
+            data.brand || null,
+
+          price:
+            new Prisma.Decimal(
+              data.price.toString()
+            ),
+
+          discountPrice:
+            data.discountPrice != null
+              ? new Prisma.Decimal(
+                  data.discountPrice.toString()
+                )
+              : null,
+
+          stock: data.stock,
+
+          tags: parsedTags,
+
+          status: data.status,
+
+          metaTitle:
+            data.metaTitle || null,
+
+          metaDescription:
+            data.metaDescription || null,
+
+          isFeatured:
+            data.isFeatured ?? false,
+
+          isFlashSale:
+            data.isFlashSale ?? false,
+
+          isNewArrival:
+            data.isNewArrival ?? false,
+
+          shippingMethod:
+            data.shippingMethod || null,
+
+          weight:
+            data.weight ?? null,
+
+          category:
+            parsedCategoryIds[0] ||
+            data.categoryId
+              ? {
+                  connect: {
+                    id:
+                      parsedCategoryIds[0] ??
+                      data.categoryId,
+                  },
+                }
+              : {
+                  disconnect: true,
+                },
+
+          categories: {
+            set:
+              parsedCategoryIds.map(
+                (id) => ({
+                  id,
+                })
+              ),
+          },
+
+          /*
+           * Newly uploaded images are already
+           * in Cloudinary at this point.
+           */
+          images:
+            newImageOperations.length
+              ? {
+                  create:
+                    newImageOperations,
+                }
+              : undefined,
+
+          variants: {
+            create:
+              variants.map(
+                (variant) => ({
+                  name:
+                    variant.name,
+
+                  sku:
+                    variant.sku ||
+                    `${
+                      data.sku ||
+                      "sku"
+                    }-${Math.random()
+                      .toString(36)
+                      .substring(2, 8)}`,
+
+                  price:
+                    variant.price != null
+                      ? new Prisma.Decimal(
+                          variant.price.toString()
+                        )
+                      : null,
+
+                  stock:
+                    Number(
+                      variant.stock
+                    ) || 0,
+
+                  attributes:
+                    variant.attributes ||
+                    {
+                      name:
+                        variant.name,
+                    },
+                })
+              ),
+          },
+        },
+
+        include: {
+          category: true,
+
+          categories: true,
+
+          images: {
+            orderBy: {
+              order: "asc",
+            },
+          },
+
+          variants: true,
+        },
+      });
+
+    return {
+      existing,
+      product,
+      deletedImageUrls,
+    };
+  });
+
+  /*
+   * Database update succeeded.
+   *
+   * Cloudinary cleanup happens AFTER the transaction so
+   * a Cloudinary failure cannot roll back a valid product
+   * update.
+   */
+  if (deletedImageUrls.length > 0) {
+    await Promise.allSettled(
+      deletedImageUrls.map(
+        async (url) => {
+          try {
+            await deleteFromCloudinary(
+              url
+            );
+          } catch (error) {
+            console.error(
+              "PRODUCT_IMAGE_CLOUDINARY_DELETE_FAILED:",
+              {
+                productId,
+                url,
+                error,
+              }
+            );
+          }
+        }
+      )
+    );
+  }
 
   await AuditService.productUpdated({
     actorId: userId,
@@ -750,6 +813,14 @@ static async deleteProduct(
           );
         }
 
+        /*
+         * Delete all database image records first.
+         *
+         * The image URLs remain available on the
+         * `product` object returned from the transaction,
+         * allowing Cloudinary cleanup after the transaction
+         * succeeds.
+         */
         await tx.productImage.deleteMany({
           where: {
             productId,
@@ -772,11 +843,46 @@ static async deleteProduct(
       }
     );
 
+  /*
+   * Database deletion succeeded.
+   *
+   * Now clean up the corresponding Cloudinary assets.
+   * Cloudinary failure must not undo a successful database
+   * deletion.
+   */
+  const imageUrls =
+    product.images
+      .map((image) => image.url)
+      .filter(Boolean);
+
+  if (imageUrls.length > 0) {
+    await Promise.allSettled(
+      imageUrls.map(
+        async (url) => {
+          try {
+            await deleteFromCloudinary(
+              url
+            );
+          } catch (error) {
+            console.error(
+              "PRODUCT_IMAGE_CLOUDINARY_DELETE_FAILED:",
+              {
+                productId,
+                url,
+                error,
+              }
+            );
+          }
+        }
+      )
+    );
+  }
+
   await AuditService.productDeleted({
-      actorId: userId,
-      entityId: product.id,
-      oldValues: product,
-    });
+    actorId: userId,
+    entityId: product.id,
+    oldValues: product,
+  });
 
   return product;
 }
