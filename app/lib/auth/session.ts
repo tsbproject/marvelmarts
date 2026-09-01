@@ -20,11 +20,28 @@ export const callbacks: NextAuthOptions["callbacks"] = {
     /* FIRST LOGIN                                                            */
     /* ---------------------------------------------------------------------- */
 
+    // if (user) {
+
+    //   return applyAuthUserToToken(
+    //     token,
+    //     user as AuthUser
+    //   );
+    // }
+
+
     if (user) {
-      return applyAuthUserToToken(
-        token,
-        user as AuthUser
-      );
+      const dbUser = await getFreshUserData(user.id);
+
+      if (dbUser) {
+        const authUser = mapAuthUser(dbUser);
+
+        return applyAuthUserToToken(
+          token,
+          authUser
+        );
+      }
+
+      return token;
     }
 
     /* ---------------------------------------------------------------------- */

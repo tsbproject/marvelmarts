@@ -1,7 +1,8 @@
 "use client";
+
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {signIn, getSession } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import Link from "next/link";
 import {
   Eye,
@@ -15,108 +16,192 @@ import {
 import { useDispatch } from "react-redux";
 import { setViewMode } from "@/store/appSlice";
 
-
 export default function SignInForm() {
   const router = useRouter();
-  // const { update } = useSession();
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
 
+  /* -------------------------------------------------------------------------- */
+  /*                              FORM STATE                                    */
+  /* -------------------------------------------------------------------------- */
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  
+  /* -------------------------------------------------------------------------- */
+  /*                              REDIRECT STATE                                */
+  /* -------------------------------------------------------------------------- */
 
   const redirectParam = searchParams.get("redirect");
   const callbackUrl = searchParams.get("callbackUrl");
-  const intendedPath = redirectParam || callbackUrl;
+  const intendedPath =
+    redirectParam || callbackUrl;
 
-    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  /* -------------------------------------------------------------------------- */
+  /*                              OAUTH ERRORS                                  */
+  /* -------------------------------------------------------------------------- */
+
+  const oauthError =
+    searchParams.get("error");
+
+  const getOAuthErrorMessage = (
+    errorCode: string | null
+  ): string => {
+    switch (errorCode) {
+      case "OAuthAccountNotLinked":
+        return "This email is already registered with MarvelMarts. Please sign in with your existing password.";
+
+      case "OAuthSignin":
+        return "We couldn't start the social sign-in process. Please try again.";
+
+      case "OAuthCallback":
+        return "We couldn't complete the social sign-in process. Please try again.";
+
+      case "AccessDenied":
+        return "Access to social sign-in was denied. Please try again.";
+
+      default:
+        return "";
+    }
+  };
+
+  const [error, setError] = useState<string>(
+    getOAuthErrorMessage(oauthError)
+  );
+
+  /* -------------------------------------------------------------------------- */
+  /*                           EMAIL / PASSWORD LOGIN                           */
+  /* -------------------------------------------------------------------------- */
+
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
+
     setError("");
     setLoading(true);
 
-  const result = await signIn("credentials", {
-  identifier: identifier.trim(),
-  password: password.trim(), 
-  redirect: false,
-  callbackUrl: "/",
-});
+    const result = await signIn(
+      "credentials",
+      {
+        identifier: identifier.trim(),
+        password: password.trim(),
+        redirect: false,
+        callbackUrl: "/",
+      }
+    );
 
-   if (result?.error) {
+    /* ---------------------------------------------------------------------- */
+    /* LOGIN FAILURE                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    if (result?.error) {
       if (result.error === "RATE_LIMIT") {
         setError(
           "Too many failed login attempts. Please wait one hour before trying again."
         );
       } else {
-        setError("Invalid credentials. Please try again.");
+        setError(
+          "Invalid credentials. Please try again."
+        );
       }
 
       setLoading(false);
       return;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* VERIFY SESSION                                                         */
+    /* ---------------------------------------------------------------------- */
+
     const session = await getSession();
+
     if (!session) {
-      setError("Authorization failed. Please try again.");
+      setError(
+        "Authorization failed. Please try again."
+      );
+
       setLoading(false);
       return;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* RESOLVE USER ROLE                                                      */
+    /* ---------------------------------------------------------------------- */
+
     const role = session.user?.role;
 
-if (!role) {
-  setError(
-    "Your account role could not be determined. Please try again."
-  );
-  setLoading(false);
-  return;
-}
+    if (!role) {
+      setError(
+        "Your account role could not be determined. Please try again."
+      );
 
-if (
-  role === "SUPER_ADMIN" ||
-  role === "ADMIN"
-) {
-  dispatch(setViewMode("ADMIN"));
-} else if (role === "VENDOR") {
-  dispatch(setViewMode("VENDOR"));
-} else {
-  dispatch(setViewMode("CUSTOMER"));
-}
+      setLoading(false);
+      return;
+    }
 
-const allowedLanding: Record<string, string> = {
-  SUPER_ADMIN: "/dashboard/admins",
-  ADMIN: "/dashboard/admins",
-  VENDOR: "/account/vendor",
-  CUSTOMER: "/account/customer",
-};
+    /* ---------------------------------------------------------------------- */
+    /* SET APPLICATION VIEW MODE                                              */
+    /* ---------------------------------------------------------------------- */
 
-const safeSharedRoutes = ["/checkout"];
+    if (
+      role === "SUPER_ADMIN" ||
+      role === "ADMIN"
+    ) {
+      dispatch(setViewMode("ADMIN"));
+    } else if (role === "VENDOR") {
+      dispatch(setViewMode("VENDOR"));
+    } else {
+      dispatch(setViewMode("CUSTOMER"));
+    }
 
-let redirectPath =
-  allowedLanding[role] ??
-  "/account/customer";
+    /* ---------------------------------------------------------------------- */
+    /* ROLE-BASED LANDING                                                     */
+    /* ---------------------------------------------------------------------- */
 
-if (
-  intendedPath &&
-  (
-    safeSharedRoutes.includes(intendedPath) ||
-    intendedPath.startsWith(redirectPath)
-  )
-) {
-  redirectPath = intendedPath;
-}
+    const allowedLanding: Record<
+      string,
+      string
+    > = {
+      SUPER_ADMIN: "/dashboard/admins",
+      ADMIN: "/dashboard/admins",
+      VENDOR: "/account/vendor",
+      CUSTOMER: "/account/customer",
+    };
 
-setLoading(false);
+    const safeSharedRoutes = [
+      "/checkout",
+    ];
 
-window.location.href = redirectPath;
+    let redirectPath =
+      allowedLanding[role] ??
+      "/account/customer";
 
-  }
+    /* ---------------------------------------------------------------------- */
+    /* SAFE REDIRECT                                                          */
+    /* ---------------------------------------------------------------------- */
 
-  
+    if (
+      intendedPath &&
+      (
+        safeSharedRoutes.includes(
+          intendedPath
+        ) ||
+        intendedPath.startsWith(
+          redirectPath
+        )
+      )
+    ) {
+      redirectPath = intendedPath;
+    }
+
+    setLoading(false);
+
+    window.location.href =
+      redirectPath;
+  };
 
     
 

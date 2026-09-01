@@ -28,6 +28,37 @@ declare module "next-auth" {
     } & DefaultSession["user"];
   }
 
+
+    export interface AuthUser extends NextAuthUser {
+    id: string;
+
+    email: string;
+
+    name: string | null;
+
+    role: UserRoleType;
+
+    roles: UserRoleType[];
+
+    admin?: AdminPermissions;
+
+    vendorProfileId?: string;
+
+    vendorStatus?: VendorStatus;
+
+    isSuspended: boolean;
+
+    balance: number;
+
+    rejectionReason?: string | null;
+
+    identityDoc?: string | null;
+
+    businessDoc?: string | null;
+
+    locationDoc?: string | null;
+  }
+
       interface User {
       id: string;
       name: string | null;

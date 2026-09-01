@@ -4,6 +4,7 @@ import { User, Mail, ShieldCheck, BadgeCheck, Lock, Store } from "lucide-react";
 import DashboardHeader from "@/app/_components/DashboardHeader";
 import Link from "next/link";
 import BusinessToggleAction from "@/app/account/vendor/_components/BusinessToggleActions";
+import ConnectedAccounts from "./ConnectedAccounts";
 
 export default async function CustomerProfilePage() {
   const session = await getServerSession(authOptions);
@@ -38,6 +39,12 @@ export default async function CustomerProfilePage() {
 
         {/* Profile Card Container */}
         <div className="bg-white rounded-4xl border border-gray-100 shadow-sm overflow-hidden">
+
+        {/* Connected Accounts */}
+        <ConnectedAccounts />
+
+        {/* Security Notice Section */}
+        <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-3xl p-6 flex items-start gap-4"></div>
           
           {/* Brand Header/Cover Area */}
           <div className="bg-accent-navy p-8 h-32 relative">

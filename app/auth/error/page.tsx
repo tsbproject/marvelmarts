@@ -10,11 +10,24 @@ function ErrorContent() {
   const error = searchParams.get("error");
 
   const errorMessages: Record<string, string> = {
-    CredentialsSignin: "Invalid email or password. Please try again.",
-    AccessDenied: "You do not have permission to sign in.",
-    Configuration: "Authentication is not configured correctly.",
-    Default: "An unexpected error occurred. Please try again later.",
-  };
+  CredentialsSignin:
+    "Invalid email or password. Please try again.",
+
+  OAuthAccountNotLinked:
+    "This email is already registered with MarvelMarts. Please sign in with your existing password.",
+
+  OAuthSignin:
+    "We couldn't start the social sign-in process. Please try again.",
+
+  AccessDenied:
+    "You do not have permission to sign in.",
+
+  Configuration:
+    "Authentication is not configured correctly.",
+
+  Default:
+    "An unexpected error occurred. Please try again later.",
+};
 
   const message = error ? errorMessages[error] ?? errorMessages.Default : errorMessages.Default;
 
