@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      "MarvelMarts – Nigeria's Trusted Online Marketplace",
+      "MarvelMarts - Nigeria's Trusted Online Marketplace",
     template: "%s | MarvelMarts",
   },
 
@@ -32,6 +32,18 @@ export const metadata: Metadata = {
     "Shop quality products from trusted Nigerian merchants on MarvelMarts. Discover fashion, electronics, beauty, home essentials and more with secure checkout and convenient delivery.",
 
   applicationName: "MarvelMarts",
+
+
+  appleWebApp: {
+  capable: true,
+  title: "MarvelMarts",
+  statusBarStyle: "default",
+},
+
+
+  icons: {
+    apple: "/icon-512.png",
+  },
 
   generator: "Next.js",
 
@@ -52,7 +64,7 @@ export const metadata: Metadata = {
     "furniture products Nigeria",
     "laptop computer Nigeria",
     "ladies wears Nigeria",
-    "mens wears Migeria",
+    "mens wears Nigeria",
 
     
   ],
@@ -72,6 +84,8 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+
+  
 
   openGraph: {
     type: "website",
