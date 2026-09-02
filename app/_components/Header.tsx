@@ -45,7 +45,7 @@ export default function Header({ initialCategories = [] }: HeaderProps) {
         </div>
 
         {/* Bottom Row Search Bar */}
-        <div className="w-full xxs:mt-8 xs:mt-7 sm:mt-7 z-1001">
+        <div className="w-full xxs:mt-6 xs:mt-7 sm:mt-7 z-1001">
           <SearchBar />
         </div>
       </div>
