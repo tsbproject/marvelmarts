@@ -17,6 +17,8 @@ import { setWishlist } from "@/store/wishlistSlice";
 import { hydrateCart } from "@/store/cartSlice";
 import { Loader2 } from "lucide-react";
 import WalletProvider from "@/app/_context/WalletProvider";
+import InstallPWA from "@/app/_components/pwa/InstallPWA";
+import PWAServiceWorker from "@/app/_components/pwa/PWAServiceWorker";
 
 function ReduxStateSync({ onReady }: { onReady: () => void }) {
   const { data: session, status } = useSession();
@@ -89,6 +91,10 @@ export default function ClientLayout({
       <NextAuthSessionProvider session={session}>
         <ReduxStateSync onReady={() => setAuthReady(true)} />
            <InactivityManager />
+
+           
+             <InstallPWA />
+             <PWAServiceWorker />
 
 
         <CustomSessionProvider>

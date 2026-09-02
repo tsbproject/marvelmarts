@@ -8,6 +8,7 @@ import {
 import { AuthLogRepository } from "@/app/lib/repositories/auth-log.repository";
 import { getCurrentRequestId } from "@/app/lib/logging/request-context";
 import { redactJson } from "@/app/lib/logging/redaction";
+import type { AuthLogQuery } from "@/app/lib/repositories/auth-log.repository";
 
 
 export class AuthLogService {
@@ -129,4 +130,18 @@ export class AuthLogService {
       success: true,
     });
   }
+
+  static async list(query: AuthLogQuery) {
+      return AuthLogRepository.list(query);
+    }
+
+    static async findById(id: string) {
+      return AuthLogRepository.findById(id);
+    }
+
+    static async export(
+      query: Omit<AuthLogQuery, "page" | "pageSize">
+    ) {
+      return AuthLogRepository.export(query);
+    }
 }

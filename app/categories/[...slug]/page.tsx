@@ -1,9 +1,14 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
 
 import { CategoryService } from "@/app/lib/services/category.service";
+
+
+
+const SITE_URL = "https://marvelmarts.com";
 
 
 
@@ -14,10 +19,173 @@ type PageProps = {
   }>;
 };
 
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  if (!slug || slug.length === 0) {
+    return {
+      title: "Category | MarvelMarts",
+      description:
+        "Explore product categories and discover quality products from trusted Nigerian merchants on MarvelMarts.",
+    };
+  }
+
+  const slugPath = slug.join("/");
+
+  const category =
+    await CategoryService.getPublicCategoryBySlug(slugPath);
+
+  if (!category) {
+    return {
+      title: "Category Not Found | MarvelMarts",
+      description:
+        "The category you are looking for could not be found on MarvelMarts.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title =
+    category.metaTitle?.trim() ||
+    `${category.name} | MarvelMarts`;
+
+  const description =
+    category.metaDescription?.trim() ||
+    `Explore ${category.name.toLowerCase()} on MarvelMarts and discover quality products from trusted Nigerian merchants.`;
+
+  const canonicalUrl =
+    `${SITE_URL}/categories/${slugPath}`;
+
+  const image =
+    category.imageUrl ||
+    `${SITE_URL}/logo-512-x-512.png`;
+
+  return {
+    title,
+    description,
+
+    alternates: {
+      canonical: canonicalUrl,
+    },
+
+    openGraph: {
+      type: "website",
+      locale: "en_NG",
+      url: canonicalUrl,
+      siteName: "MarvelMarts",
+      title,
+      description,
+      images: [
+        {
+          url: image,
+          alt: category.name,
+        },
+      ],
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+      },
+    },
+  };
+}
+
+
+function buildCategoryJsonLd(
+  category: Awaited<
+    ReturnType<typeof CategoryService.getPublicCategoryBySlug>
+  >,
+  slugPath: string
+) {
+  if (!category) return null;
+
+  const categoryUrl =
+    `${SITE_URL}/categories/${slugPath}`;
+
+  const breadcrumbItems = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Shop",
+      item: `${SITE_URL}/shop`,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: category.name,
+      item: categoryUrl,
+    },
+  ];
+
+  const itemListElement = category.products.map(
+    (product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${SITE_URL}/products/${product.slug}`,
+      name: product.title,
+    })
+  );
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbItems,
+      },
+      {
+        "@type": "CollectionPage",
+        name: category.name,
+        url: categoryUrl,
+
+        ...(category.metaDescription
+          ? {
+              description:
+                category.metaDescription,
+            }
+          : {}),
+
+        ...(itemListElement.length > 0
+          ? {
+              mainEntity: {
+                "@type": "ItemList",
+                itemListElement,
+              },
+            }
+          : {}),
+      },
+    ],
+  };
+}
+
 export default async function CategoryPage({ params }: PageProps) {
   // 1. Await the params (Required in Next.js 15)
   const resolvedParams = await params;
   const slugArray = resolvedParams.slug;
+  
 
   if (!slugArray || slugArray.length === 0) notFound();
 
@@ -39,7 +207,24 @@ const category =
     notFound();
   }
 
-  return (
+ const categoryJsonLd = buildCategoryJsonLd(
+  category,
+  slugPath
+);
+
+return (
+  <>
+    {categoryJsonLd && (
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            categoryJsonLd
+          ).replace(/</g, "\\u003c"),
+        }}
+      />
+    )}
+
     <div className="max-w-screen-xl mx-auto px-4 py-12 min-h-screen">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-gray mb-6">
@@ -122,5 +307,6 @@ const category =
         )}
       </section>
     </div>
+  </>
   );
 }

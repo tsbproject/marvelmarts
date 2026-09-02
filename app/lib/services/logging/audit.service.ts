@@ -11,6 +11,10 @@ import {
   redactJson,
 } from "@/app/lib/logging/redaction";
 
+import type { AuditLogQuery } from "@/app/lib/repositories/audit.repository";
+
+
+
 
 
 export class AuditService {
@@ -280,5 +284,21 @@ static async userUpdated(
     action: AuditAction.USER_UPDATED,
     entity: "USER",
   });
+}
+
+
+static async list(query: AuditLogQuery) {
+  return AuditRepository.list(query);
+}
+
+static async findById(id: string) {
+  return AuditRepository.findById(id);
+}
+
+
+static async export(
+  query: Omit<AuditLogQuery, "page" | "pageSize">
+) {
+  return AuditRepository.export(query);
 }
 }

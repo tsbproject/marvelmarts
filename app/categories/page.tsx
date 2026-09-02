@@ -1,4 +1,6 @@
 import { prisma } from "@/app/lib/prisma";
+import type { Metadata } from "next";
+
 
 //Recursive type for clarity
 type CategoryTree = {
@@ -6,6 +8,31 @@ type CategoryTree = {
   name: string;
   slug: string;
   children: CategoryTree[];
+};
+
+
+export const metadata: Metadata = {
+  title: "Shop by Category",
+  description:
+    "Explore MarvelMarts product categories and discover fashion, electronics, beauty, home essentials and more from trusted Nigerian merchants.",
+  alternates: {
+    canonical: "/categories",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    title: "Shop by Category | MarvelMarts",
+    description:
+      "Explore product categories and discover quality products from trusted Nigerian merchants on MarvelMarts.",
+    url: "/categories",
+    siteName: "MarvelMarts",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop by Category | MarvelMarts",
+    description:
+      "Explore product categories and discover quality products from trusted Nigerian merchants on MarvelMarts.",
+  },
 };
 
 export default async function CategoriesPage() {

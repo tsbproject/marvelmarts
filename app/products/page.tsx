@@ -5,6 +5,33 @@ import { SerializedProduct } from "@/types/product";
 import { ProductService } from "@/app/lib/services/product.service";
 import { CategoryService } from "@/app/lib/services/category.service";
 
+import type { Metadata } from "next";
+
+
+export const metadata: Metadata = {
+  title: "Shop Quality Products in Nigeria",
+  description:
+    "Shop quality products from trusted Nigerian merchants on MarvelMarts. Explore fashion, electronics, beauty, home essentials and more with secure checkout and convenient delivery.",
+  alternates: {
+    canonical: "/products",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    title: "Shop Quality Products in Nigeria | MarvelMarts",
+    description:
+      "Discover quality products from trusted Nigerian merchants on MarvelMarts.",
+    url: "/products",
+    siteName: "MarvelMarts",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop Quality Products in Nigeria | MarvelMarts",
+    description:
+      "Discover quality products from trusted Nigerian merchants on MarvelMarts.",
+  },
+};
+
 export default async function ShopPage({
   searchParams,
 }: {

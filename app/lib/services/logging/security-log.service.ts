@@ -9,6 +9,8 @@ import {
 import { SecurityLogRepository } from "@/app/lib/repositories/security-log.repository";
 import { getCurrentRequestId } from "@/app/lib/logging/request-context";
 import { redactJson } from "@/app/lib/logging/redaction";
+import type { SecurityLogQuery } from "@/app/lib/repositories/security-log.repository";
+
 
 export class SecurityLogService {
   private static async write(
@@ -99,4 +101,19 @@ export class SecurityLogService {
       severity: SecuritySeverity.HIGH,
     });
   }
+
+
+  static async list(query: SecurityLogQuery) {
+  return SecurityLogRepository.list(query);
+  }
+
+  static async findById(id: string) {
+    return SecurityLogRepository.findById(id);
+  }
+
+  static async export(
+  query: Omit<SecurityLogQuery, "page" | "pageSize">
+) {
+  return SecurityLogRepository.export(query);
+}
 }

@@ -13,6 +13,7 @@ import MobileTopbar from "@/app/_components/MobileTopbar";
 import {
   LifeBuoy,
   MessageCircle,
+  ShieldCheck,
 } from "lucide-react";
 
 // ─────────────────────────────────────
@@ -276,18 +277,27 @@ export default function AdminLayoutClient({
   ];
 
   /* ------------------------------------------------------------------ */
-  /* SYSTEM                                                             */
-  /* ------------------------------------------------------------------ */
+/* SYSTEM                                                             */
+/* ------------------------------------------------------------------ */
 
-  const system = [
-    {
-      label: "Settings",
-      href: "/dashboard/admins/settings",
-      visible:
-        isSuperAdmin ||
-        !!permissions.manageSettings,
-    },
-  ];
+    const system = [
+      {
+        label: "Security",
+        href: "/dashboard/admins/security",
+        icon: (
+          <ShieldCheck size={20} />
+        ),
+        visible: isSuperAdmin,
+      },
+
+      {
+        label: "Settings",
+        href: "/dashboard/admins/settings",
+        visible:
+          isSuperAdmin ||
+          !!permissions.manageSettings,
+      },
+    ];
 
   return {
     general:
