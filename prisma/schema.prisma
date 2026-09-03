@@ -14,7 +14,6 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   name               String?
-  emailVerified       DateTime?
   permissions        Json?
   IsVerified         Boolean             @default(false)
   isSuspended        Boolean             @default(false)
@@ -25,9 +24,13 @@ model User {
   phone              String?
   paymentTypes       PaymentTypes[]
   phoneNumber        String?
+  emailVerified      DateTime?
   accounts           Account[]
   addresses          Address[]
   adminProfile       AdminProfile?
+  apiLogs            ApiLog[]            @relation("UserApiLogs")
+  auditLogs          AuditLog[]          @relation("UserAuditLogs")
+  authLogs           AuthLog[]           @relation("UserAuthLogs")
   bankAccount        BankAccount?
   cart               Cart?
   customerProfile    CustomerProfile?
@@ -38,6 +41,7 @@ model User {
   paymentMethods     PaymentMethod[]
   payouts            Payout[]
   reviews            Review[]
+  securityLogs       SecurityLog[]       @relation("UserSecurityLogs")
   sessions           Session[]
   vendorFollows      VendorFollow[]
   vendorProfile      VendorProfile?
@@ -45,11 +49,6 @@ model User {
   wallet             Wallet?
   wishlists          Wishlist[]
   conversations      Conversation[]      @relation("UserConversations")
-
-  auditLogs    AuditLog[]    @relation("UserAuditLogs")
-  authLogs     AuthLog[]     @relation("UserAuthLogs")
-  securityLogs SecurityLog[] @relation("UserSecurityLogs")
-  apiLogs      ApiLog[]      @relation("UserApiLogs")
 }
 
 model VerificationCode {
@@ -349,7 +348,7 @@ model Category {
   metaDescription String?
   metaTitle       String?
   isFeatured      Boolean    @default(false)
-  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children        Category[] @relation("CategoryToCategory")
   primaryProducts Product[]  @relation("PrimaryProductCategory")
   products        Product[]  @relation("ProductCategories")
@@ -506,8 +505,8 @@ model CartItem {
   qty       Int      @default(1)
   unitPrice Decimal  @db.Decimal(10, 2)
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  product   Product? @relation(fields: [productId], references: [id])
+  variant   Variant? @relation(fields: [variantId], references: [id])
 
   @@index([cartId])
   @@index([productId])
@@ -549,8 +548,8 @@ model Order {
   shippingFirstName    String?
   shippingLastName     String?
   paymentTypes         PaymentTypes?
-  user                 User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
+  user                 User?         @relation(fields: [userId], references: [id])
+  vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id])
   items                OrderItem[]
 
   @@index([vendorProfileId])
@@ -573,8 +572,8 @@ model OrderItem {
   imageUrl  String?
   title     String?
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  product   Product? @relation(fields: [productId], references: [id])
+  variant   Variant? @relation(fields: [variantId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -853,6 +852,93 @@ model BankAccount {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model AuditLog {
+  id        String   @id @default(cuid())
+  requestId String?
+  actorId   String?
+  actorRole Role?
+  action    String
+  entity    String
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  actor     User?    @relation("UserAuditLogs", fields: [actorId], references: [id])
+
+  @@index([requestId])
+  @@index([actorId])
+  @@index([actorRole])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+model AuthLog {
+  id        String   @id @default(cuid())
+  requestId String?
+  userId    String?
+  email     String?
+  action    String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation("UserAuthLogs", fields: [userId], references: [id])
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([email])
+  @@index([action])
+  @@index([success])
+  @@index([createdAt])
+}
+
+model SecurityLog {
+  id            String   @id @default(cuid())
+  requestId     String?
+  userId        String?
+  event         String
+  severity      String
+  ipAddress     String?
+  userAgent     String?
+  requestPath   String?
+  requestMethod String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  user          User?    @relation("UserSecurityLogs", fields: [userId], references: [id])
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([event])
+  @@index([severity])
+  @@index([requestPath])
+  @@index([createdAt])
+}
+
+model ApiLog {
+  id         String   @id @default(cuid())
+  requestId  String?
+  userId     String?
+  method     String
+  path       String
+  statusCode Int
+  durationMs Int
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation("UserApiLogs", fields: [userId], references: [id])
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([method])
+  @@index([path])
+  @@index([statusCode])
+  @@index([createdAt])
+}
+
 enum VendorTier {
   BRONZE
   SILVER
@@ -946,128 +1032,4 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
-}
-
-/**
- * ===================================================
- */
-/**
- * ALL SECURITY AUDIT
- */
-/**
- * ===================================================
- */
-
-model AuditLog {
-  id String @id @default(cuid())
-
-  requestId String?
-
-  actorId String?
-  actor   User?   @relation("UserAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
-
-  actorRole Role?
-
-  action   String
-  entity   String
-  entityId String?
-
-  oldValues Json?
-  newValues Json?
-
-  ipAddress String?
-  userAgent String?
-
-  createdAt DateTime @default(now())
-
-  @@index([requestId])
-  @@index([actorId])
-  @@index([actorRole])
-  @@index([action])
-  @@index([entity])
-  @@index([entityId])
-  @@index([createdAt])
-}
-
-model AuthLog {
-  id String @id @default(cuid())
-
-  requestId String?
-
-  userId String?
-  user   User?   @relation("UserAuthLogs", fields: [userId], references: [id], onDelete: SetNull)
-
-  email String?
-
-  action  String
-  success Boolean
-
-  ipAddress String?
-  userAgent String?
-
-  createdAt DateTime @default(now())
-
-  @@index([requestId])
-  @@index([userId])
-  @@index([email])
-  @@index([action])
-  @@index([success])
-  @@index([createdAt])
-}
-
-model SecurityLog {
-  id String @id @default(cuid())
-
-  requestId String?
-
-  userId String?
-
-  user User? @relation("UserSecurityLogs", fields: [userId], references: [id], onDelete: SetNull)
-
-  event    String
-  severity String
-
-  ipAddress String?
-  userAgent String?
-
-  requestPath   String?
-  requestMethod String?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  @@index([requestId])
-  @@index([userId])
-  @@index([event])
-  @@index([severity])
-  @@index([requestPath])
-  @@index([createdAt])
-}
-
-model ApiLog {
-  id String @id @default(cuid())
-
-  requestId String?
-
-  userId String?
-  user   User?   @relation("UserApiLogs", fields: [userId], references: [id], onDelete: SetNull)
-
-  method String
-  path   String
-
-  statusCode Int
-  durationMs Int
-
-  ipAddress String?
-  userAgent String?
-
-  createdAt DateTime @default(now())
-
-  @@index([requestId])
-  @@index([userId])
-  @@index([method])
-  @@index([path])
-  @@index([statusCode])
-  @@index([createdAt])
 }
