@@ -56,9 +56,12 @@ private static async validateProductOwnership(
 
 
     //QUERIES SECTION 
-    static async getProductBySlug(
-  slug: string
-) {
+ static async getProductBySlug(
+    slug: string,
+    options?: {
+      includeUnavailable?: boolean;
+    }
+  ) {
   const product =
     await prisma.product.findUnique({
       where: {
@@ -133,12 +136,11 @@ private static async validateProductOwnership(
 
   if (
     product.vendorProfile.isSuspended ||
-    product.vendorProfile.status !==
-      "APPROVED"
+    product.vendorProfile.status !== "APPROVED"
   ) {
-    throw forbidden(
-      "Product is unavailable."
-    );
+    if (!options?.includeUnavailable) {
+      throw forbidden("Product is unavailable.");
+    }
   }
 
   return product;

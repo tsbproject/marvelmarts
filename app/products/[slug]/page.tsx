@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ProductDetails from "./ProductDetails";
+import ProductUnavailable from "./ProductUnavailable";
 import type { Product, Category, ProductImage } from "@prisma/client";
 import { ProductService } from "@/app/lib/services/product.service";
 
@@ -69,7 +70,9 @@ export async function generateMetadata({
     };
   }
 
-  const product = await ProductService.getProductBySlug(slug);
+  const product = await ProductService.getProductBySlug(slug, {
+      includeUnavailable: true,
+    });
 
   if (!product) {
     return {
@@ -87,6 +90,11 @@ export async function generateMetadata({
   const description =
     product.description?.trim() ||
     `Shop ${title} on MarvelMarts and discover quality products from trusted Nigerian merchants.`;
+
+
+    const isProductUnavailable =
+      product.vendorProfile.isSuspended ||
+      product.vendorProfile.status !== "APPROVED";
 
   const image =
     product.images?.[0]?.url || `${SITE_URL}/logo-512-x-512.png`;
@@ -124,14 +132,14 @@ export async function generateMetadata({
     },
 
     robots: {
-      index: product.isPublished,
-      follow: product.isPublished,
-      googleBot: {
-        index: product.isPublished,
-        follow: product.isPublished,
-        "max-image-preview": "large",
-      },
+    index: product.isPublished && !isProductUnavailable,
+    follow: product.isPublished && !isProductUnavailable,
+    googleBot: {
+      index: product.isPublished && !isProductUnavailable,
+      follow: product.isPublished && !isProductUnavailable,
+      "max-image-preview": "large",
     },
+  },
   };
 }
 
@@ -218,19 +226,38 @@ export default async function ProductPage({ params }: Props) {
 
       
   const product =
-    await ProductService.getProductBySlug(
-      slug
-    );
+  await ProductService.getProductBySlug(
+    slug,
+    {
+      includeUnavailable: true,
+    }
+  );
 
   if (!product) return notFound();
 
+  const isProductUnavailable =
+    product.vendorProfile.isSuspended ||
+    product.vendorProfile.status !== "APPROVED";
+
+  if (isProductUnavailable) {
+    const unavailableImage =
+    product.images?.[0]?.url || null;
+
+    return (
+      <ProductUnavailable
+        title={product.title}
+        imageUrl={unavailableImage}
+      />
+    );
+  }
+
   const similarProducts =
-  product.categoryId
-    ? await ProductService.getSimilarProducts(
-        product.categoryId,
-        product.id
-      )
-    : [];
+    product.categoryId
+      ? await ProductService.getSimilarProducts(
+          product.categoryId,
+          product.id
+        )
+      : [];
 
   
   const formattedProduct: ProductWithRelations = {

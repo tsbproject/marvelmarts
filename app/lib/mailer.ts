@@ -54,6 +54,7 @@ export {
   sendVendorReviewEmail,
   sendVendorStatusEmail,
   sendVendorActionEmail,
+  sendVendorSetupCompleteEmail,
   sendCreditPurchaseEmail as sendVendorCreditPurchaseEmail,
   sendLowCreditEmail as sendVendorLowCreditsEmail,
   sendLowCreditEmail as sendVendorLowCreditEmail,

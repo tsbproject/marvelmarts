@@ -160,6 +160,7 @@ model VendorOnboarding {
   storeDone       Boolean       @default(false)
   productDone     Boolean       @default(false)
   completed       Boolean       @default(false)
+  setupEmailSent  Boolean       @default(false)
   vendorProfile   VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 }
 

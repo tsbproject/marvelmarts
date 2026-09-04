@@ -16,6 +16,8 @@ import {
   vendorActionEmail,
 } from "../templates/vendor/vendor-action";
 
+import { vendorSetupCompleteEmail } from "../templates/vendor/vendor-setup-complete";
+
 import {
   creditPurchaseEmail,
 } from "../templates/vendor/credit-purchase";
@@ -40,6 +42,7 @@ import {
   VendorLowCreditData,
   VendorExhaustedCreditData,
   VendorStatusData,
+  VendorSetupCompleteData,
 } from "../types/vendor.types";
 
 export async function sendVendorApprovedEmail(
@@ -82,6 +85,24 @@ export async function sendVendorActionEmail(
 
   const template =
     vendorActionEmail(data);
+
+  return sendEmail({
+    to: data.email,
+    subject: template.subject,
+    html: emailLayout(
+      template.html,
+      template.preview
+    ),
+  });
+}
+
+
+
+export async function sendVendorSetupCompleteEmail(
+  data: VendorSetupCompleteData
+) {
+  const template =
+    vendorSetupCompleteEmail(data);
 
   return sendEmail({
     to: data.email,

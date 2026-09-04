@@ -5,7 +5,11 @@ import {
   VendorStatus,
   UserRole,
 } from "@prisma/client";
-import { sendVendorReviewEmail } from "@/app/lib/mailer";
+import {
+  sendVendorReviewEmail,
+  sendVendorActionEmail,
+   sendVendorSetupCompleteEmail,
+} from "@/app/lib/mailer";
 import type { VerificationStatus } from "@/types/vendor";
 
 import {
@@ -14,6 +18,7 @@ import {
   subDays,
 } from "date-fns";
 import { AuditService } from "@/app/lib/services/logging/audit.service";
+
 
 
 export class VendorService {
@@ -718,12 +723,35 @@ static async getVendorProfileWithStoreOnly(
         case "FLAG":
           // No dedicated audit method yet.
           break;
+            }
+
+      if (
+        action === "RESTORE" &&
+        existingVendor.isSuspended &&
+        !vendor.isSuspended
+      ) {
+        try {
+          await sendVendorActionEmail({
+            email: vendor.user.email,
+            name: vendor.user.name ?? "Vendor",
+            action: "RESTORE",
+            reason:
+              reason ??
+              "Your vendor account suspension has been lifted.",
+          });
+        } catch (error) {
+          console.error(
+            "[VendorService.performVendorAction] RESTORE email failed:",
+            error
+          );
+        }
       }
 
       return vendor;
     }
-
-    static async getVendorProfileForAdmin(
+    
+    
+      static async getVendorProfileForAdmin(
       vendorProfileId: string
     ) {
       const vendorProfile =
@@ -974,7 +1002,29 @@ static async getVendorProfileWithStoreOnly(
               isSuspended:
                 updatedVendor.isSuspended,
             },
-          }));
+                }));
+
+      if (
+        action === "RESTORE" &&
+        vendor.isSuspended &&
+        !updatedVendor.isSuspended
+      ) {
+        try {
+          await sendVendorActionEmail({
+            email: updatedVendor.user.email,
+            name: updatedVendor.user.name ?? "Vendor",
+            action: "RESTORE",
+            reason:
+              reason ??
+              "Your vendor account suspension has been lifted.",
+          });
+        } catch (error) {
+          console.error(
+            "[VendorService.handleVendorEnforcementAction] RESTORE email failed:",
+            error
+          );
+        }
+      }
 
       return {
         vendor: updatedVendor,
@@ -1188,6 +1238,8 @@ static async getVendorProfileWithStoreOnly(
         };
       }
 
+      let wasSuspended = false;
+
       const updated =
         await prisma.$transaction(
           async (tx) => {
@@ -1206,6 +1258,10 @@ static async getVendorProfileWithStoreOnly(
                 "Vendor not found."
               );
             }
+
+
+            wasSuspended = 
+            currentVendor.isSuspended;
 
             let dataUpdate = {};
             let onboardingUpdate = {};
@@ -1354,11 +1410,61 @@ static async getVendorProfileWithStoreOnly(
           }
         );
 
-      return {
-        type: "updated",
-        vendor: updated,
-    };
+   
+
+    if (
+      action === "SUSPEND" &&
+      !wasSuspended &&
+      updated.isSuspended
+    ) {
+      try {
+        await sendVendorActionEmail({
+          email: updated.user.email,
+          name:
+            updated.user.name ??
+            "Vendor",
+          action: "SUSPEND",
+          reason:
+            reason ??
+            "Your vendor account has been suspended.",
+        });
+      } catch (error) {
+        console.error(
+          "[VendorService.processVendorVerification] SUSPEND email failed:",
+          error
+        );
+      }
     }
+
+if (
+  action === "UNSUSPEND" &&
+  wasSuspended &&
+  !updated.isSuspended
+) {
+  try {
+    await sendVendorActionEmail({
+      email: updated.user.email,
+      name:
+        updated.user.name ??
+        "Vendor",
+      action: "RESTORE",
+      reason:
+        reason ??
+        "Your vendor account suspension has been lifted.",
+    });
+  } catch (error) {
+    console.info(
+      "[VendorService.processVendorVerification] RESTORE email failed:",
+      error
+    );
+  }
+}
+
+    return {
+      type: "updated",
+      vendor: updated,
+    };
+        }
 
 
 
@@ -1403,6 +1509,19 @@ static async getVendorProfileWithStoreOnly(
 
         storeDone: true,
         payoutsDone: true,
+
+        onboarding: {
+          select: {
+            setupEmailSent: true,
+          },
+        },
+
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
 
         store: {
           select: {
@@ -1497,6 +1616,17 @@ static async getVendorProfileWithStoreOnly(
     finalAccountName
   );
 
+
+
+
+
+    /* ------------------------------------------------------------------ */
+  /* STORE SETUP COMPLETION                                             */
+  /* ------------------------------------------------------------------ */
+
+      const setupComplete =
+        storeDone && payoutsDone;
+
   /* ------------------------------------------------------------------ */
   /* DATABASE UPDATE                                                     */
   /* ------------------------------------------------------------------ */
@@ -1572,7 +1702,7 @@ static async getVendorProfileWithStoreOnly(
               /* Keep VendorOnboarding synchronized                     */
               /* ------------------------------------------------------ */
 
-              onboarding: {
+             onboarding: {
                 upsert: {
                   create: {
                     storeDone,
@@ -1590,13 +1720,21 @@ static async getVendorProfileWithStoreOnly(
         /* Keep public VendorStore synchronized                         */
         /* ------------------------------------------------------------ */
 
-        await tx.vendorStore.updateMany({
+        await tx.vendorStore.upsert({
           where: {
-            vendorProfileId:
-              profile.id,
+            vendorProfileId: profile.id,
           },
 
-          data: {
+          create: {
+            vendorProfileId: profile.id,
+            name: finalStoreName,
+            slug: finalSlug,
+            description: data.bio ?? existingProfile.bio ?? null,
+            logo: data.logoUrl ?? existingProfile.logoUrl ?? null,
+            banner: data.coverUrl ?? existingProfile.coverUrl ?? null,
+          },
+
+          update: {
             ...(data.storeName !== undefined && {
               name: data.storeName,
             }),
@@ -1719,9 +1857,53 @@ static async getVendorProfileWithStoreOnly(
     },
   });
 
-  return updatedProfile;
-}
-      static async getBankAccount(
+
+   /* ------------------------------------------------------------------ */
+  /* VENDOR SETUP COMPLETE EMAIL                                       */
+  /* ------------------------------------------------------------------ */
+
+  if (
+    setupComplete &&
+    !existingProfile.onboarding?.setupEmailSent
+  ) {
+    try {
+      await sendVendorSetupCompleteEmail({
+        email:
+          existingProfile.user.email,
+
+        firstName:
+          existingProfile.user.name
+            ?.split(" ")[0] ??
+          "Merchant",
+
+        storeName:
+          updatedProfile.storeName ??
+          "Your Store",
+      });
+
+      await prisma.vendorOnboarding.update({
+        where: {
+          vendorProfileId:
+            updatedProfile.id,
+        },
+
+        data: {
+          setupEmailSent: true,
+        },
+      });
+    } catch (error) {
+      console.info(
+        "[VendorService] Vendor setup complete email failed:",
+        error
+      );
+    }
+  }
+    
+return updatedProfile;
+  }
+      
+  
+  static async getBankAccount(
         userId: string
       ) {
         return prisma.bankAccount.findUnique({

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+
 import { 
   ShoppingCart, Star, ShieldCheck, Truck, 
   RefreshCcw, Plus, Minus, Loader2, ChevronLeft,

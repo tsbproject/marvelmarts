@@ -2,6 +2,14 @@ export interface VendorApprovalData {
   email: string;
   firstName: string;
   storeName: string;
+  
+}
+
+
+export interface VendorSetupCompleteData {
+  email: string;
+  firstName: string;
+  storeName: string;
 }
 
 export interface VendorReviewData {
@@ -53,4 +61,11 @@ export interface VendorStatusData {
     | "UNDER_REVIEW";
 
   reason?: string;
+}
+
+
+export interface VendorSetupCompleteData {
+  email: string;
+  firstName: string;
+  storeName: string;
 }

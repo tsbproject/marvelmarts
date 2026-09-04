@@ -1,5 +1,5 @@
-
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { 
   Store, 
@@ -17,6 +17,98 @@ import { SerializedProduct } from "@/types/product";
 import ShareActions from "./_components/ShareActions"; 
 import ReportButton from "./_components/ReportButton";
 import { VendorService } from "@/app/lib/services/vendor.service";
+import StoreUnavailable from "./StoreUnavailable";
+
+
+export const dynamic = "force-dynamic";
+
+const SITE_URL = "https://marvelmarts.com";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  const storeData =
+    await VendorService.getPublicStoreBySlug(slug);
+
+  if (!storeData?.vendorProfile) {
+    return {
+      title: "Store Not Found | MarvelMarts",
+      description:
+        "The store you are looking for could not be found on MarvelMarts.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const vendor = storeData.vendorProfile;
+  const storeName =
+    storeData.name ||
+    vendor.storeName ||
+    "Official Store";
+
+  const storeUrl = `${SITE_URL}/store/${slug}`;
+
+  const isUnavailable =
+    vendor.isSuspended ||
+    vendor.status !== "APPROVED";
+
+  if (isUnavailable) {
+    return {
+      title: `${storeName} | Temporarily Unavailable | MarvelMarts`,
+      description:
+        `${storeName} is temporarily unavailable on MarvelMarts. Please check back later.`,
+      alternates: {
+        canonical: storeUrl,
+      },
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
+    };
+  }
+
+  return {
+    title: `${storeName} | MarvelMarts`,
+    description:
+      `Shop products from ${storeName} on MarvelMarts, Nigeria's trusted online marketplace.`,
+    alternates: {
+      canonical: storeUrl,
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_NG",
+      url: storeUrl,
+      siteName: "MarvelMarts",
+      title: `${storeName} | MarvelMarts`,
+      description:
+        `Shop products from ${storeName} on MarvelMarts.`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${storeName} | MarvelMarts`,
+      description:
+        `Shop products from ${storeName} on MarvelMarts.`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+  };
+}
 
 export default async function PublicStorePage({ 
   params 
@@ -39,8 +131,6 @@ if (!storeData?.vendorProfile) {
   notFound();
 }
 
-  if (!storeData || !storeData.vendorProfile) notFound();
-
   const vendor = storeData.vendorProfile;
   const displayStoreName = storeData.name || vendor.storeName || "Official Store";
   
@@ -49,37 +139,11 @@ if (!storeData?.vendorProfile) {
   const shareText = encodeURIComponent(`Check out ${displayStoreName} on MarvelMarts!`);
 
   // KILL SWITCH: If vendor is suspended or not approved
-  if (vendor.isSuspended || vendor.status !== "APPROVED") {
+      if (vendor.isSuspended || vendor.status !== "APPROVED") {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-6">
-        <div className="max-w-xl w-full text-center">
-          <div className="mb-8 flex justify-center">
-            <div className="relative">
-              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center">
-                <Store size={48} className="text-gray-300" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-8 h-8 bg-brand-primary rounded-full border-4 border-white flex items-center justify-center">
-                <ShieldCheck size={16} className="text-accent-navy" />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-4xl font-black text-accent-navy uppercase tracking-tighter mb-4">
-            Store Temporarily <br /> Offline
-          </h1>
-          <p className="text-neutral-gray text-xl font-medium mb-8 leading-relaxed">
-            {storeData.name} is currently updating their catalog or taking a short break. 
-            Check back soon or explore other amazing merchants on MarvelMarts.
-          </p>
-          <div className="flex flex-col gap-3">
-            <a href="/shop" className="w-full py-4 bg-accent-navy text-white rounded-2xl font-black uppercase tracking-widest text-lg hover:bg-brand-primary transition-colors">
-              Explore Marketplace
-            </a>
-            <a href="/" className="w-full py-4 bg-gray-50 text-accent-navy rounded-2xl font-black uppercase tracking-widest text-lg hover:bg-gray-100 transition-colors">
-              Go to Homepage
-            </a>
-          </div>
-        </div>
-      </div>
+      <StoreUnavailable
+        storeName={displayStoreName}
+      />
     );
   }
 
