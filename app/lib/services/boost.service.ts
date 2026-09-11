@@ -6,12 +6,14 @@ import {
 
 import { prisma } from "@/app/lib/prisma";
 import { logger } from "@/app/lib/logger";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 import {
   sendVendorCreditPurchaseEmail,
   sendVendorExhaustedCreditsEmail,
   sendVendorLowCreditsEmail,
 } from "@/app/lib/mailer";
+
 
 type BoostProductResult = {
   success: true;
@@ -54,7 +56,7 @@ export class BoostService {
 
       case 7:
         return {
-          cost: 30,
+          cost: 45,
           duration: 7,
         };
 
@@ -317,230 +319,293 @@ export class BoostService {
    */
 
   static async addCreditsToVendor(
-    vendorProfileId: string,
-    amount: number,
+  vendorProfileId: string,
+  amount: number,
     reference: string
-  ): Promise<
-    | {
-        success: true;
-        newBalance: number;
-      }
-    | {
-        success: false;
-        error: string;
-      }
-  > {
-    try {
-      /*
-      * ------------------------------------------------------------
-      * IDEMPOTENCY
-      * ------------------------------------------------------------
-      *
-      * A payment callback may be delivered more than once.
-      * If this reference has already been processed, do NOT
-      * add the credits again.
-      */
-      const existingTransaction =
-        await prisma.creditTransaction.findUnique({
-          where: {
-            reference,
-          },
-          select: {
-            vendorProfileId: true,
-          },
-        });
-
-      if (existingTransaction) {
+    ): Promise<
+      | {
+          success: true;
+          newBalance: number;
+        }
+      | {
+          success: false;
+          error: string;
+        }
+    > {
+      try {
         /*
-        * Make sure the existing transaction belongs to the
-        * same vendor before treating it as a duplicate.
+        * ------------------------------------------------------------
+        * IDEMPOTENCY
+        * ------------------------------------------------------------
+        *
+        * A payment callback may be delivered more than once.
+        * If this reference has already been processed, do NOT
+        * add the credits again.
         */
-        if (
-          existingTransaction.vendorProfileId !==
-          vendorProfileId
-        ) {
+        const existingTransaction =
+          await prisma.creditTransaction.findUnique({
+            where: {
+              reference,
+            },
+            select: {
+              vendorProfileId: true,
+            },
+          });
+
+        if (existingTransaction) {
+          /*
+          * Make sure the existing transaction belongs to the
+          * same vendor before treating it as a duplicate.
+          */
+          if (
+            existingTransaction.vendorProfileId !==
+            vendorProfileId
+          ) {
+            return {
+              success: false,
+              error:
+                "Payment reference belongs to another vendor.",
+            };
+          }
+
+          const existingBoost =
+            await prisma.vendorBoost.findUnique({
+              where: {
+                vendorProfileId,
+              },
+              select: {
+                credits: true,
+              },
+            });
+
           return {
-            success: false,
-            error:
-              "Payment reference belongs to another vendor.",
+            success: true,
+            newBalance:
+              existingBoost?.credits ?? 0,
           };
         }
 
-        const existingBoost =
-          await prisma.vendorBoost.findUnique({
-            where: {
-              vendorProfileId,
-            },
-            select: {
-              credits: true,
-            },
-          });
-
-        return {
-          success: true,
-          newBalance:
-            existingBoost?.credits ?? 0,
-        };
-      }
-
-      /*
-      * ------------------------------------------------------------
-      * ATOMIC CREDIT APPLICATION
-      * ------------------------------------------------------------
-      */
-      const result =
-        await prisma.$transaction(
-          async (tx) => {
-            /*
-            * Create the transaction record first.
-            *
-            * The unique reference guarantees that only one
-            * concurrent callback can successfully create it.
-            */
-            try {
-              await tx.creditTransaction.create({
-                data: {
-                  reference,
-                  amount,
-                  vendorProfileId,
-                  status: "SUCCESS",
-                  platform: "PAYSTACK",
-                  emailSent: false,
-                },
-              });
-            } catch (error: unknown) {
+        /*
+        * ------------------------------------------------------------
+        * ATOMIC CREDIT APPLICATION
+        * ------------------------------------------------------------
+        *
+        * The CreditTransaction reference is unique.
+        * The transaction record is created before the balance
+        * update so a successful payment reference can only be
+        * applied once.
+        */
+        const result =
+          await prisma.$transaction(
+            async (tx) => {
               /*
-              * Another callback may have created the same
-              * reference between our initial findUnique() and
-              * this create().
+              * Create the transaction record first.
               *
-              * Let the outer handler deal with the duplicate
-              * safely instead of incrementing credits twice.
+              * The unique reference prevents concurrent callbacks
+              * from successfully creating the same payment transaction.
               */
-              if (
-                error instanceof Prisma.PrismaClientKnownRequestError &&
-                error.code === "P2002"
-              ) {
-                return null;
+              try {
+                await tx.creditTransaction.create({
+                  data: {
+                    reference,
+                    amount,
+                    vendorProfileId,
+                    status: "SUCCESS",
+                    platform: "PAYSTACK",
+                    emailSent: false,
+                  },
+                });
+              } catch (error: unknown) {
+                /*
+                * Another callback may have created the same
+                * reference between the initial lookup and this
+                * create operation.
+                *
+                * Return null so the caller treats this request
+                * as the losing duplicate.
+                */
+                if (
+                  error instanceof
+                    Prisma.PrismaClientKnownRequestError &&
+                  error.code === "P2002"
+                ) {
+                  return null;
+                }
+
+                throw error;
               }
 
-              throw error;
-            }
-
-            const updatedBoost =
-              await tx.vendorBoost.upsert({
-                where: {
-                  vendorProfileId,
-                },
-
-                create: {
-                  vendorProfileId,
-                  credits: amount,
-                  lowCreditAlertSent: false,
-                  exhaustedAlertSent: false,
-                },
-
-                update: {
-                  credits: {
-                    increment: amount,
+              /*
+              * Capture the previous balance before applying
+              * the successful payment credit.
+              */
+              const existingBoost =
+                await tx.vendorBoost.findUnique({
+                  where: {
+                    vendorProfileId,
                   },
-                  lowCreditAlertSent: false,
-                  exhaustedAlertSent: false,
-                },
-              });
+                  select: {
+                    credits: true,
+                  },
+                });
 
-            const vendor =
-              await tx.vendorProfile.findUnique({
-                where: {
-                  id: vendorProfileId,
-                },
-                select: {
-                  storeName: true,
-                  user: {
-                    select: {
-                      email: true,
-                      name: true,
+              const previousBalance =
+                existingBoost?.credits ?? 0;
+
+              /*
+              * Apply the purchased credits atomically with
+              * the CreditTransaction creation.
+              */
+              const updatedBoost =
+                await tx.vendorBoost.upsert({
+                  where: {
+                    vendorProfileId,
+                  },
+
+                  create: {
+                    vendorProfileId,
+                    credits: amount,
+                    lowCreditAlertSent: false,
+                    exhaustedAlertSent: false,
+                  },
+
+                  update: {
+                    credits: {
+                      increment: amount,
+                    },
+                    lowCreditAlertSent: false,
+                    exhaustedAlertSent: false,
+                  },
+                });
+
+              const vendor =
+                await tx.vendorProfile.findUnique({
+                  where: {
+                    id: vendorProfileId,
+                  },
+                  select: {
+                    storeName: true,
+                    user: {
+                      select: {
+                        email: true,
+                        name: true,
+                      },
                     },
                   },
-                },
-              });
+                });
 
-            return {
-              updatedBoost,
-              vendor,
-            };
-          }
-        );
+              return {
+                updatedBoost,
+                previousBalance,
+                vendor,
+              };
+            }
+          );
 
-      /*
-      * Another request won the race and processed the
-      * transaction first.
-      */
-      if (!result) {
-        const existingBoost =
-          await prisma.vendorBoost.findUnique({
+        /*
+        * Another request won the race and processed the
+        * transaction first.
+        *
+        * Do not add credits or create another audit record.
+        */
+        if (!result) {
+          const existingBoost =
+            await prisma.vendorBoost.findUnique({
+              where: {
+                vendorProfileId,
+              },
+              select: {
+                credits: true,
+              },
+            });
+
+          return {
+            success: true,
+            newBalance:
+              existingBoost?.credits ?? 0,
+          };
+        }
+
+        /*
+        * ------------------------------------------------------------
+        * AUDIT LOG
+        * ------------------------------------------------------------
+        *
+        * This is a system/payment-provider initiated financial
+        * mutation, so there is no human actorId.
+        *
+        * The audit records the vendor boost balance before and
+        * after the successful payment.
+        */
+        await AuditService.vendorBoostCreditsPurchased({
+          actorId: undefined,
+          entityId:
+            result.updatedBoost.id,
+          oldValues: {
+            balance:
+              result.previousBalance,
+          },
+          newValues: {
+            balance:
+              result.updatedBoost.credits,
+            amount,
+            reference,
+            platform: "PAYSTACK",
+            actorType: "SYSTEM",
+            paymentSource: "PAYSTACK",
+          },
+        });
+
+        /*
+        * ------------------------------------------------------------
+        * PURCHASE EMAIL
+        * ------------------------------------------------------------
+        *
+        * Email delivery remains outside the financial transaction.
+        * A mail failure must never roll back a successful payment.
+        */
+        if (result.vendor?.user?.email) {
+          await sendVendorCreditPurchaseEmail({
+            email:
+              result.vendor.user.email,
+            firstName:
+              result.vendor.user.name ??
+              "Vendor",
+            storeName:
+              result.vendor.storeName ??
+              result.vendor.user.name ??
+              "Your Store",
+            amountAdded: amount,
+            newBalance:
+              result.updatedBoost.credits,
+          });
+
+          await prisma.creditTransaction.update({
             where: {
-              vendorProfileId,
+              reference,
             },
-            select: {
-              credits: true,
+            data: {
+              emailSent: true,
+              emailSentAt: new Date(),
             },
           });
+        }
 
         return {
           success: true,
           newBalance:
-            existingBoost?.credits ?? 0,
+            result.updatedBoost.credits,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred.",
         };
       }
-
-      /*
-      * ------------------------------------------------------------
-      * PURCHASE EMAIL
-      * ------------------------------------------------------------
-      */
-      if (result.vendor?.user?.email) {
-        await sendVendorCreditPurchaseEmail({
-          email: result.vendor.user.email,
-          firstName:
-            result.vendor.user.name ??
-            "Vendor",
-          storeName:
-            result.vendor.storeName ??
-            result.vendor.user.name ??
-            "Your Store",
-          amountAdded: amount,
-          newBalance:
-            result.updatedBoost.credits,
-        });
-
-        await prisma.creditTransaction.update({
-          where: {
-            reference,
-          },
-          data: {
-            emailSent: true,
-            emailSentAt: new Date(),
-          },
-        });
-      }
-
-      return {
-        success: true,
-        newBalance:
-          result.updatedBoost.credits,
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
-      };
     }
-  }
-
 
       /**
      * --------------------------------------------------------

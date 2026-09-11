@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import Image from "next/image";
-import VendorChatPage from "../account/customer/messages/[id]/page"; 
+import VendorChatPage from "@/app/account/customer/messages/[id]/VendorChatPage";
 
 interface ChatDrawerProps {
   isOpen: boolean;

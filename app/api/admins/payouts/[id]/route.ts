@@ -4,10 +4,10 @@ import { PayoutService } from "@/app/lib/services/payout.service";
 
 import { pusherServer } from "@/app/lib/pusherServer";
 import { sendPayoutStatusEmail } from "@/app/lib/mailer";
-
 import {
   handleApiError,
   requireManagePayout,
+  requireAuth,
 } from "@/app/lib/auth/api";
 
 import { logger } from "@/app/lib/logger";
@@ -32,6 +32,9 @@ export const PATCH =
     ) => {
       try {
         verifyOrigin(req);
+
+
+        const session = await requireAuth();
 
         await requireManagePayout();
 
@@ -58,11 +61,11 @@ export const PATCH =
           vendorId,
         } =
           await PayoutService.processPayout(
-            id,
-            status,
-            remarks
-          );
-
+          id,
+          status,
+          remarks,
+          session.user.id
+        );
         try {
           await pusherServer.trigger(
             `vendor-${vendorId}`,

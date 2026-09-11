@@ -273,7 +273,7 @@ export default function SecurityLogsPage() {
       filterOptions={{
         events: eventOptions,
         severities: severityOptions,
-        methods: methodOptions,
+        
       }}
     />
     </div>

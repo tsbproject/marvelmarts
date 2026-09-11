@@ -1,5 +1,5 @@
 import { prisma } from "@/app/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, UserRole } from "@prisma/client";
 
 import {
   AuditLogInput,
@@ -15,26 +15,29 @@ export interface AuditLogQuery
   action?: string;
   entity?: string;
   actorId?: string;
-  actorRole?: string;
+  actorRole?: UserRole;
 }
 
 export class AuditRepository {
-  static create(data: AuditLogInput) {
-    return prisma.auditLog.create({
-      data: {
-        requestId: data.requestId,
-        actorId: data.actorId,
-        actorRole: data.actorRole,
-        action: data.action,
-        entity: data.entity,
-        entityId: data.entityId,
-        oldValues: data.oldValues,
-        newValues: data.newValues,
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
-      },
-    });
-  }
+  
+ static create(data: AuditLogInput) {
+  return prisma.auditLog.create({
+    data: {
+      requestId: data.requestId,
+      requestPath: data.requestPath,
+      requestMethod: data.requestMethod,
+      actorId: data.actorId,
+      actorRole: data.actorRole,
+      action: data.action,
+      entity: data.entity,
+      entityId: data.entityId,
+      oldValues: data.oldValues,
+      newValues: data.newValues,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+    },
+  });
+}
 
   private static buildWhere(
     query: Omit<AuditLogQuery, "page" | "pageSize">
@@ -86,7 +89,7 @@ export class AuditRepository {
       ...(actorId ? { actorId } : {}),
       ...(actorRole
         ? {
-            actorRole: actorRole as any,
+            actorRole,
           }
         : {}),
 
@@ -110,12 +113,13 @@ export class AuditRepository {
       where,
       include: {
         actor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
         },
+      },
       },
       orderBy: {
         createdAt: "desc",
@@ -162,12 +166,13 @@ export class AuditRepository {
       where,
       include: {
         actor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
         },
+      },
       },
       orderBy: {
         createdAt: "desc",
@@ -179,14 +184,15 @@ export class AuditRepository {
     return prisma.auditLog.findUnique({
       where: { id },
       include: {
-        actor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+      actor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
         },
       },
+    },
     });
   }
 }

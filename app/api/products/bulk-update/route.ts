@@ -17,7 +17,7 @@ export const PATCH = withApiLogging(
     try {
       verifyOrigin(req);
 
-      await requireAdmin();
+      const session = await requireAdmin();
 
       const {
         ids = [],
@@ -32,6 +32,7 @@ export const PATCH = withApiLogging(
           updateType,
           applyToAll,
           filters,
+          actorId: session.user.id,
         });
 
       return NextResponse.json({

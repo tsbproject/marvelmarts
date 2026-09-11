@@ -123,9 +123,10 @@ export const DELETE = withApiLogging(
         );
       }
 
-      await ProductService.deleteProductById(
+     await ProductService.deleteProductById(
         productId,
-        vendor.id
+        vendor.id,
+        session.user.id
       );
 
       return NextResponse.json(

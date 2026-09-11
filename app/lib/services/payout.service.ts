@@ -6,7 +6,10 @@ import {
   conflict
 } from "@/app/lib/auth/errors";
 
+
+
 import { TransactionStatus } from "@prisma/client";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 export class PayoutService {
   static async getVendorPayouts(
@@ -32,7 +35,7 @@ export class PayoutService {
       userId: string,
       amount: number
     ) {
-      return prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         /*
         * Re-confirm ownership inside the service boundary.
         *
@@ -114,13 +117,26 @@ export class PayoutService {
             },
           });
 
-        return {
-          payout,
-          newBalance:
-            Number(updatedProfile.balance),
-        };
-      });
-    }
+                return {
+                  payout,
+                  newBalance:
+                    Number(updatedProfile.balance),
+                };
+              });
+
+              await AuditService.payoutRequested({
+                actorId: userId,
+                entityId: result.payout.id,
+                newValues: {
+                  status: result.payout.status,
+                  amount: Number(result.payout.amount),
+                  vendorId: result.payout.vendorId,
+                  vendorProfileId: result.payout.vendorProfileId,
+                },
+              });
+
+              return result;
+            }
         static async validatePayoutRequest(
             userId: string,
             amount: number
@@ -164,7 +180,7 @@ export class PayoutService {
             }
 
 
-            static async getAdminPayouts() {
+  static async getAdminPayouts() {
     const payouts =
         await prisma.payout.findMany({
         include: {
@@ -210,11 +226,12 @@ export class PayoutService {
     }
 
 
-    static async processPayout(
+   static async processPayout(
     payoutId: string,
     status: "APPROVED" | "REJECTED",
-    remarks: string
-    ) {
+    remarks: string,
+    adminId: string
+  ) {
     if (!payoutId || !status) {
         throw badRequest(
         "Payout ID and status are required."
@@ -258,8 +275,8 @@ export class PayoutService {
         );
     }
 
-    return prisma.$transaction(
-        async (tx) => {
+    const result = await prisma.$transaction(
+      async (tx) => {
         const updatedPayout =
             await tx.payout.update({
             where: {
@@ -312,7 +329,7 @@ export class PayoutService {
             );
         }
 
-        return {
+               return {
             updatedPayout,
             newBalance,
             vendorId:
@@ -320,6 +337,27 @@ export class PayoutService {
         };
         }
     );
+
+    const auditData = {
+      actorId: adminId,
+      entityId: result.updatedPayout.id,
+      oldValues: {
+        status: payout.status,
+        adminRemarks: payout.adminRemarks,
+      },
+      newValues: {
+        status: result.updatedPayout.status,
+        adminRemarks: result.updatedPayout.adminRemarks,
+      },
+    };
+
+    if (status === "APPROVED") {
+      await AuditService.payoutApproved(auditData);
+    } else {
+      await AuditService.payoutRejected(auditData);
+    }
+
+    return result;
     }
 
 
@@ -333,7 +371,7 @@ export class PayoutService {
         );
       }
 
-      return prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         const vendor =
           await tx.vendorProfile.findUnique({
             where: {
@@ -395,9 +433,22 @@ export class PayoutService {
             },
           });
 
-        return withdrawal;
+                return withdrawal;
       });
-    }
+
+      await AuditService.withdrawalRequested({
+        actorId: userId,
+        entityId: result.id,
+        newValues: {
+          status: result.status,
+          amount: Number(result.amount),
+          vendorProfileId: result.vendorProfileId,
+        },
+      });
+
+      return result;
+
+      }
 
 
  static async calculateVendorPayout(orderId: string) {
@@ -432,34 +483,55 @@ export class PayoutService {
     };
   }
 
-  static async finalizeVendorPayout(orderId: string) {
+    static async finalizeVendorPayout(orderId: string) {
     const payout = await this.calculateVendorPayout(orderId);
 
-    await prisma.$transaction(async (tx) => {
-      await tx.marketplaceTransaction.create({
-        data: {
-          orderId,
-          vendorProfileId: payout.vendorProfileId,
-          grossAmount: payout.totalAmount,
-          platformFee: payout.platformFee,
-          netAmount: payout.vendorNetPayout,
-          commissionRate: payout.commissionRate,
-          vendorTier: payout.tier,
-          status: TransactionStatus.SUCCESS,
-          reference: `TRX-${orderId}-${Date.now()}`,
-        },
+    const transaction =
+      await prisma.$transaction(async (tx) => {
+        const marketplaceTransaction =
+          await tx.marketplaceTransaction.create({
+            data: {
+              orderId,
+              vendorProfileId: payout.vendorProfileId,
+              grossAmount: payout.totalAmount,
+              platformFee: payout.platformFee,
+              netAmount: payout.vendorNetPayout,
+              commissionRate: payout.commissionRate,
+              vendorTier: payout.tier,
+              status: TransactionStatus.SUCCESS,
+              reference: `TRX-${orderId}-${Date.now()}`,
+            },
+          });
+
+        await tx.vendorProfile.update({
+          where: {
+            id: payout.vendorProfileId,
+          },
+          data: {
+            balance: {
+              increment: payout.vendorNetPayout,
+            },
+          },
+        });
+
+        return marketplaceTransaction;
       });
 
-      await tx.vendorProfile.update({
-        where: {
-          id: payout.vendorProfileId,
-        },
-        data: {
-          balance: {
-            increment: payout.vendorNetPayout,
-          },
-        },
-      });
+    await AuditService.payoutFinalized({
+      entityId: transaction.id,
+      newValues: {
+        actorType: "SYSTEM",
+        orderId,
+        marketplaceTransactionId: transaction.id,
+        vendorProfileId: payout.vendorProfileId,
+        grossAmount: payout.totalAmount,
+        platformFee: payout.platformFee,
+        vendorNetPayout: payout.vendorNetPayout,
+        commissionRate: payout.commissionRate,
+        vendorTier: payout.tier,
+        status: TransactionStatus.SUCCESS,
+        reference: transaction.reference,
+      },
     });
 
     return {

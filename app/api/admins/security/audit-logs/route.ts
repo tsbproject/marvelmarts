@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 
 import { requireSuperAdmin, handleApiError } from "@/app/lib/auth/api";
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
@@ -48,8 +49,16 @@ export const GET = withApiLogging(
       const actorId =
         searchParams.get("actorId")?.trim() || undefined;
 
-      const actorRole =
+      const actorRoleValue =
         searchParams.get("actorRole")?.trim() || undefined;
+
+      const actorRole =
+        actorRoleValue &&
+        Object.values(UserRole).includes(
+          actorRoleValue as UserRole
+        )
+          ? (actorRoleValue as UserRole)
+          : undefined;
 
       const dateFromValue =
         searchParams.get("dateFrom")?.trim();

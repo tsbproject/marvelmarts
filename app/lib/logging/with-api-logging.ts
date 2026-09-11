@@ -29,6 +29,7 @@ export function withApiLogging<
 
     return runWithRequestContext(
       requestId,
+      request,
       async () => {
         try {
           const response =

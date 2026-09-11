@@ -28,7 +28,7 @@ export const POST =
       try {
         verifyOrigin(req);
 
-        await requireManageCategories();
+       const session = await requireManageCategories();
 
         const body =
           await req.json();
@@ -51,7 +51,8 @@ export const POST =
 
         const category =
           await CategoryService.createCategory(
-            parsed.data
+            parsed.data,
+            session.user.id
           );
 
         return NextResponse.json(

@@ -21,9 +21,10 @@ export const PATCH =
       try {
         verifyOrigin(req);
 
-        await requireManageReviews();
-
-        const {
+       const session =
+      await requireManageReviews();
+        
+         const {
           ids,
           approved,
         } = await req.json();
@@ -31,7 +32,8 @@ export const PATCH =
         const updated =
           await ProductService.bulkApproveReviews(
             ids,
-            approved
+            approved,
+            session.user.id
           );
 
         return NextResponse.json(
@@ -57,15 +59,18 @@ export const DELETE =
   withApiLogging(
     async (req: Request) => {
       try {
+        
+        const session =
         await requireManageReviews();
 
-        const { ids } =
-          await req.json();
+      const { ids } =
+        await req.json();
 
-        const deleted =
-          await ProductService.bulkDeleteReviews(
-            ids
-          );
+      const deleted =
+        await ProductService.bulkDeleteReviews(
+          ids,
+          session.user.id
+        );
 
         return NextResponse.json(
           {

@@ -1,77 +1,118 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { UserRole } from "@prisma/client";
+
+import { requireAdmin } from "@/app/lib/auth/api";
 import { sendRefundStatusEmail } from "@/app/lib/mailer";
 import { OrderService } from "@/app/lib/services/order.service";
 
 /**
  * CORE LOGIC: Unified Refund Decision Handler
- * Handles database updates, security checks, and email dispatch.
+ *
+ * Handles:
+ * - centralized administrator authorization
+ * - order refund decision
+ * - refund status email
+ * - cache invalidation
  */
 export async function processRefundDecision(
-  orderId: string, 
-  action: "approved" | "rejected", 
+  orderId: string,
+  action: "approved" | "rejected",
   reason: string
 ) {
-  const session = await getServerSession(authOptions);
-  
-  // 1. Security Check
-  const role = (session?.user as any)?.role?.toUpperCase();
-  if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
-    return { 
-      success: false, 
-      message: "ERROR: Level 2 clearance required for financial protocols." 
-    };
-  }
-
   try {
-    // 2. Fetch current order to preserve status on rejection
+    const session = await requireAdmin();
+
+    const adminRole =
+      session.user.roles?.includes(UserRole.SUPER_ADMIN)
+        ? UserRole.SUPER_ADMIN
+        : UserRole.ADMIN;
+
     const updated =
       await OrderService.processRefundDecision(
         orderId,
         action,
-        reason
+        reason,
+        session.user.id,
+        adminRole
       );
 
-    // 4. Dispatch Email Notification
     try {
-      await sendRefundStatusEmail(updated, action, reason);
+      await sendRefundStatusEmail(
+        updated,
+        action,
+        reason
+      );
     } catch (mailError) {
-      console.error("SERVICE_MAIL_ERROR:", mailError);
+      console.error(
+        "SERVICE_MAIL_ERROR:",
+        mailError
+      );
     }
 
-    // 5. Cache Busting
-    revalidatePath(`/dashboard/admins/orders/${orderId}`);
-    revalidatePath(`/dashboard/admins/support/refunds`); // Revalidate the queue page
-    revalidatePath(`/account/customer/orders`);
+    revalidatePath(
+      `/dashboard/admins/orders/${orderId}`
+    );
 
-    return { 
-      success: true, 
-      message: action === "approved" 
-        ? "Marvel Success: Funds Reversal Logged & Asset Deauthorized." 
-        : "Protocol Updated: Refund Request Declined." 
+    revalidatePath(
+      `/dashboard/admins/support/refunds`
+    );
+
+    revalidatePath(
+      `/account/customer/orders`
+    );
+
+    return {
+      success: true,
+      message:
+        action === "approved"
+          ? "Marvel Success: Funds Reversal Logged & Asset Deauthorized."
+          : "Protocol Updated: Refund Request Declined.",
     };
-
   } catch (error: any) {
-    console.error("PRISMA EXECUTION ERROR:", error);
-    return { success: false, message: `System Failure: ${error.message}` };
+    console.error(
+      "PRISMA EXECUTION ERROR:",
+      error
+    );
+
+    return {
+      success: false,
+      message:
+        error.message ??
+        "System Failure: Unable to process refund decision.",
+    };
   }
 }
 
 /**
  * EXPORT: processRefund
- * Specifically for the Initiate Refund button
+ *
+ * Specifically for the Initiate Refund button.
  */
-export async function processRefund(orderId: string, reason: string) {
-  return await processRefundDecision(orderId, "approved", reason);
+export async function processRefund(
+  orderId: string,
+  reason: string
+) {
+  return await processRefundDecision(
+    orderId,
+    "approved",
+    reason
+  );
 }
 
 /**
  * EXPORT: rejectRefund
- * Specifically for the Reject Request button
+ *
+ * Specifically for the Reject Request button.
  */
-export async function rejectRefund(orderId: string, reason: string) {
-  return await processRefundDecision(orderId, "rejected", reason);
+export async function rejectRefund(
+  orderId: string,
+  reason: string
+) {
+  return await processRefundDecision(
+    orderId,
+    "rejected",
+    reason
+  );
 }

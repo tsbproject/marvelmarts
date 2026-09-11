@@ -854,21 +854,24 @@ model BankAccount {
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  requestId String?
-  actorId   String?
-  actorRole Role?
-  action    String
-  entity    String
-  entityId  String?
-  oldValues Json?
-  newValues Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  actor     User?    @relation("UserAuditLogs", fields: [actorId], references: [id])
+  id            String    @id @default(cuid())
+  requestId     String?
+  actorId       String?
+  action        String
+  entity        String
+  entityId      String?
+  oldValues     Json?
+  newValues     Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+  requestMethod String?
+  requestPath   String?
+  actorRole     UserRole?
+  actor         User?     @relation("UserAuditLogs", fields: [actorId], references: [id])
 
   @@index([requestId])
+  @@index([requestPath])
   @@index([actorId])
   @@index([actorRole])
   @@index([action])

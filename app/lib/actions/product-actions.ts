@@ -85,13 +85,14 @@ export async function toggleProductStatus(
   productId: string
 ) {
   try {
-    const { vendor } =
+    const { session, vendor } =
       await requireVendorProfile();
 
     const updated =
       await ProductService.togglePublicationStatus(
         productId,
-        vendor.id
+        vendor.id,
+        session.user.id
       );
 
     revalidatePath(

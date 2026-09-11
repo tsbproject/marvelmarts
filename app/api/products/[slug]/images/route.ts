@@ -117,7 +117,8 @@ export const POST = withApiLogging(
         const image =
           await ProductService.createProductImage(
             product.id,
-            parsed
+            parsed,
+            session.user.id
           );
 
         return NextResponse.json(
@@ -207,7 +208,8 @@ export const POST = withApiLogging(
         const createdImages =
           await ProductService.createProductImages(
             product.id,
-            uploadedImages
+            uploadedImages,
+            session.user.id
           );
 
         return NextResponse.json(
@@ -271,9 +273,9 @@ export const DELETE = withApiLogging(
       }
 
       await ProductService.deleteProductImage(
-        imageId
+        imageId,
+        session.user.id
       );
-
       return NextResponse.json({
         success: true,
         message:

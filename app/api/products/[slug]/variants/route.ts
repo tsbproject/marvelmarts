@@ -25,7 +25,7 @@ const attributesSchema = z.record(
   z.string()
 );
 
-export const variantSchema = z.object({
+  const variantSchema = z.object({
   name: z.string().min(1),
   price: z.number().nonnegative().optional(),
   stock: z.number().int().nonnegative().optional(),
@@ -123,7 +123,8 @@ export const POST = withApiLogging(
       const variant =
         await ProductService.createVariant(
           product.id,
-          parsed
+          parsed,
+          session.user.id
         );
 
       return NextResponse.json(
@@ -186,7 +187,8 @@ export const DELETE = withApiLogging(
       }
 
       await ProductService.deleteVariant(
-        variantId
+        variantId,
+        session.user.id
       );
 
       return NextResponse.json({

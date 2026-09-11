@@ -6,6 +6,7 @@ import type {
   SecurityLogColumn,
 } from "../_components/security-log-types";
 import SecurityBackButton from "../_components/SecurityBackButton";
+import { AuditAction } from "@/app/lib/logging/actions";
 
 
 const columns: SecurityLogColumn[] = [
@@ -80,23 +81,52 @@ const columns: SecurityLogColumn[] = [
     );
     },
     },
-  {
+    {
     key: "actorRole",
     label: "Role",
-    render: (value) => (
-      <span className="inline-flex rounded-xl bg-indigo-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-600">
-        {value ? String(value) : "—"}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "Action",
-    render: (value) => (
-      <span className="text-xs font-bold text-gray-700">
-        {value ? String(value) : "—"}
-      </span>
-    ),
+    render: (value, rawRow) => {
+      let role =
+        value !== null &&
+        value !== undefined &&
+        String(value).trim() !== ""
+          ? String(value)
+          : null;
+
+      if (!role && typeof rawRow === "object" && rawRow !== null) {
+        const row = rawRow as Record<string, unknown>;
+
+        const actor =
+          typeof row.actor === "object" &&
+          row.actor !== null
+            ? (row.actor as Record<string, unknown>)
+            : null;
+
+        if (
+          typeof actor?.role === "string" &&
+          actor.role.trim() !== ""
+        ) {
+          role = actor.role;
+        }
+
+        if (!role) {
+          const newValues =
+            typeof row.newValues === "object" &&
+            row.newValues !== null
+              ? (row.newValues as Record<string, unknown>)
+              : null;
+
+          if (newValues?.actorType === "SYSTEM") {
+            role = "SYSTEM";
+          }
+        }
+      }
+
+      return (
+        <span className="inline-flex rounded-xl bg-indigo-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-600">
+          {role ?? "—"}
+        </span>
+      );
+    },
   },
   {
   key: "entity",
@@ -150,6 +180,19 @@ const columns: SecurityLogColumn[] = [
   
 ];
 
+
+const actionOptions = Object.values(AuditAction).map(
+  (action) => ({
+    value: action,
+    label: action
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (char) =>
+        char.toUpperCase()
+      ),
+  })
+);
+
 export default function AuditLogsPage() {
   return (
 
@@ -166,6 +209,9 @@ export default function AuditLogsPage() {
       exportLabel="Export Audit CSV"
       columns={columns}
       emptyMessage="No audit events match the current search or filters."
+      filterOptions={{
+        actions: actionOptions,
+      }}
     />
     </div>
   );

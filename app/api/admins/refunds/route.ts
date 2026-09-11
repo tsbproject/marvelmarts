@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 
 import { OrderService } from "@/app/lib/services/order.service";
 
@@ -26,7 +27,15 @@ export const PATCH =
       try {
         verifyOrigin(req);
 
-        await requireManageOrders();
+        const session =
+      await requireManageOrders();
+
+    const adminRole =
+      session.user.roles?.includes(
+        UserRole.SUPER_ADMIN
+      )
+        ? UserRole.SUPER_ADMIN
+        : UserRole.ADMIN;
 
         const body =
           await req.json();
@@ -42,7 +51,9 @@ export const PATCH =
           await OrderService.processOrderRefund(
             body.orderId,
             action,
-            adminNote
+            adminNote,
+            session.user.id,
+            adminRole
           );
 
         if (updatedOrder.userId) {

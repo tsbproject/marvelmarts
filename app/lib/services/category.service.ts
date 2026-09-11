@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 
 import { badRequest, notFound } from "@/app/lib/auth/errors";
+import { AuditService } from "@/app/lib/services/logging/audit.service";
 
 type CategorySortField =
   | "position"
@@ -26,16 +27,19 @@ type CategoryTree = {
 
 export class CategoryService {
   
-static async createCategory(data: {
-  name: string;
-  slug: string;
-  parentId?: string | null;
-  position?: number;
-  imageUrl?: string | null;
-  isFeatured?: boolean;
-  metaTitle?: string | null;
-  metaDescription?: string | null;
-}) {
+static async createCategory(
+  data: {
+    name: string;
+    slug: string;
+    parentId?: string | null;
+    position?: number;
+    imageUrl?: string | null;
+    isFeatured?: boolean;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+  },
+  actorId: string
+) {
   const normalizedData = {
   name: data.name,
   slug: data.slug,
@@ -88,10 +92,27 @@ static async createCategory(data: {
     }
   }
 
-  return prisma.category.create({
-    data: normalizedData,
-  });
-}
+  const category = await prisma.category.create({
+      data: normalizedData,
+    });
+
+    await AuditService.categoryCreated({
+      actorId,
+      entityId: category.id,
+      newValues: {
+        name: category.name,
+        slug: category.slug,
+        parentId: category.parentId,
+        position: category.position,
+        imageUrl: category.imageUrl,
+        isFeatured: category.isFeatured,
+        metaTitle: category.metaTitle,
+        metaDescription: category.metaDescription,
+      },
+    });
+
+    return category;
+    }
 
 
 static async updateCategory(
@@ -105,7 +126,8 @@ static async updateCategory(
     isFeatured?: boolean;
     metaTitle?: string | null;
     metaDescription?: string | null;
-  }
+  },
+  actorId: string
 ) {
   const existingCategory =
     await prisma.category.findUnique({
@@ -114,8 +136,16 @@ static async updateCategory(
       },
       select: {
         id: true,
+        name: true,
+        slug: true,
+        parentId: true,
+        position: true,
+        imageUrl: true,
+        isFeatured: true,
+        metaTitle: true,
+        metaDescription: true,
       },
-    });
+          });
 
   if (!existingCategory) {
     throw notFound(
@@ -230,16 +260,50 @@ static async updateCategory(
     }
   }
 
-  return prisma.category.update({
+  const updatedCategory =
+  await prisma.category.update({
     where: {
       id,
     },
     data: normalizedData,
   });
+
+await AuditService.categoryUpdated({
+  actorId,
+  entityId: updatedCategory.id,
+  oldValues: {
+    name: existingCategory.name,
+    slug: existingCategory.slug,
+    parentId: existingCategory.parentId,
+    position: existingCategory.position,
+    imageUrl: existingCategory.imageUrl,
+    isFeatured: existingCategory.isFeatured,
+    metaTitle: existingCategory.metaTitle,
+    metaDescription:
+      existingCategory.metaDescription,
+  },
+  newValues: {
+    name: updatedCategory.name,
+    slug: updatedCategory.slug,
+    parentId: updatedCategory.parentId,
+    position: updatedCategory.position,
+    imageUrl: updatedCategory.imageUrl,
+    isFeatured: updatedCategory.isFeatured,
+    metaTitle: updatedCategory.metaTitle,
+    metaDescription:
+      updatedCategory.metaDescription,
+  },
+});
+return updatedCategory;
+
 }
 
-    static async deleteCategory(
-  id: string
+   
+
+
+static async deleteCategory(
+  id: string,
+  actorId: string
 ) {
   const category =
     await prisma.category.findUnique({
@@ -248,6 +312,14 @@ static async updateCategory(
       },
       select: {
         id: true,
+        name: true,
+        slug: true,
+        parentId: true,
+        position: true,
+        imageUrl: true,
+        isFeatured: true,
+        metaTitle: true,
+        metaDescription: true,
       },
     });
 
@@ -286,9 +358,25 @@ static async updateCategory(
     );
   }
 
-  await prisma.category.delete({
+    await prisma.category.delete({
     where: {
       id,
+    },
+  });
+
+  await AuditService.categoryDeleted({
+    actorId,
+    entityId: category.id,
+    oldValues: {
+      name: category.name,
+      slug: category.slug,
+      parentId: category.parentId,
+      position: category.position,
+      imageUrl: category.imageUrl,
+      isFeatured: category.isFeatured,
+      metaTitle: category.metaTitle,
+      metaDescription:
+        category.metaDescription,
     },
   });
 
@@ -296,7 +384,6 @@ static async updateCategory(
     success: true,
   };
 }
-  
 
 static async getCategories(options: {
     all: boolean;
@@ -446,29 +533,29 @@ static async getCategories(options: {
     
 
     static async categorySlugExists(
-  slug: string
-) {
-  const normalizedSlug =
-    slug.trim();
+      slug: string
+    ) {
+      const normalizedSlug =
+        slug.trim();
 
-  if (!normalizedSlug) {
-    throw badRequest(
-      "Slug is required."
-    );
-  }
+      if (!normalizedSlug) {
+        throw badRequest(
+          "Slug is required."
+        );
+      }
 
-  const category =
-    await prisma.category.findUnique({
-      where: {
-        slug: normalizedSlug,
-      },
-      select: {
-        id: true,
-      },
-    });
+      const category =
+        await prisma.category.findUnique({
+          where: {
+            slug: normalizedSlug,
+          },
+          select: {
+            id: true,
+          },
+        });
 
-  return !!category;
-}
+      return !!category;
+    }
 
     static async getCategoryById(
     id: string

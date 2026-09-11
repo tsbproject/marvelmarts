@@ -361,65 +361,88 @@ export default function SecurityLogPage({
         exportLabel={exportLabel}
       />
 
-      {/* Filters */}
+            {/* Filters */}
       {showFilters && (
         <SecurityLogFilters
-          event={event}
-          onEventChange={(value) => {
-            setEvent(value);
-            resetToFirstPage();
-          }}
-          severity={severity}
-          onSeverityChange={(value) => {
-            setSeverity(value);
-            resetToFirstPage();
-          }}
-          action={action}
-          onActionChange={(value) => {
-            setAction(value);
-            resetToFirstPage();
-          }}
-          method={method}
-          onMethodChange={(value) => {
-            setMethod(value);
-            resetToFirstPage();
-          }}
-          statusCode={statusCode}
-          onStatusCodeChange={(value) => {
-            setStatusCode(value);
-            resetToFirstPage();
-          }}
-          success={success}
-          onSuccessChange={(value) => {
-            setSuccess(value);
-            resetToFirstPage();
-          }}
-          dateFrom={dateFrom}
-          onDateFromChange={(value) => {
-            setDateFrom(value);
-            resetToFirstPage();
-          }}
-          dateTo={dateTo}
-          onDateToChange={(value) => {
-            setDateTo(value);
-            resetToFirstPage();
-          }}
-          eventOptions={
-            filterOptions?.events
+          event={type === "security" ? event : undefined}
+          onEventChange={
+            type === "security"
+              ? (value) => {
+                  setEvent(value);
+                  resetToFirstPage();
+                }
+              : undefined
           }
-          severityOptions={
-            filterOptions?.severities
+
+          severity={
+            type === "security"
+              ? severity
+              : undefined
           }
-          actionOptions={
-            filterOptions?.actions
+          onSeverityChange={
+            type === "security"
+              ? (value) => {
+                  setSeverity(value);
+                  resetToFirstPage();
+                }
+              : undefined
           }
-          methodOptions={
-            filterOptions?.methods
+
+          action={
+            type === "audit" || type === "auth"
+              ? action
+              : undefined
           }
-          statusOptions={
-            filterOptions?.statusCodes
+          onActionChange={
+            type === "audit" || type === "auth"
+              ? (value) => {
+                  setAction(value);
+                  resetToFirstPage();
+                }
+              : undefined
           }
-          
+
+          method={
+            type === "api"
+              ? method
+              : undefined
+          }
+          onMethodChange={
+            type === "api"
+              ? (value) => {
+                  setMethod(value);
+                  resetToFirstPage();
+                }
+              : undefined
+          }
+
+          statusCode={
+            type === "api"
+              ? statusCode
+              : undefined
+          }
+          onStatusCodeChange={
+            type === "api"
+              ? (value) => {
+                  setStatusCode(value);
+                  resetToFirstPage();
+                }
+              : undefined
+          }
+
+          success={
+            type === "auth"
+              ? success
+              : undefined
+          }
+          onSuccessChange={
+            type === "auth"
+              ? (value) => {
+                  setSuccess(value);
+                  resetToFirstPage();
+                }
+              : undefined
+          }
         />
       )}
 

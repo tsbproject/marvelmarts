@@ -6,14 +6,18 @@ import {
 
 import { SecuritySeverity } from "./severity";
 
-import { Prisma, Role } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 
 export interface AuditLogInput {
   requestId?: string;
 
+  requestPath?: string;
+
+  requestMethod?: string;
+
   actorId?: string;
 
-  actorRole?: Role;
+  actorRole?: UserRole;
 
   action: AuditAction;
 

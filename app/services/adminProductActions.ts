@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
+import { requireManageProducts } from "@/app/lib/auth/api";
 import { ProductService } from "@/app/lib/services/product.service";
 
 export async function toggleTrendingAction(
@@ -8,19 +10,34 @@ export async function toggleTrendingAction(
   currentStatus: boolean
 ) {
   try {
+    const session = await requireManageProducts();
+
     await ProductService.toggleTrendingStatus(
       id,
-      currentStatus
+      currentStatus,
+      session.user.id
     );
 
-    revalidatePath("/dashboard/admins/products");
+    revalidatePath(
+      "/dashboard/admins/products"
+    );
+
     revalidatePath("/");
 
-    return { success: true };
-  } catch {
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error(
+      "Toggle Trending Error:",
+      error
+    );
+
     return {
       success: false,
-      error: "Failed to update trending status.",
+      error:
+        error.message ??
+        "Failed to update trending status.",
     };
   }
 }

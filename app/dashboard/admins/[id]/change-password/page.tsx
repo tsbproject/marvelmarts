@@ -8,8 +8,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useNotification } from "@/app/_context/NotificationContext";
 
 interface ChangeAdminPasswordProps {
-  params: { id: string } | Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 }
+
 
 export default function ChangeAdminPassword({ params }: ChangeAdminPasswordProps) {
   const router = useRouter();
@@ -17,10 +18,9 @@ export default function ChangeAdminPassword({ params }: ChangeAdminPasswordProps
 
   const [adminId, setAdminId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // unwrap params if it's a promise
-    Promise.resolve(params).then((p) => setAdminId(p.id));
-  }, [params]);
+ useEffect(() => {
+  params.then((p) => setAdminId(p.id));
+}, [params]);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

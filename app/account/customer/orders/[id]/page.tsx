@@ -38,13 +38,13 @@ export default function OrderDetailsPage() {
         setIsFetching(true);
         try {
           const res = await fetch(`/api/orders/${id}`);
-          const data = await res.json();
+            const data = await res.json();
 
-          if (res.ok) {
-            dispatch(setOrders([data]));
-          } else {
-            notifyError(data.error || "Failed to synchronize order records.");
-          }
+            if (res.ok) {
+              dispatch(setOrders([data.order]));
+            } else {
+              notifyError(data.error || "Failed to synchronize order records.");
+            }
         } catch {
           notifyError("Failed to synchronize order records.");
         } finally {
@@ -87,7 +87,7 @@ export default function OrderDetailsPage() {
       const updatedData = await res.json();
 
       if (res.ok) {
-        dispatch(updateOrderInState(updatedData));
+        dispatch(updateOrderInState(updatedData.order));
         notifySuccess("Refund request submitted for review.");
       } else {
         notifyError(updatedData.error || "Refund request failed.");
@@ -113,7 +113,7 @@ export default function OrderDetailsPage() {
       const updatedData = await res.json();
 
       if (res.ok) {
-        dispatch(updateOrderInState(updatedData));
+        dispatch(updateOrderInState(updatedData.order));
         notifySuccess("Order has been successfully aborted.");
       } else {
         notifyError(updatedData.error || "Cancellation failed.");

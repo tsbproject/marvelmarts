@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { InventoryService } from "@/app/lib/services/inventory.service";
 import { notFound,badRequest, forbidden } from "@/app/lib/auth/errors";
@@ -697,214 +697,337 @@ static async getOrders(userId: string) {
 
 
     static async processOrderRefund(
-      orderId: string,
-      action: "approved" | "rejected",
-      adminNote: string
-    ) {
-      if (!orderId) {
-        throw badRequest(
-          "Order ID is required."
-        );
-      }
-
-      if (
-        action !== "approved" &&
-        action !== "rejected"
-      ) {
-        throw badRequest(
-          "Invalid refund action."
-        );
-      }
-
-      const currentOrder =
-        await prisma.order.findUnique({
-          where: {
-            id: orderId,
-          },
-          include: {
-            items: true,
-          },
-        });
-
-      if (!currentOrder) {
-        throw notFound(
-          "Order not found."
-        );
-      }
-
-      const updatedOrder =
-        await prisma.order.update({
-          where: {
-            id: orderId,
-          },
-          data: {
-            status:
-              action === "approved"
-                ? "refunded"
-                : currentOrder.status,
-
-            refundStatus: action,
-
-            cancelReason:
-              adminNote ||
-              (action === "approved"
-                ? "Authorized by Administrator"
-                : "Declined by Administrator"),
-          },
-          include: {
-            items: true,
-          },
-        });
-
-
-        if (action === "approved") {
-          await AuditService.orderRefunded({
-            actorId: undefined, // replace with adminId if available
-            entityId: updatedOrder.id,
-            oldValues: {
-              refundStatus: currentOrder.refundStatus,
-              status: currentOrder.status,
-            },
-            newValues: {
-              refundStatus: updatedOrder.refundStatus,
-              status: updatedOrder.status,
-              reason: adminNote,
-            },
-          });
-        }
-
-      return updatedOrder;
-    }
-
-
-static async completePaidOrder(
   orderId: string,
-  paymentReference?: string
+  action: "approved" | "rejected",
+  adminNote: string,
+  actorId: string,
+  actorRole: UserRole
 ) {
-  const order = await prisma.$transaction(async (tx) => {
-    const order = await tx.order.findUnique({
+  if (!orderId) {
+    throw badRequest(
+      "Order ID is required."
+    );
+  }
+
+  if (
+    action !== "approved" &&
+    action !== "rejected"
+  ) {
+    throw badRequest(
+      "Invalid refund action."
+    );
+  }
+
+  const currentOrder =
+    await prisma.order.findUnique({
       where: {
         id: orderId,
       },
       include: {
         items: true,
-        vendorProfile: {
-          select: {
-            id: true,
-            userId: true,
-            storeName: true,
-          },
-        },
       },
     });
 
-    if (!order) {
-      throw notFound("Order not found.");
-    }
+  if (!currentOrder) {
+    throw notFound(
+      "Order not found."
+    );
+  }
 
-    if (order.paymentStatus) {
-      return order;
-    }
-
-    await tx.order.update({
+  const updatedOrder =
+    await prisma.order.update({
       where: {
         id: orderId,
       },
       data: {
-        paymentStatus: true,
-        status: "processing",
-        ...(paymentReference
-          ? {
-              paymentIntentId: paymentReference,
-            }
-          : {}),
+        status:
+          action === "approved"
+            ? "refunded"
+            : currentOrder.status,
+
+        refundStatus: action,
+
+        cancelReason:
+          adminNote ||
+          (action === "approved"
+            ? "Authorized by Administrator"
+            : "Declined by Administrator"),
+      },
+      include: {
+        items: true,
       },
     });
 
-    await tx.vendorProfile.update({
-      where: {
-        id: order.vendorProfileId,
-      },
-      data: {
-        balance: {
-          increment: Number(order.subtotal),
-        },
-      },
+  const auditOldValues = {
+    refundStatus:
+      currentOrder.refundStatus,
+    status:
+      currentOrder.status,
+  };
+
+  const auditNewValues = {
+    refundStatus:
+      updatedOrder.refundStatus,
+    status:
+      updatedOrder.status,
+    reason:
+      adminNote ||
+      (action === "approved"
+        ? "Authorized by Administrator"
+        : "Declined by Administrator"),
+  };
+
+  if (action === "approved") {
+    await AuditService.refundApproved({
+      actorId,
+      actorRole,
+      entityId: updatedOrder.id,
+      oldValues: auditOldValues,
+      newValues: auditNewValues,
     });
 
-    if (order.userId) {
-      await tx.cartItem.deleteMany({
-        where: {
-          cart: {
-            userId: order.userId,
-          },
-        },
-      });
-    }
-
-    const inventoryItems = order.items
-      .filter(
-        (
-          item
-        ): item is typeof item & {
-          productId: string;
-        } => item.productId !== null
-      )
-      .map((item) => ({
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: item.qty,
-      }));
-
-    await InventoryService.decrementStock(
-      tx,
-      inventoryItems
-    );
-
-    return order;
-  });
-
-  await AuditService.orderStatusChanged({
-    actorId: order.userId ?? undefined,
-    entityId: order.id,
-    oldValues: {
-      paymentStatus: false,
-      status: "pending",
-    },
-    newValues: {
-      paymentStatus: true,
-      status: "processing",
-      paymentReference,
-    },
-  });
-
-  try {
-    if (!order.emailSent) {
-      await Promise.all([
-        sendOrderConfirmationEmail(
-          mapOrderToOrderConfirmationEmail(order)
-        ),
-        sendAdminOrderNotification(order),
-      ]);
-
-      await prisma.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          emailSent: true,
-        },
-      });
-    }
-  } catch (mailError: any) {
-    logger.error(
-      "ORDER_EMAIL_ERROR:",
-      mailError?.message ?? mailError
-    );
+    await AuditService.orderRefunded({
+      actorId,
+      actorRole,
+      entityId: updatedOrder.id,
+      oldValues: auditOldValues,
+      newValues: auditNewValues,
+    });
+  } else {
+    await AuditService.refundRejected({
+      actorId,
+      actorRole,
+      entityId: updatedOrder.id,
+      oldValues: auditOldValues,
+      newValues: auditNewValues,
+    });
   }
 
-  return order;
+  return updatedOrder;
 }
+
+
+static async completePaidOrder(
+  orderId: string,
+  paymentReference?: string
+  ) {
+    const order = await prisma.$transaction(
+      async (tx) => {
+        const order =
+          await tx.order.findUnique({
+            where: {
+              id: orderId,
+            },
+            include: {
+              items: true,
+              vendorProfile: {
+                select: {
+                  id: true,
+                  userId: true,
+                  storeName: true,
+                },
+              },
+            },
+          });
+
+        if (!order) {
+          throw notFound(
+            "Order not found."
+          );
+        }
+
+        /*
+        * Atomically claim payment completion.
+        *
+        * Only the request that changes paymentStatus
+        * from false -> true is allowed to continue with
+        * vendor credit, cart cleanup, and inventory
+        * deduction.
+        *
+        * This prevents concurrent payment callbacks from
+        * processing the same order more than once.
+        */
+        const paymentUpdate =
+          await tx.order.updateMany({
+            where: {
+              id: orderId,
+              paymentStatus: false,
+            },
+            data: {
+              paymentStatus: true,
+              status: "processing",
+              ...(paymentReference
+                ? {
+                    paymentIntentId:
+                      paymentReference,
+                  }
+                : {}),
+            },
+          });
+
+        /*
+        * Another request has already completed
+        * payment for this order.
+        *
+        * Return the current order without repeating
+        * financial or inventory mutations.
+        */
+        if (paymentUpdate.count === 0) {
+          const alreadyPaid =
+            await tx.order.findUnique({
+              where: {
+                id: orderId,
+              },
+              include: {
+                items: true,
+                vendorProfile: {
+                  select: {
+                    id: true,
+                    userId: true,
+                    storeName: true,
+                  },
+                },
+              },
+            });
+
+          if (!alreadyPaid) {
+            throw notFound(
+              "Order not found."
+            );
+          }
+
+          return alreadyPaid;
+        }
+
+        /*
+        * Payment was successfully claimed by this
+        * transaction. Perform all dependent financial
+        * and inventory mutations atomically.
+        */
+        await tx.vendorProfile.update({
+          where: {
+            id: order.vendorProfileId,
+          },
+          data: {
+            balance: {
+              increment:
+                Number(order.subtotal),
+            },
+          },
+        });
+
+        if (order.userId) {
+          await tx.cartItem.deleteMany({
+            where: {
+              cart: {
+                userId: order.userId,
+              },
+            },
+          });
+        }
+
+        const inventoryItems =
+          order.items
+            .filter(
+              (
+                item
+              ): item is typeof item & {
+                productId: string;
+              } =>
+                item.productId !== null
+            )
+            .map((item) => ({
+              productId:
+                item.productId,
+              variantId:
+                item.variantId,
+              quantity: item.qty,
+            }));
+
+        await InventoryService.decrementStock(
+          tx,
+          inventoryItems
+        );
+
+        /*
+        * Return the order with the newly persisted
+        * payment state instead of the stale object
+        * loaded before the update.
+        */
+        return {
+          ...order,
+          paymentStatus: true,
+          status: "processing",
+          ...(paymentReference
+            ? {
+                paymentIntentId:
+                  paymentReference,
+              }
+            : {}),
+        };
+      }
+    );
+
+    /*
+    * Only the request that successfully claimed the
+    * payment transition reaches this audit point.
+    *
+    * Payment completion is performed by the system /
+    * payment provider flow, not by the customer.
+    */
+    await AuditService.orderStatusChanged({
+      actorId: undefined,
+      entityId: order.id,
+      oldValues: {
+        paymentStatus: false,
+        status: "pending",
+      },
+      newValues: {
+        paymentStatus: true,
+        status: "processing",
+        paymentReference,
+        actorType: "SYSTEM",
+        paymentSource: "PAYSTACK",
+      },
+    });
+
+    /*
+    * Notifications are intentionally outside the
+    * payment transaction. A mail failure must not
+    * roll back a successful payment.
+    */
+    try {
+      if (!order.emailSent) {
+        await Promise.all([
+          sendOrderConfirmationEmail(
+            mapOrderToOrderConfirmationEmail(
+              order
+            )
+          ),
+          sendAdminOrderNotification(
+            order
+          ),
+        ]);
+
+        await prisma.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            emailSent: true,
+          },
+        });
+      }
+    } catch (mailError: any) {
+      logger.error(
+        "ORDER_EMAIL_ERROR:",
+        mailError?.message ?? mailError
+      );
+    }
+
+    return order;
+  }
+
 
 static async validateVerifiedPayment(
   orderId: string,
@@ -1148,6 +1271,21 @@ static async requestRefund(
       },
     });
 
+      await AuditService.refundRequested({
+        actorId: userId,
+        actorRole: UserRole.CUSTOMER,
+        entityId: updatedOrder.id,
+        oldValues: {
+          refundStatus: order.refundStatus,
+          refundReason: order.refundReason,
+        },
+        newValues: {
+          refundStatus: updatedOrder.refundStatus,
+          refundReason: updatedOrder.refundReason,
+          reason: reason.trim(),
+        },
+      });
+
   try {
     await pusherServer.trigger(
       "admin-orders",
@@ -1200,93 +1338,100 @@ static async cancelOrder(
   const status = order.status.toLowerCase();
 
   if (status === "cancelled") {
-    throw badRequest(
-      "Order has already been cancelled."
-    );
+    throw badRequest("Order has already been cancelled.");
   }
 
   if (status === "delivered") {
-    throw forbidden(
-      "Delivered orders cannot be cancelled."
-    );
+    throw forbidden("Delivered orders cannot be cancelled.");
   }
 
   if (status === "shipped") {
-    throw forbidden(
-      "Shipped orders cannot be cancelled."
-    );
+    throw forbidden("Shipped orders cannot be cancelled.");
   }
 
-  const updatedOrder =
-    await prisma.$transaction(async (tx) => {
-      const updated =
-        await tx.order.update({
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    const updated = await tx.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        status: "cancelled",
+        cancelReason: reason,
+      },
+      include: {
+        items: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            storeName: true,
+          },
+        },
+      },
+    });
+
+    // Restore stock
+    for (const item of order.items) {
+      if (item.variantId) {
+        await tx.variant.update({
           where: {
-            id: order.id,
+            id: item.variantId,
           },
           data: {
-            status: "cancelled",
-            cancelReason: reason,
-          },
-          include: {
-            items: true,
-            vendorProfile: {
-              select: {
-                id: true,
-                storeName: true,
-              },
+            stock: {
+              increment: item.qty,
             },
           },
         });
-
-      for (const item of order.items) {
-        if (item.variantId) {
-          await tx.variant.update({
-            where: {
-              id: item.variantId,
-            },
-            data: {
-              stock: {
-                increment: item.qty,
-              },
-            },
-          });
-        }
-
-        if (item.productId) {
-          await tx.product.update({
-            where: {
-              id: item.productId,
-            },
-            data: {
-              stock: {
-                increment: item.qty,
-              },
-              salesCount: {
-                decrement: item.qty,
-              },
-            },
-          });
-        }
       }
 
-      return updated;
-    });
+      if (item.productId) {
+        await tx.product.update({
+          where: {
+            id: item.productId,
+          },
+          data: {
+            stock: {
+              increment: item.qty,
+            },
+            salesCount: {
+              decrement: item.qty,
+            },
+          },
+        });
+      }
+    }
+
+    return updated;
+  });
 
     await AuditService.orderCancelled({
       actorId: userId,
+      actorRole: UserRole.CUSTOMER,
       entityId: updatedOrder.id,
-      oldValues: {
-        status: order.status,
-      },
-      newValues: {
-        status: updatedOrder.status,
-        cancelReason: reason,
-      },
-    });
+    oldValues: {
+      status: order.status,
+    },
+    newValues: {
+      status: updatedOrder.status,
+      cancelReason: reason,
+    },
+  });
 
   try {
+    const customerPayload = {
+      ...updatedOrder,
+      subtotal: Number(updatedOrder.subtotal),
+      shipping: Number(updatedOrder.shipping),
+      tax: Number(updatedOrder.tax),
+      total: Number(updatedOrder.total),
+      items: updatedOrder.items.map((item) => ({
+        ...item,
+        unitPrice: Number(item.unitPrice),
+      })),
+    };
+
     await Promise.all([
+      // Admin notification
       pusherServer.trigger(
         "admin-notifications",
         "new-notification",
@@ -1301,18 +1446,25 @@ static async cancelOrder(
         }
       ),
 
+      // Admin Orders page
       pusherServer.trigger(
         "admin-orders",
         "order-cancelled",
         {
           orderId: updatedOrder.id,
-          orderNumber:
-            updatedOrder.orderNumber,
+          orderNumber: updatedOrder.orderNumber,
           customerName,
           total: Number(updatedOrder.total),
           reason,
           status: updatedOrder.status,
         }
+      ),
+
+      // Customer Orders page
+      pusherServer.trigger(
+        `user-${userId}`,
+        "order-update",
+        customerPayload
       ),
     ]);
   } catch (error) {
@@ -1324,7 +1476,6 @@ static async cancelOrder(
 
   return updatedOrder;
 }
-
 
 static async validateWebhookOrder(
   orderId: string,
@@ -1712,44 +1863,122 @@ static async getPendingRefundQueue() {
 /* -------------------------------------------------------------------------- */
 /*                      ADMIN PROCESS REFUND DECISION                          */
 /* -------------------------------------------------------------------------- */
-static async processRefundDecision(
-  orderId: string,
-  action: "approved" | "rejected",
-  reason: string
-) {
-  const currentOrder = await prisma.order.findUnique({
-    where: {
-      id: orderId,
-    },
-  });
+    static async processRefundDecision(
+    orderId: string,
+    action: "approved" | "rejected",
+    reason: string,
+    actorId: string,
+    actorRole: UserRole
+  ) {
+    const currentOrder =
+      await prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+      });
 
-  if (!currentOrder) {
-    throw notFound("Order not found.");
+    if (!currentOrder) {
+      throw notFound("Order not found.");
+    }
+
+    const updatedOrder =
+      await prisma.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status:
+            action === "approved"
+              ? "refunded"
+              : currentOrder.status,
+
+          refundStatus: action,
+
+          refundReason:
+            reason || "Administrative decision",
+
+          cancelReason:
+            reason || "Administrative decision",
+        },
+        include: {
+          items: true,
+        },
+      });
+
+    if (action === "approved") {
+      await AuditService.refundApproved({
+        actorId,
+        actorRole,
+        entityId: updatedOrder.id,
+        oldValues: {
+          status: currentOrder.status,
+          refundStatus:
+            currentOrder.refundStatus,
+          refundReason:
+            currentOrder.refundReason,
+        },
+        newValues: {
+          status: updatedOrder.status,
+          refundStatus:
+            updatedOrder.refundStatus,
+          refundReason:
+            updatedOrder.refundReason,
+          reason:
+            reason || "Administrative decision",
+        },
+      });
+
+      await AuditService.orderRefunded({
+        actorId,
+        actorRole,
+        entityId: updatedOrder.id,
+        oldValues: {
+          status: currentOrder.status,
+          refundStatus:
+            currentOrder.refundStatus,
+          refundReason:
+            currentOrder.refundReason,
+        },
+        newValues: {
+          status: updatedOrder.status,
+          refundStatus:
+            updatedOrder.refundStatus,
+          refundReason:
+            updatedOrder.refundReason,
+          reason:
+            reason || "Administrative decision",
+        },
+      });
+    } else {
+      await AuditService.refundRejected({
+        actorId,
+        actorRole,
+        entityId: updatedOrder.id,
+        oldValues: {
+          status: currentOrder.status,
+          refundStatus:
+            currentOrder.refundStatus,
+          refundReason:
+            currentOrder.refundReason,
+        },
+        newValues: {
+          status: updatedOrder.status,
+          refundStatus:
+            updatedOrder.refundStatus,
+          refundReason:
+            updatedOrder.refundReason,
+          reason:
+            reason || "Administrative decision",
+        },
+      });
+    }
+
+    return updatedOrder;
   }
 
-  return prisma.order.update({
-    where: {
-      id: orderId,
-    },
-    data: {
-      status:
-        action === "approved"
-          ? "refunded"
-          : currentOrder.status,
-
-      refundStatus: action,
-      refundReason:
-        reason || "Administrative decision",
-      cancelReason:
-        reason || "Administrative decision",
-    },
-    include: {
-      items: true,
-    },
-  });
 }
 
 
 
 
-}
+

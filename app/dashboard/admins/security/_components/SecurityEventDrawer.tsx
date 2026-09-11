@@ -21,7 +21,6 @@ import SecuritySeverityBadge from "./SecuritySeverityBadge";
 import SecurityEventStatus from "./SecurityEventStatus";
 import type {
   SecurityLogOutcome,
-  SecurityLogSeverity,
   SecurityLogType,
 } from "./security-log-types";
 
@@ -75,7 +74,10 @@ function getOutcome(
       return "SUCCESS";
     }
 
-    if (statusCode === 401 || statusCode === 403) {
+    if (
+      statusCode === 401 ||
+      statusCode === 403
+    ) {
       return "BLOCKED";
     }
 
@@ -87,22 +89,28 @@ function getOutcome(
   }
 
   if (type === "security") {
-    const severity = String(
-      row.severity ?? ""
+    const event = String(
+      row.event ?? ""
     ).toUpperCase();
 
-    if (severity === "CRITICAL") {
-      return "BLOCKED";
-    }
+    switch (event) {
+      case "CSRF_BLOCKED":
+      case "RATE_LIMIT_EXCEEDED":
+      case "PERMISSION_DENIED":
+      case "REPLAY_ATTACK":
+        return "BLOCKED";
 
-    if (
-      severity === "ERROR" ||
-      severity === "WARNING"
-    ) {
-      return "ATTENTION";
-    }
+      case "INVALID_TOKEN":
+      case "INVALID_PAYMENT":
+      case "WEBHOOK_SIGNATURE_FAILED":
+        return "FAILED";
 
-    return "SUCCESS";
+      case "SUSPICIOUS_ACTIVITY":
+        return "ATTENTION";
+
+      default:
+        return "ATTENTION";
+    }
   }
 
   return "SUCCESS";
@@ -259,17 +267,17 @@ export default function SecurityEventDrawer({
                 </div>
               </div>
 
-              <div>
-                <p className="mb-2 text-right text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">
-                  Severity
-                </p>
+              {type !== "audit" && (
+                <div>
+                  <p className="mb-2 text-right text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">
+                    Severity
+                  </p>
 
-                {type !== "audit" && (
-            <SecuritySeverityBadge
-              severity={String(row.severity ?? "INFO")}
-            />
-          )}
-              </div>
+                  <SecuritySeverityBadge
+                    severity={String(row.severity ?? "INFO")}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -319,6 +327,18 @@ export default function SecurityEventDrawer({
                     icon={<Hash size={12} />}
                     label="Entity ID"
                     value={row.entityId}
+                  />
+
+                  <DetailRow
+                    icon={<Server size={12} />}
+                    label="Request Path"
+                    value={row.requestPath}
+                  />
+
+                  <DetailRow
+                    icon={<Globe2 size={12} />}
+                    label="Method"
+                    value={row.requestMethod}
                   />
                 </>
               )}
@@ -417,46 +437,92 @@ export default function SecurityEventDrawer({
               </h3>
             </div>
 
+            {(() => {
+          const actor =
+            typeof row.actor === "object" &&
+            row.actor !== null
+              ? (row.actor as Record<string, unknown>)
+              : undefined;
+
+          const user =
+            typeof row.user === "object" &&
+            row.user !== null
+              ? (row.user as Record<string, unknown>)
+              : undefined;
+
+          const newValues =
+            typeof row.newValues === "object" &&
+            row.newValues !== null
+              ? (row.newValues as Record<string, unknown>)
+              : undefined;
+
+          const actorType =
+            typeof newValues?.actorType === "string"
+              ? newValues.actorType
+              : undefined;
+
+          const paymentSource =
+            typeof newValues?.paymentSource === "string"
+              ? newValues.paymentSource
+              : undefined;
+
+          const isSystemActor =
+            actorType === "SYSTEM";
+
+          const actorId =
+            row.userId ??
+            row.actorId;
+
+          const actorName =
+            typeof user?.name === "string"
+              ? user.name
+              : typeof user?.email === "string"
+                ? user.email
+                : typeof actor?.name === "string"
+                  ? actor.name
+                  : typeof actor?.email === "string"
+                    ? actor.email
+                    : undefined;
+
+          const actorRole =
+            row.actorRole ??
+            (typeof actor?.role === "string"
+              ? actor.role
+              : undefined);
+
+          return (
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailRow
                 icon={<UserRound size={12} />}
-                label="User ID"
+                label="Actor ID"
                 value={
-                  row.userId ?? row.actorId
+                  isSystemActor
+                    ? "SYSTEM"
+                    : actorId
                 }
               />
 
               <DetailRow
                 icon={<UserRound size={12} />}
-                label="User"
+                label="Actor"
                 value={
-                typeof row.user === "object" &&
-                row.user !== null
-                    ? (
-                        "name" in row.user
-                        ? row.user.name
-                        : "email" in row.user
-                            ? row.user.email
-                            : undefined
-                    )
-                    : typeof row.actor === "object" &&
-                        row.actor !== null
-                    ? (
-                        "name" in row.actor
-                            ? row.actor.name
-                            : "email" in row.actor
-                            ? row.actor.email
-                            : undefined
-                        )
-                    : undefined
+                  isSystemActor
+                    ? paymentSource
+                      ? `System / ${paymentSource}`
+                      : "System"
+                    : actorName
                 }
-                            />
+              />
 
               {type === "audit" && (
                 <DetailRow
                   icon={<ShieldAlert size={12} />}
                   label="Role"
-                  value={row.actorRole}
+                  value={
+                    isSystemActor
+                      ? "SYSTEM"
+                      : actorRole
+                  }
                 />
               )}
 
@@ -472,6 +538,8 @@ export default function SecurityEventDrawer({
                 value={row.userAgent}
               />
             </div>
+          );
+        })()}
           </section>
 
           {/* Request ID */}

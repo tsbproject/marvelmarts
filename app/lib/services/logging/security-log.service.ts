@@ -7,21 +7,47 @@ import {
 } from "@/app/lib/logging";
 
 import { SecurityLogRepository } from "@/app/lib/repositories/security-log.repository";
-import { getCurrentRequestId } from "@/app/lib/logging/request-context";
+import {
+  getCurrentRequestId,
+  getCurrentRequestIp,
+  getCurrentRequestUserAgent,
+  getCurrentRequestPath,
+  getCurrentRequestMethod,
+} from "@/app/lib/logging/request-context";
 import { redactJson } from "@/app/lib/logging/redaction";
 import type { SecurityLogQuery } from "@/app/lib/repositories/security-log.repository";
 
 
+
 export class SecurityLogService {
-  private static async write(
+  
+ private static async write(
   data: SecurityLogInput
 ) {
   try {
     await SecurityLogRepository.create({
       ...data,
+
       requestId:
         data.requestId ??
         getCurrentRequestId(),
+
+      ipAddress:
+        data.ipAddress ??
+        getCurrentRequestIp(),
+
+      userAgent:
+        data.userAgent ??
+        getCurrentRequestUserAgent(),
+
+      requestPath:
+        data.requestPath ??
+        getCurrentRequestPath(),
+
+      requestMethod:
+        data.requestMethod ??
+        getCurrentRequestMethod(),
+
       metadata: redactJson(data.metadata),
     });
   } catch (error) {

@@ -1,7 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { CategoryService } from "@/app/lib/services/category.service";
+import {
+  requireManageCategories,
+} from "@/app/lib/auth/api";
+
+import {
+  runWithServerActionContext,
+} from "@/app/lib/logging/request-context";
 
 export async function toggleCategoryFeatured(
   id: string,
@@ -13,12 +21,20 @@ export async function toggleCategoryFeatured(
       currentStatus
     );
 
-    revalidatePath("/dashboard/admins/categories");
+    revalidatePath(
+      "/dashboard/admins/categories"
+    );
+
     revalidatePath("/");
 
-    return { success: true };
+    return {
+      success: true,
+    };
   } catch (error: any) {
-    console.error("Tactical Toggle Error:", error);
+    console.error(
+      "Tactical Toggle Error:",
+      error
+    );
 
     return {
       success: false,
@@ -42,54 +58,86 @@ export async function updateCategoryAction(
     metaDescription?: string | null;
   }
 ) {
-  try {
-    await CategoryService.updateCategory(
-      id,
-      data
-    );
+  return runWithServerActionContext(
+    async () => {
+      try {
+        const session =
+          await requireManageCategories();
 
-    revalidatePath("/dashboard/admins/categories");
-    revalidatePath(
-      `/dashboard/admins/categories/${id}/edit`
-    );
-    revalidatePath("/");
+        await CategoryService.updateCategory(
+          id,
+          data,
+          session.user.id
+        );
 
-    return { success: true };
-  } catch (error: any) {
-    console.error("Tactical Update Error:", error);
+        revalidatePath(
+          "/dashboard/admins/categories"
+        );
 
-    return {
-      success: false,
-      error:
-        error.message ??
-        "Failed to update category.",
-    };
-  }
+        revalidatePath(
+          `/dashboard/admins/categories/${id}/edit`
+        );
+
+        revalidatePath("/");
+
+        return {
+          success: true,
+        };
+      } catch (error: any) {
+        console.error(
+          "Tactical Update Error:",
+          error
+        );
+
+        return {
+          success: false,
+          error:
+            error.message ??
+            "Failed to update category.",
+        };
+      }
+    }
+  );
 }
 
 export async function deleteCategoryAction(
   id: string
 ) {
-  try {
-    await CategoryService.deleteCategory(id);
+  return runWithServerActionContext(
+    async () => {
+      try {
+        const session =
+          await requireManageCategories();
 
-    revalidatePath("/dashboard/admins/categories");
-    revalidatePath("/");
+        await CategoryService.deleteCategory(
+          id,
+          session.user.id
+        );
 
-    return { success: true };
-  } catch (error: any) {
-    console.error(
-      "Category Deletion Error:",
-      error
-    );
+        revalidatePath(
+          "/dashboard/admins/categories"
+        );
 
-    return {
-      success: false,
-      error:
-        error.message ??
-        "Could not delete category.",
-    };
-  }
+        revalidatePath("/");
+
+        return {
+          success: true,
+        };
+      } catch (error: any) {
+        console.error(
+          "Category Deletion Error:",
+          error
+        );
+
+        return {
+          success: false,
+          error:
+            error.message ??
+            "Could not delete category.",
+        };
+      }
+    }
+  );
 }
 
 export async function createCategoryAction(
@@ -104,30 +152,41 @@ export async function createCategoryAction(
     metaDescription?: string | null;
   }
 ) {
-  try {
-    const category =
-      await CategoryService.createCategory(
-        data
-      );
+  return runWithServerActionContext(
+    async () => {
+      try {
+        const session =
+          await requireManageCategories();
 
-    revalidatePath("/dashboard/admins/categories");
-    revalidatePath("/");
+        const category =
+          await CategoryService.createCategory(
+            data,
+            session.user.id
+          );
 
-    return {
-      success: true,
-      id: category.id,
-    };
-  } catch (error: any) {
-    console.error(
-      "Tactical Creation Error:",
-      error
-    );
+        revalidatePath(
+          "/dashboard/admins/categories"
+        );
 
-    return {
-      success: false,
-      error:
-        error.message ??
-        "Failed to create category.",
-    };
-  }
+        revalidatePath("/");
+
+        return {
+          success: true,
+          id: category.id,
+        };
+      } catch (error: any) {
+        console.error(
+          "Tactical Creation Error:",
+          error
+        );
+
+        return {
+          success: false,
+          error:
+            error.message ??
+            "Failed to create category.",
+        };
+      }
+    }
+  );
 }

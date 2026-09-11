@@ -163,6 +163,16 @@ static async updateProductBySlug(
       select: {
         id: true,
         vendorProfileId: true,
+        title: true,
+        description: true,
+        brand: true,
+        price: true,
+        discountPrice: true,
+        categoryId: true,
+        status: true,
+        isFeatured: true,
+        metaTitle: true,
+        metaDescription: true,
       },
     });
 
@@ -178,46 +188,90 @@ static async updateProductBySlug(
     existingProduct.vendorProfileId
   );
 
-  return prisma.product.update({
-    where: {
-      slug,
-    },
-    data: {
-      title: data.title,
-      description: data.description,
-      brand: data.brand,
-      price: data.price,
+  const updatedProduct =
+    await prisma.product.update({
+      where: {
+        slug,
+      },
+      data: {
+        title: data.title,
+        description: data.description,
+        brand: data.brand,
+        price: data.price,
+        discountPrice:
+          data.discountPrice,
+        categoryId:
+          data.categoryId,
+        status: data.status,
+        isFeatured:
+          data.isFeatured,
+        metaTitle:
+          data.metaTitle ||
+          data.title,
+        metaDescription:
+          data.metaDescription ||
+          data.description?.substring(
+            0,
+            160
+          ),
+      },
+      include: {
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+        category: true,
+        variants: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
+    });
+
+  await AuditService.productUpdated({
+    actorId: userId,
+    entityId: updatedProduct.id,
+    oldValues: {
+      title: existingProduct.title,
+      description:
+        existingProduct.description,
+      brand: existingProduct.brand,
+      price: existingProduct.price,
       discountPrice:
-        data.discountPrice,
+        existingProduct.discountPrice,
       categoryId:
-        data.categoryId,
-      status: data.status,
+        existingProduct.categoryId,
+      status: existingProduct.status,
       isFeatured:
-        data.isFeatured,
+        existingProduct.isFeatured,
       metaTitle:
-        data.metaTitle ||
-        data.title,
+        existingProduct.metaTitle,
       metaDescription:
-        data.metaDescription ||
-        data.description?.substring(
-          0,
-          160
-        ),
+        existingProduct.metaDescription,
     },
-    include: {
-      images: {
-        orderBy: {
-          order: "asc",
-        },
-      },
-      category: true,
-      variants: {
-        orderBy: {
-          name: "asc",
-        },
-      },
+    newValues: {
+      title: updatedProduct.title,
+      description:
+        updatedProduct.description,
+      brand: updatedProduct.brand,
+      price: updatedProduct.price,
+      discountPrice:
+        updatedProduct.discountPrice,
+      categoryId:
+        updatedProduct.categoryId,
+      status: updatedProduct.status,
+      isFeatured:
+        updatedProduct.isFeatured,
+      metaTitle:
+        updatedProduct.metaTitle,
+      metaDescription:
+        updatedProduct.metaDescription,
     },
   });
+
+  return updatedProduct;
 }
 
 static async deleteProductBySlug(
@@ -282,8 +336,13 @@ static async deleteProductBySlug(
       }
     )
   );
-}
 
+  await AuditService.productDeleted({
+    actorId: userId,
+    entityId: existingProduct.id,
+    oldValues: existingProduct,
+  });
+}
 
 
 
@@ -939,42 +998,48 @@ static async getVendorProducts(
       }
 
 
-      static async deleteProductById(
-        productId: string,
-        vendorProfileId: string
-      ) {
-        const product =
-          await prisma.product.findUnique({
-            where: {
-              id: productId,
-            },
-            select: {
-              id: true,
-              vendorProfileId: true,
-            },
-          });
+  static async deleteProductById(
+  productId: string,
+  vendorProfileId: string,
+  actorId: string
+) {
+  const product =
+    await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+    });
 
-        if (!product) {
-          throw notFound(
-            "Product not found."
-          );
-        }
+  if (!product) {
+    throw notFound(
+      "Product not found."
+    );
+  }
 
-        if (
-          product.vendorProfileId !==
-          vendorProfileId
-        ) {
-          throw forbidden(
-            "You do not have permission to delete this product."
-          );
-        }
+  if (
+    product.vendorProfileId !==
+    vendorProfileId
+  ) {
+    throw forbidden(
+      "You do not have permission to delete this product."
+    );
+  }
 
-        return prisma.product.delete({
-          where: {
-            id: productId,
-          },
-        });
-      }
+  const deletedProduct =
+    await prisma.product.delete({
+      where: {
+        id: productId,
+      },
+    });
+
+  await AuditService.productDeleted({
+    actorId,
+    entityId: product.id,
+    oldValues: product,
+  });
+
+  return deletedProduct;
+}
 
   static async createProductReview(
   userId: string,
@@ -1075,105 +1140,215 @@ static async getVendorProducts(
 
 
     static async bulkApproveReviews(
-      ids: string[],
-      approved: boolean
-    ) {
-      if (
-        !Array.isArray(ids) ||
-        ids.length === 0
-      ) {
-        throw badRequest(
-          "At least one review must be selected."
-        );
-      }
+  ids: string[],
+  approved: boolean,
+  actorId: string
+) {
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0
+  ) {
+    throw badRequest(
+      "At least one review must be selected."
+    );
+  }
 
-      if (
-        typeof approved !==
-        "boolean"
-      ) {
-        throw badRequest(
-          "Approved flag is required."
-        );
-      }
+  if (
+    typeof approved !== "boolean"
+  ) {
+    throw badRequest(
+      "Approved flag is required."
+    );
+  }
 
-      const result =
-        await prisma.review.updateMany({
-          where: {
-            id: {
-              in: ids,
-            },
-          },
-          data: {
-            approved,
-          },
-        });
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
 
-      return result.count;
-    }
-
-    static async bulkDeleteReviews(
-      ids: string[]
-    ) {
-      if (
-        !Array.isArray(ids) ||
-        ids.length === 0
-      ) {
-        throw badRequest(
-          "At least one review must be selected."
-        );
-      }
-
-      const result =
-        await prisma.review.deleteMany({
-          where: {
-            id: {
-              in: ids,
-            },
-          },
-        });
-
-      return result.count;
-    }
-
-
-    static async updateReviewApproval(
-      reviewId: string,
-      approved: boolean
-    ) {
-      if (
-        typeof approved !==
-        "boolean"
-      ) {
-        throw badRequest(
-          "Approved status is required."
-        );
-      }
-
-      const review =
-        await prisma.review.findUnique({
-          where: {
-            id: reviewId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-      if (!review) {
-        throw notFound(
-          "Review not found."
-        );
-      }
-
-      return prisma.review.update({
-        where: {
-          id: reviewId,
+  const reviews =
+    await prisma.review.findMany({
+      where: {
+        id: {
+          in: ids,
         },
-        data: {
+      },
+      select: {
+        id: true,
+        approved: true,
+      },
+    });
+
+  if (reviews.length === 0) {
+    throw notFound(
+      "No matching reviews found."
+    );
+  }
+
+  const result =
+    await prisma.review.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data: {
+        approved,
+      },
+    });
+
+  await AuditService.reviewsBulkApprovalChanged({
+    actorId,
+    oldValues: {
+      approved: reviews.map(
+        (review) => ({
+          reviewId: review.id,
+          approved: review.approved,
+        })
+      ),
+    },
+    newValues: {
+      approved: reviews.map(
+        (review) => ({
+          reviewId: review.id,
           approved,
+        })
+      ),
+      count: result.count,
+    },
+  });
+
+  return result.count;
+}
+
+static async bulkDeleteReviews(
+  ids: string[],
+  actorId: string
+) {
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0
+  ) {
+    throw badRequest(
+      "At least one review must be selected."
+    );
+  }
+
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
+  const reviews =
+    await prisma.review.findMany({
+      where: {
+        id: {
+          in: ids,
         },
-      });
-    }
+      },
+      select: {
+        id: true,
+        userId: true,
+        productId: true,
+        rating: true,
+        body: true,
+        approved: true,
+        isVerified: true,
+      },
+    });
+
+  if (reviews.length === 0) {
+    throw notFound(
+      "No matching reviews found."
+    );
+  }
+
+  const result =
+    await prisma.review.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+  await AuditService.reviewsBulkDeleted({
+    actorId,
+    oldValues: {
+      reviews,
+      count: result.count,
+    },
+    newValues: {
+      deleted: true,
+      count: result.count,
+    },
+  });
+
+  return result.count;
+}
+
+static async updateReviewApproval(
+  reviewId: string,
+  approved: boolean,
+  actorId: string
+) {
+  if (
+    typeof approved !== "boolean"
+  ) {
+    throw badRequest(
+      "Approved status is required."
+    );
+  }
+
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
+  const review =
+    await prisma.review.findUnique({
+      where: {
+        id: reviewId,
+      },
+      select: {
+        id: true,
+        approved: true,
+      },
+    });
+
+  if (!review) {
+    throw notFound(
+      "Review not found."
+    );
+  }
+
+  const updatedReview =
+    await prisma.review.update({
+      where: {
+        id: reviewId,
+      },
+      data: {
+        approved,
+      },
+    });
+
+  await AuditService.reviewApprovalChanged({
+    actorId,
+    entityId: review.id,
+    oldValues: {
+      approved: review.approved,
+    },
+    newValues: {
+      approved:
+        updatedReview.approved,
+    },
+  });
+
+  return updatedReview;
+}
 
   static async deleteReviewBySlug(
   slug: string,
@@ -1200,6 +1375,10 @@ static async getVendorProducts(
         id: true,
         userId: true,
         productId: true,
+        rating: true,
+        body: true,
+        approved: true,
+        isVerified: true,
       },
     });
 
@@ -1228,12 +1407,32 @@ static async getVendorProducts(
       id: review.id,
     },
   });
+
+  await AuditService.reviewDeleted({
+    actorId: userId,
+    entityId: review.id,
+    oldValues: {
+      productId: review.productId,
+      userId: review.userId,
+      rating: review.rating,
+      body: review.body,
+      approved: review.approved,
+      isVerified: review.isVerified,
+    },
+  });
 }
 
 
 static async deleteReview(
-  reviewId: string
+  reviewId: string,
+  actorId: string
 ) {
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
   const review =
     await prisma.review.findUnique({
       where: {
@@ -1241,6 +1440,12 @@ static async deleteReview(
       },
       select: {
         id: true,
+        userId: true,
+        productId: true,
+        rating: true,
+        body: true,
+        approved: true,
+        isVerified: true,
       },
     });
 
@@ -1253,6 +1458,15 @@ static async deleteReview(
   await prisma.review.delete({
     where: {
       id: reviewId,
+    },
+  });
+
+  await AuditService.reviewDeleted({
+    actorId,
+    entityId: review.id,
+    oldValues: review,
+    newValues: {
+      deleted: true,
     },
   });
 }
@@ -1438,11 +1652,13 @@ static async bulkToggleProductFlag({
   updateType,
   applyToAll = false,
   filters,
+  actorId,
 }: {
   ids: string[];
   updateType: string;
   applyToAll?: boolean;
   filters?: any;
+  actorId: string;
 }) {
   const fieldMapping = {
     isFeatured: "isFeatured",
@@ -1458,6 +1674,10 @@ static async bulkToggleProductFlag({
 
   if (!dbField) {
     throw badRequest("Invalid update type.");
+  }
+
+  if (!actorId) {
+    throw badRequest("Audit actor is required.");
   }
 
   let targetIds: string[] = [];
@@ -1535,9 +1755,7 @@ static async bulkToggleProductFlag({
   }
 
   if (targetIds.length === 0) {
-    throw badRequest(
-      "No products selected."
-    );
+    throw badRequest("No products selected.");
   }
 
   const currentProducts =
@@ -1555,38 +1773,75 @@ static async bulkToggleProductFlag({
       },
     });
 
-  await prisma.$transaction(
-    currentProducts.map((product) => {
-      let value = false;
+  if (currentProducts.length === 0) {
+    throw notFound("No matching products found.");
+  }
+
+  const changes = currentProducts.map(
+    (product) => {
+      let oldValue = false;
 
       switch (dbField) {
         case "isFeatured":
-          value = !product.isFeatured;
+          oldValue = product.isFeatured;
           break;
 
         case "isFlashSale":
-          value = !product.isFlashSale;
+          oldValue = product.isFlashSale;
           break;
 
         case "isNewArrival":
-          value = !product.isNewArrival;
+          oldValue = product.isNewArrival;
           break;
       }
 
-      return prisma.product.update({
-        where: {
-          id: product.id,
-        },
-        data: {
-          [dbField]: value,
-        },
-      });
-    })
+      return {
+        productId: product.id,
+        oldValue,
+        newValue: !oldValue,
+      };
+    }
   );
 
+  await prisma.$transaction(
+    changes.map((change) =>
+      prisma.product.update({
+        where: {
+          id: change.productId,
+        },
+        data: {
+          [dbField]: change.newValue,
+        },
+      })
+    )
+  );
+
+  await AuditService.productFlagsBulkChanged({
+    actorId,
+    oldValues: {
+      updateType,
+      field: dbField,
+      changes: changes.map((change) => ({
+        productId: change.productId,
+        value: change.oldValue,
+      })),
+    },
+    newValues: {
+      updateType,
+      field: dbField,
+      changes: changes.map((change) => ({
+        productId: change.productId,
+        value: change.newValue,
+      })),
+      count: changes.length,
+    },
+  });
+
   return {
-    affectedIds: targetIds,
-    count: targetIds.length,
+    affectedIds: changes.map(
+      (change) => change.productId
+    ),
+    count: changes.length,
   };
 }
 
@@ -1622,23 +1877,53 @@ static async createVariant(
     price?: number;
     stock?: number;
     attributes?: Record<string, string>;
-  }
+  },
+  actorId: string
 ) {
-  return prisma.variant.create({
-    data: {
-      name: data.name,
-      price: data.price ?? 0,
-      stock: data.stock ?? 0,
-      attributes: data.attributes ?? {},
-      productId,
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
+  const variant =
+    await prisma.variant.create({
+      data: {
+        name: data.name,
+        price: data.price ?? 0,
+        stock: data.stock ?? 0,
+        attributes: data.attributes ?? {},
+        productId,
+      },
+    });
+
+  await AuditService.variantCreated({
+    actorId,
+    entityId: variant.id,
+    newValues: {
+      productId: variant.productId,
+      name: variant.name,
+      price: variant.price,
+      stock: variant.stock,
+      attributes: variant.attributes,
     },
   });
+
+  return variant;
 }
+
 
 //DELETE VARIANTS
 static async deleteVariant(
-  variantId: string
+  variantId: string,
+  actorId: string
 ) {
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
   const variant =
     await prisma.variant.findUnique({
       where: {
@@ -1655,6 +1940,18 @@ static async deleteVariant(
   await prisma.variant.delete({
     where: {
       id: variantId,
+    },
+  });
+
+  await AuditService.variantDeleted({
+    actorId,
+    entityId: variant.id,
+    oldValues: {
+      productId: variant.productId,
+      name: variant.name,
+      price: variant.price,
+      stock: variant.stock,
+      attributes: variant.attributes,
     },
   });
 }
@@ -1806,48 +2103,102 @@ static async createReview(
 
 //IMAGE SLUG COMMANDS
   
-   static async createProductImage(
+static async createProductImage(
   productId: string,
   data: {
     url: string;
     alt?: string;
     order?: number;
-  }
+  },
+  actorId: string
 ) {
-  return prisma.productImage.create({
-    data: {
-      url: data.url,
-      alt: data.alt,
-      order: data.order ?? 0,
-      productId,
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
+  const image =
+    await prisma.productImage.create({
+      data: {
+        url: data.url,
+        alt: data.alt,
+        order: data.order ?? 0,
+        productId,
+      },
+    });
+
+  await AuditService.productImageAdded({
+    actorId,
+    entityId: image.id,
+    newValues: {
+      productId: image.productId,
+      url: image.url,
+      alt: image.alt,
+      order: image.order,
     },
   });
+
+  return image;
 }
 
-    static async createProductImages(
+  
+static async createProductImages(
   productId: string,
   images: {
     url: string;
     alt?: string;
     order: number;
-  }[]
+  }[],
+  actorId: string
 ) {
-  return prisma.$transaction(
-    images.map((image) =>
-      prisma.productImage.create({
-        data: {
-          ...image,
-          productId,
-        },
-      })
-    )
-  );
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
+  const createdImages =
+    await prisma.$transaction(
+      images.map((image) =>
+        prisma.productImage.create({
+          data: {
+            ...image,
+            productId,
+          },
+        })
+      )
+    );
+
+  await AuditService.productImagesAdded({
+    actorId,
+    newValues: {
+      productId,
+      images: createdImages.map(
+        (image) => ({
+          id: image.id,
+          url: image.url,
+          alt: image.alt,
+          order: image.order,
+        })
+      ),
+      count: createdImages.length,
+    },
+  });
+
+  return createdImages;
 }
 
-
 static async deleteProductImage(
-  imageId: string
+  imageId: string,
+  actorId: string
 ) {
+  if (!actorId) {
+    throw badRequest(
+      "Audit actor is required."
+    );
+  }
+
   const image =
     await prisma.productImage.findUnique({
       where: {
@@ -1872,6 +2223,17 @@ static async deleteProductImage(
   await prisma.productImage.delete({
     where: {
       id: imageId,
+    },
+  });
+
+  await AuditService.productImageDeleted({
+    actorId,
+    entityId: image.id,
+    oldValues: {
+      productId: image.productId,
+      url: image.url,
+      alt: image.alt,
+      order: image.order,
     },
   });
 }
@@ -1923,10 +2285,10 @@ static async updateRating(productId: string) {
 
 static async togglePublicationStatus(
   productId: string,
-    vendorProfileId: string
-  ) {
-    const product =
-    await prisma.product.findFirst({
+  vendorProfileId: string,
+  actorId: string
+) {
+    const product = await prisma.product.findFirst({
       where: {
         id: productId,
         vendorProfileId,
@@ -1937,24 +2299,38 @@ static async togglePublicationStatus(
       },
     });
 
-  if (!product) {
-    throw notFound("Product not found.");
+    if (!product) {
+      throw notFound("Product not found.");
+    }
+
+    const newValue = !product.isPublished;
+
+    const updatedProduct = await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        isPublished: newValue,
+      },
+      select: {
+        id: true,
+        isPublished: true,
+      },
+    });
+
+    await AuditService.productPublicationChanged({
+      actorId,
+      entityId: product.id,
+      oldValues: {
+        isPublished: product.isPublished,
+      },
+      newValues: {
+        isPublished: updatedProduct.isPublished,
+      },
+    });
+
+    return updatedProduct;
   }
-
-  return prisma.product.update({
-    where: {
-      id: productId,
-    },
-    data: {
-      isPublished: !product.isPublished,
-    },
-    select: {
-      id: true,
-      isPublished: true,
-    },
-  });
-}
-
 
 /* -------------------------------------------------------------------------- */
 /*                           GET ADMIN PRODUCT PAG                             */
@@ -2341,17 +2717,31 @@ static async getTrendingProductsForAdmin(
 /* -------------------------------------------------------------------------- */
 static async toggleTrendingStatus(
   id: string,
-  currentStatus: boolean
+  currentStatus: boolean,
+  actorId: string
 ) {
-  return prisma.product.update({
-    where: {
-      id,
-    },
-    data: {
-      isTrending: !currentStatus,
-    },
-  });
+  const updatedProduct = await prisma.product.update({
+  where: {
+    id,
+  },
+  data: {
+    isTrending: !currentStatus,
+  },
+});
+
+await AuditService.productTrendingChanged({
+  actorId,
+  entityId: updatedProduct.id,
+  oldValues: {
+    isTrending: currentStatus,
+  },
+  newValues: {
+    isTrending: updatedProduct.isTrending,
+  },
+});
+
+return updatedProduct;
+  
 }
 
-  
 }

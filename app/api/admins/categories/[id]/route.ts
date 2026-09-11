@@ -93,7 +93,7 @@ export const PUT =
       try {
         verifyOrigin(req);
 
-        await requireManageCategories();
+       const session = await requireManageCategories();
 
         const { id } =
           await params;
@@ -126,10 +126,11 @@ export const PUT =
         const category =
           await CategoryService.updateCategory(
             id,
-            parsed.data
+            parsed.data,
+            session.user.id
           );
-
-        return NextResponse.json(
+        
+          return NextResponse.json(
           {
             success: true,
             category,
@@ -163,7 +164,7 @@ export const DELETE =
       try {
         verifyOrigin(req);
 
-        await requireManageCategories();
+        const session = await requireManageCategories();
 
         const { id } =
           await params;
@@ -175,7 +176,8 @@ export const DELETE =
         }
 
         await CategoryService.deleteCategory(
-          id
+          id,
+          session.user.id
         );
 
         return NextResponse.json(

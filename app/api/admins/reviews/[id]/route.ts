@@ -29,20 +29,22 @@ export const PATCH =
       }
     ) => {
       try {
+
+        const session =
         await requireManageReviews();
 
-        const { id } =
-          await params;
+      const { id } =
+        await params;
 
-        const {
+      const { approved } =
+        await req.json();
+
+      const review =
+        await ProductService.updateReviewApproval(
+          id,
           approved,
-        } = await req.json();
-
-        const review =
-          await ProductService.updateReviewApproval(
-            id,
-            approved
-          );
+          session.user.id
+        );
 
         return NextResponse.json(
           {
@@ -78,14 +80,16 @@ export const DELETE =
       try {
         verifyOrigin(req);
 
+       const session =
         await requireManageReviews();
 
-        const { id } =
-          await params;
+      const { id } =
+        await params;
 
-        await ProductService.deleteReview(
-          id
-        );
+      await ProductService.deleteReview(
+        id,
+        session.user.id
+      );
 
         return NextResponse.json(
           {
