@@ -211,8 +211,8 @@ const DashboardSidebar = memo(
         : null;
 
     const refreshBroadcastUnreadCount = async () => {
-      if (!broadcastContext || !session?.user?.id) {
-        setBroadcastUnreadCount(0);
+if (!broadcastContext || !session?.user?.id) {
+setBroadcastUnreadCount(0);
         return;
       }
 
@@ -231,8 +231,7 @@ const DashboardSidebar = memo(
         if (!response.ok) return;
 
         const data = await response.json();
-
-        setBroadcastUnreadCount(
+setBroadcastUnreadCount(
           Number(data?.unreadCount || 0)
         );
       } catch {
@@ -786,42 +785,6 @@ const DashboardSidebar = memo(
                 <span>
                   {link.label}
                 </span>
-          {broadcastUnreadCount > 0 &&
-            (link.href ===
-              "/account/customer/communications" ||
-              link.href ===
-                "/account/vendor/communications") &&
-            link.href.includes(
-              broadcastContext === "VENDOR"
-                ? "/account/vendor/"
-                : "/account/customer/"
-            ) && (
-              <span
-                className="
-                  ml-auto
-                  flex
-                  min-w-5
-                  h-5
-                  px-1.5
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#F7931E]
-                  text-[8px]
-                  font-black
-                  text-white
-                  ring-2
-                  ring-gray-950
-                  shadow-sm
-                  animate-pulse
-                "
-                aria-label={`${broadcastUnreadCount} unread communications`}
-              >
-                {broadcastUnreadCount > 99
-                  ? "99+"
-                  : broadcastUnreadCount}
-              </span>
-            )}
 
                 {unreadCount > 0 &&
                   link.label ===
@@ -981,6 +944,37 @@ const DashboardSidebar = memo(
           <span>
             {link.label}
           </span>
+          {broadcastUnreadCount > 0 &&
+            link.href ===
+              (broadcastContext === "VENDOR"
+                ? "/account/vendor/communications"
+                : "/account/customer/communications") && (
+              <span
+                className="
+                  ml-auto
+                  flex
+                  min-w-5
+                  h-5
+                  px-1.5
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#F7931E]
+                  text-[8px]
+                  font-black
+                  text-white
+                  ring-2
+                  ring-gray-950
+                  shadow-sm
+                  animate-pulse
+                "
+                aria-label={`${broadcastUnreadCount} unread communications`}
+              >
+                {broadcastUnreadCount > 99
+                  ? "99+"
+                  : broadcastUnreadCount}
+              </span>
+            )}
         </Link>
       );
     };
@@ -1245,6 +1239,9 @@ DashboardSidebar.displayName =
   "DashboardSidebar";
 
 export default DashboardSidebar;
+
+
+
 
 
 
