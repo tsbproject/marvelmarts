@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,7 @@ const DASHBOARD_CONFIG = {
         visible: true,
       },
       {
-        label: "Message",
+        label: "Communications",
         href: "/account/customer/communications",
         icon: <Megaphone size={16} />,
         visible: true,
@@ -109,7 +109,7 @@ const DASHBOARD_CONFIG = {
       },
 
       {
-        label: "Message",
+        label: "Communications",
         href: "/account/vendor/communications",
         icon: <Megaphone size={16} />,
         visible: true,
@@ -474,3 +474,4 @@ export default function UnifiedAccountLayout({
     </div>
   );
 }
+

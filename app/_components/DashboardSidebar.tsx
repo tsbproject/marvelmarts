@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -101,8 +101,9 @@ const DashboardSidebar = memo(
       []
     );
 
-    const [unreadCount, setUnreadCount] =
-      useState(0);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const [broadcastUnreadCount, setBroadcastUnreadCount] = useState(0);
 
     const [openDropdowns, setOpenDropdowns] =
       useState<Record<string, boolean>>({});
@@ -193,7 +194,99 @@ const DashboardSidebar = memo(
       }
     }, [pathname]);
 
+        /* ---------------------------------------------------------------------- */
+    /*                     CONTEXTUAL BROADCAST NOTIFICATIONS                  */
     /* ---------------------------------------------------------------------- */
+
+    const broadcastContext =
+      dashboardMode === "VENDOR"
+        ? "VENDOR"
+        : dashboardMode === "CUSTOMER"
+          ? "CUSTOMER"
+          : null;
+
+    const broadcastChannelName =
+      session?.user?.id && broadcastContext
+        ? `user-${session.user.id}-${broadcastContext.toLowerCase()}`
+        : null;
+
+    const refreshBroadcastUnreadCount = async () => {
+      if (!broadcastContext || !session?.user?.id) {
+        setBroadcastUnreadCount(0);
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams({
+          context: broadcastContext,
+          page: "1",
+          pageSize: "1",
+        });
+
+        const response = await fetch(
+          `/api/communications?${params.toString()}`,
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        setBroadcastUnreadCount(
+          Number(data?.unreadCount || 0)
+        );
+      } catch {
+        // Badge refresh failures must not interrupt dashboard navigation.
+      }
+    };
+
+    useEffect(() => {
+      void refreshBroadcastUnreadCount();
+    }, [
+      session?.user?.id,
+      broadcastContext,
+      pathname,
+    ]);
+
+    useEffect(() => {
+      if (
+        !broadcastChannelName ||
+        !broadcastContext
+      ) {
+        return;
+      }
+
+      const channel =
+        pusherClient.subscribe(
+          broadcastChannelName
+        );
+
+      const handleBroadcast = () => {
+        // Database state remains authoritative.
+        void refreshBroadcastUnreadCount();
+      };
+
+      channel.bind(
+        "broadcast-message",
+        handleBroadcast
+      );
+
+      return () => {
+        channel.unbind(
+          "broadcast-message",
+          handleBroadcast
+        );
+
+        pusherClient.unsubscribe(
+          broadcastChannelName
+        );
+      };
+    }, [
+      broadcastChannelName,
+      broadcastContext,
+      pusherClient,
+    ]);
+/* ---------------------------------------------------------------------- */
     /*                           DROPDOWN STATE                                */
     /* ---------------------------------------------------------------------- */
 
@@ -327,7 +420,7 @@ const DashboardSidebar = memo(
               },
 
               {
-              label: "Broadcast",
+              label: "Communications",
               href: "/account/customer/communications",
               icon: <Megaphone size={16} />,
               visible: true,
@@ -508,7 +601,7 @@ const DashboardSidebar = memo(
               },
 
               {
-              label: "Broadcast",
+              label: "Communications",
 
               href: "/account/vendor/communications",
 
@@ -693,6 +786,42 @@ const DashboardSidebar = memo(
                 <span>
                   {link.label}
                 </span>
+          {broadcastUnreadCount > 0 &&
+            (link.href ===
+              "/account/customer/communications" ||
+              link.href ===
+                "/account/vendor/communications") &&
+            link.href.includes(
+              broadcastContext === "VENDOR"
+                ? "/account/vendor/"
+                : "/account/customer/"
+            ) && (
+              <span
+                className="
+                  ml-auto
+                  flex
+                  min-w-5
+                  h-5
+                  px-1.5
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#F7931E]
+                  text-[8px]
+                  font-black
+                  text-white
+                  ring-2
+                  ring-gray-950
+                  shadow-sm
+                  animate-pulse
+                "
+                aria-label={`${broadcastUnreadCount} unread communications`}
+              >
+                {broadcastUnreadCount > 99
+                  ? "99+"
+                  : broadcastUnreadCount}
+              </span>
+            )}
 
                 {unreadCount > 0 &&
                   link.label ===
@@ -1116,3 +1245,6 @@ DashboardSidebar.displayName =
   "DashboardSidebar";
 
 export default DashboardSidebar;
+
+
+

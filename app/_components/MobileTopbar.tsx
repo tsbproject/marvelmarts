@@ -1,12 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Menu, X, LogOut, ChevronRight, User } from "lucide-react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import { getPusherClient } from "@/app/lib/pusherClient";
 
 // --- Animation Variants (Preserved) ---
 const menuVariants: Variants = {
@@ -60,6 +61,9 @@ export default function MobileTopbar({
   user
 }: MobileTopbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const [mobileBroadcastUnreadCount, setMobileBroadcastUnreadCount] =
+    useState(0);
   
   // Access Redux for Real-time Review Intel (Preserved)
   const { reviews } = useSelector((state: RootState) => state.admin || { reviews: [] });
@@ -72,6 +76,89 @@ export default function MobileTopbar({
   const isAdmin = normalizedRole.includes("ADMIN");
   const isVendor = normalizedRole.includes("VENDOR");
   const isCustomer = normalizedRole === "CUSTOMER" || normalizedRole === "USER";
+  /* ---------------------------------------------------------------------- */
+  /*                  MOBILE CONTEXTUAL BROADCAST NOTIFICATIONS              */
+  /* ---------------------------------------------------------------------- */
+
+  const mobileBroadcastContext =
+    isVendor
+      ? "VENDOR"
+      : isCustomer
+        ? "CUSTOMER"
+        : null;
+
+  const mobileBroadcastChannel =
+    session?.user?.id && mobileBroadcastContext
+      ? `user-${session.user.id}-${mobileBroadcastContext.toLowerCase()}`
+      : null;
+
+  const refreshMobileBroadcastUnreadCount = async () => {
+    if (!session?.user?.id || !mobileBroadcastContext) {
+      setMobileBroadcastUnreadCount(0);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        context: mobileBroadcastContext,
+        page: "1",
+        pageSize: "1",
+      });
+
+      const response = await fetch(
+        `/api/communications?${params.toString()}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      setMobileBroadcastUnreadCount(
+        Number(data?.unreadCount || 0)
+      );
+    } catch {
+      // Badge refresh failures must not interrupt mobile navigation.
+    }
+  };
+
+  useEffect(() => {
+    void refreshMobileBroadcastUnreadCount();
+  }, [
+    session?.user?.id,
+    mobileBroadcastContext,
+  ]);
+
+  useEffect(() => {
+    if (!mobileBroadcastChannel || !mobileBroadcastContext) {
+      return;
+    }
+
+    const client = getPusherClient();
+    const channel = client.subscribe(mobileBroadcastChannel);
+
+    const handleBroadcast = () => {
+      // Database state remains authoritative.
+      void refreshMobileBroadcastUnreadCount();
+    };
+
+    channel.bind(
+      "broadcast-message",
+      handleBroadcast
+    );
+
+    return () => {
+      channel.unbind(
+        "broadcast-message",
+        handleBroadcast
+      );
+
+      client.unsubscribe(mobileBroadcastChannel);
+    };
+  }, [
+    mobileBroadcastChannel,
+    mobileBroadcastContext,
+  ]);
 
   return (
     <>
@@ -154,7 +241,7 @@ export default function MobileTopbar({
                       
                       <div className="flex items-baseline gap-1">
                         <span className="text-md xl:text-xl 2xl:text-2xl font-black italic tracking-tighter">
-                          ₦{todayRevenue.toLocaleString()}
+                          â‚¦{todayRevenue.toLocaleString()}
                         </span>
                         <span className="text-[10px] font-bold text-indigo-300 uppercase">NGN</span>
                       </div>
@@ -185,6 +272,34 @@ export default function MobileTopbar({
                               <span className="text-xs font-black uppercase tracking-widest">
                                 {item.label}
                               </span>
+                              {mobileBroadcastUnreadCount > 0 &&
+                                (item.href ===
+                                  "/account/customer/communications" ||
+                                  item.href ===
+                                    "/account/vendor/communications") &&
+                                item.href.includes(
+                                  mobileBroadcastContext === "VENDOR"
+                                    ? "/account/vendor/"
+                                    : "/account/customer/"
+                                ) && (
+                                  <span
+                                    className="
+                                      bg-[#F7931E]
+                                      text-white
+                                      text-[9px]
+                                      font-black
+                                      px-2
+                                      py-0.5
+                                      rounded-full
+                                      animate-pulse
+                                    "
+                                    aria-label={`${mobileBroadcastUnreadCount} unread communications`}
+                                  >
+                                    {mobileBroadcastUnreadCount > 99
+                                      ? "99+"
+                                      : mobileBroadcastUnreadCount}
+                                  </span>
+                                )}
                               {isReviewLink && pendingReviewsCount > 0 && isAdmin && (
                                 <span className="bg-[#F7931E] text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
                                   {pendingReviewsCount}
@@ -220,3 +335,4 @@ export default function MobileTopbar({
     </>
   );
 }
+
