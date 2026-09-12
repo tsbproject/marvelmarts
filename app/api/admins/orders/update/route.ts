@@ -44,7 +44,7 @@ export const PATCH =
         if (userId) {
           try {
             await pusherServer.trigger(
-              `user-${userId}`,
+              `user-${userId}-customer`,
               "order-update",
               updatedOrder
             );

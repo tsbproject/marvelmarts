@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";
+import {
+  ConversationParticipantContext,
+} from "@prisma/client";
+
+import {
+  requireConversationAccess,
+} from "@/app/lib/auth/conversation";
 
 import {
   handleApiError,
@@ -20,7 +27,7 @@ export const POST = withApiLogging(
   async (req: NextRequest) => {
     try {
       const session =
-        await requireAuth();
+       await requireAuth();
 
       const {
         content,
@@ -38,12 +45,19 @@ export const POST = withApiLogging(
         );
       }
 
+      await requireConversationAccess(
+        conversationId,
+        ConversationParticipantContext.CUSTOMER
+      );
+
       const message =
         await conversationService.sendMessage(
           conversationId,
           session.user.id,
           session.user.name || "User",
-          content.trim()
+          content.trim(),
+          undefined,
+          ConversationParticipantContext.CUSTOMER
         );
 
       try {

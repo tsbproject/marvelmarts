@@ -1,3 +1,4 @@
+import { ConversationParticipantContext } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";
@@ -36,8 +37,9 @@ export const POST = withApiLogging(
 
       const access =
         await requireConversationAccess(
-          conversationId
-        );
+            conversationId,
+            ConversationParticipantContext.VENDOR
+          );
 
       const body =
         await req.json();
@@ -60,15 +62,16 @@ export const POST = withApiLogging(
         );
       }
 
-      const message =
-        await conversationService.sendMessage(
-          conversationId,
-          access.userId,
-          access.session?.user.name ??
-            "Vendor",
-          content
-        );
-
+    const message =
+      await conversationService.sendMessage(
+        conversationId,
+        access.userId,
+        access.session?.user.name ??
+          "Vendor",
+        content,
+        undefined,
+        ConversationParticipantContext.VENDOR
+      );
       try {
         await Promise.all([
           pusherServer.trigger(

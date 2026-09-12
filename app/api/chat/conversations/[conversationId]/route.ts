@@ -1,3 +1,4 @@
+﻿import { ConversationParticipantContext } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";

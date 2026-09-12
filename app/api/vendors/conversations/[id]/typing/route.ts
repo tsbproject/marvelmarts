@@ -1,3 +1,4 @@
+import { ConversationParticipantContext } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { pusherServer } from "@/app/lib/pusherServer";
@@ -29,8 +30,9 @@ export const POST = withApiLogging(
 
       const access =
         await requireConversationAccess(
-          conversationId
-        );
+            conversationId,
+            ConversationParticipantContext.VENDOR
+          );
 
       const body =
         await req.json();

@@ -177,46 +177,6 @@ export default function AdminNotificationBell() {
       pusherClient.subscribe(
         "admin-system"
       );
-
-    let userChannel: any = null;
-
-    // USER CHANNEL
-    if (session?.user?.id) {
-      userChannel =
-        pusherClient.subscribe(
-          `user-${session.user.id}`
-        );
-
-      userChannel.bind(
-        "new-message",
-        (data: any) => {
-          playNotifySound();
-
-          dispatch(
-            addNotification({
-              type: "message",
-
-              title:
-                "New Message",
-
-              message:
-                data.content?.substring(
-                  0,
-                  40
-                ) + "...",
-
-              link:
-                `/dashboard/admins/support/messages?type=VENDOR_ADMIN&id=${data.conversationId}`,
-            })
-          );
-
-          notifySuccess(
-            `New transmission from ${data.senderName}`
-          );
-        }
-      );
-    }
-
     // REFUND REQUEST
     orderChannel.bind(
       "new-refund-request",
@@ -283,7 +243,7 @@ export default function AdminNotificationBell() {
         );
 
         notifyError(
-          `🚨 New Dispute: ${data.vendorName}`
+          `ðŸš¨ New Dispute: ${data.vendorName}`
         );
       }
     );
@@ -310,7 +270,7 @@ export default function AdminNotificationBell() {
         );
 
         notifySuccess(
-          `🏪 New Vendor: ${data.storeName}`
+          `ðŸª New Vendor: ${data.storeName}`
         );
       }
     );
@@ -337,7 +297,7 @@ export default function AdminNotificationBell() {
         );
 
         notifyError(
-          "🎫 New Support Ticket"
+          "ðŸŽ« New Support Ticket"
         );
       }
     );
@@ -351,12 +311,6 @@ export default function AdminNotificationBell() {
       pusherClient.unsubscribe(
         "admin-system"
       );
-
-      if (session?.user?.id) {
-        pusherClient.unsubscribe(
-          `user-${session.user.id}`
-        );
-      }
     };
   }, [
     dispatch,

@@ -16,4 +16,5 @@ export * from "./types/support.types";
 export * from "./types/admin.types";
 export * from "./types/payout.types";
 export * from "./types/messaging.types";
-export * from "./types/vendor.types";
+export * from "./types/vendor.types";export * from "./services/communications.service";
+export * from "./types/communications.types";

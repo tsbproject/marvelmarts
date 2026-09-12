@@ -59,7 +59,7 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     if (!user?.id || !id) return;
 
-    const channel = pusherClient.subscribe(`user-${user.id}`);
+    const channel = pusherClient.subscribe(`user-${user.id}-customer`);
 
     channel.bind("order-update", (data: any) => {
       if (data.orderNumber === id || data.id === order?.id) {
@@ -69,7 +69,7 @@ export default function OrderDetailsPage() {
     });
 
     return () => {
-      pusherClient.unsubscribe(`user-${user.id}`);
+      pusherClient.unsubscribe(`user-${user.id}-customer`);
     };
   }, [user?.id, id, order?.id, dispatch, notifySuccess]);
 

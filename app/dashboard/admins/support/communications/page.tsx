@@ -41,9 +41,11 @@ export default function AdminCommunicationsPage() {
       }
 
       setResult(
-        `Broadcast sent successfully to ${data.recipientCount.toLocaleString()} ${
+        `Broadcast delivered to ${data.recipientCount.toLocaleString()} ${
           audience === "CUSTOMERS" ? "customers" : "vendors"
-        }.`
+        }. Email notifications: ${Number(data.emailSentCount || 0).toLocaleString()} sent, ${Number(
+          data.emailFailedCount || 0
+        ).toLocaleString()} failed.`
       );
       setTitle("");
       setMessage("");

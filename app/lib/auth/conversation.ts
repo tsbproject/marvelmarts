@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import type { Prisma } from "@prisma/client";
+import { ConversationParticipantContext } from "@prisma/client";
 
 import { authOptions } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
@@ -64,7 +65,8 @@ export interface ConversationAccess {
 /* -------------------------------------------------------------------------- */
 
 export async function requireConversationAccess(
-  conversationId: string
+  conversationId: string,
+  context?: ConversationParticipantContext
 ): Promise<ConversationAccess> {
   const session = await requireAuth();
 
@@ -112,11 +114,20 @@ export async function requireConversationAccess(
     throw notFound("Conversation not found.");
   }
 
-  const isParticipant =
-    conversation.participantIds.includes(
-      userId
-    );
-
+  const isParticipant = context
+    ? await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId,
+            userId,
+            context,
+          },
+        },
+        select: {
+          id: true,
+        },
+      }) !== null
+    : false;
   const isAdmin =
     isSuperAdmin(session) ||
     hasPermission(
@@ -182,6 +193,12 @@ export async function requireSupportConversationAccess(
         participantIds: true,
         deletedByParticipantIds: true,
         guestAccessToken: true,
+        participantContexts: {
+          select: {
+            userId: true,
+            context: true,
+          },
+        },
         deletedForUserIds: true,
         participants: {
           select: {
@@ -209,10 +226,27 @@ export async function requireSupportConversationAccess(
   if (session) {
     const userId = session.user.id;
 
-    const isParticipant =
-      conversation.participantIds.includes(
-        userId
-      );
+    const supportContext =
+      conversation.type === "VENDOR_ADMIN"
+        ? ConversationParticipantContext.VENDOR
+        : conversation.type === "CUSTOMER_ADMIN"
+          ? ConversationParticipantContext.CUSTOMER
+          : null;
+
+    const isParticipant = supportContext
+      ? await prisma.conversationParticipant.findUnique({
+          where: {
+            conversationId_userId_context: {
+              conversationId,
+              userId,
+              context: supportContext,
+            },
+          },
+          select: {
+            id: true,
+          },
+        }) !== null
+      : false;
 
     const isAdmin =
       isSuperAdmin(session) ||
@@ -224,6 +258,15 @@ export async function requireSupportConversationAccess(
     if (!isParticipant && !isAdmin) {
       throw forbidden(
         "You do not have permission to access this conversation."
+      );
+    }
+
+    if (
+      !isAdmin &&
+      conversation.deletedByParticipantIds.includes(userId)
+    ) {
+      throw notFound(
+        "Conversation not available."
       );
     }
 
@@ -258,11 +301,34 @@ export async function requireSupportConversationAccess(
     );
   }
 
-  if (
-    !conversation.participantIds.includes(
-      user.id
-    )
-  ) {
+  const supportContext =
+    conversation.type === "VENDOR_ADMIN"
+      ? ConversationParticipantContext.VENDOR
+      : conversation.type === "CUSTOMER_ADMIN"
+        ? ConversationParticipantContext.CUSTOMER
+        : null;
+
+  if (!supportContext) {
+    throw forbidden(
+      "Invalid support conversation."
+    );
+  }
+
+  const isParticipant =
+    await prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId_context: {
+          conversationId,
+          userId: user.id,
+          context: supportContext,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!isParticipant) {
     throw forbidden(
       "You do not have permission to access this conversation."
     );

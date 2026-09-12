@@ -1,12 +1,21 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
+﻿import { NextResponse } from "next/server";
+import { NotificationContext } from "@prisma/client";
 
-import { authOptions } from "@/app/lib/auth";
+import {
+  handleApiError,
+  requireAuth,
+  requireManageMessages,
+} from "@/app/lib/auth/api";
+import { verifyOrigin } from "@/app/lib/auth/csrf";
+import { withApiLogging } from "@/app/lib/logging/with-api-logging";
+import { badRequest, forbidden } from "@/app/lib/auth/errors";
+import { prisma } from "@/app/lib/prisma";
+
 import {
   getUserBroadcasts,
   markAllBroadcastsRead,
   markBroadcastRead,
+  deleteBroadcasts,
   sendBroadcast,
   type BroadcastAudience,
 } from "@/app/lib/services/broadcast.service";
@@ -14,113 +23,340 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdminSession(session: any) {
-  const role = session?.user?.role;
-  return (
-    role === UserRole.SUPER_ADMIN ||
-    role === UserRole.ADMIN ||
-    session?.user?.admin?.manageMessages === true
-  );
-}
-
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function parseContext(
+  value: string | null
+): NotificationContext | null {
+  if (value === "CUSTOMER") {
+    return NotificationContext.CUSTOMER;
   }
 
-  const broadcasts = await getUserBroadcasts(session.user.id);
+  if (value === "VENDOR") {
+    return NotificationContext.VENDOR;
+  }
 
-  return NextResponse.json({
-    broadcasts: broadcasts.map((item) => ({
-      id: item.id,
-      title: item.title,
-      message: item.message,
-      isRead: item.isRead,
-      createdAt: item.createdAt.toISOString(),
-    })),
+  return null;
+}
+
+async function hasContextAccess(
+  userId: string,
+  context: NotificationContext
+) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      roles: true,
+      vendorProfile: {
+        select: {
+          id: true,
+        },
+      },
+    },
   });
-}
 
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!isAdminSession(session)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) {
+    return false;
   }
 
-  try {
-    const body = await request.json();
+  if (context === NotificationContext.CUSTOMER) {
+    return user.roles.includes("CUSTOMER");
+  }
 
-    const audience = body?.audience as BroadcastAudience;
-    const title = typeof body?.title === "string" ? body.title : "";
-    const message = typeof body?.message === "string" ? body.message : "";
-
-    if (audience !== "CUSTOMERS" && audience !== "VENDORS") {
-      return NextResponse.json(
-        { error: "Audience must be CUSTOMERS or VENDORS." },
-        { status: 400 }
-      );
-    }
-
-    const result = await sendBroadcast({
-      audience,
-      title,
-      message,
-    });
-
-    return NextResponse.json({
-      success: true,
-      audience,
-      recipientCount: result.recipientCount,
-    });
-  } catch (error: any) {
-    console.error("[BROADCAST_SEND_ERROR]", error);
-
-    return NextResponse.json(
-      { error: error?.message || "Unable to send broadcast." },
-      { status: 400 }
+  if (context === NotificationContext.VENDOR) {
+    return (
+      user.roles.includes("VENDOR") &&
+      user.vendorProfile !== null
     );
   }
+
+  return false;
 }
 
-export async function PATCH(request: Request) {
-  const session = await getServerSession(authOptions);
+async function requireContextAccess(
+  contextValue: string | null
+) {
+  const session = await requireAuth();
 
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const context = parseContext(contextValue);
 
-  try {
-    const body = await request.json();
-
-    if (body?.all === true) {
-      await markAllBroadcastsRead(session.user.id);
-      return NextResponse.json({ success: true });
-    }
-
-    const notificationId =
-      typeof body?.notificationId === "string"
-        ? body.notificationId
-        : "";
-
-    if (!notificationId) {
-      return NextResponse.json(
-        { error: "notificationId is required." },
-        { status: 400 }
-      );
-    }
-
-    await markBroadcastRead(session.user.id, notificationId);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[BROADCAST_READ_ERROR]", error);
-
-    return NextResponse.json(
-      { error: "Unable to update broadcast read state." },
-      { status: 500 }
+  if (!context) {
+    throw badRequest(
+      "A valid communication context is required."
     );
   }
+
+  const allowed = await hasContextAccess(
+    session.user.id,
+    context
+  );
+
+  if (!allowed) {
+    throw forbidden(
+      "Communication context access denied."
+    );
+  }
+
+  return {
+    session,
+    context,
+  };
 }
+
+export const GET = withApiLogging(
+  async (req: Request) => {
+    try {
+      const url = new URL(req.url);
+
+      const contextValue =
+        url.searchParams.get("context");
+
+      const { session, context } =
+        await requireContextAccess(
+          contextValue
+        );
+
+      const page = Math.max(
+        1,
+        Number(
+          url.searchParams.get("page") ?? "1"
+        ) || 1
+      );
+
+      const pageSize = Math.min(
+        100,
+        Math.max(
+          1,
+          Number(
+            url.searchParams.get("pageSize") ?? "20"
+          ) || 20
+        )
+      );
+
+      const search =
+        url.searchParams.get("search")?.trim() ||
+        undefined;
+
+      const result = await getUserBroadcasts({
+        userId: session.user.id,
+        context,
+        page,
+        pageSize,
+        search,
+      });
+
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+);
+
+export const POST = withApiLogging(
+  async (req: Request) => {
+    try {
+      await verifyOrigin(req);
+
+      await requireManageMessages();
+
+      const body = await req.json();
+
+      const title =
+        typeof body.title === "string"
+          ? body.title.trim()
+          : "";
+
+      const message =
+        typeof body.message === "string"
+          ? body.message.trim()
+          : "";
+
+      const audience =
+        body.audience === "CUSTOMERS" ||
+        body.audience === "VENDORS"
+          ? (body.audience as BroadcastAudience)
+          : null;
+
+      if (!title || !message || !audience) {
+        return NextResponse.json(
+          {
+            error:
+              "Title, message, and a valid audience are required.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      if (title.length > 200) {
+        return NextResponse.json(
+          {
+            error:
+              "Communication title must not exceed 200 characters.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      if (message.length > 10000) {
+        return NextResponse.json(
+          {
+            error:
+              "Communication message must not exceed 10,000 characters.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const result = await sendBroadcast({
+        title,
+        message,
+        audience,
+      });
+
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+);
+
+export const PATCH = withApiLogging(
+  async (req: Request) => {
+    try {
+      await verifyOrigin(req);
+
+      const body = await req.json();
+
+      const contextValue =
+        typeof body.context === "string"
+          ? body.context
+          : null;
+
+      const { session, context } =
+        await requireContextAccess(
+          contextValue
+        );
+
+      if (
+        body.markAll === true ||
+        body.all === true
+      ) {
+        await markAllBroadcastsRead(
+          session.user.id,
+          context
+        );
+
+        return NextResponse.json({
+          success: true,
+        });
+      }
+
+      const id =
+        typeof body.id === "string"
+          ? body.id.trim()
+          : typeof body.notificationId === "string"
+            ? body.notificationId.trim()
+            : "";
+
+      if (!id) {
+        return NextResponse.json(
+          {
+            error:
+              "Notification ID is required.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      await markBroadcastRead(
+        session.user.id,
+        id,
+        context
+      );
+
+      return NextResponse.json({
+        success: true,
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+);
+
+export const DELETE = withApiLogging(
+  async (req: Request) => {
+    try {
+      await verifyOrigin(req);
+
+      const body = await req.json();
+
+      const contextValue =
+        typeof body.context === "string"
+          ? body.context
+          : null;
+
+      const { session, context } =
+        await requireContextAccess(
+          contextValue
+        );
+
+      const rawIds = Array.isArray(body.ids)
+        ? body.ids
+        : Array.isArray(body.notificationIds)
+          ? body.notificationIds
+          : typeof body.notificationId === "string"
+            ? [body.notificationId]
+            : [];
+
+      const ids = rawIds.filter(
+        (id: unknown): id is string =>
+          typeof id === "string" &&
+          id.trim().length > 0
+      );
+
+      if (ids.length === 0) {
+        return NextResponse.json(
+          {
+            error:
+              "At least one notification ID is required.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      if (ids.length > 100) {
+        return NextResponse.json(
+          {
+            error:
+              "You can delete at most 100 notifications at once.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      await deleteBroadcasts(
+        session.user.id,
+        ids,
+        context
+      );
+
+      return NextResponse.json({
+        success: true,
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+);

@@ -26,15 +26,15 @@ import {
   Truck,
   Settings,
   ChartArea,
+  Megaphone,
   CreditCard,
   Clock,
   BarChart3,
 } from "lucide-react";
 
-// ── Dashboard Menu Configuration ──
-// ─────────────────────────────────────
+
+
 // DASHBOARD MENU CONFIGURATION
-// ─────────────────────────────────────
 
 const DASHBOARD_CONFIG = {
   CUSTOMER: {
@@ -49,6 +49,12 @@ const DASHBOARD_CONFIG = {
         label: "My Orders",
         href: "/account/customer/orders",
         icon: <Package size={16} />,
+        visible: true,
+      },
+      {
+        label: "Message",
+        href: "/account/customer/communications",
+        icon: <Megaphone size={16} />,
         visible: true,
       },
     ],
@@ -99,6 +105,13 @@ const DASHBOARD_CONFIG = {
         label: "Analytics",
         href: "/account/vendor/analytics",
         icon: <BarChart3 size={16} />,
+        visible: true,
+      },
+
+      {
+        label: "Message",
+        href: "/account/vendor/communications",
+        icon: <Megaphone size={16} />,
         visible: true,
       },
     ],

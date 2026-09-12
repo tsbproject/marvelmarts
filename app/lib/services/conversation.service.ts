@@ -1,3 +1,6 @@
+import { prisma } from "@/app/lib/prisma";
+import { ConversationParticipantContext } from "@prisma/client";
+
 import { conversationRepository } from "@/app/lib/repositories/conversation.repository";
 
 export const conversationService = {
@@ -22,14 +25,42 @@ export const conversationService = {
     productId?: string | null;
     productPrice?: string | null;
     productImage?: string | null;
-  }
+  },
+  context?: ConversationParticipantContext
 ) {
+  if (senderId && !context) {
+    throw new Error(
+      "Conversation context is required"
+    );
+  }
+
+  if (senderId && context) {
+    const participantContext =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId,
+            userId: senderId,
+            context,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!participantContext) {
+      throw new Error(
+        "Conversation context access denied"
+      );
+    }
+  }
+
   return conversationRepository.createMessage({
     conversationId,
     senderId,
     senderName,
     content,
-
     productId: product?.productId ?? null,
     productPrice: product?.productPrice ?? null,
     productImage: product?.productImage ?? null,

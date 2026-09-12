@@ -1,3 +1,4 @@
+﻿import { NotificationContext } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 
 export class TicketService {
@@ -70,6 +71,7 @@ export class TicketService {
           title: "New Support Ticket",
           message: `${data.email} submitted a support request.`,
           link: `/dashboard/admins/support/tickets/${ticket.id}`,
+          context: NotificationContext.ADMIN,
         })),
       });
     }

@@ -25,6 +25,7 @@ import {
   BarChart3,
   HelpCircle,
   ChevronDown,
+  Megaphone,
   Lock,
 } from "lucide-react";
 
@@ -326,6 +327,14 @@ const DashboardSidebar = memo(
               },
 
               {
+              label: "Broadcast",
+              href: "/account/customer/communications",
+              icon: <Megaphone size={16} />,
+              visible: true,
+              },
+
+
+              {
                 label:
                   "Payment method",
 
@@ -497,6 +506,17 @@ const DashboardSidebar = memo(
 
                 visible: true,
               },
+
+              {
+              label: "Broadcast",
+
+              href: "/account/vendor/communications",
+
+              icon: <Megaphone size={16} />,
+
+              visible: true,
+              },
+
 
               {
                 label:

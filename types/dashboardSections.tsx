@@ -7,6 +7,7 @@ import {
   KeyIcon,
   Squares2X2Icon,
   Cog6ToothIcon,
+  MegaphoneIcon
 } from "@heroicons/react/24/outline";
 
 // -------------------- ADMIN SECTIONS --------------------
@@ -16,7 +17,7 @@ export const adminSections: Sections = {
       href: "/dashboard",
       label: "Overview",
       icon: <HomeIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
   ],
   management: [
@@ -24,37 +25,44 @@ export const adminSections: Sections = {
       href: "/dashboard/admins",
       label: "Admins",
       icon: <ShieldCheckIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
     {
       href: "/dashboard/admins/users",
       label: "Users",
       icon: <UsersIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
     {
       href: "/dashboard/blogs",
       label: "Blogs",
       icon: <NewspaperIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
     {
       href: "/dashboard/admins/products",
       label: "Products",
       icon: <KeyIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
+    },
+
+    {
+      href: "/dashboard/admins/communications",
+      label: "Broadcast",
+      icon: <MegaphoneIcon className="w-5 h-5" />,
+      visible: true,
     },
     {
       href: "/dashboard/admins/orders",
       label: "Orders",
       icon: <KeyIcon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
     {
       href: "/dashboard/admins/categories",
       label: "Categories",
       icon: <Squares2X2Icon className="w-5 h-5" />,
-      visible: true, 
+      visible: true,
     },
     {
       href: "/dashboard/admins/settings",

@@ -1,3 +1,4 @@
+﻿import { ConversationParticipantContext } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
@@ -36,7 +37,8 @@ export const PATCH = withApiLogging(
       const result =
         await MessageService.markConversationAsRead(
           conversationId,
-          session.user.id
+          session.user.id,
+          ConversationParticipantContext.VENDOR
         );
 
       return NextResponse.json(

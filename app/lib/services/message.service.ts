@@ -1,14 +1,37 @@
-import { ConversationType } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import {
+  ConversationParticipantContext,
   ConversationStatus,
+  ConversationType,
 } from "@prisma/client";
+
+
+
 
 export class MessageService {
   static async markConversationAsRead(
     conversationId: string,
-    currentUserId: string
+    currentUserId: string,
+    context: ConversationParticipantContext
   ) {
+    const participantContext =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId,
+            userId: currentUserId,
+            context,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!participantContext) {
+      throw new Error("Conversation access denied");
+    }
+
     return prisma.message.updateMany({
       where: {
         conversationId,
@@ -22,31 +45,46 @@ export class MessageService {
       },
     });
   }
-
-  static async getUserConversations(
-    userId: string
-    ) {
+static async getUserConversations(
+    userId: string,
+    context: ConversationParticipantContext
+  ) {
     return prisma.conversation.findMany({
-        where: {
-        participantIds: {
+      where: {
+        participantContexts: {
+          some: {
+            userId,
+            context,
+          },
+        },
+        NOT: {
+          deletedByParticipantIds: {
             has: userId,
+          },
         },
+      },
+      include: {
+        participantContexts: {
+          select: {
+            id: true,
+            userId: true,
+            context: true,
+            createdAt: true,
+          },
         },
-        include: {
         messages: {
-            orderBy: {
+          orderBy: {
             createdAt: "desc",
-            },
-            take: 1,
+          },
+          take: 1,
         },
-        },
-        orderBy: {
+      },
+      orderBy: {
         updatedAt: "desc",
-        },
+      },
     });
-    }
-
-       static async closeConversation(
+  }
+static async closeConversation(
         conversationId: string,
         endedById: string,
         endedByRole: "ADMIN" | "VENDOR"
@@ -71,48 +109,61 @@ export class MessageService {
         }
 
         static async getConversations(
-              userId: string,
-              type?: ConversationType
-            ) {
-            return prisma.conversation.findMany({
-              where: {
-                participantIds: {
-                  has: userId,
-                },
-                NOT: {
-                  deletedByParticipantIds: {
-                    has: userId,
-                  },
-                },
-                ...(type && {
-                      type,
-                    }),
+    userId: string,
+    context: ConversationParticipantContext,
+    type?: ConversationType
+  ) {
+    return prisma.conversation.findMany({
+      where: {
+        participantContexts: {
+          some: {
+            userId,
+            context,
+          },
+        },
+        NOT: {
+          deletedByParticipantIds: {
+            has: userId,
+          },
+        },
+        ...(type && {
+          type,
+        }),
+      },
+      include: {
+        participantContexts: {
+          select: {
+            id: true,
+            userId: true,
+            context: true,
+            createdAt: true,
+          },
+        },
+        participants: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            vendorProfile: {
+              select: {
+                id: true,
               },
-              include: {
-                participants: {
-                  select: {
-                    id: true,
-                    name: true,
-                    role: true,
-                    vendorProfile: {
-                      select: {
-                        id: true,
-                      },
-                    },
-                  },
-                },
-                messages: {
-                  orderBy: {
-                    createdAt: "desc",
-                  },
-                  take: 1,
-                },
-              },
-              orderBy: {
-                updatedAt: "desc",
-              },
-            });
-          }
+            },
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+  }
+
         
   static async initiateSupportConversation(
   email: string,
@@ -147,9 +198,14 @@ export class MessageService {
       where: {
         type,
         status: ConversationStatus.OPEN,
-        participantIds: {
-          has: user.id,
+        participantContexts: {
+        some: {
+          userId: user.id,
+          context: isVendor
+            ? ConversationParticipantContext.VENDOR
+            : ConversationParticipantContext.CUSTOMER,
         },
+      },
       },
       orderBy: {
         updatedAt: "desc",
@@ -212,19 +268,46 @@ export class MessageService {
   // Create a brand-new support conversation
   // --------------------------------------------------------
 
-  conversation =
-    await prisma.conversation.create({
-      data: {
-        type,
-        status: ConversationStatus.OPEN,
-        subject: isVendor
-          ? `Vendor Support: ${name}`
-          : `Customer Support: ${name}`,
-        participantIds: [
-          user.id,
-          admin.id,
+  const userContext = isVendor
+  ? ConversationParticipantContext.VENDOR
+  : ConversationParticipantContext.CUSTOMER;
+
+conversation =
+  await prisma.conversation.create({
+    data: {
+      type,
+      status: ConversationStatus.OPEN,
+      subject: isVendor
+        ? `Vendor Support: ${name}`
+        : `Customer Support: ${name}`,
+      participantIds: [
+        user.id,
+        admin.id,
+      ],
+      participants: {
+        connect: [
+          {
+            id: user.id,
+          },
+          {
+            id: admin.id,
+          },
         ],
       },
+      participantContexts: {
+        create: [
+          {
+            userId: user.id,
+            context: userContext,
+          },
+          {
+            userId: admin.id,
+            context:
+              ConversationParticipantContext.ADMIN,
+          },
+        ],
+      },
+    },
       include: {
         participants: {
           select: {

@@ -1,3 +1,4 @@
+import { ConversationParticipantContext } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";
@@ -26,8 +27,9 @@ export const GET = withApiLogging(
 
       const access =
         await requireConversationAccess(
-          id
-        );
+            id,
+            ConversationParticipantContext.VENDOR
+          );
 
       const messages =
         await conversationService.getMessages(

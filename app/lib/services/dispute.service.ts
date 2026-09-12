@@ -1,3 +1,4 @@
+﻿import { NotificationContext } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { sendAdminAlert } from "@/app/lib/mailer";
 import { pusherServer } from "@/app/lib/pusherServer";
@@ -48,6 +49,7 @@ export class DisputeService {
             title: "New Dispute Filed",
             message: `Vendor ${vendorName} filed a dispute for Order #${orderId}`,
             link: `/admin/disputes/${dispute.id}`,
+            context: NotificationContext.ADMIN,
           },
         })
       )

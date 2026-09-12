@@ -1462,7 +1462,7 @@ static async cancelOrder(
 
       // Customer Orders page
       pusherServer.trigger(
-        `user-${userId}`,
+        `user-${userId}-customer`,
         "order-update",
         customerPayload
       ),
@@ -1977,8 +1977,3 @@ static async getPendingRefundQueue() {
   }
 
 }
-
-
-
-
-

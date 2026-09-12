@@ -1,3 +1,4 @@
+﻿import { ConversationParticipantContext } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { conversationService } from "@/app/lib/services/conversation.service";
@@ -81,7 +82,9 @@ export const POST =
             access.userId,
             access.session?.user.name ??
               "Unknown User",
-            content
+            content,
+            undefined,
+            ConversationParticipantContext.ADMIN
           );
 
         try {

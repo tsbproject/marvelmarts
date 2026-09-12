@@ -1,10 +1,10 @@
 import crypto from "crypto";
 
 import type { Session } from "next-auth";
-import type {
-  Conversation,
+import type { Conversation } from "@prisma/client";
+import {
+  ConversationParticipantContext,
 } from "@prisma/client";
-
 import { prisma } from "@/app/lib/prisma";
 import { pusherServer } from "@/app/lib/pusherServer";
 
@@ -12,6 +12,7 @@ import { conversationService } from "./conversation.service";
 
 import type { ConversationAccess } from "@/app/lib/auth/conversation";
 import { logger } from "@/app/lib/logger";
+import { hasPermission, isSuperAdmin } from "@/app/lib/auth/authorization";
 
 
 
@@ -58,6 +59,7 @@ type ConversationEntity =
     });
 
 export class ConversationDomainService {
+
   static async sendCustomerMessage(
   session: Session | null,
   body: CustomerMessageInput
@@ -75,7 +77,7 @@ export class ConversationDomainService {
       body
     );
 
-    
+
 
   const message =
     await this.sendConversationMessage(
@@ -104,7 +106,7 @@ export class ConversationDomainService {
       context.conversation.status,
   };
 
-  
+
 }
 
 
@@ -121,9 +123,20 @@ static async sendMessage(
   } = access;
 
   const vendorUserId =
-    conversation.participantIds.find(
-      (id) => id !== userId
-    ) ?? null;
+
+    await prisma.conversationParticipant
+      .findFirst({
+        where: {
+          conversationId: conversation.id,
+          context: ConversationParticipantContext.VENDOR,
+        },
+        select: {
+          userId: true,
+        },
+      })
+      .then((vendorContext) =>
+        vendorContext?.userId ?? null
+      );
 
   const sender =
     this.resolveSender(
@@ -212,20 +225,39 @@ static async sendMessage(
     }
 
     if (session?.user?.id) {
-      if (
-        !existing.participantIds.includes(
-          session.user.id
-        )
-      ) {
-        throw forbidden(
-          "Unauthorized conversation access."
-        );
-      }
+    const customerContext =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId: existing.id,
+            userId: session.user.id,
+            context: ConversationParticipantContext.CUSTOMER,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
 
-      vendorUserId =
-        existing.participantIds.find(
-          (id) => id !== session.user.id
-        ) ?? null;
+    if (!customerContext) {
+      throw forbidden(
+        "Unauthorized conversation access."
+      );
+    }
+
+    const vendorContext =
+      await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: existing.id,
+          context: ConversationParticipantContext.VENDOR,
+        },
+        select: {
+          userId: true,
+        },
+      });
+
+    vendorUserId =
+      vendorContext?.userId ?? null;
     } else {
       if (!existing.isGuest) {
         throw forbidden(
@@ -242,8 +274,20 @@ static async sendMessage(
         );
       }
 
-      vendorUserId =
-        existing.participantIds[0] ?? null;
+
+    const vendorContext =
+      await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: existing.id,
+          context: ConversationParticipantContext.VENDOR,
+        },
+        select: {
+          userId: true,
+        },
+      });
+
+    vendorUserId =
+      vendorContext?.userId ?? null;
     }
 
     conversation = existing;
@@ -280,18 +324,47 @@ static async sendMessage(
 
     if (session?.user?.id) {
       conversation =
-        await prisma.conversation.create({
-          data: {
-            participantIds: [
-              session.user.id,
-              vendorUserId,
+      await prisma.conversation.create({
+        data: {
+          participantIds: [
+            session.user.id,
+            vendorUserId,
+          ],
+
+          type: "CUSTOMER_VENDOR",
+
+          subject:
+            "Product Inquiry",
+
+          isGuest: false,
+
+          participants: {
+            connect: [
+              {
+                id: session.user.id,
+              },
+              {
+                id: vendorUserId,
+              },
             ],
-            type: "CUSTOMER_VENDOR",
-            subject:
-              "Product Inquiry",
-            isGuest: false,
           },
-        });
+
+          participantContexts: {
+            create: [
+              {
+                userId: session.user.id,
+                context:
+                  ConversationParticipantContext.CUSTOMER,
+              },
+              {
+                userId: vendorUserId,
+                context:
+                  ConversationParticipantContext.VENDOR,
+              },
+            ],
+          },
+        },
+      });
     } else {
       if (
         !visitorName?.trim() ||
@@ -308,9 +381,12 @@ static async sendMessage(
             participantIds: [
               vendorUserId,
             ],
+
             type: "CUSTOMER_VENDOR",
+
             subject:
               "Product Inquiry",
+
             isGuest: true,
 
             visitorName:
@@ -325,6 +401,24 @@ static async sendMessage(
               crypto
                 .randomBytes(24)
                 .toString("hex"),
+
+            participants: {
+              connect: [
+                {
+                  id: vendorUserId,
+                },
+              ],
+            },
+
+            participantContexts: {
+              create: [
+                {
+                  userId: vendorUserId,
+                  context:
+                    ConversationParticipantContext.VENDOR,
+                },
+              ],
+            },
           },
         });
     }
@@ -368,21 +462,39 @@ private static async resolveExistingConversation(
     null;
 
   if (session?.user?.id) {
-    if (
-      !conversation.participantIds.includes(
-        session.user.id
-      )
-    ) {
+    const customerContext =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId: conversation.id,
+            userId: session.user.id,
+            context: ConversationParticipantContext.CUSTOMER,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!customerContext) {
       throw forbidden(
         "Unauthorized conversation access."
       );
     }
 
+    const vendorContext =
+      await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: conversation.id,
+          context: ConversationParticipantContext.VENDOR,
+        },
+        select: {
+          userId: true,
+        },
+      });
+
     vendorUserId =
-      conversation.participantIds.find(
-        (id) =>
-          id !== session.user.id
-      ) ?? null;
+      vendorContext?.userId ?? null;
   } else {
     if (!conversation.isGuest) {
       throw forbidden(
@@ -399,9 +511,20 @@ private static async resolveExistingConversation(
       );
     }
 
+
+    const vendorContext =
+      await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: conversation.id,
+          context: ConversationParticipantContext.VENDOR,
+        },
+        select: {
+          userId: true,
+        },
+      });
+
     vendorUserId =
-      conversation.participantIds[0] ??
-      null;
+      vendorContext?.userId ?? null;
   }
 
   return {
@@ -438,14 +561,43 @@ private static async resolveSupportConversation(
   let senderId: string | null = null;
 
   if (session?.user?.id) {
-    if (
-      !conversation.participantIds.includes(
-        session.user.id
-      )
-    ) {
-      throw forbidden(
-        "Unauthorized conversation access."
-      );
+    const supportContext =
+      conversation.type === "VENDOR_ADMIN"
+        ? ConversationParticipantContext.VENDOR
+        : conversation.type === "CUSTOMER_ADMIN"
+          ? ConversationParticipantContext.CUSTOMER
+          : null;
+
+    const isAdmin =
+      isSuperAdmin(session) ||
+      hasPermission(session, "manageMessages");
+
+    if (!isAdmin) {
+      if (!supportContext) {
+        throw forbidden(
+          "Invalid support conversation."
+        );
+      }
+
+      const participantContext =
+        await prisma.conversationParticipant.findUnique({
+          where: {
+            conversationId_userId_context: {
+              conversationId: conversation.id,
+              userId: session.user.id,
+              context: supportContext,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+      if (!participantContext) {
+        throw forbidden(
+          "Unauthorized conversation access."
+        );
+      }
     }
 
     senderId = session.user.id;
@@ -470,12 +622,34 @@ private static async resolveSupportConversation(
         "This email is not registered."
       );
     }
+    const supportContext =
+      conversation.type === "VENDOR_ADMIN"
+        ? ConversationParticipantContext.VENDOR
+        : conversation.type === "CUSTOMER_ADMIN"
+          ? ConversationParticipantContext.CUSTOMER
+          : null;
 
-    if (
-      !conversation.participantIds.includes(
-        user.id
-      )
-    ) {
+    if (!supportContext) {
+      throw forbidden(
+        "Unauthorized conversation access."
+      );
+    }
+
+    const participantContext =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId_context: {
+            conversationId: conversation.id,
+            userId: user.id,
+            context: supportContext,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!participantContext) {
       throw forbidden(
         "Unauthorized conversation access."
       );
@@ -484,10 +658,26 @@ private static async resolveSupportConversation(
     senderId = user.id;
   }
 
+  const adminContext =
+    await prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId: conversation.id,
+        context: ConversationParticipantContext.ADMIN,
+        ...(senderId
+          ? {
+              userId: {
+                not: senderId,
+              },
+            }
+          : {}),
+      },
+      select: {
+        userId: true,
+      },
+    });
+
   const adminUserId =
-    conversation.participantIds.find(
-      (id) => id !== senderId
-    ) ?? null;
+    adminContext?.userId ?? null;
 
   return {
     conversation,
@@ -519,24 +709,27 @@ static async sendSupportMessage(
     body.email ??
     "Support User";
 
-  const adminUserId =
-    conversation.participantIds.find(
-      (id) => id !== userId
-    ) ?? null;
+
+  const supportContext =
+    access.isAdmin
+      ? ConversationParticipantContext.ADMIN
+      : conversation.type === "VENDOR_ADMIN"
+        ? ConversationParticipantContext.VENDOR
+        : ConversationParticipantContext.CUSTOMER;
 
   const message =
     await conversationService.sendMessage(
       conversation.id,
       userId,
       senderName,
-      body.content.trim()
+      body.content.trim(),
+      undefined,
+      supportContext
     );
 
-  await this.broadcastCustomerMessage(
+  await this.broadcastSupportMessage(
     conversation,
-    adminUserId,
-    message,
-    senderName
+    message
   );
 
   return {
@@ -575,17 +768,32 @@ static async sendSupportMessage(
     sender.senderName,
     body.content.trim(),
     {
-      productId:
-        body.productId,
-
-      productPrice:
-        body.productPrice,
-
-      productImage:
-        body.productImage,
-    }
+      productId: body.productId,
+      productPrice: body.productPrice,
+      productImage: body.productImage,
+    },
+    sender.senderId
+      ? ConversationParticipantContext.CUSTOMER
+      : undefined
   );
 }
+  private static async broadcastSupportMessage(
+    conversation: ConversationEntity,
+    message: any
+  ) {
+    try {
+      await pusherServer.trigger(
+        conversation.id,
+        "new-message",
+        message
+      );
+    } catch (error) {
+      logger.error(
+        "Failed to broadcast support message",
+        error
+      );
+    }
+  }
 
  private static async broadcastCustomerMessage(
   conversation: ConversationEntity,
@@ -637,7 +845,7 @@ static async sendSupportMessage(
 
       vendorUserId
         ? pusherServer.trigger(
-            `user-${vendorUserId}`,
+            `user-${vendorUserId}-vendor`,
             "new-message",
             {
               id: message.id,

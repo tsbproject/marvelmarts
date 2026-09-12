@@ -7,48 +7,49 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  email              String              @unique
-  passwordHash       String?
-  image              String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  name               String?
-  permissions        Json?
-  IsVerified         Boolean             @default(false)
-  isSuspended        Boolean             @default(false)
-  balance            Float               @default(0.0)
-  roles              UserRole[]          @default([CUSTOMER])
-  role               UserRole?
-  walletBalance      Float               @default(0)
-  phone              String?
-  paymentTypes       PaymentTypes[]
-  phoneNumber        String?
-  emailVerified      DateTime?
-  accounts           Account[]
-  addresses          Address[]
-  adminProfile       AdminProfile?
-  apiLogs            ApiLog[]            @relation("UserApiLogs")
-  auditLogs          AuditLog[]          @relation("UserAuditLogs")
-  authLogs           AuthLog[]           @relation("UserAuthLogs")
-  bankAccount        BankAccount?
-  cart               Cart?
-  customerProfile    CustomerProfile?
-  disputes           Dispute[]           @relation("UserDisputes")
-  notifications      Notification[]
-  orders             Order[]
-  passwordResetToken PasswordResetToken?
-  paymentMethods     PaymentMethod[]
-  payouts            Payout[]
-  reviews            Review[]
-  securityLogs       SecurityLog[]       @relation("UserSecurityLogs")
-  sessions           Session[]
-  vendorFollows      VendorFollow[]
-  vendorProfile      VendorProfile?
-  verificationCodes  VerificationCode[]
-  wallet             Wallet?
-  wishlists          Wishlist[]
-  conversations      Conversation[]      @relation("UserConversations")
+  id                       String                    @id @default(cuid())
+  email                    String                    @unique
+  passwordHash             String?
+  image                    String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  name                     String?
+  permissions              Json?
+  IsVerified               Boolean                   @default(false)
+  isSuspended              Boolean                   @default(false)
+  balance                  Float                     @default(0.0)
+  roles                    UserRole[]                @default([CUSTOMER])
+  role                     UserRole?
+  walletBalance            Float                     @default(0)
+  phone                    String?
+  paymentTypes             PaymentTypes[]
+  phoneNumber              String?
+  emailVerified            DateTime?
+  accounts                 Account[]
+  addresses                Address[]
+  adminProfile             AdminProfile?
+  apiLogs                  ApiLog[]                  @relation("UserApiLogs")
+  auditLogs                AuditLog[]                @relation("UserAuditLogs")
+  authLogs                 AuthLog[]                 @relation("UserAuthLogs")
+  bankAccount              BankAccount?
+  cart                     Cart?
+  customerProfile          CustomerProfile?
+  disputes                 Dispute[]                 @relation("UserDisputes")
+  notifications            Notification[]
+  orders                   Order[]
+  passwordResetToken       PasswordResetToken?
+  paymentMethods           PaymentMethod[]
+  payouts                  Payout[]
+  reviews                  Review[]
+  securityLogs             SecurityLog[]             @relation("UserSecurityLogs")
+  sessions                 Session[]
+  vendorFollows            VendorFollow[]
+  vendorProfile            VendorProfile?
+  verificationCodes        VerificationCode[]
+  wallet                   Wallet?
+  wishlists                Wishlist[]
+  conversations            Conversation[]            @relation("UserConversations")
+  conversationParticipants ConversationParticipant[]
 }
 
 model VerificationCode {
@@ -735,28 +736,45 @@ model SiteSettings {
 }
 
 model Conversation {
-  id                      String             @id @default(cuid())
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  id                      String                    @id @default(cuid())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
   participantIds          String[]
-  type                    ConversationType   @default(CUSTOMER_VENDOR)
+  type                    ConversationType          @default(CUSTOMER_VENDOR)
   subject                 String?
   endedAt                 DateTime?
   endedById               String?
   endedByRole             String?
-  guestAccessToken        String?            @unique
-  isGuest                 Boolean            @default(false)
-  status                  ConversationStatus @default(OPEN)
+  guestAccessToken        String?                   @unique
+  isGuest                 Boolean                   @default(false)
+  status                  ConversationStatus        @default(OPEN)
   visitorEmail            String?
   visitorName             String?
-  deletedForUserIds       String[]           @default([])
-  deletedByParticipantIds String[]           @default([])
+  deletedForUserIds       String[]                  @default([])
+  deletedByParticipantIds String[]                  @default([])
   messages                Message[]
-  participants            User[]             @relation("UserConversations")
+  participants            User[]                    @relation("UserConversations")
+  participantContexts     ConversationParticipant[]
 
   @@index([status])
   @@index([updatedAt])
   @@index([endedAt])
+}
+
+model ConversationParticipant {
+  id             String                         @id @default(cuid())
+  conversationId String
+  userId         String
+  context        ConversationParticipantContext
+  createdAt      DateTime                       @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId, context])
+  @@index([conversationId])
+  @@index([userId])
+  @@index([userId, context])
 }
 
 model Message {
@@ -778,15 +796,16 @@ model Message {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
   type      String
   title     String
   message   String
   link      String?
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  isRead    Boolean              @default(false)
+  context   NotificationContext?
+  createdAt DateTime             @default(now())
+  user      User                 @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([isRead])
@@ -961,6 +980,12 @@ enum UserRole {
   CUSTOMER
 }
 
+enum NotificationContext {
+  CUSTOMER
+  VENDOR
+  ADMIN
+}
+
 enum BoostPlan {
   FREE
   BASIC
@@ -1017,6 +1042,12 @@ enum ConversationType {
   CUSTOMER_VENDOR
   VENDOR_ADMIN
   CUSTOMER_ADMIN
+}
+
+enum ConversationParticipantContext {
+  CUSTOMER
+  VENDOR
+  ADMIN
 }
 
 enum PaymentTypes {

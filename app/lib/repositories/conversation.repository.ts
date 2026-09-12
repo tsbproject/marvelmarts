@@ -1,5 +1,5 @@
-import { prisma } from "@/app/lib/prisma";
-import { ConversationType } from "@prisma/client";
+﻿import { prisma } from "@/app/lib/prisma";
+import { ConversationParticipantContext, ConversationType } from "@prisma/client";
 
 
 export const conversationRepository = {
@@ -8,9 +8,113 @@ export const conversationRepository = {
       where: {
         id: conversationId,
       },
+      include: {
+        participantContexts: {
+          select: {
+            id: true,
+            userId: true,
+            context: true,
+            createdAt: true,
+          },
+        },
+      },
     });
   },
 
+  async findParticipantContext(
+    conversationId: string,
+    userId: string,
+    context: ConversationParticipantContext
+  ) {
+    return prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId_context: {
+          conversationId,
+          userId,
+          context,
+        },
+      },
+    });
+  },
+
+  async findUserConversationsByContext(
+    userId: string,
+    context: ConversationParticipantContext
+  ) {
+    return prisma.conversation.findMany({
+      where: {
+        participantContexts: {
+          some: {
+            userId,
+            context,
+          },
+        },
+        NOT: {
+          deletedByParticipantIds: {
+            has: userId,
+          },
+        },
+      },
+      include: {
+        participantContexts: {
+          select: {
+            id: true,
+            userId: true,
+            context: true,
+            createdAt: true,
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+  },
+
+  async createConversationWithContexts(data: {
+    type: ConversationType;
+    subject?: string | null;
+    participantIds: string[];
+    participants: Array<{
+      userId: string;
+      context: ConversationParticipantContext;
+    }>;
+  }) {
+    return prisma.conversation.create({
+      data: {
+        type: data.type,
+        subject: data.subject ?? null,
+        participantIds: data.participantIds,
+        participants: {
+          connect: data.participantIds.map((id) => ({
+            id,
+          })),
+        },
+        participantContexts: {
+          create: data.participants.map((participant) => ({
+            userId: participant.userId,
+            context: participant.context,
+          })),
+        },
+      },
+      include: {
+        participantContexts: {
+          select: {
+            id: true,
+            userId: true,
+            context: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  },
   async findMessages(conversationId: string) {
     return prisma.message.findMany({
       where: {
@@ -164,22 +268,56 @@ export const conversationRepository = {
   });
 },
 
-async createSupportConversation(data: {
+async createSupportConversation({
+  userId,
+  adminId,
+  type,
+  subject,
+  userContext,
+}: {
   userId: string;
   adminId: string;
   type: ConversationType;
-  subject: string;
+  subject?: string | null;
+  userContext: ConversationParticipantContext;
 }) {
   return prisma.conversation.create({
     data: {
-      type: data.type,
+      type,
       status: "OPEN",
-      subject: data.subject,
+      subject: subject ?? null,
+
       participantIds: [
-        data.userId,
-        data.adminId,
+        userId,
+        adminId,
       ],
+
+      participants: {
+        connect: [
+          {
+            id: userId,
+          },
+          {
+            id: adminId,
+          },
+        ],
+      },
+
+      participantContexts: {
+        create: [
+          {
+            userId,
+            context: userContext,
+          },
+          {
+            userId: adminId,
+            context:
+              ConversationParticipantContext.ADMIN,
+          },
+        ],
+      },
     },
+
     include: {
       participants: {
         select: {
@@ -188,6 +326,16 @@ async createSupportConversation(data: {
           role: true,
         },
       },
+
+      participantContexts: {
+        select: {
+          id: true,
+          userId: true,
+          context: true,
+          createdAt: true,
+        },
+      },
+
       messages: true,
     },
   });

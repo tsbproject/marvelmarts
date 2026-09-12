@@ -12,9 +12,9 @@ import MobileTopbar from "@/app/_components/MobileTopbar";
 
 import {
   LifeBuoy,
+  MegaphoneIcon,
   MessageCircle,
-  ShieldCheck,
-} from "lucide-react";
+  ShieldCheck} from "lucide-react";
 
 // ─────────────────────────────────────
 // ROLE TYPES
@@ -270,6 +270,14 @@ export default function AdminLayoutClient({
           href: "/dashboard/admins/support/messages",
           icon: (
             <MessageCircle size={16} />
+          ),
+        },
+
+        {
+          label: "Broadcasts",
+          href: "/dashboard/admins/support/communications",
+          icon: (
+            <MegaphoneIcon size={16} />
           ),
         },
       ],

@@ -1,4 +1,4 @@
-import { ConversationType } from "@prisma/client";
+import { ConversationParticipantContext, ConversationType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -53,6 +53,7 @@ export const GET =
         const conversations =
           await MessageService.getConversations(
             session.user.id,
+            ConversationParticipantContext.ADMIN,
             parsed.data.type
           );
 
