@@ -41,6 +41,7 @@ interface PaystackWrapperProps {
   subtotal: number;
   shipping: number;
   total: number;
+  platformShippingMethod?: string;
   onClose?: () => void;
   buttonLabel?: string;
   className?: string;
@@ -52,6 +53,7 @@ export default function PaystackWrapper({
   subtotal,
   shipping,
   total,
+  platformShippingMethod,
   onClose,
   buttonLabel = "Proceed to Payment",
   className = "w-full bg-brand-primary text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm md:text-2xl hover:bg-accent-navy transition-all flex items-center justify-center gap-4 shadow-2xl shadow-brand-primary/40 group active:scale-95",
@@ -70,6 +72,7 @@ export default function PaystackWrapper({
         subtotal,
         shipping,
         total,
+        platformShippingMethod,
       });
 
       if (!order.url) {

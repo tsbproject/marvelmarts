@@ -10,6 +10,7 @@ export interface CartItem {
   imageUrl: string;
   quantity: number;
   variantName?: string;
+  vendorProfileId?: string | null;
 }
 
 interface CartState {
@@ -59,6 +60,7 @@ const cartSlice = createSlice({
               "/placeholder-product.png",
             quantity,
             variantName: product.variantName,
+            vendorProfileId: product.vendorProfileId ?? null,
           });
       }
       
