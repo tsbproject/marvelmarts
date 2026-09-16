@@ -29,7 +29,7 @@ export const PLATFORM_SHIPPING_METHODS: PlatformShippingMethod[] = [
     label: "Express delivery",
     description: "Priority platform dispatch. Same mixed-cart shipment.",
     eta: "1–2 business days",
-    fee: 4500,
+    fee: 7500,
   },
   {
     id: "STORE_PICKUP",
@@ -74,7 +74,7 @@ export function resolveCheckoutShipping(params: {
   const vendorMethod = (params.singleVendorProductMethod || "Standard").trim();
   const feeByVendorLabel: Record<string, number> = {
     Standard: 2500,
-    Express: 4500,
+    Express: 7500,
     "Store Pickup": 0,
     Pickup: 0,
   };
