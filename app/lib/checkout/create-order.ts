@@ -4,6 +4,7 @@ export type CreateOrderPayload = {
   subtotal: number;
   shipping: number;
   total: number;
+  platformShippingMethod?: string;
 };
 
 export type CreateOrderResponse = {
