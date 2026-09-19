@@ -40,6 +40,7 @@ interface PaystackWrapperProps {
   items: CartItem[];
   subtotal: number;
   shipping: number;
+  shippingMethod: string;
   total: number;
   onClose?: () => void;
   buttonLabel?: string;
@@ -51,6 +52,7 @@ export default function PaystackWrapper({
   items,
   subtotal,
   shipping,
+  shippingMethod,
   total,
   onClose,
   buttonLabel = "Proceed to Payment",
@@ -69,6 +71,7 @@ export default function PaystackWrapper({
         items,
         subtotal,
         shipping,
+        shippingMethod,
         total,
       });
 

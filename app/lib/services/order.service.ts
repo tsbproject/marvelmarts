@@ -1,4 +1,4 @@
-import { Prisma, UserRole } from "@prisma/client";
+﻿import { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { InventoryService } from "@/app/lib/services/inventory.service";
 import { notFound,badRequest, forbidden } from "@/app/lib/auth/errors";
@@ -13,6 +13,8 @@ import {
 
 import { mapOrderToOrderConfirmationEmail } from "@/app/lib/mail/mappers/order.mapper";
 import { AuditService } from "@/app/lib/services/logging/audit.service";
+import { PayoutService } from "@/app/lib/services/payout.service";
+import MarketplaceSalesService from "@/app/lib/services/finance/marketplace-sales.service";
 
 
 type CreateOrderParams = {
@@ -32,114 +34,331 @@ type CreateOrderParams = {
 
   shipping: number;
 
+  shippingMethod: string;
+
   total: number;
+
+  vendorOrders: Array<{
+    vendorProfileId: string;
+    merchandiseSubtotal: number;
+    shipping: number;
+    shippingMethod: string;
+    total: number;
+    itemKeys: string[];
+  }>;
 };
 
 export class OrderService {
 static async createOrderTx(
-  tx: Prisma.TransactionClient,
-  {
-    orderNumber,
-    userId,
-    vendorProfileId,
-    formData,
-    orderItems,
-    normalizedItems,
-    subtotal,
-    shipping,
-    total,
-  }: CreateOrderParams
-) { 
+    tx: Prisma.TransactionClient,
+    {
+      orderNumber,
+      userId,
+      vendorProfileId,
+      formData,
+      orderItems,
+      normalizedItems,
+      subtotal,
+      shipping,
+      shippingMethod,
+      total,
+      vendorOrders,
+    }: CreateOrderParams
+  ) {
+    /*
+     * The existing Order.vendorProfileId field is still
+     * required by the legacy schema. For multi-vendor orders
+     * we retain the first vendor as a compatibility value.
+     *
+     * All real vendor ownership/allocation is represented by
+     * VendorOrder records below.
+     */
+    const createdOrder =
+      await tx.order.create({
+        data: {
+          orderNumber,
 
-const createdOrder =
-          await tx.order.create({
-            data: {
-              orderNumber,
+          userId,
 
-              userId,
+          vendorProfileId,
 
-              vendorProfileId,
+          email:
+            formData.email,
 
-              email: formData.email,
+          firstName:
+            formData.firstName,
 
-              firstName: formData.firstName,
+          lastName:
+            formData.lastName,
 
-              lastName: formData.lastName,
+          phone:
+            formData.phone || null,
 
-              phone: formData.phone || null,
+          streetAddress:
+            formData.streetAddress,
 
-              streetAddress:
-                formData.streetAddress,
+          apartment:
+            formData.apartment || null,
 
-              apartment:
-                formData.apartment || null,
+          city:
+            formData.city,
 
-              city: formData.city,
+          state:
+            formData.state,
 
-              state: formData.state,
+          orderNotes:
+            formData.orderNotes || null,
 
-              orderNotes:
-                formData.orderNotes || null,
+          useDifferentShipping:
+            formData.useDifferentShipping,
 
-              useDifferentShipping:
-                formData.useDifferentShipping,
+          shippingFirstName:
+            formData.useDifferentShipping
+              ? formData
+                  .shippingDetails
+                  .firstName || null
+              : formData.firstName,
 
-              shippingFirstName:
-                formData.useDifferentShipping
-                  ? formData.shippingDetails
-                      .firstName || null
-                  : formData.firstName,
+          shippingLastName:
+            formData.useDifferentShipping
+              ? formData
+                  .shippingDetails
+                  .lastName || null
+              : formData.lastName,
 
-              shippingLastName:
-                formData.useDifferentShipping
-                  ? formData.shippingDetails
-                      .lastName || null
-                  : formData.lastName,
+          shippingAddress:
+            formData.useDifferentShipping
+              ? formData
+                  .shippingDetails
+                  .streetAddress || null
+              : formData.streetAddress,
 
-              shippingAddress:
-                formData.useDifferentShipping
-                  ? formData.shippingDetails
-                      .streetAddress || null
-                  : formData.streetAddress,
+          shippingCity:
+            formData.useDifferentShipping
+              ? formData
+                  .shippingDetails
+                  .city || null
+              : formData.city,
 
-              shippingCity:
-                formData.useDifferentShipping
-                  ? formData.shippingDetails
-                      .city || null
-                  : formData.city,
+          shippingState:
+            formData.useDifferentShipping
+              ? formData
+                  .shippingDetails
+                  .state || null
+              : formData.state,
 
-              shippingState:
-                formData.useDifferentShipping
-                  ? formData.shippingDetails
-                      .state || null
-                  : formData.state,
+          subtotal,
 
-              subtotal,
+          shipping,
 
-              shipping,
+          shippingMethod,
 
-              total,
+          total,
 
-              status: "pending",
+          status:
+            "pending",
 
-              paymentStatus: false,
+          paymentStatus:
+            false,
 
-              items: {
-                create: orderItems,
-              },
-            },
+          items: {
+            create:
+              orderItems,
+          },
+        },
 
-            include: {
-              items: true,
-            },
-          });
+        include: {
+          items: true,
+        },
+      });
 
-        
-        
-    
+    /*
+     * Build a deterministic lookup for the OrderItems
+     * created above.
+     */
+    const orderItemsByKey =
+      new Map<
+        string,
+        (typeof createdOrder.items)[number]
+      >();
 
-        return createdOrder;
+    for (
+      const item of
+        createdOrder.items
+    ) {
+      const key =
+        `${item.productId}:${
+          item.variantId ??
+          "default"
+        }`;
+
+      orderItemsByKey.set(
+        key,
+        item
+      );
+    }
+
+    /*
+     * Resolve the current commission rate for every
+     * vendor once inside the same transaction.
+     *
+     * VendorScore is the authoritative persisted source
+     * for the vendor's current commission rate.
+     *
+     * The rate is snapshotted onto VendorOrder so
+     * historical orders retain the commission that
+     * applied when the order was created.
+     */
+    const vendorProfileIds = [
+      ...new Set(
+        vendorOrders.map(
+          (vendorOrder) =>
+            vendorOrder.vendorProfileId
+        )
+      ),
+    ];
+
+    const vendorScores =
+      await tx.vendorScore.findMany({
+        where: {
+          vendorProfileId: {
+            in: vendorProfileIds,
+          },
+        },
+        select: {
+          vendorProfileId: true,
+          commissionRate: true,
+        },
+      });
+
+    const commissionRateByVendor =
+      new Map(
+        vendorScores.map(
+          (score) => [
+            score.vendorProfileId,
+            score.commissionRate,
+          ]
+        )
+      );
+
+    /*
+     * Create vendor-level child orders and
+     * their item mappings inside the same transaction.
+     */
+    for (
+      const vendorOrderData of
+        vendorOrders
+    ) {
+      const commissionRate =
+        commissionRateByVendor.get(
+          vendorOrderData.vendorProfileId
+        );
+
+      if (commissionRate == null) {
+        throw badRequest(
+          "Vendor commission configuration not found."
+        );
       }
+
+      const commissionAmount =
+        vendorOrderData.merchandiseSubtotal *
+        commissionRate;
+
+      const vendorNet =
+        vendorOrderData.merchandiseSubtotal -
+        commissionAmount;
+      const vendorOrder =
+        await tx.vendorOrder.create({
+          data: {
+            orderId:
+              createdOrder.id,
+
+            vendorProfileId:
+              vendorOrderData
+                .vendorProfileId,
+
+            merchandiseSubtotal:
+              vendorOrderData
+                .merchandiseSubtotal,
+
+            shipping:
+              vendorOrderData
+                .shipping,
+
+            shippingMethod:
+              vendorOrderData
+                .shippingMethod,
+
+            total:
+              vendorOrderData
+                .total,
+
+            commissionRate,
+
+            commissionAmount,
+
+            vendorNet,
+
+            status:
+              "PENDING",
+          },
+        });
+
+      const mappings =
+        vendorOrderData
+          .itemKeys
+          .map(
+            (itemKey) => {
+              const orderItem =
+                orderItemsByKey.get(
+                  itemKey
+                );
+
+              if (!orderItem) {
+                throw badRequest(
+                  "Unable to map an order item to its vendor order."
+                );
+              }
+
+              return {
+                vendorOrderId:
+                  vendorOrder.id,
+
+                orderItemId:
+                  orderItem.id,
+              };
+            }
+          );
+
+      if (mappings.length) {
+        await tx.vendorOrderItem.createMany({
+          data:
+            mappings,
+        });
+      }
+    }
+
+    return {
+      ...createdOrder,
+
+      vendorOrders:
+        await tx.vendorOrder.findMany({
+          where: {
+            orderId:
+              createdOrder.id,
+          },
+
+          orderBy: {
+            createdAt:
+              "asc",
+          },
+
+          include: {
+            items: true,
+          },
+        }),
+    };
+  }
 
       static async createOrder(
         params: CreateOrderParams
@@ -188,19 +407,29 @@ static async getOrders(userId: string) {
             userId,
           },
           include: {
-            orders: {
+            marketplaceTransactions: {
+              where: { status: "SUCCESS" },
+              select: {
+                orderId: true,
+                grossAmount: true,
+                netAmount: true,
+              },
+            },
+            vendorOrders: {
               orderBy: {
                 createdAt: "desc",
               },
               include: {
-                items: {
-                  take: 1,
+                order: {
+                  include: {
+                    user: {
+                      select: { name: true, image: true, email: true },
+                    },
+                  },
                 },
-                user: {
-                  select: {
-                    name: true,
-                    image: true,
-                    email: true,
+                items: {
+                  include: {
+                    orderItem: true,
                   },
                 },
               },
@@ -214,7 +443,37 @@ static async getOrders(userId: string) {
         );
       }
 
-      return vendor;
+      const finalizedOrderIds = new Set(
+        vendor.marketplaceTransactions.map((transaction) => transaction.orderId)
+      );
+
+      const financialSummary = {
+        netEarned: vendor.marketplaceTransactions.reduce(
+          (sum, transaction) => sum + transaction.netAmount,
+          0
+        ),
+        finalizedGross: vendor.marketplaceTransactions.reduce(
+          (sum, transaction) => sum + transaction.grossAmount,
+          0
+        ),
+        pendingNet: vendor.vendorOrders
+          .filter((vendorOrder) => !finalizedOrderIds.has(vendorOrder.orderId))
+          .reduce((sum, vendorOrder) => sum + Number(vendorOrder.vendorNet ?? 0), 0),
+      };
+
+      return {
+        ...vendor,
+        financialSummary,
+        // VendorOrder, not Order.vendorProfileId, is the ownership boundary.
+        orders: vendor.vendorOrders.map((vendorOrder) => ({
+          ...vendorOrder.order,
+          subtotal: vendorOrder.merchandiseSubtotal,
+          shipping: vendorOrder.shipping,
+          total: vendorOrder.total,
+          status: vendorOrder.status,
+          items: vendorOrder.items.map((item) => item.orderItem),
+        })),
+      };
     }
 
     static async getOrderByIdOrThrow(
@@ -240,7 +499,68 @@ static async getOrders(userId: string) {
       return order;
     }
 
-    static async updateOrderStatus(
+    static async updateVendorOrderStatus(
+    orderId: string,
+    vendorProfileId: string,
+    status: "APPROVED" | "REJECTED",
+    trackingNumber?: string | null
+  ) {
+    if (!orderId || !vendorProfileId || !status) {
+      throw badRequest("Order ID, vendor profile ID and status are required.");
+    }
+
+    const normalizedStatus = status.toUpperCase() as
+      | "APPROVED"
+      | "REJECTED";
+
+    const result = await prisma.$transaction(async (tx) => {
+      const vendorOrder = await tx.vendorOrder.findUnique({
+        where: {
+          orderId_vendorProfileId: {
+            orderId,
+            vendorProfileId,
+          },
+        },
+        select: {
+          id: true,
+          orderId: true,
+          vendorProfileId: true,
+          status: true,
+        },
+      });
+
+      if (!vendorOrder) {
+        throw notFound("Vendor order not found.");
+      }
+
+      const updatedVendorOrder = await tx.vendorOrder.update({
+        where: { id: vendorOrder.id },
+        data: {
+          status: normalizedStatus,
+        },
+      });
+
+      if (
+        trackingNumber !== undefined &&
+        normalizedStatus === "APPROVED"
+      ) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            trackingNumber: trackingNumber?.trim() || null,
+          },
+        });
+      }
+
+      return {
+        vendorOrder: updatedVendorOrder,
+        previousStatus: vendorOrder.status,
+      };
+    });
+
+    return result;
+  }
+  static async updateOrderStatus(
   orderId: string,
   status: string,
   trackingNumber: string | null
@@ -295,30 +615,24 @@ static async getOrders(userId: string) {
 }
 
     static async getVendorOrderDetails(
-      orderId: string
+      orderId: string,
+      vendorProfileId: string
     ) {
-      const order =
-        await prisma.order.findUnique({
+      const vendorOrder =
+        await prisma.vendorOrder.findUnique({
           where: {
-            id: orderId,
+            orderId_vendorProfileId: { orderId, vendorProfileId },
           },
           include: {
-            user: {
-              select: {
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
+            order: { include: { user: { select: { name: true, email: true, image: true } } } },
             items: {
               include: {
-                product: {
-                  select: {
-                    title: true,
-                    images: {
-                      take: 1,
+                orderItem: {
+                  include: {
+                    product: {
                       select: {
-                        url: true,
+                        title: true,
+                        images: { take: 1, select: { url: true } },
                       },
                     },
                   },
@@ -328,13 +642,20 @@ static async getOrders(userId: string) {
           },
         });
 
-      if (!order) {
+      if (!vendorOrder) {
         throw notFound(
-          "Order not found."
+          "Vendor order not found."
         );
       }
 
-      return order;
+      return {
+        ...vendorOrder.order,
+        subtotal: vendorOrder.merchandiseSubtotal,
+        shipping: vendorOrder.shipping,
+        total: vendorOrder.total,
+        status: vendorOrder.status,
+        items: vendorOrder.items.map((item) => item.orderItem),
+      };
     }
 
 
@@ -465,30 +786,6 @@ static async getOrders(userId: string) {
                 },
               });
 
-            const movingToDelivered =
-              previousStatus !==
-                "DELIVERED" &&
-              nextStatus ===
-                "DELIVERED";
-
-            if (
-              movingToDelivered &&
-              existingOrder.vendorProfileId
-            ) {
-              await tx.vendorProfile.update({
-                where: {
-                  id: existingOrder.vendorProfileId,
-                },
-                data: {
-                  balance: {
-                    increment: Number(
-                      existingOrder.total
-                    ),
-                  },
-                },
-              });
-            }
-
             return order;
           }
         );
@@ -504,6 +801,16 @@ static async getOrders(userId: string) {
           status: updatedOrder.status,
         },
       });
+
+      /*
+       * Delivery is confirmed only by an administrator. Credit every vendor
+       * allocation at that point. finalizeVendorPayout is idempotent, so an
+       * admin retry safely repairs a previous failed credit without paying
+       * a vendor twice.
+       */
+      if (nextStatus === "DELIVERED") {
+        await PayoutService.finalizeVendorPayout(orderId);
+      }
 
       return {
         previousStatus,
@@ -583,24 +890,6 @@ static async getOrders(userId: string) {
                 "DELIVERED" &&
               order.status !==
                 "DELIVERED";
-
-            if (
-              movingToDelivered &&
-              order.vendorProfileId
-            ) {
-              await tx.vendorProfile.update({
-                where: {
-                  id: order.vendorProfileId,
-                },
-                data: {
-                  balance: {
-                    increment: Number(
-                      order.total
-                    ),
-                  },
-                },
-              });
-            }
 
             return result;
           }
@@ -809,11 +1098,74 @@ static async getOrders(userId: string) {
 
 static async completePaidOrder(
   orderId: string,
-  paymentReference?: string
-  ) {
-    const order = await prisma.$transaction(
-      async (tx) => {
-        const order =
+  paymentReference?: string,
+  processingFee?: number
+) {
+  let paymentClaimed = false;
+
+  const order = await prisma.$transaction(
+    async (tx) => {
+      const order =
+        await tx.order.findUnique({
+          where: {
+            id: orderId,
+          },
+          include: {
+            items: true,
+            vendorProfile: {
+              select: {
+                id: true,
+                userId: true,
+                storeName: true,
+              },
+            },
+          },
+        });
+
+      if (!order) {
+        throw notFound(
+          "Order not found."
+        );
+      }
+
+      /*
+       * Atomically claim payment completion.
+       *
+       * Only the request that changes paymentStatus
+       * from false -> true is allowed to continue with
+       * vendor credit, cart cleanup, and inventory
+       * deduction.
+       *
+       * This prevents concurrent payment callbacks from
+       * processing the same order more than once.
+       */
+      const paymentUpdate =
+        await tx.order.updateMany({
+          where: {
+            id: orderId,
+            paymentStatus: false,
+          },
+          data: {
+            paymentStatus: true,
+            status: "processing",
+            ...(paymentReference
+              ? {
+                  paymentIntentId:
+                    paymentReference,
+                }
+              : {}),
+          },
+        });
+
+      /*
+       * Another request has already completed
+       * payment for this order.
+       *
+       * Return the current order without repeating
+       * financial or inventory mutations.
+       */
+      if (paymentUpdate.count === 0) {
+        const alreadyPaid =
           await tx.order.findUnique({
             where: {
               id: orderId,
@@ -830,203 +1182,191 @@ static async completePaidOrder(
             },
           });
 
-        if (!order) {
+        if (!alreadyPaid) {
           throw notFound(
             "Order not found."
           );
         }
 
-        /*
-        * Atomically claim payment completion.
-        *
-        * Only the request that changes paymentStatus
-        * from false -> true is allowed to continue with
-        * vendor credit, cart cleanup, and inventory
-        * deduction.
-        *
-        * This prevents concurrent payment callbacks from
-        * processing the same order more than once.
-        */
-        const paymentUpdate =
-          await tx.order.updateMany({
-            where: {
-              id: orderId,
-              paymentStatus: false,
-            },
-            data: {
-              paymentStatus: true,
-              status: "processing",
-              ...(paymentReference
-                ? {
-                    paymentIntentId:
-                      paymentReference,
-                  }
-                : {}),
-            },
-          });
+        return alreadyPaid;
+      }
 
-        /*
-        * Another request has already completed
-        * payment for this order.
-        *
-        * Return the current order without repeating
-        * financial or inventory mutations.
-        */
-        if (paymentUpdate.count === 0) {
-          const alreadyPaid =
-            await tx.order.findUnique({
-              where: {
-                id: orderId,
-              },
-              include: {
-                items: true,
-                vendorProfile: {
-                  select: {
-                    id: true,
-                    userId: true,
-                    storeName: true,
-                  },
-                },
-              },
-            });
+      /*
+       * Payment was successfully claimed by this
+       * transaction. Perform all dependent financial
+       * and inventory mutations atomically.
+       */
+      paymentClaimed = true;
 
-          if (!alreadyPaid) {
-            throw notFound(
-              "Order not found."
-            );
-          }
-
-          return alreadyPaid;
-        }
-
-        /*
-        * Payment was successfully claimed by this
-        * transaction. Perform all dependent financial
-        * and inventory mutations atomically.
-        */
-        await tx.vendorProfile.update({
+      /*
+       * Payment confirmation only marks the customer order as paid.
+       *
+       * Vendor balances are credited later, when delivery is finalized,
+       * from VendorOrder.vendorNet. This prevents both shipping and the
+       * MarvelMarts commission from reaching vendor balances.
+       */
+      const vendorOrders =
+        await tx.vendorOrder.findMany({
           where: {
-            id: order.vendorProfileId,
+            orderId: order.id,
           },
-          data: {
-            balance: {
-              increment:
-                Number(order.subtotal),
-            },
+          select: {
+            id: true,
           },
         });
 
-        if (order.userId) {
-          await tx.cartItem.deleteMany({
-            where: {
-              cart: {
-                userId: order.userId,
-              },
-            },
-          });
-        }
-
-        const inventoryItems =
-          order.items
-            .filter(
-              (
-                item
-              ): item is typeof item & {
-                productId: string;
-              } =>
-                item.productId !== null
-            )
-            .map((item) => ({
-              productId:
-                item.productId,
-              variantId:
-                item.variantId,
-              quantity: item.qty,
-            }));
-
-        await InventoryService.decrementStock(
-          tx,
-          inventoryItems
+      if (vendorOrders.length === 0) {
+        throw badRequest(
+          "Paid order has no vendor allocations."
         );
-
-        /*
-        * Return the order with the newly persisted
-        * payment state instead of the stale object
-        * loaded before the update.
-        */
-        return {
-          ...order,
-          paymentStatus: true,
-          status: "processing",
-          ...(paymentReference
-            ? {
-                paymentIntentId:
-                  paymentReference,
-              }
-            : {}),
-        };
       }
-    );
 
-    /*
-    * Only the request that successfully claimed the
-    * payment transition reaches this audit point.
-    *
-    * Payment completion is performed by the system /
-    * payment provider flow, not by the customer.
-    */
-    await AuditService.orderStatusChanged({
-      actorId: undefined,
-      entityId: order.id,
-      oldValues: {
-        paymentStatus: false,
-        status: "pending",
-      },
-      newValues: {
+      if (order.userId) {
+        await tx.cartItem.deleteMany({
+          where: {
+            cart: {
+              userId: order.userId,
+            },
+          },
+        });
+      }
+
+      const inventoryItems =
+        order.items
+          .filter(
+            (
+              item
+            ): item is typeof item & {
+              productId: string;
+            } =>
+              item.productId !== null
+          )
+          .map((item) => ({
+            productId:
+              item.productId,
+            variantId:
+              item.variantId,
+            quantity: item.qty,
+          }));
+
+      await InventoryService.decrementStock(
+        tx,
+        inventoryItems
+      );
+
+      /*
+       * Return the order with the newly persisted
+       * payment state instead of the stale object
+       * loaded before the update.
+       */
+      return {
+        ...order,
         paymentStatus: true,
         status: "processing",
-        paymentReference,
-        actorType: "SYSTEM",
-        paymentSource: "PAYSTACK",
-      },
-    });
-
-    /*
-    * Notifications are intentionally outside the
-    * payment transaction. A mail failure must not
-    * roll back a successful payment.
-    */
-    try {
-      if (!order.emailSent) {
-        await Promise.all([
-          sendOrderConfirmationEmail(
-            mapOrderToOrderConfirmationEmail(
-              order
-            )
-          ),
-          sendAdminOrderNotification(
-            order
-          ),
-        ]);
-
-        await prisma.order.update({
-          where: {
-            id: order.id,
-          },
-          data: {
-            emailSent: true,
-          },
-        });
-      }
-    } catch (mailError: any) {
-      logger.error(
-        "ORDER_EMAIL_ERROR:",
-        mailError?.message ?? mailError
-      );
+        ...(paymentReference
+          ? {
+              paymentIntentId:
+                paymentReference,
+            }
+          : {}),
+      };
     }
+  );
 
+  /*
+   * If another request already completed payment,
+   * do not repeat accounting, audit, or notifications.
+   */
+  if (!paymentClaimed) {
     return order;
   }
+
+  /*
+   * ---------------------------------------------------------------
+   * MARKETPLACE SALES ACCOUNTING
+   * ---------------------------------------------------------------
+   *
+   * The payment claim transaction above has now committed.
+   *
+   * MarketplaceSalesService uses its own atomic financial
+   * transaction to post:
+   *
+   * 1. Dr Paystack Clearing
+   *    Cr Order Clearing
+   *
+   * 2. Dr Order Clearing
+   *    Cr Vendor Payable
+   *    Cr Marketplace Commission Revenue
+   *    Cr Shipping Revenue
+   *
+   * This is intentionally outside the payment-claim transaction
+   * because MarketplaceSalesService manages its own Prisma
+   * transaction.
+   */
+  await MarketplaceSalesService.recordSuccessfulOrderSale(
+    orderId,
+    processingFee
+  );
+
+  /*
+   * Only the request that successfully claimed the
+   * payment transition reaches this audit point.
+   *
+   * Payment completion is performed by the system /
+   * payment provider flow, not by the customer.
+   */
+  await AuditService.orderStatusChanged({
+    actorId: undefined,
+    entityId: order.id,
+    oldValues: {
+      paymentStatus: false,
+      status: "pending",
+    },
+    newValues: {
+      paymentStatus: true,
+      status: "processing",
+      paymentReference,
+      actorType: "SYSTEM",
+      paymentSource: "PAYSTACK",
+    },
+  });
+
+  /*
+   * Notifications are intentionally outside the
+   * payment transaction. A mail failure must not
+   * roll back a successful payment.
+   */
+  try {
+    if (!order.emailSent) {
+      await Promise.all([
+        sendOrderConfirmationEmail(
+          mapOrderToOrderConfirmationEmail(
+            order
+          )
+        ),
+        sendAdminOrderNotification(
+          order
+        ),
+      ]);
+
+      await prisma.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          emailSent: true,
+        },
+      });
+    }
+  } catch (mailError: any) {
+    logger.error(
+      "ORDER_EMAIL_ERROR:",
+      mailError?.message ?? mailError
+    );
+  }
+
+  return order;
+}
 
 
 static async validateVerifiedPayment(
@@ -1189,20 +1529,54 @@ static async getOrderStatusById(
 
 static async getUserOrderByNumber(
   userId: string,
-  orderNumber: string
+  orderReference: string,
+  userEmail?: string | null
 ) {
+  const reference = orderReference.trim();
+
+  if (!reference) {
+    throw badRequest("Order number is required.");
+  }
+
   const order =
     await prisma.order.findFirst({
       where: {
-        orderNumber,
-        userId,
+        AND: [
+          {
+            OR: [
+              { userId },
+              ...(userEmail
+                ? [{
+                    email: {
+                      equals: userEmail.trim(),
+                      mode: "insensitive" as const,
+                    },
+                  }]
+                : []),
+            ],
+          },
+          {
+            OR: [
+              {
+                orderNumber: {
+                  equals: reference,
+                  mode: "insensitive",
+                },
+              },
+              // Supports customers who paste the internal order ID from an older receipt.
+              { id: reference },
+            ],
+          },
+        ],
       },
       include: {
         items: true,
-        vendorProfile: {
+        vendorOrders: {
           select: {
-            id: true,
-            storeName: true,
+            status: true,
+            vendorProfile: {
+              select: { storeName: true },
+            },
           },
         },
       },
@@ -1562,10 +1936,16 @@ static async completeOrderPayment(
     transaction
   );
 
+  const processingFee =
+    transaction.raw?.fees != null
+      ? Number(transaction.raw.fees) / 100
+      : undefined;
+
   const order =
     await this.completePaidOrder(
       metadata.orderId,
-      transaction.reference
+      transaction.reference,
+      processingFee
     );
 
     await AuditService.orderCreated({
@@ -1977,3 +2357,10 @@ static async getPendingRefundQueue() {
   }
 
 }
+
+
+
+
+
+
+

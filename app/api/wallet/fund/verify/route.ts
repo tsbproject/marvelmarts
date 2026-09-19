@@ -34,12 +34,9 @@ export const POST = withApiLogging(
           reference,
         });
 
-      return NextResponse.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      return handleApiError(error);
-    }
+      return NextResponse.json(result);
+        } catch (error) {
+          return handleApiError(error);
+        }
   }
 );

@@ -33,7 +33,8 @@ export const GET = withApiLogging(
       const order =
         await OrderService.getUserOrderByNumber(
           session.user.id,
-          orderNumber
+          orderNumber,
+          session.user.email
         );
 
       return NextResponse.json({

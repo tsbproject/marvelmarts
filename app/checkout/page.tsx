@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -10,14 +10,19 @@ import { useNotification } from "@/app/_context/NotificationContext";
 import { MapPin, 
   ChevronDown, 
   ShieldCheck, 
-  ChevronLeft, 
   Wallet, 
   Zap, CreditCard, Banknote, Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { processWalletPurchase } from "@/app/_actions/wallet";
 import { useWallet } from "@/app/hooks/UseWallet";
 import { createOrder } from "@/app/lib/checkout/create-order";
+import { QuickFundModal, PaystackButton } from "./CheckoutDynamicComponents";
+import {
+  SHIPPING_OPTIONS,
+  MARVELMARTS_MULTI_VENDOR_SHIPPING_OPTIONS,
+  normalizeShippingMethods,
+  type ShippingMethod,
+} from "@/app/lib/shipping";
 
 
 
@@ -47,27 +52,9 @@ type PaystackButtonProps = {
   subtotal: number;
   shipping: number;
   total: number;
+    shippingMethod: ShippingMethod;
   onClose: () => void;
 };
-
-
-
-
-
-const QuickFundModal = dynamic(() => import("../_components/wallet/QuickFundModal"), {
-  ssr: false, // This is the magic line that stops the crash
-  loading: () => <div className="hidden" /> // Or a spinner
-});
-
-const PaystackButton = dynamic<PaystackButtonProps>(
-  () => import("@/app/_components/PaystackWrapper").then((mod) => mod.default),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full bg-neutral-gray/10 py-7 rounded-[2rem] animate-pulse" />
-    ),
-  }
-);
 
 
 
@@ -77,6 +64,9 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CARD" | "WALLET" | "TRANSFER">("CARD");
+
+  const [shippingMethod, setShippingMethod] =
+    useState<ShippingMethod>("Standard");
 
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -120,7 +110,7 @@ export default function CheckoutPage() {
 
   // --- SECURITY: INPUT SANITIZATION ---
   const sanitizeInput = (val: string) => {
-    return val.replace(/<[^>]*>?/gm, '').trim(); // Remove HTML tags and trim
+    return val.replace(/<[^>]*>?/gm, '');
   };
 
   const CHECKOUT_DRAFT_KEY = "checkout-draft";
@@ -131,9 +121,10 @@ const saveCheckoutDraft = useCallback(() => {
     JSON.stringify({
       formData,
       paymentMethod,
+        shippingMethod,
     })
   );
-}, [formData, paymentMethod]);
+}, [formData, paymentMethod, shippingMethod]);
 
 const restoreCheckoutDraft = useCallback(() => {
   const draft = sessionStorage.getItem(CHECKOUT_DRAFT_KEY);
@@ -149,6 +140,9 @@ const restoreCheckoutDraft = useCallback(() => {
 
     if (parsed.paymentMethod) {
       setPaymentMethod(parsed.paymentMethod);
+    }
+    if (parsed.shippingMethod) {
+      setShippingMethod(parsed.shippingMethod);
     }
 
     sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
@@ -184,7 +178,58 @@ const restoreCheckoutDraft = useCallback(() => {
   
   
 
-         useEffect(() => {
+       
+  const availableShippingMethods = useMemo<ShippingMethod[]>(() => {
+    if (!items.length) return [];
+
+    const vendorProfileIds = new Set(
+      items.map((item) => item.vendorProfileId).filter(Boolean)
+    );
+
+    if (vendorProfileIds.size > 1) {
+      return MARVELMARTS_MULTI_VENDOR_SHIPPING_OPTIONS.map(
+        (option) => option.value
+      );
+    }
+
+    const configuredMethods = items.map((item) =>
+      normalizeShippingMethods(item.shippingMethod)
+    );
+
+    if (configuredMethods.some((methods) => methods.length === 0)) {
+      return [];
+    }
+
+    return configuredMethods.reduce<ShippingMethod[]>(
+      (common, methods) =>
+        common.filter((method) => methods.includes(method)),
+      SHIPPING_OPTIONS.map((option) => option.value)
+    );
+  }, [items]);
+
+  const isMultiVendorCheckout = useMemo(
+    () => new Set(items.map((item) => item.vendorProfileId).filter(Boolean)).size > 1,
+    [items]
+  );
+
+  const shippingFee = useMemo(
+    () =>
+      SHIPPING_OPTIONS.find(
+        (option) => option.value === shippingMethod
+      )?.fee ?? 0,
+    [shippingMethod]
+  );
+
+  useEffect(() => {
+    if (!availableShippingMethods.length) return;
+
+    setShippingMethod((current) =>
+      availableShippingMethods.includes(current)
+        ? current
+        : availableShippingMethods[0]
+    );
+  }, [availableShippingMethods]);
+  useEffect(() => {
           if (status === "authenticated") {
             void refreshBalance();
           }
@@ -269,10 +314,22 @@ const restoreCheckoutDraft = useCallback(() => {
     }));
   };
 
-  const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.price * item.quantity, 0), [items]);
-  const shippingFee = 2500;
-  const grandTotal = subtotal + shippingFee;
 
+  
+
+
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0
+      ),
+    [items]
+  );
+
+
+
+  const grandTotal = subtotal + shippingFee;
   const handlePaymentClose = useCallback(() => {
   notifyError("Payment Cancelled");
 }, [notifyError]);
@@ -294,11 +351,11 @@ const handleWalletCheckout = async () => {
       subtotal,
       shipping: shippingFee,
       total: grandTotal,
+        shippingMethod,
     });
 
     const result = await processWalletPurchase(
-      order.orderId,
-      grandTotal
+      order.orderId
     );
 
     if (!result.success) {
@@ -307,12 +364,14 @@ const handleWalletCheckout = async () => {
 
     dispatch(clearCart());
 
-    await refreshBalance();
+    // A wallet refresh is helpful, but it must never block the customer from
+    // reaching their completed-order confirmation after payment succeeded.
+    void refreshBalance().catch(() => undefined);
 
     notifySuccess("Payment completed successfully.");
 
-    router.push(
-      `/thank-you?orderNumber=${order.orderNumber}`
+    router.replace(
+      `/thank-you?orderNumber=${encodeURIComponent(order.orderNumber)}`
     );
   } catch (error) {
     notifyError(
@@ -410,6 +469,79 @@ return (
               )}
             </section>
 
+            {/* SHIPPING METHOD */}
+            <section className="bg-white p-8 rounded-3xl border border-neutral-light shadow-sm">
+              <h3 className="text-2xl font-black italic uppercase mb-3 text-accent-navy">
+                Delivery Method
+              </h3>
+
+              <p className="text-xs text-neutral-gray font-bold uppercase tracking-wide mb-6">
+                {isMultiVendorCheckout
+                  ? "MarvelMarts manages delivery for multi-vendor orders."
+                  : "Choose how you want your order delivered."}
+              </p>
+
+              {availableShippingMethods.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {SHIPPING_OPTIONS
+                    .filter((option) =>
+                      availableShippingMethods.includes(option.value)
+                    )
+                    .map((option) => (
+                      <label
+                        key={option.value}
+                        className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${
+                          shippingMethod === option.value
+                            ? "border-brand-primary bg-brand-primary/5 shadow-inner"
+                            : "border-neutral-light hover:border-brand-primary/40"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value={option.value}
+                          checked={shippingMethod === option.value}
+                          onChange={() =>
+                            setShippingMethod(option.value)
+                          }
+                          className="sr-only"
+                        />
+
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-black uppercase italic text-accent-navy">
+                              {option.label}
+                            </p>
+                            <p className="text-xs text-neutral-gray mt-1">
+                              {option.fee === 0
+                                ? "No additional delivery charge"
+                                : `Delivery fee: ₦${option.fee.toLocaleString()}`}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              shippingMethod === option.value
+                                ? "border-brand-primary"
+                                : "border-neutral-gray"
+                            }`}
+                          >
+                            {shippingMethod === option.value && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
+                            )}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-red-50 border border-red-200 p-5 text-sm font-bold text-red-600">
+                  Shipping options are unavailable for one or more products
+                  in this cart. Please remove and re-add the affected product.
+                </div>
+              )}
+            </section>
+
             {/* PAYMENT SELECTOR */}
             <section className={`bg-white p-8 rounded-3xl border shadow-sm transition-all ${!isFormValid ? "opacity-50 grayscale pointer-events-none" : "border-brand-primary/20"}`}>
               <h3 className="text-2xl font-black italic uppercase mb-8 text-accent-navy text-center md:text-left">
@@ -423,7 +555,7 @@ return (
                 </button>
                 <button onClick={() => setPaymentMethod("WALLET")} className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === "WALLET" ? "border-brand-primary bg-brand-primary/5 shadow-inner" : "border-neutral-light"}`}>
                   <Wallet className={paymentMethod === "WALLET" ? "text-brand-primary" : "text-neutral-gray"} />
-                  <span className="text-[10px] font-black uppercase tracking-tight">Wallet (₦{walletBalance.toLocaleString()})</span>
+                  <span className="text-[10px] font-black uppercase tracking-tight">Wallet (&#8358;{walletBalance.toLocaleString()})</span>
                 </button>
                 <button onClick={() => setPaymentMethod("TRANSFER")} className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === "TRANSFER" ? "border-brand-primary bg-brand-primary/5 shadow-inner" : "border-neutral-light"}`}>
                   <Banknote className={paymentMethod === "TRANSFER" ? "text-brand-primary" : "text-neutral-gray"} />
@@ -460,6 +592,7 @@ return (
                   subtotal={subtotal}
                   shipping={shippingFee}
                   total={grandTotal}
+                    shippingMethod={shippingMethod}
                   onClose={handlePaymentClose}
                 />
                 )}
@@ -472,7 +605,7 @@ return (
                         disabled={!isFormValid || isProcessing} 
                         className="w-full bg-brand-primary text-white py-6 rounded-[2rem] font-black uppercase italic shadow-xl hover:bg-accent-navy transition-all flex items-center justify-center gap-3 active:scale-95"
                       >
-                        {isProcessing ? <Loader2 className="animate-spin" /> : <>Pay ₦{grandTotal.toLocaleString()} from Wallet</>}
+                        {isProcessing ? <Loader2 className="animate-spin" /> : <>Pay &#8358;{grandTotal.toLocaleString()} from Wallet</>}
                       </button>
                     ) : (
                       <button 
@@ -480,7 +613,7 @@ return (
                         className="w-full bg-accent-navy text-white py-6 rounded-[2rem] font-black uppercase italic shadow-xl hover:opacity-90 transition-all flex flex-col items-center justify-center group animate-pulse hover:animate-none"
                       >
                         <span className="text-[10px] opacity-70 font-bold uppercase mb-1">
-                          Insufficient Balance (₦{walletBalance.toLocaleString()})
+                          Insufficient Balance (Ã¢â€šÂ¦{walletBalance.toLocaleString()})
                         </span>
                         <span className="text-brand-primary flex items-center gap-2">
                           Top Up Wallet <Zap size={16} className="fill-current" />
@@ -522,16 +655,16 @@ return (
                       <h4 className="text-xs font-black uppercase italic text-accent-navy leading-tight">{item.title}</h4>
                       <p className="text-[9px] font-bold text-neutral-gray uppercase mt-1">QTY: {item.quantity} | {item.variantName || "Standard"}</p>
                     </div>
-                    <span className="font-black text-xs text-accent-navy italic">₦{(item.price * item.quantity).toLocaleString()}</span>
+                    <span className="font-black text-xs text-accent-navy italic">&#8358;{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-neutral-200 pt-6 space-y-3">
-                <div className="flex justify-between text-[10px] font-black text-neutral-gray uppercase"><span>Subtotal</span><span className="text-accent-navy">₦{subtotal.toLocaleString()}</span></div>
-                <div className="flex justify-between text-[10px] font-black text-neutral-gray uppercase"><span>Shipping</span><span className="text-accent-navy">₦{shippingFee.toLocaleString()}</span></div>
+                <div className="flex justify-between text-[10px] font-black text-neutral-gray uppercase"><span>Subtotal</span><span className="text-accent-navy">&#8358;{subtotal.toLocaleString()}</span></div>
+                <div className="flex justify-between text-[10px] font-black text-neutral-gray uppercase"><span>Shipping</span><span className="text-accent-navy">&#8358;{shippingFee.toLocaleString()}</span></div>
                 <div className="flex justify-between items-center border-t-4 border-brand-primary pt-6 mt-6">
                   <span className="text-lg font-black uppercase italic text-accent-navy">Total</span>
-                  <span className="text-2xl font-black text-brand-primary italic">₦{grandTotal.toLocaleString()}</span>
+                  <span className="text-2xl font-black text-brand-primary italic">&#8358;{grandTotal.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -541,4 +674,16 @@ return (
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 

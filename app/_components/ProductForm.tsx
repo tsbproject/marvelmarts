@@ -16,6 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { mapCategoriesToOptions } from "@/app/lib/MapCategoriesToOptions";
 import { normalizeProductData } from "@/app/lib/normalizeProductData";
+import { formatNaira } from "@/app/lib/FormatNaira";
 import RichTextEditor from "./RichTextEditor";
 import DOMPurify from "isomorphic-dompurify"; // Required for XSS prevention
 
@@ -53,14 +54,6 @@ interface ProductFormProps {
   vendorId?: string;
 }
 
-function formatNaira(value: number) {
-  if (!value) return "";
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0,
-  }).format(value);
-}
 
 function parseNaira(input: string) {
   const digits = input.replace(/[^\d]/g, "");
@@ -78,6 +71,34 @@ interface VariantState {
   attributes: Record<string, string>;
 }
 
+export type ShippingMethod = "Standard" | "Express" | "Pickup" | "Free";
+
+const SHIPPING_OPTIONS: Array<{
+  value: ShippingMethod;
+  label: string;
+  fee: number;
+}> = [
+  {
+    value: "Standard",
+    label: "Standard Shipping",
+    fee: 2500,
+  },
+  {
+    value: "Express",
+    label: "Express Shipping",
+    fee: 7500,
+  },
+  {
+    value: "Pickup",
+    label: "Store Pickup",
+    fee: 0,
+  },
+  {
+    value: "Free",
+    label: "Free Shipping",
+    fee: 0,
+  },
+];
 export type ProductFormState = {
   title: string;
   description: string;
@@ -90,7 +111,7 @@ export type ProductFormState = {
   stock: number;
   brand: string;
   tags: string[];
-  shippingMethod: string;
+  shippingMethod: ShippingMethod[];
   weight: number;
   mainImage: File | string | null;
   extraImages: (File | string)[];
@@ -116,7 +137,7 @@ const initialFormState: ProductFormState = {
   stock: 0,
   brand: "",
   tags: [],
-  shippingMethod: "Standard",
+  shippingMethod: ["Standard"],
   weight: 0,
   mainImage: null,
   extraImages: [],
@@ -299,6 +320,32 @@ export default function ProductForm({
     dispatch({ type: "SET_FIELD", field: "extraImages", value: newExtras });
   };
 
+  function handleShippingMethodChange(method: ShippingMethod) {
+    if (method === "Free") {
+      dispatch({
+        type: "SET_FIELD",
+        field: "shippingMethod",
+        value: form.shippingMethod.includes("Free")
+          ? ["Standard"]
+          : ["Free"],
+      });
+      return;
+    }
+
+    const currentMethods = form.shippingMethod.filter(
+      (selected) => selected !== "Free"
+    );
+
+    const nextMethods = currentMethods.includes(method)
+      ? currentMethods.filter((selected) => selected !== method)
+      : [...currentMethods, method];
+
+    dispatch({
+      type: "SET_FIELD",
+      field: "shippingMethod",
+      value: nextMethods,
+    });
+  }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (honeyPot) return; // Silent fail for bots
@@ -311,6 +358,20 @@ export default function ProductForm({
     if (!cleanTitle) { setError("Title is required."); setIsSubmitting(false); return; }
     if (form.categories.length < 1) { setError("Select a category."); setIsSubmitting(false); return; }
 
+    if (form.shippingMethod.length === 0) {
+      setError("Select at least one shipping method.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (
+      form.shippingMethod.includes("Free") &&
+      form.shippingMethod.length > 1
+    ) {
+      setError("Free Shipping cannot be combined with other shipping methods.");
+      setIsSubmitting(false);
+      return;
+    }
     const fd = new FormData();
     fd.append("title", cleanTitle);
     fd.append("description", sanitizeHTML(form.description));
@@ -336,7 +397,7 @@ export default function ProductForm({
     fd.append("stock", String(form.stock));
     fd.append("brand", sanitizeInput(form.brand));
     fd.append("sku", sanitizeInput(form.sku));
-    fd.append("shippingMethod", sanitizeInput(form.shippingMethod));
+    fd.append("shippingMethod", JSON.stringify(form.shippingMethod));
     fd.append("weight", String(form.weight));
     fd.append("deletedImageIds", JSON.stringify(deletedImageIds));
     fd.append("metaTitle", sanitizeInput(form.metaTitle));
@@ -428,7 +489,7 @@ export default function ProductForm({
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
-              <label className="block text-sm font-medium mb-1">Price (₦)</label>
+              <label className="block text-sm font-medium mb-1">Price (&#8358;)</label>
               <input
                 type="text"
                 value={form.price ? formatNaira(form.price) : ""}
@@ -438,7 +499,7 @@ export default function ProductForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Discount price (₦)</label>
+              <label className="block text-sm font-medium mb-1">Discount Price(&#8358;)</label>
               <input
                 type="text"
                 value={form.discountPrice ? formatNaira(form.discountPrice) : ""}
@@ -549,16 +610,44 @@ export default function ProductForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-1">Shipping Method</label>
-              <select
-                value={form.shippingMethod}
-                onChange={(e) => dispatch({ type: "SET_FIELD", field: "shippingMethod", value: e.target.value })}
-                className="border rounded px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="Standard">Standard Shipping</option>
-                <option value="Express">Express Delivery</option>
-                <option value="Free">Free Shipping</option>
-                <option value="Pickup">Store Pickup</option>
-              </select>
+              <div className="space-y-2">
+  <p className="text-xs text-gray-500 mb-3">
+    Select the delivery options customers can choose from.
+    Free Shipping cannot be combined with another option.
+  </p>
+
+  {SHIPPING_OPTIONS.map((option) => {
+    const isSelected = form.shippingMethod.includes(option.value);
+    const freeSelected = form.shippingMethod.includes("Free");
+
+    return (
+      <label
+        key={option.value}
+        className="flex items-start gap-3 border rounded-lg p-3 cursor-pointer hover:bg-gray-50"
+      >
+        <input
+          type="checkbox"
+          checked={isSelected}
+          disabled={option.value !== "Free" && freeSelected}
+          onChange={() => handleShippingMethodChange(option.value)}
+          className="mt-1 h-4 w-4 rounded border-gray-300"
+        />
+
+        <span className="flex-1">
+          <span className="block text-sm font-medium text-gray-900">
+            {option.label} - {formatNaira(option.fee)}
+          </span>
+
+          {option.value === "Free" && (
+            <span className="block text-xs text-gray-500 mt-1">
+              Customer pays ₦0. Actual delivery cost is handled separately.
+            </span>
+          )}
+        </span>
+      </label>
+    );
+  })}
+</div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Weight (kg)</label>
@@ -614,7 +703,7 @@ export default function ProductForm({
                   onClick={removeMainImage}
                   className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 shadow-lg"
                 >
-                  ×
+                  Ã—
                 </button>
             </div>
           )}
@@ -630,7 +719,7 @@ export default function ProductForm({
               {form.extraImages.map((img, idx) => (
                 <div key={idx} className="relative group">
                   <img src={previewExtras[idx]} alt="Extra" className="h-28 w-full object-cover rounded-lg border shadow-sm" />
-                  <button type="button" onClick={() => removeExtraImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md">✕</button>
+                  <button type="button" onClick={() => removeExtraImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md">âœ•</button>
                 </div>
               ))}
             </div>

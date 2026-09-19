@@ -30,13 +30,14 @@ export default function VendorPayoutsPage() {
   const pusherClient = getPusherClient();
 
   // SELECTORS
-  const { balance, orders, payouts, loading, lastSyncedAt, vendorProfile, user } = useSelector((state: RootState) => ({
+  const { balance, orders, payouts, loading, lastSyncedAt, vendorProfile, financialLedger } = useSelector((state: RootState) => ({
     balance: state.vendor?.balance || 0,
     orders: state.vendor?.orders || [],
     payouts: state.vendor?.payouts || [],
     loading: state.vendor?.loading || false,
     lastSyncedAt: state.vendor?.lastSyncedAt || null,
     vendorProfile: state.vendor?.profile, 
+    financialLedger: state.vendor?.financialSummary,
     user: state.auth?.user 
   }), shallowEqual);
 
@@ -70,6 +71,7 @@ export default function VendorPayoutsPage() {
 
   const handleManualRefresh = () => {
     dispatch(fetchVendorProfile());
+    dispatch(fetchVendorOrders());
     dispatch(fetchVendorPayouts());
     notifySuccess("FINANCIAL DATA REFRESHED");
   };
@@ -111,14 +113,16 @@ export default function VendorPayoutsPage() {
       .filter(o => o.status === "APPROVED" || o.status === "PROCESSING")
       .reduce((a, c) => a + (c.total || 0), 0);
 
+    const finalizedGross = Number(financialLedger?.finalizedGross ?? deliveredGross);
+
     return {
-      netEarned: deliveredGross * (1 - rate),
-      pendingNet: pendingGross * (1 - rate),
-      tierSavings: deliveredGross * (baseline - rate),
+      netEarned: Number(financialLedger?.netEarned ?? deliveredGross * (1 - rate)),
+      pendingNet: Number(financialLedger?.pendingNet ?? pendingGross * (1 - rate)),
+      tierSavings: finalizedGross * (baseline - rate),
       tier: vendorProfile?.score?.tier || "BRONZE",
       fee: rate * 100
     };
-  }, [orders, vendorProfile]);
+  }, [orders, vendorProfile, financialLedger]);
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-9xl mx-auto min-h-screen bg-[#FBFBFB]">

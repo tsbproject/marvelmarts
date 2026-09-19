@@ -131,6 +131,8 @@ export const GET = withApiLogging(
           lastSyncedAt:
             vendor.lastSyncedAt ??
             null,
+          financialSummary:
+            vendor.financialSummary,
         },
         {
           status: 200,

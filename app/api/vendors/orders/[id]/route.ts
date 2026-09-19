@@ -10,7 +10,6 @@ import { OrderService } from "@/app/lib/services/order.service";
 
 import {
   badRequest,
-  forbidden,
 } from "@/app/lib/auth/errors";
 
 import { withApiLogging } from "@/app/lib/logging/with-api-logging";
@@ -61,24 +60,11 @@ export const PATCH = withApiLogging(
           session.user.id
         );
 
-      const order =
-        await OrderService.getOrderByIdOrThrow(
-          id
-        );
-
-      if (
-        order.vendorProfileId !==
-        vendor.id
-      ) {
-        throw forbidden(
-          "You do not have permission to update this order."
-        );
-      }
-
-      const updatedOrder =
-        await OrderService.updateOrderStatus(
+      const result =
+        await OrderService.updateVendorOrderStatus(
           id,
-          status,
+          vendor.id,
+          status as "APPROVED" | "REJECTED",
           trackingNumber
         );
 
@@ -87,7 +73,7 @@ export const PATCH = withApiLogging(
           success: true,
           message:
             "Order updated successfully.",
-          order: updatedOrder,
+          order: result.vendorOrder,
         },
         {
           status: 200,
@@ -126,17 +112,9 @@ export const GET = withApiLogging(
 
       const order =
         await OrderService.getVendorOrderDetails(
-          id
+          id,
+          vendor.id
         );
-
-      if (
-        order.vendorProfileId !==
-        vendor.id
-      ) {
-        throw forbidden(
-          "You do not have permission to access this order."
-        );
-      }
 
       return NextResponse.json(
         {

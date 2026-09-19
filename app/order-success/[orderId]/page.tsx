@@ -146,7 +146,7 @@ export default function OrderSuccessPage() {
             <Link href="/" className="bg-accent-navy text-white py-4 rounded-xl font-black uppercase text-center text-[10px] sm:text-xs hover:bg-brand-primary transition-all shadow-md active:scale-95">
               Continue Shopping
             </Link>
-            <Link href="/orders/track-order" className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs hover:bg-neutral-light transition-all active:scale-95"> 
+            <Link href="/track-order" className="border-2 border-accent-navy text-center text-accent-navy py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs hover:bg-neutral-light transition-all active:scale-95"> 
               Track Order
             </Link>
           </div>

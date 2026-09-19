@@ -27,11 +27,8 @@ export async function topUpWallet(reference: string) {
     }
 
     const result =
-      await WalletService.creditVerifiedPayment(
-        session.user.id,
-        Number(transaction.amount) / 100,
-        reference,
-        "Wallet funding"
+      await WalletService.completeWalletFunding(
+        transaction
       );
 
     revalidatePath("/checkout");
@@ -67,8 +64,7 @@ export type PurchaseResponse =
     };
 
 export async function processWalletPurchase(
-  orderId: string,
-  totalAmount: number
+  orderId: string
 ): Promise<PurchaseResponse> {
   try {
     const session = await requireAuth();
@@ -76,8 +72,7 @@ export async function processWalletPurchase(
     const result =
       await WalletService.debitForOrder(
         session.user.id,
-        orderId,
-        totalAmount
+        orderId
       );
 
     if (!result.success) {

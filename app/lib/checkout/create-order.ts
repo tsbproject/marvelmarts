@@ -1,8 +1,9 @@
-export type CreateOrderPayload = {
+﻿export type CreateOrderPayload = {
   formData: any;
   items: any[];
   subtotal: number;
   shipping: number;
+  shippingMethod: string;
   total: number;
 };
 

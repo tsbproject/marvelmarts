@@ -2,6 +2,7 @@ import { prisma } from "@/app/lib/prisma";
 import { badRequest } from "@/app/lib/auth/errors";
 import { walletRepository } from "@/app/lib/repositories/wallet-repository";
 import { OrderService } from "@/app/lib/services/order.service";
+import { CheckoutService } from "@/app/lib/services/checkout.service";
 import { sendVendorCreditPurchaseEmail } from "@/app/lib/mailer";
 import { PaymentService } from "@/app/lib/services/payment.service";
 import { logger } from "@/app/lib/logger";
@@ -181,9 +182,43 @@ static async debit(
    */
   static async debitForOrder(
     userId: string,
-    orderId: string,
-    totalAmount: number
+    orderId: string
   ) {
+    if (!userId?.trim()) {
+      throw badRequest("User ID is required.");
+    }
+
+    if (!orderId?.trim()) {
+      throw badRequest("Order ID is required.");
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId,
+      },
+      select: {
+        id: true,
+        total: true,
+        paymentStatus: true,
+        status: true,
+      },
+    });
+
+    if (!order) {
+      throw badRequest("Order not found.");
+    }
+
+    if (order.paymentStatus) {
+      throw badRequest("Order has already been paid.");
+    }
+
+    const totalAmount = Number(order.total);
+
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+      throw badRequest("Invalid order total.");
+    }
+
     const reference = `ORD-${orderId}-${Date.now()}`;
 
     const wallet = await this.debit(
@@ -194,18 +229,13 @@ static async debit(
       `Payment for Order #${orderId}`
     );
 
-    await walletRepository.updateOrderPayment(
-        orderId
-      );
+    await walletRepository.updateOrderPayment(orderId);
 
     return {
       success: true as const,
       newBalance: Number(wallet.balance),
     };
   }
-
-
-
   // ==========================================================
   // Private Helpers
   // ==========================================================
@@ -615,130 +645,223 @@ static async checkout(
     );
   }
 
-  const vendorProfileId =
-    items[0]?.vendorProfileId;
-
-  if (!vendorProfileId) {
-    throw badRequest(
-      "Vendor profile is required."
+  /*
+   * Wallet checkout uses Pickup.
+   *
+   * Only product IDs, variant IDs and quantities are
+   * accepted from the client. CheckoutService reloads
+   * products from the database and therefore remains
+   * authoritative for:
+   *
+   * - vendor ownership
+   * - product/variant pricing
+   * - inventory
+   * - item titles/images
+   * - vendor grouping
+   * - shipping configuration
+   */
+  const normalizedItems =
+    CheckoutService.normalizeCart(
+      items
     );
-  }
 
-  const mixedVendors =
-    items.some(
-      (item) =>
-        item.vendorProfileId &&
-        item.vendorProfileId !==
-          vendorProfileId
+  const checkout =
+    await CheckoutService.prepareItems(
+      normalizedItems,
+      "Pickup"
     );
 
-  if (mixedVendors) {
-    throw badRequest(
-      "Wallet checkout currently supports one vendor per order."
-    );
-  }
+  /*
+   * The wallet amount must match the server-calculated
+   * checkout total. Never trust a client-supplied amount
+   * as the financial authority.
+   */
+  const requestedAmount =
+    Number(amount);
 
-  const total = Number(amount);
+  const serverTotal =
+    Number(checkout.total);
 
   if (
-    !Number.isFinite(total) ||
-    total <= 0
+    !Number.isFinite(
+      requestedAmount
+    ) ||
+    requestedAmount <= 0
   ) {
     throw badRequest(
       "Invalid payment amount."
     );
   }
 
-  const result = await prisma.$transaction(
-    async (
-      tx: Prisma.TransactionClient
-    ) => {
-      const wallet =
-        await this.ensureWallet(
-          tx,
-          userId
+  if (
+    !Number.isFinite(
+      serverTotal
+    ) ||
+    serverTotal <= 0
+  ) {
+    throw badRequest(
+      "Invalid checkout total."
+    );
+  }
+
+  /*
+   * Compare in kobo-equivalent precision to avoid
+   * floating-point discrepancies.
+   */
+  const requestedKobo =
+    Math.round(
+      requestedAmount * 100
+    );
+
+  const serverKobo =
+    Math.round(
+      serverTotal * 100
+    );
+
+  if (
+    requestedKobo !==
+    serverKobo
+  ) {
+    throw badRequest(
+      "Checkout amount does not match the server-calculated total."
+    );
+  }
+
+  /*
+   * prepareItems() already returns the complete,
+   * server-authoritative OrderItem payload.
+   *
+   * Vendor allocation keys remain available separately
+   * through checkout.vendorOrders.itemKeys and are matched
+   * against the normalized product/variant keys inside
+   * OrderService.createOrderTx().
+   */
+  const orderItems =
+    checkout.orderItems;
+
+  if (
+    orderItems.length !==
+    normalizedItems.length
+  ) {
+    throw badRequest(
+      "Unable to prepare all checkout items."
+    );
+  }
+
+  const vendorOrders =
+    checkout.vendorOrders.map(
+      (vendorOrder) => ({
+        vendorProfileId:
+          vendorOrder.vendorProfileId,
+
+        merchandiseSubtotal:
+          vendorOrder.merchandiseSubtotal,
+
+        shipping:
+          vendorOrder.shipping,
+
+        shippingMethod:
+          vendorOrder.shippingMethod,
+
+        total:
+          vendorOrder.total,
+
+        itemKeys:
+          vendorOrder.itemKeys,
+      })
+    );
+
+  const result =
+    await prisma.$transaction(
+      async (
+        tx: Prisma.TransactionClient
+      ) => {
+        const wallet =
+          await this.ensureWallet(
+            tx,
+            userId
+          );
+
+        this.ensureSufficientBalance(
+          wallet.balance,
+          serverTotal
         );
 
-      this.ensureSufficientBalance(
-        wallet.balance,
-        total
-      );
-
-      await walletRepository.debit(
-        tx,
-        userId,
-        total
-      );
-
-      await this.createTransaction(
-        tx,
-        wallet.id,
-        total,
-        TransactionType.PURCHASE,
-        TransactionStatus.SUCCESS,
-        `ORD-${Date.now()}`,
-        "Wallet checkout"
-      );
-
-      const normalizedItems =
-        items.map((item) => ({
-          productId:
-            item.productId,
-          variantId:
-            item.variantId,
-          quantity:
-            Number(item.quantity) || 1,
-        }));
-
-      const orderItems =
-        items.map((item) => ({
-          productId:
-            item.productId ?? null,
-          variantId:
-            item.variantId ?? null,
-          qty:
-            Number(item.quantity) || 1,
-          unitPrice:
-            new Prisma.Decimal(
-              Number(item.price) || 0
-            ),
-          imageUrl:
-            item.imageUrl ?? null,
-          title:
-            item.title ?? null,
-        }));
-
-      const order =
-        await OrderService.createOrderTx(
+        await walletRepository.debit(
           tx,
-          {
-            orderNumber: `MM-${Date.now()}`,
-            userId,
-            vendorProfileId,
-            formData: shippingAddress,
-            orderItems,
-            normalizedItems,
-            subtotal: total,
-            shipping: 0,
-            total,
-          }
+          userId,
+          serverTotal
         );
 
-      await tx.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          paymentTypes: "WALLET",
-        },
-      });
+        await this.createTransaction(
+          tx,
+          wallet.id,
+          serverTotal,
+          TransactionType.PURCHASE,
+          TransactionStatus.SUCCESS,
+          `ORD-${Date.now()}`,
+          "Wallet checkout"
+        );
 
-      return {
-        success: true,
-        orderId: order.id,
-      };
-    }
-  );
+        const order =
+          await OrderService.createOrderTx(
+            tx,
+            {
+              orderNumber:
+                `MM-${Date.now()}`,
+
+              userId,
+
+              /*
+               * Transitional legacy field.
+               *
+               * Multi-vendor authority lives in
+               * VendorOrder.vendorProfileId.
+               */
+              vendorProfileId:
+                vendorOrders[0]
+                  .vendorProfileId,
+
+              formData:
+                shippingAddress,
+
+              orderItems,
+
+              normalizedItems,
+
+              subtotal:
+                checkout.subtotal,
+
+              shipping:
+                checkout.shipping,
+
+              shippingMethod:
+                checkout.shippingMethod,
+
+              total:
+                serverTotal,
+
+              vendorOrders,
+            }
+          );
+
+        await tx.order.update({
+          where: {
+            id: order.id,
+          },
+
+          data: {
+            paymentTypes:
+              "WALLET",
+          },
+        });
+
+        return {
+          success: true,
+          orderId: order.id,
+        };
+      }
+    );
 
   await OrderService.completePaidOrder(
     result.orderId,
@@ -747,7 +870,6 @@ static async checkout(
 
   return result;
 }
-
 
 static async completeWalletFunding(
   transaction: any
@@ -767,10 +889,49 @@ static async completeWalletFunding(
     );
   }
 
+  const baseAmount = Number(metadata.amount);
+  const grossAmount = Number(metadata.grossAmount);
+
+  if (
+    !Number.isFinite(baseAmount) ||
+    baseAmount <= 0
+  ) {
+    throw badRequest(
+      "Invalid wallet funding amount."
+    );
+  }
+
+  if (
+    !Number.isFinite(grossAmount) ||
+    grossAmount <= 0
+  ) {
+    throw badRequest(
+      "Invalid wallet payment amount."
+    );
+  }
+
+  const verifiedAmount =
+    Number(transaction.amount) / 100;
+
+  /*
+   * Paystack returns the transaction amount in kobo.
+   * The verified amount must match the gross amount
+   * that MarvelMarts initialized.
+   */
+  const amountDifference = Math.abs(
+    verifiedAmount - grossAmount
+  );
+
+  if (amountDifference > 0.01) {
+    throw badRequest(
+      "Wallet payment amount does not match the expected amount."
+    );
+  }
+
   const wallet =
     await this.creditVerifiedPayment(
       metadata.userId,
-      Number(transaction.amount) / 100,
+      baseAmount,
       transaction.reference,
       "Wallet funding"
     );
@@ -828,10 +989,44 @@ static async verifyWalletFunding({
     );
   }
 
+  const baseAmount = Number(metadata.amount);
+  const grossAmount = Number(metadata.grossAmount);
+
+  if (
+    !Number.isFinite(baseAmount) ||
+    baseAmount <= 0
+  ) {
+    throw badRequest(
+      "Invalid wallet funding amount."
+    );
+  }
+
+  if (
+    !Number.isFinite(grossAmount) ||
+    grossAmount <= 0
+  ) {
+    throw badRequest(
+      "Invalid wallet payment amount."
+    );
+  }
+
+  const verifiedAmount =
+    Number(transaction.amount) / 100;
+
+  const amountDifference = Math.abs(
+    verifiedAmount - grossAmount
+  );
+
+  if (amountDifference > 0.01) {
+    throw badRequest(
+      "Wallet payment amount does not match the expected amount."
+    );
+  }
+
   const wallet =
     await WalletService.creditVerifiedPayment(
       userId,
-      Number(transaction.amount) / 100,
+      baseAmount,
       reference,
       "Wallet funding"
     );
@@ -851,6 +1046,7 @@ static async verifyWalletFunding({
   }
 
   return {
+    success: true,
     wallet,
     returnUrl:
       typeof metadata.returnUrl === "string"
@@ -860,6 +1056,13 @@ static async verifyWalletFunding({
 }
 
 }
+
+
+
+
+
+
+
 
 
 

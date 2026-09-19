@@ -452,93 +452,77 @@ export class PayoutService {
 
 
  static async calculateVendorPayout(orderId: string) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        vendorProfile: {
-          include: {
-            score: true,
-          },
-        },
-      },
+    const vendorOrders = await prisma.vendorOrder.findMany({
+      where: { orderId },
+      include: { vendorProfile: { include: { score: true } } },
     });
 
-    if (!order || !order.vendorProfile?.score) {
-      throw new Error("Order or Vendor Score configuration not found");
-    }
+    if (!vendorOrders.length) throw new Error("Vendor allocations not found for this order.");
 
-    const totalAmount = Number(order.total);
-    const commissionRate = order.vendorProfile.score.commissionRate;
-
-    const platformFee = totalAmount * commissionRate;
-    const vendorNetPayout = totalAmount - platformFee;
-
-    return {
-      totalAmount,
-      platformFee,
-      vendorNetPayout,
-      commissionRate,
-      tier: order.vendorProfile.score.tier,
-      vendorProfileId: order.vendorProfileId,
-    };
+    return vendorOrders.map((vendorOrder) => {
+      const commissionRate = Number(vendorOrder.commissionRate ?? vendorOrder.vendorProfile.score?.commissionRate ?? 0);
+      const grossAmount = Number(vendorOrder.merchandiseSubtotal);
+      const platformFee = Number(vendorOrder.commissionAmount ?? grossAmount * commissionRate);
+      return {
+        vendorProfileId: vendorOrder.vendorProfileId,
+        grossAmount,
+        platformFee,
+        vendorNetPayout: Number(vendorOrder.vendorNet ?? grossAmount - platformFee),
+        commissionRate,
+        tier: vendorOrder.vendorProfile.score?.tier,
+      };
+    });
   }
 
-    static async finalizeVendorPayout(orderId: string) {
-    const payout = await this.calculateVendorPayout(orderId);
+  static async finalizeVendorPayout(orderId: string) {
+    const payouts = await this.calculateVendorPayout(orderId);
+    const transactions = await prisma.$transaction(async (tx) => {
+      const created = [];
+      for (const payout of payouts) {
+        if (!payout.tier) throw new Error("Vendor Score configuration not found.");
+        const existing = await tx.marketplaceTransaction.findFirst({
+          where: { orderId, vendorProfileId: payout.vendorProfileId },
+        });
+        if (existing) continue;
 
-    const transaction =
-      await prisma.$transaction(async (tx) => {
-        const marketplaceTransaction =
-          await tx.marketplaceTransaction.create({
-            data: {
-              orderId,
-              vendorProfileId: payout.vendorProfileId,
-              grossAmount: payout.totalAmount,
-              platformFee: payout.platformFee,
-              netAmount: payout.vendorNetPayout,
-              commissionRate: payout.commissionRate,
-              vendorTier: payout.tier,
-              status: TransactionStatus.SUCCESS,
-              reference: `TRX-${orderId}-${Date.now()}`,
-            },
-          });
-
-        await tx.vendorProfile.update({
-          where: {
-            id: payout.vendorProfileId,
-          },
+        const transaction = await tx.marketplaceTransaction.create({
           data: {
-            balance: {
-              increment: payout.vendorNetPayout,
-            },
+            orderId,
+            vendorProfileId: payout.vendorProfileId,
+            grossAmount: payout.grossAmount,
+            platformFee: payout.platformFee,
+            netAmount: payout.vendorNetPayout,
+            commissionRate: payout.commissionRate,
+            vendorTier: payout.tier,
+            status: TransactionStatus.SUCCESS,
+            reference: `TRX-${orderId}-${payout.vendorProfileId}-${Date.now()}`,
           },
         });
-
-        return marketplaceTransaction;
-      });
-
-    await AuditService.payoutFinalized({
-      entityId: transaction.id,
-      newValues: {
-        actorType: "SYSTEM",
-        orderId,
-        marketplaceTransactionId: transaction.id,
-        vendorProfileId: payout.vendorProfileId,
-        grossAmount: payout.totalAmount,
-        platformFee: payout.platformFee,
-        vendorNetPayout: payout.vendorNetPayout,
-        commissionRate: payout.commissionRate,
-        vendorTier: payout.tier,
-        status: TransactionStatus.SUCCESS,
-        reference: transaction.reference,
-      },
+        await tx.vendorProfile.update({
+          where: { id: payout.vendorProfileId },
+          data: { balance: { increment: payout.vendorNetPayout } },
+        });
+        await tx.vendorOrder.updateMany({
+          where: { orderId, vendorProfileId: payout.vendorProfileId },
+          // The vendor-facing fulfillment status remains Delivered; payout
+          // completion is represented by MarketplaceTransaction instead.
+          data: { status: "DELIVERED" },
+        });
+        created.push(transaction);
+      }
+      return created;
     });
 
-    return {
-      success: true,
-      totalAmount: payout.totalAmount,
-      platformFee: payout.platformFee,
-      vendorNetPayout: payout.vendorNetPayout,
-    };
+    for (const transaction of transactions) {
+      await AuditService.payoutFinalized({
+        entityId: transaction.id,
+        newValues: { actorType: "SYSTEM", orderId, marketplaceTransactionId: transaction.id,
+          vendorProfileId: transaction.vendorProfileId, grossAmount: transaction.grossAmount,
+          platformFee: transaction.platformFee, vendorNetPayout: transaction.netAmount,
+          commissionRate: transaction.commissionRate, status: transaction.status, reference: transaction.reference },
+      });
+    }
+
+    return { success: true, payouts: payouts.length, finalized: transactions.length };
   }
 }

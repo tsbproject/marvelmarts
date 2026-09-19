@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 import { PaymentService } from "@/app/lib/services/payment.service";
@@ -281,7 +281,8 @@ export const POST = withApiLogging(
       const boostResult =
         await PaymentService.processBoostCreditPayment(
           metadata,
-          reference
+          reference,
+          payment.amount
         );
 
       if (boostResult.handled) {
@@ -418,10 +419,16 @@ export const POST = withApiLogging(
       /**
        * Complete the order payment.
        */
+      const processingFee =
+        payment.fees != null
+          ? Number(payment.fees) / 100
+          : undefined;
+
       const updatedOrder =
         await OrderService.completePaidOrder(
           order.id,
-          reference
+          reference,
+          processingFee
         );
 
       logger.info(

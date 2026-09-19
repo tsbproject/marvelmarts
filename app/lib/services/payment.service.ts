@@ -6,6 +6,7 @@ import { paymentClient } from "@/app/lib/payments";
 import { BoostService } from "./boost.service";
 import { WalletService } from "./wallet.service";
 import { OrderService } from "./order.service";
+import { calculatePaymentFee } from "@/app/lib/payments/payment-fee";
 
 export class PaymentService {
  
@@ -27,9 +28,12 @@ static async initializeWalletFunding({
     throw badRequest(
       "Minimum wallet funding amount is ₦500."
     );
-
- 
   }
+
+  const feeCalculation = calculatePaymentFee(
+    amount,
+    "WALLET_FUNDING"
+  );
 
   const reference =
     `WALLET-${Date.now()}-${crypto.randomUUID()}`;
@@ -37,16 +41,23 @@ static async initializeWalletFunding({
   const payment =
     await paymentClient.initialize({
       email,
-      amount,
+      amount: feeCalculation.grossAmount,
       reference,
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
       metadata: {
-      type: "wallet",
-      userId,
-      amount,
-      saveCard,
-      returnUrl,
-    },
+        type: "wallet",
+        userId,
+
+        // Business amount the user wants credited.
+        amount: feeCalculation.baseAmount,
+
+        // Fee information used for payment reconciliation.
+        processingFee: feeCalculation.processingFee,
+        grossAmount: feeCalculation.grossAmount,
+
+        saveCard,
+        returnUrl,
+      },
     });
 
   return {
@@ -54,6 +65,9 @@ static async initializeWalletFunding({
     paymentReference: payment.reference,
     url: payment.authorizationUrl,
     authorizationUrl: payment.authorizationUrl,
+    amount: feeCalculation.baseAmount,
+    processingFee: feeCalculation.processingFee,
+    grossAmount: feeCalculation.grossAmount,
   };
 }
 
@@ -206,7 +220,8 @@ const authorization =
 
 static async processBoostCreditPayment(
   metadata: any,
-  reference: string
+  reference: string,
+  verifiedAmount: number
 ) {
   if (!metadata.custom_fields) {
     return {
@@ -238,6 +253,32 @@ static async processBoostCreditPayment(
       success: true,
     };
   }
+
+
+  const grossAmount =
+  Number(metadata.grossAmount);
+
+    if (
+      !Number.isFinite(grossAmount) ||
+      grossAmount <= 0
+    ) {
+      throw badRequest(
+        "Invalid Boost payment amount."
+      );
+    }
+
+    const verifiedAmountNaira =
+      verifiedAmount / 100;
+
+    const amountDifference = Math.abs(
+      verifiedAmountNaira - grossAmount
+    );
+
+    if (amountDifference > 0.01) {
+      throw badRequest(
+        "Boost payment amount does not match the expected amount."
+      );
+    }
 
   const existing =
     await prisma.creditTransaction.findUnique({
@@ -291,33 +332,75 @@ static async initializeBoostCreditPayment({
   credits: number;
   amount: number;
 }) {
+  if (
+    !Number.isFinite(credits) ||
+    credits <= 0
+  ) {
+    throw badRequest(
+      "Boost credit amount must be greater than zero."
+    );
+  }
+
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    throw badRequest(
+      "Boost payment amount must be greater than zero."
+    );
+  }
+
+  const feeCalculation =
+    calculatePaymentFee(
+      amount,
+      "BOOST_CREDIT"
+    );
+
   const reference =
     `BOOST-${Date.now()}-${crypto.randomUUID()}`;
 
   const payment =
     await paymentClient.initialize({
       email,
-      amount,
+      amount: feeCalculation.grossAmount,
       reference,
       callbackUrl:
-      `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
       metadata: {
-      type: "vendor-credit",
-      returnUrl: "/account/vendor/credit-boost",
+        type: "vendor-credit",
 
-      custom_fields: [
-        {
-          display_name: "Vendor ID",
-          variable_name: "vendor_id",
-          value: vendorProfileId,
-        },
-        {
-          display_name: "Credits",
-          variable_name: "credits",
-          value: credits.toString(),
-        },
-      ],
-    },
+        returnUrl:
+          "/account/vendor/credit-boost",
+
+        /*
+         * The amount of Boost credits the vendor
+         * actually purchased.
+         */
+        credits: credits.toString(),
+
+        /*
+         * Preserve the business amount separately
+         * from the gross Paystack charge.
+         */
+        amount: feeCalculation.baseAmount,
+        processingFee:
+          feeCalculation.processingFee,
+        grossAmount:
+          feeCalculation.grossAmount,
+
+        custom_fields: [
+          {
+            display_name: "Vendor ID",
+            variable_name: "vendor_id",
+            value: vendorProfileId,
+          },
+          {
+            display_name: "Credits",
+            variable_name: "credits",
+            value: credits.toString(),
+          },
+        ],
+      },
     });
 
   return {
@@ -327,9 +410,14 @@ static async initializeBoostCreditPayment({
       payment.authorizationUrl,
     url:
       payment.authorizationUrl,
+
+    amount: feeCalculation.baseAmount,
+    processingFee:
+      feeCalculation.processingFee,
+    grossAmount:
+      feeCalculation.grossAmount,
   };
 }
-
 
 static async completePayment(
   reference: string,
@@ -473,7 +561,8 @@ static async completePayment(
 
       return this.processBoostCreditPayment(
         transaction.metadata ?? {},
-        transaction.reference
+        transaction.reference,
+        transaction.amount
       );
     }
 

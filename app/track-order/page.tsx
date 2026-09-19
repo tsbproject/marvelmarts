@@ -48,7 +48,13 @@ const STEPS = [
 export default function OrderTracker() {
   const router = useRouter();
 
-  const { status } = useSession();
+  const { data: session, status } = useSession();
+
+  const authenticatedUserId =
+    (session?.user as { id?: string } | undefined)?.id;
+
+  const isAuthenticated =
+    status === "authenticated" && !!authenticatedUserId;
 
   const [orderNumber, setOrderNumber] = useState("");
 
@@ -65,12 +71,12 @@ export default function OrderTracker() {
   /* -------------------------------------------------------------------------- */
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status !== "loading" && !isAuthenticated) {
       router.replace(
-        "/auth/sign-in?redirect=/track-order"
+        "/auth/sign-in?redirect=/track-order&message=Please%20log%20in%20to%20track%20your%20order."
       );
     }
-  }, [status, router]);
+  }, [status, isAuthenticated, router]);
 
   /* -------------------------------------------------------------------------- */
   /*                            PUSH NOTIFICATION                               */
@@ -115,9 +121,17 @@ export default function OrderTracker() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          router.replace(
+            "/auth/sign-in?redirect=/track-order&message=Please%20log%20in%20to%20track%20your%20order."
+          );
+          return;
+        }
+
         setError(
-          data?.error ??
-            "Unable to locate this order."
+          res.status === 404
+            ? "We could not find an order matching that reference. Please check the number and try again."
+            : data?.error ?? "Unable to locate this order."
         );
 
         return;
@@ -146,7 +160,7 @@ export default function OrderTracker() {
   /*                             LOADING SCREEN                                 */
   /* -------------------------------------------------------------------------- */
 
-  if (status === "loading") {
+  if (status === "loading" || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--neutral-white)">
         <div className="flex flex-col items-center gap-6">

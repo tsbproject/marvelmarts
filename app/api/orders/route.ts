@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import {
   handleApiError,
@@ -30,6 +30,9 @@ export const POST = withApiLogging(
       const paymentMethod =
         body?.paymentMethod ?? "CARD";
 
+
+      const shippingMethod =
+        body?.shippingMethod;
       const rawFormData =
         body?.formData ?? {};
 
@@ -50,7 +53,8 @@ export const POST = withApiLogging(
 
       const checkout =
         await CheckoutService.prepareItems(
-          normalizedItems
+          normalizedItems,
+          shippingMethod
         );
 
       const {
@@ -58,7 +62,9 @@ export const POST = withApiLogging(
         orderItems,
         subtotal: serverSubtotal,
         shipping: serverShipping,
+        shippingMethod: serverShippingMethod,
         total: serverTotal,
+        vendorOrders,
       } = checkout;
 
       const orderNumber =
@@ -74,7 +80,9 @@ export const POST = withApiLogging(
           normalizedItems,
           subtotal: serverSubtotal,
           shipping: serverShipping,
+          shippingMethod: serverShippingMethod,
           total: serverTotal,
+          vendorOrders,
         });
 
       const payment =
@@ -83,7 +91,6 @@ export const POST = withApiLogging(
           formData.email,
           serverTotal
         );
-
       return NextResponse.json(
         payment,
         {
@@ -100,13 +107,11 @@ export const POST = withApiLogging(
     }
   }
 );
-
 export const GET = withApiLogging(
-  async () => {
+  async (req: NextRequest) => {
     try {
       const session =
         await requireAuth();
-
       const orders =
         await OrderService.getOrders(
           session.user.id
@@ -120,3 +125,4 @@ export const GET = withApiLogging(
     }
   }
 );
+

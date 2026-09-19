@@ -1,90 +1,239 @@
-import React from 'react';
-import { Trophy, ShieldCheck, TrendingUp, Zap, Star } from 'lucide-react';
-import { calculateVendorTier, calculateReputationScore } from '../../../lib/utils/vendorAnalytics';
+"use client";
 
+import React from "react";
+import {
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  PackageCheck,
+  Star,
+  ChevronUp,
+} from "lucide-react";
+
+import {
+  VendorRankingResult,
+  VENDOR_RANKING_DOCUMENTATION,
+} from "@/app/lib/utils/vendorRanking";
 
 interface VendorInsightsProps {
-  stats: {
-    rating: number;
-    totalSales: number;
-    fulfillmentRate: number; // e.g., 98 for 98%
-    reviewsCount: number;
-  }
+  ranking: VendorRankingResult;
 }
 
-const VendorInsights = ({ stats }: VendorInsightsProps) => {
-  const tier = calculateVendorTier(stats.totalSales, stats.rating);
-  const reputation = calculateReputationScore(stats.rating, stats.fulfillmentRate);
+const formatPercent = (value: number) =>
+  `${Math.round(value)}%`;
+
+const VendorInsights = ({
+  ranking,
+}: VendorInsightsProps) => {
+  const {
+    score,
+    tier,
+    commissionRate,
+    metrics,
+    policy,
+    nextTier,
+    pointsToNextTier,
+  } = ranking;
+
+  const metricCards = [
+    {
+      label: "Sales Performance",
+      value: metrics.salesPerformance,
+      icon: <TrendingUp size={17} />,
+    },
+    {
+      label: "Customer Retention",
+      value: metrics.customerRetention,
+      icon: <Users size={17} />,
+    },
+    {
+      label: "Fulfillment Reliability",
+      value: metrics.fulfillmentReliability,
+      icon: <PackageCheck size={17} />,
+    },
+    {
+      label: "Customer Satisfaction",
+      value: metrics.customerSatisfaction,
+      icon: <Star size={17} />,
+    },
+  ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      
-      {/* 1. VENDOR TIER CARD */}
-      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-        <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform">
-          <Trophy size={120} color={tier.color} />
-        </div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Merchant Standing</p>
-        <h4 className="text-3xl font-black italic uppercase mb-1" style={{ color: tier.color }}>
-          {tier.label} TIER
-        </h4>
-        <div className="flex items-center gap-2 bg-gray-50 w-fit px-3 py-1 rounded-full border border-gray-100">
-          <Zap size={12} className="text-[#F7931E]" />
-          <span className="text-[9px] font-bold text-slate-900 uppercase">{tier.bonus}</span>
-        </div>
-      </div>
+    <div className="grid lg:grid-cols-3 gap-6">
+      {/* RANKING SUMMARY */}
+      <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-gray">
+              Vendor Performance Ranking
+            </p>
 
-      {/* 2. REPUTATION SCORE */}
-      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Operational Trust</p>
-        <div className="flex items-end gap-3">
-          <span className="text-5xl font-black text-accent-navy tracking-tighter">{reputation}%</span>
-          <div className="flex flex-col mb-1">
-             <div className="flex gap-0.5 mb-1">
-               {[...Array(5)].map((_, i) => (
-                 <Star key={i} size={10} className={i < Math.floor(stats.rating) ? "fill-[#F7931E] text-[#F7931E]" : "text-gray-200"} />
-               ))}
-             </div>
-             <span className="text-[9px] font-bold text-green-500 uppercase tracking-tighter">Combat Ready</span>
+            <div className="flex items-center gap-3 mt-3">
+              <ShieldCheck className="text-[#F7931E]" size={28} />
+
+              <h3 className="text-2xl md:text-3xl font-black italic uppercase text-accent-navy">
+                {policy.name}
+              </h3>
+            </div>
+
+            <p className="text-xs text-neutral-gray mt-2 max-w-xl leading-6">
+              {policy.description}
+            </p>
+          </div>
+
+          <div className="text-left md:text-right">
+            <p className="text-[9px] font-black uppercase tracking-widest text-neutral-gray">
+              Ranking Score
+            </p>
+
+            <p className="text-4xl font-black italic text-accent-navy mt-1">
+              {score.toFixed(1)}
+              <span className="text-sm text-neutral-gray not-italic">
+                /100
+              </span>
+            </p>
           </div>
         </div>
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-100 h-1.5 rounded-full mt-4 overflow-hidden">
-          <div 
-            className="bg-accent-navy h-full transition-all duration-1000" 
-            style={{ width: `${reputation}%` }} 
-          />
+
+        {/* SCORE BAR */}
+        <div className="mt-7">
+          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-neutral-gray mb-2">
+            <span>Current Performance</span>
+            <span>{formatPercent(score)}</span>
+          </div>
+
+          <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full bg-accent-navy rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.min(100, Math.max(0, score))}%`,
+              }}
+            />
+          </div>
         </div>
+
+        {/* PERFORMANCE FACTORS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-7">
+          {metricCards.map((metric) => (
+            <div
+              key={metric.label}
+              className="bg-[#FBFBFB] rounded-2xl border border-gray-100 p-4"
+            >
+              <div className="flex items-center gap-2 text-accent-navy">
+                {metric.icon}
+                <span className="text-[8px] font-black uppercase tracking-wider">
+                  {metric.label}
+                </span>
+              </div>
+
+              <p className="text-xl font-black italic text-accent-navy mt-3">
+                {formatPercent(metric.value)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* NEXT TIER */}
+        {nextTier ? (
+          <div className="mt-6 p-5 rounded-2xl bg-[#002B5B] text-white">
+            <div className="flex items-center gap-2">
+              <ChevronUp size={17} />
+              <p className="text-[9px] font-black uppercase tracking-widest text-blue-200">
+                Next Tier: {nextTier.name}
+              </p>
+            </div>
+
+            <p className="text-sm font-bold mt-2">
+              {pointsToNextTier.toFixed(1)} more ranking points needed.
+            </p>
+
+            <p className="text-[10px] text-blue-200 mt-1">
+              Commission at {nextTier.name} tier:{" "}
+              {(nextTier.commissionRate * 100).toFixed(0)}%
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 p-5 rounded-2xl bg-[#002B5B] text-white">
+            <p className="text-[9px] font-black uppercase tracking-widest text-blue-200">
+              Highest Vendor Tier
+            </p>
+
+            <p className="text-sm font-bold mt-2">
+              You are currently at the highest ranking tier.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* 3. INSIGHTS GENERATOR */}
-      <div className="bg-[#002B5B] p-6 rounded-[2rem] shadow-xl text-white">
-        <div className="flex justify-between items-start mb-4">
-          <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest">AI Intelligence</p>
-          <TrendingUp size={18} className="text-green-400" />
-        </div>
-        <ul className="space-y-3">
-          <li className="flex items-start gap-3">
-            <div className="bg-white/10 p-1.5 rounded-lg mt-0.5">
-              <ShieldCheck size={14} className="text-blue-300" />
-            </div>
-            <p className="text-[11px] font-medium leading-relaxed">
-              Your <span className="text-[#F7931E] font-bold">Fulfillment Rate</span> is top 5% in your category.
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <div className="bg-white/10 p-1.5 rounded-lg mt-0.5">
-              <Zap size={14} className="text-[#F7931E]" />
-            </div>
-            <p className="text-[11px] font-medium leading-relaxed">
-              Use <span className="font-bold underline">Boost Credits</span> to increase visibility on your lowest-rated product.
-            </p>
-          </li>
-        </ul>
-      </div>
+      {/* COMMISSION + DOCUMENTATION */}
+      <div className="bg-[#002B5B] p-6 md:p-7 rounded-[2.5rem] shadow-xl text-white">
+        <p className="text-[9px] font-black text-blue-300 uppercase tracking-[0.2em]">
+          Current Marketplace Rate
+        </p>
 
+        <p className="text-5xl font-black italic mt-3">
+          {(commissionRate * 100).toFixed(0)}%
+        </p>
+
+        <p className="text-[10px] text-blue-200 uppercase tracking-widest mt-1">
+          {policy.name} Tier Commission
+        </p>
+
+        <div className="mt-7 border-t border-white/10 pt-6">
+          <p className="text-[9px] font-black uppercase tracking-widest text-blue-300">
+            Tier Benefits
+          </p>
+
+          <ul className="mt-4 space-y-3">
+            {policy.benefits.map((benefit) => (
+              <li
+                key={benefit}
+                className="flex items-start gap-2 text-[10px] leading-5"
+              >
+                <ShieldCheck
+                  size={14}
+                  className="text-green-400 mt-0.5 shrink-0"
+                />
+                <span>{benefit}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-7 border-t border-white/10 pt-6">
+          <p className="text-[9px] font-black uppercase tracking-widest text-blue-300">
+            Ranking Model
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {VENDOR_RANKING_DOCUMENTATION.factors.map((factor) => (
+              <div
+                key={factor.label}
+                className="text-[10px]"
+              >
+                <div className="flex justify-between gap-3">
+                  <span className="text-blue-100">
+                    {factor.label}
+                  </span>
+
+                  <span className="font-black">
+                    {Math.round(factor.weight * 100)}%
+                  </span>
+                </div>
+
+                <p className="text-[9px] text-blue-200 mt-1 leading-4">
+                  {factor.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default VendorInsights;
+
+
+

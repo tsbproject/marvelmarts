@@ -2570,32 +2570,32 @@ static async getVendorAnalyticsDashboard(
   ];
 
   return Promise.all([
-    prisma.order.aggregate({
+    prisma.vendorOrder.aggregate({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
         createdAt: { gte: today },
       },
-      _sum: { total: true },
+      _sum: { merchandiseSubtotal: true },
     }),
 
-    prisma.order.aggregate({
+    prisma.vendorOrder.aggregate({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
         createdAt: { gte: monthStart },
       },
-      _sum: { total: true },
+      _sum: { merchandiseSubtotal: true },
     }),
 
-    prisma.order.findMany({
+    prisma.vendorOrder.findMany({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
         createdAt: { gte: thirtyDaysAgo },
       },
       select: {
-        total: true,
+        merchandiseSubtotal: true,
         createdAt: true,
       },
       orderBy: {
@@ -2610,32 +2610,39 @@ static async getVendorAnalyticsDashboard(
       },
     }),
 
-    prisma.order.count({
+    prisma.vendorOrder.count({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
       },
     }),
 
-    prisma.order.findMany({
+    prisma.vendorOrder.findMany({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
       },
       select: {
-        userId: true,
-        createdAt: true,
+        order: {
+          select: {
+            userId: true,
+            createdAt: true,
+          },
+        },
       },
     }),
 
-    prisma.order.groupBy({
-      by: ["userId"],
+    prisma.vendorOrder.findMany({
       where: {
         vendorProfileId,
         status: { in: revenueStatuses },
       },
-      _count: {
-        userId: true,
+      select: {
+        order: {
+          select: {
+            userId: true,
+          },
+        },
       },
     }),
 

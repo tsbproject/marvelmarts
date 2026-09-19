@@ -10,6 +10,8 @@ export interface CartItem {
   imageUrl: string;
   quantity: number;
   variantName?: string;
+  shippingMethod?: string | null;
+  vendorProfileId?: string;
 }
 
 interface CartState {
@@ -52,13 +54,15 @@ const cartSlice = createSlice({
             variantId: incomingVariantId,
             slug: product.slug,
             title: product.title,
-            price: Number(product.discountPrice ?? product.price),
+            price: Number(product.discountPrice != null && Number(product.discountPrice) > 0 ? product.discountPrice : product.price),
             imageUrl:
               product.imageUrl ||
               product.images?.[0]?.url ||
               "/placeholder-product.png",
             quantity,
             variantName: product.variantName,
+            shippingMethod: product.shippingMethod ?? null,
+            vendorProfileId: product.vendorProfileId,
           });
       }
       
@@ -128,3 +132,4 @@ export const {
 } = cartSlice.actions;
 
 export default cartSlice.reducer;
+

@@ -60,6 +60,11 @@ interface VendorState {
   onboarding: Onboarding;
   balance: number;
   lastSyncedAt: string | null;
+  financialSummary: {
+    netEarned: number;
+    pendingNet: number;
+    finalizedGross: number;
+  } | null;
   orders: any[];
   allPayouts: any[];
   payouts: any[];
@@ -97,6 +102,7 @@ const initialState: VendorState = {
 
   balance: 0,
   lastSyncedAt: null,
+  financialSummary: null,
   orders: [],
   allPayouts: [],
   payouts: [],
@@ -464,6 +470,7 @@ const vendorSlice = createSlice({
         if (action.payload.balance !== undefined) {
           state.balance = Number(action.payload.balance);
         }
+        state.financialSummary = action.payload.financialSummary ?? null;
       })
 
       .addCase(updateOrderStatus.fulfilled, (state, action) => {

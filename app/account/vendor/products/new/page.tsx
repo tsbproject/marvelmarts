@@ -7,9 +7,7 @@ import DashboardHeader from "@/app/_components/DashboardHeader";
 import ProductForm from "@/app/_components/ProductForm";
 import { ArrowLeft } from "lucide-react";
 
-// IMPORTANT: Move your product submission logic to a separate file 
-// (e.g., @/app/actions/product.ts) and import it here.
-// import { createProductAction } from "@/app/actions/product";
+
 
 export default function NewProductPage() {
   const { data: session, status } = useSession();

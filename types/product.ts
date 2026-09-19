@@ -1,4 +1,4 @@
-
+﻿
 
 
 
@@ -17,6 +17,7 @@ export interface SerializedProduct {
   rating?: number;
   reviewCount?: number;
   stock: number;
+  shippingMethod?: string | null;
   brand?: string | null;
   createdAt?: string; 
   updatedAt?: string;
@@ -43,3 +44,4 @@ export interface SerializedProduct {
 
   boostUntil?: string | Date | null;
 }
+

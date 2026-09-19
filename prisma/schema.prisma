@@ -6,6 +6,80 @@ datasource db {
   provider = "postgresql"
 }
 
+enum FinancialAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+  CONTROL
+}
+
+enum FinancialAccountSubtype {
+  CASH
+  BANK
+  PROCESSOR_CLEARING
+  PROCESSOR_RECEIVABLE
+  ORDER_CLEARING
+  REFUND_CLEARING
+  CHARGEBACK_CLEARING
+  VENDOR_PAYABLE
+  CUSTOMER_REFUND_PAYABLE
+  PAYOUT_PENDING
+  MARKETPLACE_COMMISSION
+  SHIPPING_REVENUE
+  BOOST_REVENUE
+  OTHER_INCOME
+  PROCESSING_FEES
+  DELIVERY_EXPENSE
+  OTHER_EXPENSE
+  ADJUSTMENT
+}
+
+enum FinancialTransactionType {
+  SALE
+  MARKETPLACE_COMMISSION
+  PROCESSING_FEE
+  VENDOR_EARNING
+  SHIPPING_COLLECTION
+  DELIVERY_SETTLEMENT
+  SHIPPING_SUBSIDY
+  PAYOUT
+  PAYOUT_REVERSAL
+  REFUND
+  REFUND_REVERSAL
+  CANCELLATION
+  CHARGEBACK
+  CHARGEBACK_REVERSAL
+  BOOST_PURCHASE
+  BOOST_USAGE
+  OTHER_INCOME
+  OTHER_EXPENSE
+  ADJUSTMENT_CREDIT
+  ADJUSTMENT_DEBIT
+  PROCESSOR_SETTLEMENT
+  OPENING_BALANCE
+}
+
+enum FinancialTransactionStatus {
+  PENDING
+  POSTED
+  VOIDED
+  REVERSED
+  FAILED
+}
+
+enum FinancialAuditAction {
+  CREATED
+  POSTED
+  VOIDED
+  REVERSED
+  ADJUSTED
+  RECONCILED
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                       String                    @id @default(cuid())
   email                    String                    @unique
@@ -143,6 +217,7 @@ model VendorProfile {
   disputes                Dispute[]
   marketplaceTransactions MarketplaceTransaction[]
   orders                  Order[]
+  vendorOrders            VendorOrder[]
   payouts                 Payout[]
   products                Product[]
   boost                   VendorBoost?
@@ -263,7 +338,7 @@ model Withdrawal {
 
 model MarketplaceTransaction {
   id              String            @id @default(cuid())
-  orderId         String            @unique
+  orderId         String
   vendorProfileId String
   grossAmount     Float
   platformFee     Float
@@ -276,6 +351,7 @@ model MarketplaceTransaction {
   vendorProfile   VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
   @@index([vendorProfileId])
+  @@unique([orderId, vendorProfileId])
 }
 
 model Payout {
@@ -521,6 +597,7 @@ model Order {
   status               String        @default("pending")
   subtotal             Decimal       @db.Decimal(10, 2)
   shipping             Decimal       @default(0) @db.Decimal(10, 2)
+  shippingMethod       String?
   tax                  Decimal       @default(0) @db.Decimal(10, 2)
   total                Decimal       @db.Decimal(10, 2)
   paymentIntentId      String?       @unique
@@ -553,6 +630,7 @@ model Order {
   user                 User?         @relation(fields: [userId], references: [id])
   vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id])
   items                OrderItem[]
+  vendorOrders         VendorOrder[]
 
   @@index([vendorProfileId])
   @@index([userId])
@@ -565,21 +643,67 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String?
-  variantId String?
-  qty       Int
-  unitPrice Decimal  @db.Decimal(10, 2)
-  imageUrl  String?
-  title     String?
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id])
-  variant   Variant? @relation(fields: [variantId], references: [id])
+  id              String           @id @default(cuid())
+  orderId         String
+  productId       String?
+  variantId       String?
+  qty             Int
+  unitPrice       Decimal          @db.Decimal(10, 2)
+  imageUrl        String?
+  title           String?
+  order           Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product?         @relation(fields: [productId], references: [id])
+  variant         Variant?         @relation(fields: [variantId], references: [id])
+  vendorOrderItem VendorOrderItem?
 
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
+}
+
+model VendorOrder {
+  id String @id @default(cuid())
+
+  orderId         String
+  vendorProfileId String
+
+  merchandiseSubtotal Decimal @db.Decimal(10, 2)
+  shipping            Decimal @default(0) @db.Decimal(10, 2)
+  shippingMethod      String
+  total               Decimal @db.Decimal(10, 2)
+
+  commissionRate   Decimal? @db.Decimal(5, 2)
+  commissionAmount Decimal? @db.Decimal(10, 2)
+  vendorNet        Decimal? @db.Decimal(10, 2)
+
+  status String @default("PENDING")
+
+  refundStatus String?
+  refundReason String?
+  cancelReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendorProfile VendorProfile     @relation(fields: [vendorProfileId], references: [id])
+  items         VendorOrderItem[]
+
+  @@unique([orderId, vendorProfileId])
+  @@index([orderId])
+  @@index([vendorProfileId])
+  @@index([vendorProfileId, status])
+}
+
+model VendorOrderItem {
+  id            String @id @default(cuid())
+  vendorOrderId String
+  orderItemId   String @unique
+
+  vendorOrder VendorOrder @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([vendorOrderId])
 }
 
 model Address {
@@ -1068,3 +1192,110 @@ enum TransactionStatus {
   SUCCESS
   FAILED
 }
+
+model FinancialAccount {
+  id          String                   @id @default(cuid())
+  code        String                   @unique
+  name        String
+  type        FinancialAccountType
+  subtype     FinancialAccountSubtype?
+  currency    String                   @default("NGN")
+  isActive    Boolean                  @default(true)
+  description String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  ledgerEntries FinancialLedgerEntry[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model FinancialTransaction {
+  id        String                     @id @default(cuid())
+  reference String                     @unique
+  type      FinancialTransactionType
+  status    FinancialTransactionStatus
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String  @default("NGN")
+
+  description String?
+
+  orderId         String?
+  vendorProfileId String?
+  userId          String?
+
+  externalReference String?
+  idempotencyKey    String? @unique
+
+  metadata Json?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ledgerEntries FinancialLedgerEntry[]
+
+  @@index([type])
+  @@index([status])
+  @@index([orderId])
+  @@index([vendorProfileId])
+  @@index([userId])
+  @@index([occurredAt])
+  @@index([externalReference])
+}
+
+model FinancialLedgerEntry {
+  id String @id @default(cuid())
+
+  transactionId String
+  accountId     String
+
+  debit  Decimal @default(0) @db.Decimal(12, 2)
+  credit Decimal @default(0) @db.Decimal(12, 2)
+
+  currency String @default("NGN")
+
+  description String?
+
+  vendorProfileId String?
+  userId          String?
+  orderId         String?
+
+  createdAt DateTime @default(now())
+
+  transaction FinancialTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@index([vendorProfileId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model FinancialAuditLog {
+  id String @id @default(cuid())
+
+  transactionId String?
+  ledgerEntryId String?
+
+  actorUserId String?
+  action      FinancialAuditAction
+
+  beforeData Json?
+  afterData  Json?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([ledgerEntryId])
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+

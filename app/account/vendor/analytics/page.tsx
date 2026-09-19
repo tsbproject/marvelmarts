@@ -3,6 +3,7 @@ import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import DashboardHeader from "@/app/_components/DashboardHeader";
 import { VendorService } from "@/app/lib/services/vendor.service";
+import { VendorRankingService } from "@/app/lib/services/vendor-ranking.service";
 
 import {
   TrendingUp,
@@ -54,6 +55,11 @@ export default async function VendorAnalyticsPage() {
       );
     }
 
+  const vendorRanking =
+    await VendorRankingService.calculateVendorPerformance(
+      vendorData.id
+    );
+
   const today = startOfDay(new Date());
 
   const monthStart = startOfMonth(
@@ -103,7 +109,7 @@ const [
     const dateStr = format(order.createdAt, "MMM dd");
 
     if (dailyDataMap[dateStr] !== undefined) {
-      dailyDataMap[dateStr] += Number(order.total || 0);
+      dailyDataMap[dateStr] += Number(order.merchandiseSubtotal || 0);
     }
   });
 
@@ -114,36 +120,34 @@ const [
     }))
     .reverse();
 
-  // VENDOR INSIGHTS
-  const insightStats = {
-    rating: vendorData.score?.rating || 0,
-
-    totalSales: vendorData.products.reduce(
-      (acc, p) => acc + (p.salesCount || 0),
-      0
-    ),
-
-    fulfillmentRate:
-      vendorData.score?.fulfillmentRate || 100,
-
-    reviewsCount:
-      vendorData.score?.reviewsCount || 0,
-  };
 
   // CUSTOMER INSIGHTS
+  const customerOrders = totalCustomers.map(
+    (vendorOrder) => vendorOrder.order
+  );
+
   const uniqueCustomers = new Set(
-    totalCustomers
+    customerOrders
       .filter((order) => order.userId)
       .map((order) => order.userId)
   ).size;
 
-  const repeatCustomersCount =
-    repeatCustomers.filter(
-      (customer) => customer._count.userId > 1
-    ).length;
+  const customerOrderCounts = new Map<string, number>();
+  repeatCustomers.forEach((vendorOrder) => {
+    const customerId = vendorOrder.order.userId;
+    if (customerId) {
+      customerOrderCounts.set(
+        customerId,
+        (customerOrderCounts.get(customerId) ?? 0) + 1
+      );
+    }
+  });
+
+  const repeatCustomersCount = [...customerOrderCounts.values()]
+    .filter((count) => count > 1).length;
 
   const newCustomersCount = new Set(
-    totalCustomers
+    customerOrders
       .filter(
         (order) =>
           order.createdAt >= monthStart &&
@@ -221,7 +225,7 @@ const [
     {
       label: "Today Revenue",
       value: formatNaira(
-        Number(todayRevenue._sum.total || 0)
+        Number(todayRevenue._sum.merchandiseSubtotal || 0)
       ),
       icon: <TrendingUp size={20} />,
       color: "bg-green-50 text-green-600",
@@ -230,7 +234,7 @@ const [
     {
       label: "Monthly Revenue",
       value: formatNaira(
-        Number(monthRevenue._sum.total || 0)
+        Number(monthRevenue._sum.merchandiseSubtotal || 0)
       ),
       icon: <TrendingUp size={20} />,
       color:
@@ -451,7 +455,7 @@ const [
         
         {/* VENDOR INSIGHTS */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-          <VendorInsights stats={insightStats} />
+          <VendorInsights ranking={vendorRanking.ranking} />
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col h-[520px]">
@@ -483,7 +487,7 @@ const [
               </p>
 
               <p className="text-sm md:text-xl font-black text-accent-navy italic">
-                {formatNaira(Number(todayRevenue._sum.total || 0))}
+                {formatNaira(Number(todayRevenue._sum.merchandiseSubtotal || 0))}
               </p>
             </div>
 
@@ -493,7 +497,7 @@ const [
               </p>
 
               <p className="text-sm md:text-xl font-black text-brand-primary italic">
-                {formatNaira(Number(monthRevenue._sum.total || 0))}
+               {formatNaira(Number(monthRevenue._sum.merchandiseSubtotal || 0))}
               </p>
             </div>
 
@@ -585,3 +589,6 @@ const [
     </div>
   );
 }
+
+
+

@@ -8,7 +8,14 @@ import {
 } from "@/app/lib/orders/sanitizer";
 
 import { prisma } from "@/app/lib/prisma";
-import { SHIPPING_FEE } from "@/app/lib/orders/constants";
+import {
+  getShippingFee,
+  MARVELMARTS_MULTI_VENDOR_SHIPPING_OPTIONS,
+  normalizeShippingMethods,
+  SHIPPING_OPTIONS,
+  validateSelectedShippingMethod,
+  type ShippingMethod,
+} from "@/app/lib/shipping";
 
 import {
   validateAddress,
@@ -295,204 +302,514 @@ static normalizeCart(
  * prepare checkout items.
  */
 static async prepareItems(
-  normalizedItems: NormalizedCartItem[]
-) {
-  const uniqueProductIds = [
-    ...new Set(
-      normalizedItems.map(
-        (item) => item.productId
-      )
-    ),
-  ];
-
-  const products =
-    await prisma.product.findMany({
-      where: {
-        id: {
-          in: uniqueProductIds,
-        },
-      },
-
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        discountPrice: true,
-        stock: true,
-        vendorProfileId: true,
-
-        variants: {
-          select: {
-            id: true,
-            name: true,
-            stock: true,
-            price: true,
-          },
-        },
-
-        images: {
-          select: {
-            url: true,
-          },
-          take: 1,
-          orderBy: {
-            order: "asc",
-          },
-        },
-      },
-    });
-
-  if (
-    products.length !==
-    uniqueProductIds.length
+    normalizedItems: NormalizedCartItem[],
+    selectedShippingMethod?: unknown
   ) {
-    throw badRequest(
-      "One or more products are invalid."
-    );
-  }
+    const uniqueProductIds = [
+      ...new Set(
+        normalizedItems.map(
+          (item) => item.productId
+        )
+      ),
+    ];
 
-  const productMap = new Map(
-    products.map((product) => [
-      product.id,
-      product,
-    ])
-  );
+    const products =
+      await prisma.product.findMany({
+        where: {
+          id: {
+            in: uniqueProductIds,
+          },
+        },
 
-  const vendorIds = new Set(
-    products
-      .map(
-        (product) =>
-          product.vendorProfileId
-      )
-      .filter(Boolean)
-  );
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          discountPrice: true,
+          stock: true,
+          vendorProfileId: true,
+          shippingMethod: true,
 
-  if (!vendorIds.size) {
-    throw badRequest(
-      "Vendor information missing for these products."
-    );
-  }
+          variants: {
+            select: {
+              id: true,
+              name: true,
+              stock: true,
+              price: true,
+            },
+          },
 
-  if (vendorIds.size > 1) {
-    throw badRequest(
-      "Mixed-vendor checkout is not supported yet. Please checkout one vendor at a time."
-    );
-  }
+          images: {
+            select: {
+              url: true,
+            },
+            take: 1,
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      });
 
-  const vendorProfileId = [
-    ...vendorIds,
-  ][0] as string;
-
-  const orderItems =
-    normalizedItems.map((item) => {
-      const product =
-        productMap.get(
-          item.productId
-        )!;
-
-      let unitPrice = Number(
-        product.discountPrice ??
-          product.price
+    if (
+      products.length !==
+      uniqueProductIds.length
+    ) {
+      throw badRequest(
+        "One or more products are invalid."
       );
+    }
 
-      if (item.variantId) {
-        const variant =
-          product.variants.find(
-            (v) =>
-              v.id ===
-              item.variantId
-          );
+    const productMap = new Map(
+      products.map((product) => [
+        product.id,
+        product,
+      ])
+    );
 
-        if (!variant) {
-          throw badRequest(
-            "Selected product variant no longer exists."
-          );
+    /*
+     * Every product must have a real vendor.
+     * Vendor identity is always loaded from the
+     * database and never trusted from the client.
+     */
+    if (
+      products.some(
+        (product) =>
+          !product.vendorProfileId
+      )
+    ) {
+      throw badRequest(
+        "Vendor information missing for one or more products."
+      );
+    }
+
+    /*
+     * Prepare each order item using server-side
+     * pricing and inventory validation.
+     */
+    const preparedItems =
+      normalizedItems.map((item) => {
+        const product =
+          productMap.get(
+            item.productId
+          )!;
+
+        const vendorProfileId =
+          product.vendorProfileId;
+
+        let unitPrice = Number(
+          product.discountPrice != null &&
+            Number(product.discountPrice) > 0
+            ? product.discountPrice
+            : product.price
+        );
+
+        if (item.variantId) {
+          const variant =
+            product.variants.find(
+              (v) =>
+                v.id ===
+                item.variantId
+            );
+
+          if (!variant) {
+            throw badRequest(
+              "Selected product variant no longer exists."
+            );
+          }
+
+          if (
+            variant.stock <
+            item.quantity!
+          ) {
+            throw badRequest(
+              `${product.title} (${variant.name}) only has ${variant.stock} item(s) remaining.`
+            );
+          }
+
+          if (
+            variant.price != null
+          ) {
+            unitPrice = Number(
+              variant.price
+            );
+          }
+        } else {
+          if (
+            product.stock <
+            item.quantity!
+          ) {
+            throw badRequest(
+              `${product.title} only has ${product.stock} item(s) remaining.`
+            );
+          }
         }
 
         if (
-          variant.stock <
-          item.quantity!
+          !Number.isFinite(
+            unitPrice
+          ) ||
+          unitPrice < 0
         ) {
           throw badRequest(
-            `${product.title} (${variant.name}) only has ${variant.stock} item(s) remaining.`
+            `Invalid pricing detected for "${product.title}".`
           );
         }
 
-        if (
-          variant.price != null
-        ) {
-          unitPrice = Number(
-            variant.price
-          );
+        return {
+          key: `${product.id}:${
+            item.variantId ?? "default"
+          }`,
+
+          vendorProfileId,
+
+          orderItem: {
+            productId:
+              product.id,
+
+            variantId:
+              item.variantId,
+
+            qty:
+              item.quantity!,
+
+            unitPrice,
+
+            title: sanitizeText(
+              product.title,
+              200
+            ),
+
+            imageUrl:
+              product.images[0]
+                ?.url ?? null,
+          },
+        };
+      });
+
+    /*
+     * Group the server-validated items by vendor.
+     */
+    const vendorGroups =
+      new Map<
+        string,
+        {
+          vendorProfileId: string;
+          items: typeof preparedItems;
+          products: typeof products;
         }
+      >();
+
+    for (const prepared of preparedItems) {
+      const group =
+        vendorGroups.get(
+          prepared.vendorProfileId
+        );
+
+      if (group) {
+        group.items.push(
+          prepared
+        );
       } else {
-        if (
-          product.stock <
-          item.quantity!
-        ) {
-          throw badRequest(
-            `${product.title} only has ${product.stock} item(s) remaining.`
-          );
-        }
+        vendorGroups.set(
+          prepared.vendorProfileId,
+          {
+            vendorProfileId:
+              prepared.vendorProfileId,
+            items: [prepared],
+            products: [],
+          }
+        );
+      }
+    }
+
+    /*
+     * Attach each product to its vendor group.
+     */
+    for (const product of products) {
+      const vendorProfileId =
+        product.vendorProfileId;
+
+      const group =
+        vendorGroups.get(
+          vendorProfileId
+        );
+
+      if (group) {
+        group.products.push(
+          product
+        );
+      }
+    }
+
+    /*
+     * The client may eventually send:
+     *
+     * {
+     *   vendorIdA: "Standard",
+     *   vendorIdB: "Express"
+     * }
+     *
+     * For backward compatibility, a single string
+     * still applies to every vendor.
+     */
+    const selectedMethodsByVendor =
+      selectedShippingMethod &&
+      typeof selectedShippingMethod ===
+        "object" &&
+      !Array.isArray(
+        selectedShippingMethod
+      )
+        ? selectedShippingMethod as Record<
+            string,
+            unknown
+          >
+        : null;
+
+    const legacySelectedMethod =
+      typeof selectedShippingMethod ===
+      "string"
+        ? selectedShippingMethod
+        : undefined;
+
+    const vendorOrders: Array<{
+      vendorProfileId: string;
+      merchandiseSubtotal: number;
+      shipping: number;
+      shippingMethod: string;
+      total: number;
+      itemKeys: string[];
+      shippingOptions: Array<{
+        method: ShippingMethod;
+        fee: number;
+      }>;
+    }> = [];
+
+    let combinedSubtotal = 0;
+    let combinedShipping = 0;
+    const isMultiVendorCheckout = vendorGroups.size > 1;
+
+    let platformShippingMethod: ShippingMethod | null = null;
+    if (isMultiVendorCheckout) {
+      if (selectedMethodsByVendor) {
+        throw badRequest("Select one MarvelMarts shipping method for a multi-vendor checkout.");
       }
 
+      try {
+        platformShippingMethod = validateSelectedShippingMethod(
+          MARVELMARTS_MULTI_VENDOR_SHIPPING_OPTIONS.map((option) => option.value),
+          legacySelectedMethod ?? "Standard"
+        );
+      } catch {
+        throw badRequest("Select Standard, Express, or Store Pickup for this multi-vendor checkout.");
+      }
+
+      combinedShipping = getShippingFee(platformShippingMethod);
+    }
+
+    for (const group of vendorGroups.values()) {
+      const merchandiseSubtotal = group.items.reduce(
+        (sum, item) => sum + item.orderItem.unitPrice * item.orderItem.qty,
+        0
+      );
+
+      combinedSubtotal += merchandiseSubtotal;
+
+      if (isMultiVendorCheckout) {
+        // MarvelMarts owns multi-vendor shipping; it is never allocated to vendors.
+        vendorOrders.push({
+          vendorProfileId: group.vendorProfileId,
+          merchandiseSubtotal,
+          shipping: 0,
+          shippingMethod: "MARVELMARTS",
+          total: merchandiseSubtotal,
+          itemKeys: group.items.map((item) => item.key),
+          shippingOptions: [],
+        });
+        continue;
+      }
+
+      const configuredShippingMethods =
+        group.products.map(
+          (product) =>
+            normalizeShippingMethods(
+              product.shippingMethod
+            )
+        );
+
       if (
-        !Number.isFinite(
-          unitPrice
-        ) ||
-        unitPrice < 0
+        configuredShippingMethods.some(
+          (methods) =>
+            methods.length === 0
+        )
       ) {
         throw badRequest(
-          `Invalid pricing detected for "${product.title}".`
+          "One or more products do not have a valid shipping method configured."
         );
       }
 
-      return {
-        productId:
-          product.id,
+      /*
+       * Shipping availability is calculated independently
+       * for each vendor.
+       */
+      const commonShippingMethods =
+        configuredShippingMethods.reduce<
+          ShippingMethod[]
+        >(
+          (
+            common,
+            methods
+          ) =>
+            common.filter(
+              (method) =>
+                methods.includes(
+                  method
+                )
+            ),
+          SHIPPING_OPTIONS.map(
+            (option) =>
+              option.value
+          )
+        );
 
-        variantId:
-          item.variantId,
+      if (
+        !commonShippingMethods.length
+      ) {
+        throw badRequest(
+          `No common shipping method is available for vendor ${group.vendorProfileId}.`
+        );
+      }
 
-        qty:
-          item.quantity!,
+      let requestedMethod: unknown;
 
-        unitPrice,
+      if (
+        selectedMethodsByVendor &&
+        Object.prototype.hasOwnProperty.call(
+          selectedMethodsByVendor,
+          group.vendorProfileId
+        )
+      ) {
+        requestedMethod =
+          selectedMethodsByVendor[
+            group.vendorProfileId
+          ];
+      } else {
+        requestedMethod =
+          legacySelectedMethod;
+      }
 
-        title: sanitizeText(
-          product.title,
-          200
-        ),
+      let shippingMethod: ShippingMethod;
 
-        imageUrl:
-          product.images[0]
-            ?.url ?? null,
-      };
-    });
+      if (
+        requestedMethod == null
+      ) {
+        shippingMethod =
+          commonShippingMethods[0];
+      } else {
+        try {
+          shippingMethod =
+            validateSelectedShippingMethod(
+              commonShippingMethods,
+              requestedMethod
+            );
+        } catch {
+          throw badRequest(
+            `The selected shipping method is not available for vendor ${group.vendorProfileId}.`
+          );
+        }
+      }
 
-  const subtotal =
-    orderItems.reduce(
-      (sum, item) =>
-        sum +
-        item.unitPrice *
-          item.qty,
-      0
-    );
+      const shipping =
+        getShippingFee(
+          shippingMethod
+        );
 
-  return {
-    vendorProfileId,
+      const total =
+        merchandiseSubtotal +
+        shipping;
 
-    orderItems,
+      combinedShipping +=
+        shipping;
 
-    subtotal,
+      vendorOrders.push({
+        vendorProfileId:
+          group.vendorProfileId,
 
-    shipping:
-      SHIPPING_FEE,
+        merchandiseSubtotal,
 
-    total:
-      subtotal +
-      SHIPPING_FEE,
-  };
+        shipping,
+
+        shippingMethod,
+
+        total,
+
+        itemKeys:
+          group.items.map(
+            (item) =>
+              item.key
+          ),
+
+        shippingOptions:
+          commonShippingMethods.map(
+            (method) => ({
+              method,
+              fee:
+                getShippingFee(
+                  method
+                ),
+            })
+          ),
+      });
+    }
+
+    /*
+     * Strip internal grouping metadata before returning
+     * OrderItem data to OrderService.
+     */
+    const orderItems =
+      preparedItems.map(
+        (item) =>
+          item.orderItem
+      );
+
+    return {
+      /*
+       * Legacy compatibility:
+       * Order.vendorProfileId is still required by the
+       * existing schema. It must NOT be used as the
+       * financial/vendor allocation source once VendorOrder
+       * records exist.
+       */
+      vendorProfileId:
+        vendorOrders[0]
+          .vendorProfileId,
+
+      orderItems,
+
+      subtotal:
+        combinedSubtotal,
+
+      shipping:
+        combinedShipping,
+
+      shippingMethod: isMultiVendorCheckout
+        ? platformShippingMethod!
+        : vendorOrders[0].shippingMethod,
+
+      total:
+        combinedSubtotal +
+        combinedShipping,
+
+      shippingOptions: isMultiVendorCheckout
+        ? MARVELMARTS_MULTI_VENDOR_SHIPPING_OPTIONS.map((option) => ({
+            method: option.value,
+            fee: option.fee,
+          }))
+        : vendorOrders[0].shippingOptions,
+
+      vendorOrders,
+    };
+  }
+
 }
 
-}

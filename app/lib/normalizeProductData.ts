@@ -74,7 +74,58 @@
 
 
 
-import { ProductFormState } from "@/app/_components/ProductForm";
+import type { ProductFormState, ShippingMethod } from "@/app/_components/ProductForm";
+
+function normalizeShippingMethods(value: unknown): ShippingMethod[] {
+  if (Array.isArray(value)) {
+    const methods = value.filter(
+      (method): method is ShippingMethod =>
+        method === "Standard" ||
+        method === "Express" ||
+        method === "Pickup" ||
+        method === "Free"
+    );
+
+    return methods.length > 0 ? methods : ["Standard"];
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return ["Standard"];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+
+      if (Array.isArray(parsed)) {
+        const methods = parsed.filter(
+          (method): method is ShippingMethod =>
+            method === "Standard" ||
+            method === "Express" ||
+            method === "Pickup" ||
+            method === "Free"
+        );
+
+        return methods.length > 0 ? methods : ["Standard"];
+      }
+    } catch {
+      // Legacy single-value shippingMethod.
+    }
+
+    if (
+      trimmed === "Standard" ||
+      trimmed === "Express" ||
+      trimmed === "Pickup" ||
+      trimmed === "Free"
+    ) {
+      return [trimmed];
+    }
+  }
+
+  return ["Standard"];
+}
 
 export function normalizeProductData(initialData: any | null): ProductFormState {
   if (!initialData) {
@@ -94,7 +145,7 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
       extraImages: [],
       metaTitle: "",
       metaDescription: "",
-      shippingMethod: "Standard",
+      shippingMethod: ["Standard"],
       variants: [],
       weight: 0,
     };
@@ -146,7 +197,7 @@ export function normalizeProductData(initialData: any | null): ProductFormState 
 
     metaTitle: initialData.metaTitle ?? "",
     metaDescription: initialData.metaDescription ?? "",
-    shippingMethod: initialData.shippingMethod ?? "Standard",
+    shippingMethod: normalizeShippingMethods(initialData.shippingMethod),
     weight: initialData.weight ? Number(initialData.weight) : 0,
   };
 }
