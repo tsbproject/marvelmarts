@@ -1,9 +1,3 @@
-
-
-
-
-
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -48,29 +42,37 @@ export default function VendorOrdersPage() {
     dispatch(fetchVendorOrders());
   }, [dispatch]);
 
-  const handleOrderAction = async (orderId: string, status: "APPROVED" | "REJECTED") => {
-    let trackingNumber = "";
+  const handleOrderAction = async (
+  orderId: string,
+  status: "APPROVED" | "REJECTED"
+) => {
+  if (status === "REJECTED") {
+    const confirmReject = window.confirm(
+      "ARE YOU SURE YOU WANT TO REJECT THIS ORDER?"
+    );
 
-    if (status === "APPROVED") {
-      const userInput = window.prompt("ENTER TRACKING NUMBER (OPTIONAL):");
-      if (userInput === null) return; 
-      trackingNumber = userInput;
-    } else {
-      const confirmReject = window.confirm("ARE YOU SURE YOU WANT TO REJECT THIS ORDER?");
-      if (!confirmReject) return;
-    }
+    if (!confirmReject) return;
+  }
 
-    setProcessingId(orderId);
-    try {
-      // Logic now matches the merged updateOrderStatus in your slice
-      await dispatch(updateOrderStatus({ orderId, status, trackingNumber })).unwrap();
-      notifySuccess(`ORDER #${orderId.slice(-6).toUpperCase()} ${status} SUCCESSFULLY.`);
-    } catch (error: any) {
-      notifyError(error || "FAILED TO UPDATE ORDER STATUS.");
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  setProcessingId(orderId);
+
+  try {
+    await dispatch(
+      updateOrderStatus({
+        orderId,
+        status,
+      })
+    ).unwrap();
+
+    notifySuccess(
+      `ORDER #${orderId.slice(-6).toUpperCase()} ${status} SUCCESSFULLY.`
+    );
+  } catch (error: any) {
+    notifyError(error || "FAILED TO UPDATE ORDER STATUS.");
+  } finally {
+    setProcessingId(null);
+  }
+};
 
   const filteredOrders = orders.filter((order: any) => {
     const orderId = (order.id || "").toLowerCase();

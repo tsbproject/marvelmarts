@@ -2100,17 +2100,17 @@ static async submitVerificationDocuments(
           );
         }
 
-        const hasAllDocs = Boolean(
-          vendor.identityDoc &&
-            vendor.businessDoc &&
-            vendor.locationDoc
+        // Business registration is optional. A vendor can proceed to review
+        // once identity and business-location documents are provided.
+        const hasRequiredDocs = Boolean(
+          vendor.identityDoc && vendor.locationDoc
         );
 
         let finalStatus =
           vendor.status;
 
         if (
-          hasAllDocs &&
+          hasRequiredDocs &&
           (
             vendor.status ===
               VendorStatus.AWAITING_DOCUMENTS ||
@@ -2135,7 +2135,7 @@ static async submitVerificationDocuments(
 
           return {
             vendor,
-            hasAllDocs,
+            hasRequiredDocs,
             finalStatus,
             shouldSendEmail: true,
           };
@@ -2143,7 +2143,7 @@ static async submitVerificationDocuments(
 
         return {
           vendor,
-          hasAllDocs,
+          hasRequiredDocs,
           finalStatus,
           shouldSendEmail: false,
         };
@@ -2179,7 +2179,6 @@ static async submitVerificationDocuments(
 
   if (
     !vendor.vendor.identityDoc &&
-    !vendor.vendor.businessDoc &&
     !vendor.vendor.locationDoc
   ) {
     verificationStatus =
@@ -2225,15 +2224,15 @@ static async submitVerificationDocuments(
       status:
         vendor.finalStatus,
       verificationStatus,
-      allDocumentsSubmitted:
-        vendor.hasAllDocs,
+      requiredDocumentsSubmitted:
+        vendor.hasRequiredDocs,
     },
   });
 
   return {
     success: true,
     allDocsSubmitted:
-      vendor.hasAllDocs,
+      vendor.hasRequiredDocs,
     status:
       vendor.finalStatus,
     verificationStatus,

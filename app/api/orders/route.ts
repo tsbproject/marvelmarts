@@ -27,12 +27,30 @@ export const POST = withApiLogging(
       const body =
         await req.json();
 
+      const checkoutAttemptId =
+        body?.checkoutAttemptId;
+
+      if (
+        typeof checkoutAttemptId !== "string" ||
+        !checkoutAttemptId.trim()
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Checkout attempt ID is required.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
       const paymentMethod =
         body?.paymentMethod ?? "CARD";
 
-
       const shippingMethod =
         body?.shippingMethod;
+
       const rawFormData =
         body?.formData ?? {};
 
@@ -83,6 +101,7 @@ export const POST = withApiLogging(
           shippingMethod: serverShippingMethod,
           total: serverTotal,
           vendorOrders,
+          checkoutAttemptId,
         });
 
       const payment =
@@ -91,6 +110,7 @@ export const POST = withApiLogging(
           formData.email,
           serverTotal
         );
+
       return NextResponse.json(
         payment,
         {
@@ -107,11 +127,13 @@ export const POST = withApiLogging(
     }
   }
 );
+
 export const GET = withApiLogging(
   async (req: NextRequest) => {
     try {
       const session =
         await requireAuth();
+
       const orders =
         await OrderService.getOrders(
           session.user.id
@@ -125,4 +147,3 @@ export const GET = withApiLogging(
     }
   }
 );
-

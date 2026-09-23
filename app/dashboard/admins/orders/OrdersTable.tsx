@@ -46,39 +46,139 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
    * handleApproveRefund: 
    * Triggers the real-time sync via unified endpoint and updates local UI state.
    */
-      const handleApproveRefund = async (orderId: string) => {
-      if (!confirm("Authorize financial reversal? This protocol cannot be undone.")) return;
-
-      setIsSyncing(orderId);
-      try {
-        const res = await fetch(`/api/admins/refunds`, { // Updated to unified endpoint
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            orderId: orderId, 
-            action: "approved", 
-            adminNote: "Authorized via Command Center Table" 
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to approve refund");
-
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === orderId 
-              ? { ...order, status: "refunded", refundStatus: "approved", cancelReason: "Authorized via Command Center Table" } 
-              : order
+     const handleApproveRefund = async (
+        orderId: string
+      ) => {
+        if (
+          !confirm(
+            "Approve this refund request for processing?"
           )
-        );
+        ) {
+          return;
+        }
 
-        notifySuccess("Marvel Success: Funds reversal logged.");
-      } catch (err: any) {
-        notifyError(err.message || "System failure during reversal.");
-      } finally {
-        setIsSyncing(null);
-      }
-    };
+        setIsSyncing(orderId);
+
+        try {
+          const res = await fetch(
+            `/api/admins/refunds`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                orderId,
+                action: "approved",
+                adminNote:
+                  "Authorized via Command Center Table",
+              }),
+            }
+          );
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(
+              data.error ||
+                "Failed to approve refund"
+            );
+          }
+
+          setOrders((prev) =>
+            prev.map((order) =>
+              order.id === orderId
+                ? {
+                    ...order,
+                    refundStatus: "approved",
+                    cancelReason:
+                      "Authorized via Command Center Table",
+                  }
+                : order
+            )
+          );
+
+          notifySuccess(
+            "Refund request approved and queued for processing."
+          );
+        } catch (err: any) {
+          notifyError(
+            err.message ||
+              "System failure during refund approval."
+          );
+        } finally {
+          setIsSyncing(null);
+        }
+      };
+
+
+
+      const handleProcessRefund = async (
+          orderId: string
+        ) => {
+          if (
+            !confirm(
+              "PROCESS REFUND: This will submit the approved refund to Paystack and post the financial reversal. Continue?"
+            )
+          ) {
+            return;
+          }
+
+          setIsSyncing(orderId);
+
+          try {
+            const res = await fetch(
+              "/api/admins/refunds/process",
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  orderId,
+                }),
+              }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+              throw new Error(
+                data.error ||
+                  data.message ||
+                  "Failed to process refund."
+              );
+            }
+
+            setOrders((prev) =>
+              prev.map((order) =>
+                order.id === orderId
+                  ? {
+                      ...order,
+                      status: "refunded",
+                      refundStatus: "completed",
+                      refundReference:
+                        data.refund?.reference ??
+                        order.refundReference,
+                    }
+                  : order
+              )
+            );
+
+            notifySuccess(
+              data.message ||
+                "Refund processed successfully."
+            );
+          } catch (err: any) {
+            notifyError(
+              err.message ||
+                "System failure during refund processing."
+            );
+          } finally {
+            setIsSyncing(null);
+          }
+        };
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
@@ -166,10 +266,61 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
                     </div>
                   </td>
                   <td className="p-6">
-                    <StatusToggle 
-                      order={order} 
-                      onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)} 
-                    />
+                    <div className="space-y-3">
+                      <StatusToggle
+                        order={order}
+                        onUpdate={(newStatus) =>
+                          handleStatusUpdate(order.id, newStatus)
+                        }
+                      />
+
+                      {order.vendorOrders?.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">
+                            Vendor Readiness:
+                          </span>
+
+                          {(() => {
+                            const approvedCount = order.vendorOrders.filter(
+                              (vendorOrder: any) =>
+                                vendorOrder.status === "APPROVED"
+                            ).length;
+
+                            const rejectedCount = order.vendorOrders.filter(
+                              (vendorOrder: any) =>
+                                vendorOrder.status === "REJECTED"
+                            ).length;
+
+                            const pendingCount = order.vendorOrders.filter(
+                              (vendorOrder: any) =>
+                                vendorOrder.status === "PENDING"
+                            ).length;
+
+                            return (
+                              <>
+                                {approvedCount > 0 && (
+                                  <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-green-600 border border-green-100">
+                                    ✓ {approvedCount} Approved
+                                  </span>
+                                )}
+
+                                {rejectedCount > 0 && (
+                                  <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-red-500 border border-red-100">
+                                    ⚠ {rejectedCount} Rejected
+                                  </span>
+                                )}
+
+                                {pendingCount > 0 && (
+                                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-amber-600 border border-amber-100">
+                                    {pendingCount} Pending
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-6">
                     {order.refundStatus === "requested" || order.refundStatus === "pending" ? (
@@ -190,10 +341,56 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
                            Action Required
                         </span>
                       </div>
-                    ) : order.refundStatus === "approved" || order.status === "refunded" ? (
-                      <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                        <CheckCircle size={10} /> Refunded
+                  ) : order.refundStatus === "approved" ? (
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() =>
+                          handleProcessRefund(order.id)
+                        }
+                        disabled={isSyncing === order.id}
+                        className="flex items-center gap-2 px-2 py-2 bg-orange-50 text-orange-600 border border-orange-100 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {isSyncing === order.id ? (
+                          <RefreshCcw
+                            size={12}
+                            className="animate-spin"
+                          />
+                        ) : (
+                          <CheckCircle size={12} />
+                        )}
+                        Process Refund
+                      </button>
+
+                      <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter px-1">
+                        Approved — Ready to Process
                       </span>
+                    </div>
+
+                    ) : order.refundStatus === "processing" ? (
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100">
+                      <RefreshCcw
+                        size={10}
+                        className="animate-spin"
+                      />
+                      Refund Processing
+                    </span>
+           
+               
+
+                  ) : order.refundStatus === "completed" ||
+                    order.status === "refunded" ? (
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                      <CheckCircle size={10} /> Refunded
+                    </span>
+
+                     ) : order.refundStatus === "failed" ? (
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
+                      <XCircle size={10} />
+                      Refund Failed
+                    </span>
+
+
+
                     ) : order.refundStatus === "rejected" ? (
                       <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
                         <XCircle size={10} /> Declined

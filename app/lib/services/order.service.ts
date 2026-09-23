@@ -20,6 +20,8 @@ import MarketplaceSalesService from "@/app/lib/services/finance/marketplace-sale
 type CreateOrderParams = {
   orderNumber: string;
 
+  checkoutAttemptId?: string;
+
   userId: string;
 
   vendorProfileId: string;
@@ -49,12 +51,15 @@ type CreateOrderParams = {
 };
 
 export class OrderService {
-static async createOrderTx(
+
+
+  static async createOrderTx(
     tx: Prisma.TransactionClient,
     {
       orderNumber,
       userId,
       vendorProfileId,
+      checkoutAttemptId,
       formData,
       orderItems,
       normalizedItems,
@@ -77,6 +82,8 @@ static async createOrderTx(
       await tx.order.create({
         data: {
           orderNumber,
+
+          checkoutAttemptId,
 
           userId,
 
@@ -360,10 +367,26 @@ static async createOrderTx(
     };
   }
 
-      static async createOrder(
-        params: CreateOrderParams
-      ) {
-        return prisma.$transaction(
+    static async createOrder(
+      params: CreateOrderParams
+    ) {
+      if (params.checkoutAttemptId) {
+        const existingOrder =
+          await prisma.order.findFirst({
+            where: {
+              checkoutAttemptId:
+                params.checkoutAttemptId,
+              userId: params.userId,
+            },
+          });
+
+        if (existingOrder) {
+          return existingOrder;
+        }
+      }
+
+      try {
+        return await prisma.$transaction(
           async (
             tx: Prisma.TransactionClient
           ) => {
@@ -371,9 +394,41 @@ static async createOrderTx(
               tx,
               params
             );
+          }
+        );
+      } catch (error) {
+        /*
+        * Two requests can pass the lookup above at
+        * almost exactly the same time. The database
+        * unique constraint on checkoutAttemptId makes
+        * one insert win and the other fail with P2002.
+        *
+        * Recover the existing order for that same
+        * authenticated user instead of exposing a
+        * unique-constraint error to the customer.
+        */
+        if (
+          params.checkoutAttemptId &&
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const existingOrder =
+            await prisma.order.findFirst({
+              where: {
+                checkoutAttemptId:
+                  params.checkoutAttemptId,
+                userId: params.userId,
+              },
+            });
+
+          if (existingOrder) {
+            return existingOrder;
+          }
+        }
+
+        throw error;
+      }
     }
-  );
-}
     
 static async getOrders(userId: string) {
     return prisma.order.findMany({
@@ -443,22 +498,39 @@ static async getOrders(userId: string) {
         );
       }
 
-      const finalizedOrderIds = new Set(
-        vendor.marketplaceTransactions.map((transaction) => transaction.orderId)
+      const deliveredVendorOrders = vendor.vendorOrders.filter(
+        (vendorOrder) =>
+          vendorOrder.status === "DELIVERED" &&
+          vendorOrder.order.paymentStatus === true &&
+          vendorOrder.order.status !== "refunded" &&
+          vendorOrder.order.status !== "cancelled"
+      );
+
+      const pendingVendorOrders = vendor.vendorOrders.filter(
+        (vendorOrder) =>
+          vendorOrder.order.paymentStatus === true &&
+          vendorOrder.status !== "DELIVERED" &&
+          vendorOrder.status !== "REJECTED" &&
+          vendorOrder.status !== "CANCELLED" &&
+          vendorOrder.order.status !== "refunded" &&
+          vendorOrder.order.status !== "cancelled"
       );
 
       const financialSummary = {
-        netEarned: vendor.marketplaceTransactions.reduce(
-          (sum, transaction) => sum + transaction.netAmount,
+        netEarned: deliveredVendorOrders.reduce(
+          (sum, vendorOrder) => sum + Number(vendorOrder.vendorNet ?? 0),
           0
         ),
-        finalizedGross: vendor.marketplaceTransactions.reduce(
-          (sum, transaction) => sum + transaction.grossAmount,
+
+        finalizedGross: deliveredVendorOrders.reduce(
+          (sum, vendorOrder) => sum + Number(vendorOrder.merchandiseSubtotal ?? 0),
           0
         ),
-        pendingNet: vendor.vendorOrders
-          .filter((vendorOrder) => !finalizedOrderIds.has(vendorOrder.orderId))
-          .reduce((sum, vendorOrder) => sum + Number(vendorOrder.vendorNet ?? 0), 0),
+
+        pendingNet: pendingVendorOrders.reduce(
+          (sum, vendorOrder) => sum + Number(vendorOrder.vendorNet ?? 0),
+          0
+        ),
       };
 
       return {
@@ -503,116 +575,107 @@ static async getOrders(userId: string) {
     orderId: string,
     vendorProfileId: string,
     status: "APPROVED" | "REJECTED",
-    trackingNumber?: string | null
-  ) {
-    if (!orderId || !vendorProfileId || !status) {
-      throw badRequest("Order ID, vendor profile ID and status are required.");
-    }
-
-    const normalizedStatus = status.toUpperCase() as
-      | "APPROVED"
-      | "REJECTED";
-
-    const result = await prisma.$transaction(async (tx) => {
-      const vendorOrder = await tx.vendorOrder.findUnique({
-        where: {
-          orderId_vendorProfileId: {
-            orderId,
-            vendorProfileId,
-          },
-        },
-        select: {
-          id: true,
-          orderId: true,
-          vendorProfileId: true,
-          status: true,
-        },
-      });
-
-      if (!vendorOrder) {
-        throw notFound("Vendor order not found.");
+    ) {
+      if (!orderId || !vendorProfileId || !status) {
+        throw badRequest("Order ID, vendor profile ID and status are required.");
       }
 
-      const updatedVendorOrder = await tx.vendorOrder.update({
-        where: { id: vendorOrder.id },
-        data: {
-          status: normalizedStatus,
-        },
-      });
+      const normalizedStatus = status.toUpperCase() as
+        | "APPROVED"
+        | "REJECTED";
 
-      if (
-        trackingNumber !== undefined &&
-        normalizedStatus === "APPROVED"
-      ) {
-        await tx.order.update({
-          where: { id: orderId },
-          data: {
-            trackingNumber: trackingNumber?.trim() || null,
+      const result = await prisma.$transaction(async (tx) => {
+        const vendorOrder = await tx.vendorOrder.findUnique({
+          where: {
+            orderId_vendorProfileId: {
+              orderId,
+              vendorProfileId,
+            },
+          },
+          select: {
+            id: true,
+            orderId: true,
+            vendorProfileId: true,
+            status: true,
           },
         });
-      }
 
-      return {
-        vendorOrder: updatedVendorOrder,
-        previousStatus: vendorOrder.status,
-      };
-    });
+        if (!vendorOrder) {
+          throw notFound("Vendor order not found.");
+        }
 
-    return result;
-  }
+        const updatedVendorOrder = await tx.vendorOrder.update({
+          where: { id: vendorOrder.id },
+          data: {
+            status: normalizedStatus,
+          },
+        });
+
+        
+
+        return {
+          vendorOrder: updatedVendorOrder,
+          previousStatus: vendorOrder.status,
+        };
+      });
+
+      return result;
+    }
+  
+  
   static async updateOrderStatus(
   orderId: string,
   status: string,
   trackingNumber: string | null
-) {
-  const order =
-    await prisma.order.findUnique({
-      where: {
-        id: orderId,
+  ) {
+    const order =
+      await prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          trackingNumber: true,
+        },
+      });
+
+    if (!order) {
+      throw notFound(
+        "Order not found."
+      );
+    }
+
+    const updatedOrder =
+      await prisma.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status,
+          trackingNumber,
+        },
+      });
+
+    await AuditService.orderStatusChanged({
+      actorId: order.userId ?? undefined,
+      entityId: updatedOrder.id,
+      oldValues: {
+        status: order.status,
+        trackingNumber:
+          order.trackingNumber,
       },
-      select: {
-        id: true,
-        userId: true,
-        status: true,
-        trackingNumber: true,
+      newValues: {
+        status:
+          updatedOrder.status,
+        trackingNumber:
+          updatedOrder.trackingNumber,
       },
     });
 
-  if (!order) {
-    throw notFound(
-      "Order not found."
-    );
+    return updatedOrder;
   }
-
-  const updatedOrder =
-    await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status,
-        trackingNumber,
-      },
-    });
-
-  await AuditService.orderStatusChanged({
-    actorId: order.userId ?? undefined,
-    entityId: updatedOrder.id,
-    oldValues: {
-      status: order.status,
-      trackingNumber:
-        order.trackingNumber,
-    },
-    newValues: {
-      status:
-        updatedOrder.status,
-      trackingNumber:
-        updatedOrder.trackingNumber,
-    },
-  });
-
-  return updatedOrder;
-}
 
     static async getVendorOrderDetails(
       orderId: string,
@@ -660,172 +723,230 @@ static async getOrders(userId: string) {
 
 
     static async getAdminOrders() {
-      const orders =
-        await prisma.order.findMany({
-          orderBy: {
-            createdAt: "desc",
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-
-            _count: {
-              select: {
-                items: true,
-              },
-            },
-          },
-        });
-
-      return orders;
-    }
-
-   
-    static async finalizeOrder(
-      orderId: string,
-      status: string
-    ) {
-      if (!orderId || !status) {
-        throw badRequest(
-          "Order ID and status are required."
-        );
-      }
-
-      const order =
-        await prisma.order.findUnique({
-          where: {
-            id: orderId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-      if (!order) {
-        throw notFound(
-          "Order not found."
-        );
-      }
-
-      const updatedOrder =
-        await prisma.order.update({
-          where: {
-            id: orderId,
-          },
-          data: {
-            status:
-              status.toUpperCase(),
-          },
-        });
-
-      return updatedOrder;
-    }
-
-
-    static async updateAdminOrderStatus(
-      orderId: string,
-      nextStatus: string
-    ) {
-      if (!orderId || !nextStatus) {
-        throw badRequest(
-          "Order ID and status are required."
-        );
-      }
-
-      const existingOrder =
-        await prisma.order.findUnique({
-          where: {
-            id: orderId,
-          },
-          select: {
-            id: true,
-            status: true,
-            total: true,
-            vendorProfileId: true,
-            userId: true,
-            email: true,
-            firstName: true,
-            orderNumber: true,
-          },
-        });
-
-      if (!existingOrder) {
-        throw notFound(
-          "Order not found."
-        );
-      }
-
-      const previousStatus =
-        String(
-          existingOrder.status
-        ).toUpperCase();
-
-      const updatedOrder =
-        await prisma.$transaction(
-          async (tx) => {
-            const order =
-              await tx.order.update({
-                where: {
-                  id: orderId,
-                },
-                data: {
-                  status: nextStatus,
-                },
-                include: {
-                  items: true,
-                  vendorProfile: {
-                    select: {
-                      storeName: true,
-                    },
-                  },
-                },
-              });
-
-            return order;
-          }
-        );
-
-      await AuditService.orderStatusChanged({
-        actorId:
-          existingOrder.userId ?? undefined,
-        entityId: updatedOrder.id,
-        oldValues: {
-          status: previousStatus,
+    const orders =
+      await prisma.order.findMany({
+        orderBy: {
+          createdAt: "desc",
         },
-        newValues: {
-          status: updatedOrder.status,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+
+          vendorOrders: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              vendorProfileId: true,
+              status: true,
+              merchandiseSubtotal: true,
+              shipping: true,
+              total: true,
+              vendorProfile: {
+                select: {
+                  id: true,
+                  storeName: true,
+                },
+              },
+            },
+          },
+
+          _count: {
+            select: {
+              items: true,
+            },
+          },
         },
       });
 
-      /*
-       * Delivery is confirmed only by an administrator. Credit every vendor
-       * allocation at that point. finalizeVendorPayout is idempotent, so an
-       * admin retry safely repairs a previous failed credit without paying
-       * a vendor twice.
-       */
-      if (nextStatus === "DELIVERED") {
-        await PayoutService.finalizeVendorPayout(orderId);
+    return orders;
+  }
+
+
+    static async updateAdminOrderStatus(
+  orderId: string,
+  nextStatus: string,
+  trackingNumber?: string | null
+) {
+  if (!orderId || !nextStatus) {
+    throw badRequest(
+      "Order ID and status are required."
+    );
+  }
+
+  const existingOrder =
+    await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        vendorProfileId: true,
+        userId: true,
+        email: true,
+        firstName: true,
+        orderNumber: true,
+      },
+    });
+
+  if (!existingOrder) {
+    throw notFound(
+      "Order not found."
+    );
+  }
+
+  const previousStatus =
+    String(
+      existingOrder.status
+    ).toUpperCase();
+
+  const normalizedNextStatus =
+    String(nextStatus).trim().toUpperCase();
+
+  if (
+    normalizedNextStatus === "SHIPPED" &&
+    !trackingNumber?.trim()
+  ) {
+    throw badRequest(
+      "Tracking number is required when shipping an order."
+    );
+  }
+
+  const allowedTransitions: Record<
+    string,
+    string[]
+  > = {
+    PENDING: ["PROCESSING", "CANCELLED"],
+    PROCESSING: ["SHIPPED", "CANCELLED"],
+    SHIPPED: ["DELIVERED", "CANCELLED"],
+    DELIVERED: [],
+    CANCELLED: [],
+  };
+
+  const allowedNextStatuses =
+    allowedTransitions[previousStatus];
+
+  if (!allowedNextStatuses) {
+    throw badRequest(
+      `Unsupported current order status: ${previousStatus}.`
+    );
+  }
+
+  if (
+    normalizedNextStatus !== previousStatus &&
+    !allowedNextStatuses.includes(
+      normalizedNextStatus
+    )
+  ) {
+    throw badRequest(
+      `Order cannot move from ${previousStatus} to ${normalizedNextStatus}.`
+    );
+  }
+
+  /*
+   * Record the delivery timestamp only when the order
+   * actually enters DELIVERED.
+   *
+   * Re-submitting DELIVERED must not reset the customer's
+   * 8-day return/refund window.
+   */
+  const movingToDelivered =
+    previousStatus !== "DELIVERED" &&
+    normalizedNextStatus === "DELIVERED";
+
+  const updatedOrder =
+    await prisma.$transaction(
+      async (tx) => {
+        const order =
+          await tx.order.update({
+            where: {
+              id: orderId,
+            },
+            data: {
+              status: normalizedNextStatus,
+
+              ...(movingToDelivered
+                ? {
+                    deliveredAt: new Date(),
+                  }
+                : {}),
+
+              ...(normalizedNextStatus === "SHIPPED" &&
+              trackingNumber
+                ? {
+                    trackingNumber:
+                      trackingNumber.trim(),
+                  }
+                : {}),
+            },
+            include: {
+              items: true,
+              vendorProfile: {
+                select: {
+                  storeName: true,
+                },
+              },
+            },
+          });
+
+        return order;
       }
+    );
 
-      return {
-        previousStatus,
-        updatedOrder,
-        userId:
-          existingOrder.userId,
-      };
-    }
+  await AuditService.orderStatusChanged({
+    actorId:
+      existingOrder.userId ?? undefined,
+    entityId: updatedOrder.id,
+    oldValues: {
+      status: previousStatus,
+    },
+    newValues: {
+      status: updatedOrder.status,
+      ...(movingToDelivered
+        ? {
+            deliveredAt:
+              updatedOrder.deliveredAt,
+          }
+        : {}),
+    },
+  });
 
+  /*
+   * Delivery is confirmed only by an administrator.
+   * Credit every vendor allocation at that point.
+   *
+   * finalizeVendorPayout is idempotent, so an admin retry
+   * safely repairs a previous failed credit without paying
+   * a vendor twice.
+   */
+  if (movingToDelivered) {
+    await PayoutService.finalizeVendorPayout(
+      orderId
+    );
+  }
+
+  return {
+    previousStatus,
+    updatedOrder,
+    userId:
+      existingOrder.userId,
+  };
+}
 
     static async updateAdminOrderState(
       orderId: string,
       status: string,
       refundReason: string,
-      isSuperAdmin: boolean
+      isSuperAdmin: boolean,
+      trackingNumber?: string | null
     ) {
       if (!status) {
         throw badRequest(
@@ -833,85 +954,48 @@ static async getOrders(userId: string) {
         );
       }
 
-      const order =
-        await prisma.order.findUnique({
-          where: {
-            id: orderId,
-          },
-          select: {
-            id: true,
-            total: true,
-            status: true,
-            vendorProfileId: true,
-          },
-        });
+      const normalizedStatus =
+        String(status)
+          .trim()
+          .toUpperCase();
 
-      if (!order) {
-        throw notFound(
-          "Order not found."
+      /*
+      * REFUNDED is not a normal fulfillment status.
+      *
+      * It must only be reached after:
+      * 1. A valid customer refund request,
+      * 2. Administrative approval,
+      * 3. Provider refund processing,
+      * 4. Financial reversal,
+      * 5. Successful completion of the refund lifecycle.
+      *
+      * Directly changing an order to REFUNDED would bypass
+      * Paystack and the financial ledger.
+      */
+      if (normalizedStatus === "REFUNDED") {
+        throw badRequest(
+          "Orders cannot be marked as refunded directly. Use the refund processing workflow."
         );
       }
 
-      const updateData: {
-        status: string;
-        refundStatus?: string;
-        refundReason?: string;
-      } = {
-        status,
-      };
-
-      if (status === "REFUNDED") {
-        if (!isSuperAdmin) {
-          throw forbidden(
-            "Level 2 clearance required for refunds."
-          );
-        }
-
-        updateData.refundStatus =
-          "completed";
-
-        updateData.refundReason =
-          refundReason;
-      }
-
-      const updatedOrder =
-        await prisma.$transaction(
-          async (tx) => {
-            const result =
-              await tx.order.update({
-                where: {
-                  id: orderId,
-                },
-                data: updateData,
-              });
-
-            const movingToDelivered =
-              status ===
-                "DELIVERED" &&
-              order.status !==
-                "DELIVERED";
-
-            return result;
-          }
+      /*
+      * All ordinary fulfillment changes must use the
+      * canonical admin lifecycle service.
+      *
+      * This preserves:
+      * - PENDING → PROCESSING / CANCELLED
+      * - PROCESSING → SHIPPED / CANCELLED
+      * - SHIPPED → DELIVERED / CANCELLED
+      * - DELIVERED → no further fulfillment transition
+      */
+      const result =
+        await OrderService.updateAdminOrderStatus(
+          orderId,
+          normalizedStatus,
+          trackingNumber
         );
 
-
-        await AuditService.orderStatusChanged({
-            actorId: undefined, // replace with adminId when this method receives it
-            entityId: updatedOrder.id,
-            oldValues: {
-              status: order.status,
-            },
-            newValues: {
-              status: updatedOrder.status,
-              refundStatus:
-                updatedOrder.refundStatus,
-              refundReason:
-                updatedOrder.refundReason,
-            },
-          });
-
-      return updatedOrder;
+      return result.updatedOrder;
     }
 
 
@@ -985,7 +1069,11 @@ static async getOrders(userId: string) {
     };
 
 
-    static async processOrderRefund(
+    /*---------------------------------------------------------------------------*/
+    /*                           PROCESS ORDER REFUND                             */
+    /*-----------------------------------------------------------------------------*/
+
+  static async processOrderRefund(
   orderId: string,
   action: "approved" | "rejected",
   adminNote: string,
@@ -993,106 +1081,23 @@ static async getOrders(userId: string) {
   actorRole: UserRole
 ) {
   if (!orderId) {
-    throw badRequest(
-      "Order ID is required."
-    );
+    throw badRequest("Order ID is required.");
   }
 
   if (
     action !== "approved" &&
     action !== "rejected"
   ) {
-    throw badRequest(
-      "Invalid refund action."
-    );
+    throw badRequest("Invalid refund action.");
   }
 
-  const currentOrder =
-    await prisma.order.findUnique({
-      where: {
-        id: orderId,
-      },
-      include: {
-        items: true,
-      },
-    });
-
-  if (!currentOrder) {
-    throw notFound(
-      "Order not found."
-    );
-  }
-
-  const updatedOrder =
-    await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status:
-          action === "approved"
-            ? "refunded"
-            : currentOrder.status,
-
-        refundStatus: action,
-
-        cancelReason:
-          adminNote ||
-          (action === "approved"
-            ? "Authorized by Administrator"
-            : "Declined by Administrator"),
-      },
-      include: {
-        items: true,
-      },
-    });
-
-  const auditOldValues = {
-    refundStatus:
-      currentOrder.refundStatus,
-    status:
-      currentOrder.status,
-  };
-
-  const auditNewValues = {
-    refundStatus:
-      updatedOrder.refundStatus,
-    status:
-      updatedOrder.status,
-    reason:
-      adminNote ||
-      (action === "approved"
-        ? "Authorized by Administrator"
-        : "Declined by Administrator"),
-  };
-
-  if (action === "approved") {
-    await AuditService.refundApproved({
-      actorId,
-      actorRole,
-      entityId: updatedOrder.id,
-      oldValues: auditOldValues,
-      newValues: auditNewValues,
-    });
-
-    await AuditService.orderRefunded({
-      actorId,
-      actorRole,
-      entityId: updatedOrder.id,
-      oldValues: auditOldValues,
-      newValues: auditNewValues,
-    });
-  } else {
-    await AuditService.refundRejected({
-      actorId,
-      actorRole,
-      entityId: updatedOrder.id,
-      oldValues: auditOldValues,
-      newValues: auditNewValues,
-    });
-  }
-
-  return updatedOrder;
+  return await OrderService.processRefundDecision(
+    orderId,
+    action,
+    adminNote,
+    actorId,
+    actorRole
+  );
 }
 
 
@@ -1596,15 +1601,18 @@ static async requestRefund(
   reason: string,
   customerName: string
 ) {
-  const order = await prisma.order.findFirst({
-    where: {
-      orderNumber,
-      userId,
-    },
-  });
+  const order =
+    await prisma.order.findFirst({
+      where: {
+        orderNumber,
+        userId,
+      },
+    });
 
   if (!order) {
-    throw notFound("Order not found.");
+    throw notFound(
+      "Order not found."
+    );
   }
 
   if (!order.paymentStatus) {
@@ -1625,6 +1633,67 @@ static async requestRefund(
     );
   }
 
+  /*
+   * Customer cancellation is handled separately.
+   * Once an order has moved beyond PENDING, it cannot
+   * be cancelled by the customer.
+   *
+   * Refund/return requests are only available after
+   * successful delivery.
+   */
+  const normalizedStatus =
+    String(order.status)
+      .trim()
+      .toUpperCase();
+
+  if (normalizedStatus !== "DELIVERED") {
+    throw forbidden(
+      "A return or refund request can only be submitted after the order has been delivered."
+    );
+  }
+
+  /*
+   * deliveredAt is the authoritative start of the
+   * customer's 8-day return/refund grace period.
+   */
+  if (!order.deliveredAt) {
+    logger.error(
+      "REFUND_DELIVERY_TIMESTAMP_MISSING",
+      {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+      }
+    );
+
+    throw badRequest(
+      "This order does not have a valid delivery date. Please contact support."
+    );
+  }
+
+  const now = new Date();
+
+  const refundWindowEndsAt =
+    new Date(
+      order.deliveredAt.getTime() +
+        8 * 24 * 60 * 60 * 1000
+    );
+
+  if (now > refundWindowEndsAt) {
+    throw forbidden(
+      "The 8-day return and refund period for this order has expired."
+    );
+  }
+
+  const trimmedReason =
+    reason.trim();
+
+  if (!trimmedReason) {
+    throw badRequest(
+      "A refund reason is required."
+    );
+  }
+
   const updatedOrder =
     await prisma.order.update({
       where: {
@@ -1632,7 +1701,7 @@ static async requestRefund(
       },
       data: {
         refundStatus: "requested",
-        refundReason: reason.trim(),
+        refundReason: trimmedReason,
       },
       include: {
         items: true,
@@ -1645,20 +1714,27 @@ static async requestRefund(
       },
     });
 
-      await AuditService.refundRequested({
-        actorId: userId,
-        actorRole: UserRole.CUSTOMER,
-        entityId: updatedOrder.id,
-        oldValues: {
-          refundStatus: order.refundStatus,
-          refundReason: order.refundReason,
-        },
-        newValues: {
-          refundStatus: updatedOrder.refundStatus,
-          refundReason: updatedOrder.refundReason,
-          reason: reason.trim(),
-        },
-      });
+  await AuditService.refundRequested({
+    actorId: userId,
+    actorRole: UserRole.CUSTOMER,
+    entityId: updatedOrder.id,
+    oldValues: {
+      refundStatus:
+        order.refundStatus,
+      refundReason:
+        order.refundReason,
+    },
+    newValues: {
+      refundStatus:
+        updatedOrder.refundStatus,
+      refundReason:
+        updatedOrder.refundReason,
+      reason: trimmedReason,
+      deliveredAt:
+        order.deliveredAt,
+      refundWindowEndsAt,
+    },
+  });
 
   try {
     await pusherServer.trigger(
@@ -1674,8 +1750,14 @@ static async requestRefund(
         refundReason:
           updatedOrder.refundReason,
         customerName,
-        amount: Number(updatedOrder.total),
-        status: updatedOrder.status,
+        amount: Number(
+          updatedOrder.total
+        ),
+        status:
+          updatedOrder.status,
+        deliveredAt:
+          updatedOrder.deliveredAt,
+        refundWindowEndsAt,
       }
     );
   } catch (error) {
@@ -2119,15 +2201,49 @@ static async getAdminOrderById(
         id: orderId,
       },
       include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            image: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+
+      items: true,
+
+      vendorOrders: {
+        orderBy: {
+          createdAt: "asc",
+        },
+
+        select: {
+          id: true,
+          vendorProfileId: true,
+          status: true,
+
+          merchandiseSubtotal: true,
+          shipping: true,
+          total: true,
+
+          vendorProfile: {
+            select: {
+              id: true,
+              storeName: true,
+            },
+          },
+
+
+          shipments: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            courier: true,
           },
         },
-        items: true,
+        },
       },
+    },
     });
 
   if (!order) {
@@ -2241,120 +2357,82 @@ static async getPendingRefundQueue() {
 
 
 /* -------------------------------------------------------------------------- */
-/*                      ADMIN PROCESS REFUND DECISION                          */
+/*                      ADMIN PROCESS REFUND DECISION                         */
 /* -------------------------------------------------------------------------- */
-    static async processRefundDecision(
-    orderId: string,
-    action: "approved" | "rejected",
-    reason: string,
-    actorId: string,
-    actorRole: UserRole
-  ) {
-    const currentOrder =
-      await prisma.order.findUnique({
-        where: {
-          id: orderId,
-        },
-      });
+static async processRefundDecision(
+  orderId: string,
+  action: "approved" | "rejected",
+  reason: string,
+  actorId: string,
+  actorRole: UserRole
+) {
+  const currentOrder = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+  });
 
-    if (!currentOrder) {
-      throw notFound("Order not found.");
-    }
-
-    const updatedOrder =
-      await prisma.order.update({
-        where: {
-          id: orderId,
-        },
-        data: {
-          status:
-            action === "approved"
-              ? "refunded"
-              : currentOrder.status,
-
-          refundStatus: action,
-
-          refundReason:
-            reason || "Administrative decision",
-
-          cancelReason:
-            reason || "Administrative decision",
-        },
-        include: {
-          items: true,
-        },
-      });
-
-    if (action === "approved") {
-      await AuditService.refundApproved({
-        actorId,
-        actorRole,
-        entityId: updatedOrder.id,
-        oldValues: {
-          status: currentOrder.status,
-          refundStatus:
-            currentOrder.refundStatus,
-          refundReason:
-            currentOrder.refundReason,
-        },
-        newValues: {
-          status: updatedOrder.status,
-          refundStatus:
-            updatedOrder.refundStatus,
-          refundReason:
-            updatedOrder.refundReason,
-          reason:
-            reason || "Administrative decision",
-        },
-      });
-
-      await AuditService.orderRefunded({
-        actorId,
-        actorRole,
-        entityId: updatedOrder.id,
-        oldValues: {
-          status: currentOrder.status,
-          refundStatus:
-            currentOrder.refundStatus,
-          refundReason:
-            currentOrder.refundReason,
-        },
-        newValues: {
-          status: updatedOrder.status,
-          refundStatus:
-            updatedOrder.refundStatus,
-          refundReason:
-            updatedOrder.refundReason,
-          reason:
-            reason || "Administrative decision",
-        },
-      });
-    } else {
-      await AuditService.refundRejected({
-        actorId,
-        actorRole,
-        entityId: updatedOrder.id,
-        oldValues: {
-          status: currentOrder.status,
-          refundStatus:
-            currentOrder.refundStatus,
-          refundReason:
-            currentOrder.refundReason,
-        },
-        newValues: {
-          status: updatedOrder.status,
-          refundStatus:
-            updatedOrder.refundStatus,
-          refundReason:
-            updatedOrder.refundReason,
-          reason:
-            reason || "Administrative decision",
-        },
-      });
-    }
-
-    return updatedOrder;
+  if (!currentOrder) {
+    throw notFound("Order not found.");
   }
+
+  const updatedOrder = await prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      // Administrative approval is NOT the same as a completed refund.
+      // The order status changes to "refunded" only after the actual
+      // provider refund succeeds in the later refund-processing stage.
+      status: currentOrder.status,
+
+      refundStatus: action,
+
+      refundReason:
+        reason || "Administrative decision",
+
+      cancelReason:
+        reason || "Administrative decision",
+    },
+    include: {
+      items: true,
+    },
+  });
+
+  const auditOldValues = {
+    status: currentOrder.status,
+    refundStatus: currentOrder.refundStatus,
+    refundReason: currentOrder.refundReason,
+  };
+
+  const auditNewValues = {
+    status: updatedOrder.status,
+    refundStatus: updatedOrder.refundStatus,
+    refundReason: updatedOrder.refundReason,
+    reason:
+      reason || "Administrative decision",
+  };
+
+  if (action === "approved") {
+    await AuditService.refundApproved({
+      actorId,
+      actorRole,
+      entityId: updatedOrder.id,
+      oldValues: auditOldValues,
+      newValues: auditNewValues,
+    });
+  } else {
+    await AuditService.refundRejected({
+      actorId,
+      actorRole,
+      entityId: updatedOrder.id,
+      oldValues: auditOldValues,
+      newValues: auditNewValues,
+    });
+  }
+
+  return updatedOrder;
+}
 
 }
 

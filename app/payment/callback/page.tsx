@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { clearCheckoutAttemptId } from "@/app/lib/checkout/create-order";
+
 
 export default function PaymentCallbackPage() {
   const router = useRouter();
@@ -33,18 +35,21 @@ export default function PaymentCallbackPage() {
 
         const data = await response.json();
 
-        if (!response.ok || !data.success) {
-          throw new Error(
-            data.error ??
-              data.message ??
-              "Payment verification failed."
-          );
-        }
+       if (!response.ok || !data.success) {
+  throw new Error(
+    data.error ??
+      data.message ??
+      "Payment verification failed."
+  );
+    }
 
-        router.replace(
-          data.returnUrl ??
-            "/account/customer/payment-methods"
-        );
+    clearCheckoutAttemptId();
+
+    router.replace(
+      data.returnUrl ??
+        "/account/customer/payment-methods"
+    );
+       
       } catch (error) {
         console.error(error);
 

@@ -19,9 +19,17 @@ export default async function OrderDetailPage({
     shipping: Number(order.shipping),
     tax: Number(order.tax),
     total: Number(order.total),
+
     items: order.items.map((item) => ({
       ...item,
       unitPrice: Number(item.unitPrice),
+    })),
+
+    vendorOrders: order.vendorOrders.map((vendorOrder) => ({
+      ...vendorOrder,
+      merchandiseSubtotal: Number(vendorOrder.merchandiseSubtotal),
+      shipping: Number(vendorOrder.shipping),
+      total: Number(vendorOrder.total),
     })),
   };
 

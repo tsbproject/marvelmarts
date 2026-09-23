@@ -76,7 +76,7 @@ function VerificationCenterContent({ vendorProfileId, currentStatus, profileData
               {
                 id: "BUSINESS",
                 title: "Business Registration",
-                desc: "Upload CAC or Certificate of Incorporation (Optional)",
+                desc: "Optional — upload CAC or Certificate of Incorporation if available",
                 icon: (
                   <Briefcase
                     className={currentStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}
@@ -254,7 +254,11 @@ return (
               </div>
               <div className="flex-1 overflow-hidden">
                 <h3 className={`text-sm sm:text-md font-black uppercase italic truncate ${step.isRejected ? "text-red-600" : "text-accent-navy"}`}>
-                  {step.title} {step.isRejected && " (Action)"}
+                  {step.title} {step.isOptional && (
+                    <span className="ml-2 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[8px] not-italic tracking-widest text-blue-600 align-middle">
+                      Optional
+                    </span>
+                  )} {step.isRejected && " (Action)"}
                 </h3>
                 <p className="text-gray-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest line-clamp-1">{step.desc}</p>
               </div>
@@ -299,7 +303,11 @@ return (
                     </span>
                   ) : (
                     <>
-                      {currentStatus === "REJECTED" ? "Replace" : "Upload"}
+                      {currentStatus === "REJECTED"
+                        ? "Replace"
+                        : step.isOptional
+                          ? "Upload (Optional)"
+                          : "Upload"}
                       <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}

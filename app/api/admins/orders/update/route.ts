@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { pusherServer } from "@/app/lib/pusherServer";
-import { PayoutService } from "@/app/lib/services/payout.service";
 import { OrderService } from "@/app/lib/services/order.service";
 import { logger } from "@/app/lib/logger";
 
@@ -79,6 +78,8 @@ export const POST =
   withApiLogging(
     async (req: Request) => {
       try {
+        verifyOrigin(req);
+
         await requireManageOrders();
 
         const {
@@ -87,26 +88,10 @@ export const POST =
         } = await req.json();
 
         const updatedOrder =
-          await OrderService.finalizeOrder(
+          await OrderService.updateAdminOrderStatus(
             orderId,
             newStatus
           );
-
-        if (
-          newStatus.toUpperCase() ===
-          "DELIVERED"
-        ) {
-          try {
-            await PayoutService.finalizeVendorPayout(
-              orderId
-            );
-          } catch (error) {
-            logger.error(
-              "FINALIZE_PAYOUT_ERROR:",
-              error
-            );
-          }
-        }
 
         return NextResponse.json(
           {

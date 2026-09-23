@@ -216,6 +216,37 @@ export class AuditService {
     });
   }
 
+
+  static async courierCreated(
+  data: Omit<AuditLogInput, "action" | "entity">
+) {
+  return this.write({
+    ...data,
+    action: AuditAction.COURIER_CREATED,
+    entity: "Courier",
+  });
+}
+
+static async courierUpdated(
+  data: Omit<AuditLogInput, "action" | "entity">
+) {
+  return this.write({
+    ...data,
+    action: AuditAction.COURIER_UPDATED,
+    entity: "Courier",
+  });
+}
+
+static async courierStatusChanged(
+  data: Omit<AuditLogInput, "action" | "entity">
+) {
+  return this.write({
+    ...data,
+    action: AuditAction.COURIER_STATUS_CHANGED,
+    entity: "Courier",
+  });
+}
+
   static async orderRefunded(
     data: Omit<AuditLogInput, "action" | "entity">
   ) {

@@ -703,7 +703,7 @@ export default function ProductForm({
                   onClick={removeMainImage}
                   className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 shadow-lg"
                 >
-                  Ã—
+                  &#10006;
                 </button>
             </div>
           )}
@@ -719,7 +719,7 @@ export default function ProductForm({
               {form.extraImages.map((img, idx) => (
                 <div key={idx} className="relative group">
                   <img src={previewExtras[idx]} alt="Extra" className="h-28 w-full object-cover rounded-lg border shadow-sm" />
-                  <button type="button" onClick={() => removeExtraImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md">âœ•</button>
+                  <button type="button" onClick={() => removeExtraImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md">&#10006;</button>
                 </div>
               ))}
             </div>

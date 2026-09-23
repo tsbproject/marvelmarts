@@ -2,6 +2,8 @@ import {
   PaymentInitializeInput,
   PaymentInitializeResult,
   PaymentVerificationResult,
+  PaymentRefundInput,
+  PaymentRefundResult,
 } from "./payment.types";
 
 export interface PaymentProvider {
@@ -12,4 +14,9 @@ export interface PaymentProvider {
   verify(
     reference: string
   ): Promise<PaymentVerificationResult>;
+
+
+    refund(
+    input: PaymentRefundInput
+  ): Promise<PaymentRefundResult>;
 }

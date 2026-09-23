@@ -74,6 +74,39 @@ static async initializeWalletFunding({
 static async verifyTransaction(reference: string) {
   return paymentClient.verify(reference);
 }
+
+
+static async refund({
+  reference,
+  amount,
+  reason,
+}: {
+  reference: string;
+  amount?: number;
+  reason?: string;
+}) {
+  if (!reference?.trim()) {
+    throw badRequest(
+      "Payment reference is required for refund."
+    );
+  }
+
+  if (
+    amount !== undefined &&
+    (!Number.isFinite(amount) ||
+      amount <= 0)
+  ) {
+    throw badRequest(
+      "Refund amount must be greater than zero."
+    );
+  }
+
+  return paymentClient.refund({
+    reference: reference.trim(),
+    amount,
+    reason,
+  });
+}
    
 
 
@@ -81,40 +114,217 @@ static async verifyTransaction(reference: string) {
   order: {
     id: string;
     orderNumber: string;
-  },
-  email: string,
-  total: number
-) {
+    paymentIntentId?: string | null;
+    paymentAuthorizationUrl?: string | null;
+    paymentInitializationStatus?: string | null;
+    },
+    email: string,
+    total: number
+    ): Promise<{
+    success: true;
+    orderId: string;
+    orderNumber: string;
+    paymentReference: string;
+    url: string;
+    authorizationUrl: string;
+  }> {
+
+  let ownsInitializationClaim = false;
+
+  let paymentInitialized = false;
+
   try {
+    /*
+     * An existing completed payment belongs to this Order.
+     * Reuse it instead of creating another Paystack
+     * transaction for the same checkout attempt.
+     */
+    if (
+      order.paymentIntentId &&
+      order.paymentAuthorizationUrl
+    ) {
+      return {
+        success: true,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        paymentReference:
+          order.paymentIntentId,
+        url:
+          order.paymentAuthorizationUrl,
+        authorizationUrl:
+          order.paymentAuthorizationUrl,
+      };
+    }
+
+    /*
+     * Defensive case: a Paystack reference exists but
+     * its authorization URL was not persisted.
+     *
+     * Never create another payment for this Order.
+     */
+    if (order.paymentIntentId) {
+      throw new Error(
+        "Existing payment reference is missing its authorization URL."
+      );
+    }
+
+    /*
+     * Atomically claim payment initialization.
+     *
+     * Only one concurrent request can change the Order
+     * from an unclaimed state to INITIALIZING.
+     */
+    const claim = await prisma.order.updateMany({
+      where: {
+        id: order.id,
+        paymentIntentId: null,
+        paymentInitializationStatus: null,
+      },
+      data: {
+        paymentInitializationStatus:
+          "INITIALIZING",
+        paymentInitializationAt:
+          new Date(),
+      },
+    });
+
+    /*
+     * This request successfully claimed the Order.
+     */
+    if (claim.count === 1) {
+      ownsInitializationClaim = true;
+    }
+
+    /*
+     * Another request already owns initialization.
+     *
+     * Wait briefly for that request to finish, then
+     * reload the Order and reuse its payment if available.
+     */
+    if (!ownsInitializationClaim) {
+      for (let attempt = 0; attempt < 20; attempt++) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 250)
+        );
+
+        const currentOrder =
+          await prisma.order.findUnique({
+            where: {
+              id: order.id,
+            },
+            select: {
+              id: true,
+              orderNumber: true,
+              paymentIntentId: true,
+              paymentAuthorizationUrl: true,
+              paymentInitializationStatus: true,
+            },
+          });
+
+        if (
+          currentOrder?.paymentIntentId &&
+          currentOrder.paymentAuthorizationUrl
+        ) {
+          return {
+            success: true,
+            orderId: currentOrder.id,
+            orderNumber:
+              currentOrder.orderNumber,
+            paymentReference:
+              currentOrder.paymentIntentId,
+            url:
+              currentOrder.paymentAuthorizationUrl,
+            authorizationUrl:
+              currentOrder.paymentAuthorizationUrl,
+          };
+        }
+
+        /*
+         * The previous initializer failed and released
+         * the claim. This request may now try again.
+         */
+        if (
+          currentOrder?.paymentInitializationStatus ===
+          null
+        ) {
+          return this.initializeOrderPayment(
+            {
+              id: currentOrder.id,
+              orderNumber:
+                currentOrder.orderNumber,
+              paymentIntentId:
+                currentOrder.paymentIntentId,
+              paymentAuthorizationUrl:
+                currentOrder.paymentAuthorizationUrl,
+              paymentInitializationStatus:
+                currentOrder.paymentInitializationStatus,
+            },
+            email,
+            total
+          );
+        }
+      }
+
+      /*
+       * Do not automatically reclaim an old INITIALIZING
+       * payment state.
+       *
+       * The original request may have successfully created
+       * a Paystack transaction before the application failed
+       * to persist its reference.
+       */
+      throw new Error(
+        "Payment initialization is still in progress. Please retry shortly."
+      );
+    }
+
+    /*
+     * This request owns initialization.
+     */
     const payment =
       await paymentClient.initialize({
         email,
         amount: total,
-        reference: `ORDER-${order.orderNumber}-${Date.now()}`,
+        reference:
+          `ORDER-${order.orderNumber}-${Date.now()}`,
         callbackUrl:
           `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
         metadata: {
-            type: "order",
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-            returnUrl: `/thank-you?orderNumber=${order.orderNumber}`,
+          type: "order",
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          returnUrl:
+            `/thank-you?orderNumber=${order.orderNumber}`,
 
-            custom_fields: [
-              {
-                display_name: "Order Number",
-                variable_name: "order_number",
-                value: order.orderNumber,
-              },
-            ],
-          },
+          custom_fields: [
+            {
+              display_name: "Order Number",
+              variable_name: "order_number",
+              value: order.orderNumber,
+            },
+          ],
+        },
       });
 
+      paymentInitialized = true;
+
+    /*
+     * Persist the Paystack reference and authorization URL
+     * together with the completed initialization state.
+     */
     await prisma.order.update({
       where: {
         id: order.id,
       },
       data: {
-        paymentIntentId: payment.reference,
+        paymentIntentId:
+          payment.reference,
+        paymentAuthorizationUrl:
+          payment.authorizationUrl,
+        paymentInitializationStatus:
+          "COMPLETED",
+        paymentInitializationAt:
+          new Date(),
       },
     });
 
@@ -122,24 +332,40 @@ static async verifyTransaction(reference: string) {
       success: true,
       orderId: order.id,
       orderNumber: order.orderNumber,
-      paymentReference: payment.reference,
-      url: payment.authorizationUrl,
-      authorizationUrl: payment.authorizationUrl,
+      paymentReference:
+        payment.reference,
+      url:
+        payment.authorizationUrl,
+      authorizationUrl:
+        payment.authorizationUrl,
     };
   } catch (error) {
-    await prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        paymentStatus: false,
-      },
-    });
+    /*
+     * Only the request that successfully claimed the
+     * initialization lock may release it.
+     */
+    if (
+      ownsInitializationClaim &&
+      !paymentInitialized
+    ) {
+      await prisma.order.updateMany({
+        where: {
+          id: order.id,
+          paymentIntentId: null,
+          paymentInitializationStatus:
+            "INITIALIZING",
+        },
+        data: {
+          paymentInitializationStatus: null,
+          paymentInitializationAt: null,
+          paymentStatus: false,
+        },
+      });
+    }
 
     throw error;
   }
 }
-
 
 static async savePaymentMethod(
   userId: string,

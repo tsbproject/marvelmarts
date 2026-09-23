@@ -1,8 +1,12 @@
 import type { PaymentProvider } from "./payment.interface";
+
+
 import type {
   PaymentInitializeInput,
   PaymentInitializeResult,
   PaymentVerificationResult,
+  PaymentRefundInput,
+  PaymentRefundResult,
 } from "./payment.types";
 
 export class PaystackClient implements PaymentProvider {
@@ -89,6 +93,76 @@ export class PaystackClient implements PaymentProvider {
       status: result.data.status,
       gatewayResponse: result.data.gateway_response,
       metadata: result.data.metadata,
+      raw: result.data,
+    };
+  }
+
+
+  async refund(
+    input: PaymentRefundInput
+  ): Promise<PaymentRefundResult> {
+    if (!input.reference?.trim()) {
+      throw new Error(
+        "Paystack transaction reference is required for refund."
+      );
+    }
+
+    if (
+      input.amount !== undefined &&
+      (!Number.isFinite(input.amount) ||
+        input.amount <= 0)
+    ) {
+      throw new Error(
+        "Refund amount must be greater than zero."
+      );
+    }
+
+    const body: Record<string, unknown> = {
+      transaction: input.reference.trim(),
+    };
+
+    if (input.amount !== undefined) {
+      body.amount = Math.round(input.amount * 100);
+    }
+
+    if (input.reason?.trim()) {
+      body.customer_note = input.reason.trim();
+    }
+
+    const response = await fetch(
+      "https://api.paystack.co/refund",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.getSecretKey()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.status) {
+      throw new Error(
+        result.message ?? "Unable to process Paystack refund."
+      );
+    }
+
+    return {
+      success: true,
+      reference: input.reference,
+      refundReference:
+        result.data?.id?.toString() ??
+        result.data?.reference ??
+        undefined,
+      amount:
+        Number(result.data?.amount ?? 0) / 100,
+      currency:
+        result.data?.currency ?? "NGN",
+      status:
+        result.data?.status ?? "processing",
+      message: result.message,
       raw: result.data,
     };
   }

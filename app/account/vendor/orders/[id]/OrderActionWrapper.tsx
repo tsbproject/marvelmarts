@@ -38,11 +38,12 @@ export default function OrderActionWrapper({
     setLoading(true);
     try {
       // 2. Dispatch Redux Thunk instead of local fetch
-      await dispatch(updateOrderStatus({ 
-        orderId, 
-        status: newStatus, 
-        trackingNumber: newStatus === "APPROVED" ? trackNum : undefined 
-      })).unwrap();
+      await dispatch(
+      updateOrderStatus({
+        orderId,
+        status: newStatus,
+      })
+    ).unwrap();
 
       notifySuccess(`ORDER ${newStatus} SUCCESSFULLY!`);
       

@@ -52,6 +52,9 @@ export const PATCH =
           .trim()
           .toUpperCase();
 
+          const trackingNumber =
+           body.trackingNumber?.trim() || null;
+
         if (!id) {
           throw badRequest(
             "Order ID is required."
@@ -59,10 +62,11 @@ export const PATCH =
         }
 
         const result =
-          await OrderService.updateAdminOrderStatus(
-            id,
-            nextStatus
-          );
+        await OrderService.updateAdminOrderStatus(
+          id,
+          nextStatus,
+          trackingNumber
+        );
 
         try {
           if (

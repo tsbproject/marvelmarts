@@ -47,13 +47,17 @@ export const PATCH =
           body.refundReason?.trim() ??
           "Administrative Reversal";
 
+          const trackingNumber =
+          body.trackingNumber?.trim() || null;
+
         const updatedOrder =
           await OrderService.updateAdminOrderState(
             id,
             status,
             refundReason,
             session.user.role ===
-              "SUPER_ADMIN"
+              "SUPER_ADMIN",
+            trackingNumber
           );
 
         return NextResponse.json(

@@ -37,7 +37,7 @@ export const PATCH =
       try {
         verifyOrigin(req);
 
-        await requireManageOrders();
+        const session = await requireManageOrders();
 
         const { id } =
           await params;
@@ -53,10 +53,12 @@ export const PATCH =
           "Administrative decision";
 
         const updatedOrder =
-          await OrderService.processRefundRequest(
+          await OrderService.processRefundDecision(
             id,
             action,
-            adminNote
+            adminNote,
+            session.user.id,
+            session.user.role as import("@prisma/client").UserRole
           );
 
         if (updatedOrder.userId) {

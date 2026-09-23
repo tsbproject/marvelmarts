@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { useState } from "react";
@@ -26,23 +22,44 @@ export default function StatusToggle({ order, onUpdate }: StatusManagerProps) {
 
   const updateStatus = async (newStatus: string) => {
     if (newStatus === order.status) return;
-    
+
     // Intercept for Cancellation
     if (newStatus === "CANCELLED" && !showCancelModal) {
       setShowCancelModal(true);
       return;
     }
 
+    let trackingNumber: string | undefined;
+
+    if (newStatus === "SHIPPED") {
+      const enteredTrackingNumber = window.prompt(
+        "Enter the tracking number or courier ID for this shipment:"
+      );
+
+      if (!enteredTrackingNumber?.trim()) {
+        alert(
+          "Tracking number or courier ID is required to ship the order."
+        );
+        return;
+      }
+
+      trackingNumber = enteredTrackingNumber.trim();
+    }
+
     setLoadingStatus(newStatus);
+
     try {
       const res = await fetch(`/api/admins/orders/${order.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          ...(trackingNumber ? { trackingNumber } : {}),
+        }),
       });
 
       if (res.ok) {
-        onUpdate(newStatus); // This triggers the parent state update
+        onUpdate(newStatus);
         setShowCancelModal(false);
       } else {
         const errorData = await res.json();
@@ -64,19 +81,40 @@ export default function StatusToggle({ order, onUpdate }: StatusManagerProps) {
           const isActive = order.status === option.id;
           const isLoading = loadingStatus === option.id;
 
+          const currentStatus = order.status.toUpperCase();
+
+          const allowedNextStatuses: Record<string, string[]> = {
+            PENDING: ["PROCESSING", "CANCELLED"],
+            PROCESSING: ["SHIPPED", "CANCELLED"],
+            SHIPPED: ["DELIVERED"],
+            DELIVERED: [],
+            CANCELLED: [],
+          };
+
+          const canTransition =
+            isActive ||
+            allowedNextStatuses[currentStatus]?.includes(option.id) === true;
+
           return (
             <button
               key={option.id}
               onClick={() => updateStatus(option.id)}
-              disabled={!!loadingStatus || isActive}
+              disabled={
+                !!loadingStatus ||
+                !canTransition ||
+                isActive
+              }
               className={`
-                flex items-center justify-center gap-2 px-3 py-2 rounded-xl 
+                flex items-center justify-center gap-2 px-3 py-2 rounded-xl
                 text-[9px] font-black uppercase tracking-tighter transition-all duration-300
-                ${isActive 
-                  ? `${option.color} ring-2 ring-offset-1 ring-current shadow-md scale-105 z-10` 
-                  : "bg-white border border-gray-100 text-gray-400 hover:border-[#002B5B] hover:text-[#002B5B] opacity-80"
+                ${
+                  isActive
+                    ? `${option.color} ring-2 ring-offset-1 ring-current shadow-md scale-105 z-10`
+                    : canTransition
+                      ? "bg-white border border-gray-100 text-gray-500 hover:border-[#002B5B] hover:text-[#002B5B]"
+                      : "bg-gray-50 border border-gray-100 text-gray-300 opacity-50 cursor-not-allowed"
                 }
-                ${isLoading ? "cursor-wait" : "cursor-pointer"}
+                ${isLoading ? "cursor-wait" : ""}
                 disabled:cursor-default
               `}
             >
@@ -85,6 +123,7 @@ export default function StatusToggle({ order, onUpdate }: StatusManagerProps) {
               ) : (
                 <Icon size={12} />
               )}
+
               <span className="whitespace-nowrap">{option.label}</span>
             </button>
           );

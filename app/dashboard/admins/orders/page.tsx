@@ -12,6 +12,13 @@ export default async function OrdersManagementPage() {
     shipping: Number(order.shipping),
     tax: Number(order.tax),
     total: Number(order.total),
+
+    vendorOrders: order.vendorOrders.map((vendorOrder) => ({
+      ...vendorOrder,
+      merchandiseSubtotal: Number(vendorOrder.merchandiseSubtotal),
+      shipping: Number(vendorOrder.shipping),
+      total: Number(vendorOrder.total),
+    })),
   }));
 
   return (

@@ -15,7 +15,10 @@ import { MapPin,
 import Image from "next/image";
 import { processWalletPurchase } from "@/app/_actions/wallet";
 import { useWallet } from "@/app/hooks/UseWallet";
-import { createOrder } from "@/app/lib/checkout/create-order";
+import {
+  createOrder,
+  clearCheckoutAttemptId,
+} from "@/app/lib/checkout/create-order";
 import { QuickFundModal, PaystackButton } from "./CheckoutDynamicComponents";
 import {
   SHIPPING_OPTIONS,
@@ -363,6 +366,8 @@ const handleWalletCheckout = async () => {
     }
 
     dispatch(clearCart());
+
+    clearCheckoutAttemptId();
 
     // A wallet refresh is helpful, but it must never block the customer from
     // reaching their completed-order confirmation after payment succeeded.

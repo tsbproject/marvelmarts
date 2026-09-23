@@ -26,6 +26,49 @@ export default function OrderDetailView({ order }: { order: any }) {
   const [updating, setUpdating] = useState(false);
   const [refunding, setRefunding] = useState(false);
 
+  const [creatingShipment, setCreatingShipment] = useState(false);
+
+  const [couriers, setCouriers] = useState<any[]>([]);
+  const [loadingCouriers, setLoadingCouriers] = useState(false);
+
+
+  const openShipmentModal = async (vendorOrderId: string) => {
+  setShipmentModal({
+    open: true,
+    vendorOrderId,
+  });
+
+  setLoadingCouriers(true);
+
+  try {
+    const res = await fetch("/api/admins/couriers");
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(
+        data?.message || "Failed to load couriers."
+      );
+    }
+
+    setCouriers(data?.couriers ?? []);
+  } catch (error: any) {
+    notifyError(
+      error.message || "Failed to load couriers."
+    );
+  } finally {
+    setLoadingCouriers(false);
+  }
+};
+
+  const [shipmentModal, setShipmentModal] = useState<{
+    open: boolean;
+    vendorOrderId: string | null;
+  }>({
+    open: false,
+    vendorOrderId: null,
+  });
+
   const [decisionModal, setDecisionModal] = useState<{
     open: boolean;
     action: "approved" | "rejected" | null;
@@ -74,27 +117,110 @@ export default function OrderDetailView({ order }: { order: any }) {
           !shouldShowRefundDecisionPanel;
   
   const updateStatus = async (newStatus: string) => {
-    setUpdating(true);
+      let trackingNumber: string | undefined;
+
+      if (newStatus.toUpperCase() === "SHIPPED") {
+        const enteredTrackingNumber = window.prompt(
+          "Enter the tracking number or courier ID for this shipment:"
+        );
+
+        if (!enteredTrackingNumber?.trim()) {
+          notifyError(
+            "Tracking number or courier ID is required to ship the order."
+          );
+          return;
+        }
+
+        trackingNumber = enteredTrackingNumber.trim();
+      }
+
+      setUpdating(true);
+
+      try {
+        const res = await fetch(`/api/admins/orders/${order.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: newStatus,
+            ...(trackingNumber
+              ? { trackingNumber }
+              : {}),
+          }),
+        });
+
+        if (res.ok) {
+          notifySuccess(
+            `Mission Updated: Order is now ${newStatus.toUpperCase()}`
+          );
+          router.refresh();
+        } else {
+          const data = await res.json().catch(() => null);
+
+          notifyError(
+            data?.message ||
+              "Failed to update order status."
+          );
+        }
+      } catch {
+        notifyError("Failed to update order status.");
+      } finally {
+        setUpdating(false);
+      }
+    };
+
+
+
+  const handleCreateShipment = async ({
+  vendorOrderId,
+  courierId,
+  trackingNumber,
+  }: {
+    vendorOrderId: string;
+    courierId?: string;
+    trackingNumber?: string;
+  }) => {
+    setCreatingShipment(true);
+
     try {
-      const res = await fetch(`/api/admins/orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+      const res = await fetch("/api/admins/shipments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          vendorOrderId,
+          courierId,
+          trackingNumber,
+        }),
       });
 
-      if (res.ok) {
-        notifySuccess(
-          `Mission Updated: Order is now ${newStatus.toUpperCase()}`
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message || "Failed to create shipment."
         );
-        router.refresh();
       }
-    } catch {
-      notifyError("Failed to update order status.");
+
+      notifySuccess("Shipment created successfully.");
+      setShipmentModal({
+        open: false,
+        vendorOrderId: null,
+      });
+
+      router.refresh();
+    } catch (error: any) {
+      notifyError(
+        error.message || "Failed to create shipment."
+      );
     } finally {
-      setUpdating(false);
+      setCreatingShipment(false);
     }
   };
 
+
+
+ 
   const handleDecisionConfirm = async (reason: string) => {
     const action = decisionModal.action;
     if (!action) return;
@@ -125,7 +251,7 @@ export default function OrderDetailView({ order }: { order: any }) {
     }
   };
 
-  console.log("refundStatus:", order.refundStatus);
+
 
   return (
     <div className="max-w-[1600px] mx-auto pb-20 px-4 lg:px-0">
@@ -185,6 +311,92 @@ export default function OrderDetailView({ order }: { order: any }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
+          {order.vendorOrders?.length > 0 && (
+            <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+                    Vendor <span className="text-blue-600">Readiness</span>
+                  </h2>
+
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                    Vendor responses for this order
+                  </p>
+                </div>
+
+                <span className="bg-gray-50 text-gray-500 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-gray-100">
+                  {order.vendorOrders.length}{" "}
+                  {order.vendorOrders.length === 1 ? "Vendor" : "Vendors"}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {order.vendorOrders.map((vendorOrder: any) => {
+                  const vendorStatus = String(
+                    vendorOrder.status || "PENDING"
+                  ).toUpperCase();
+
+                  const isApproved = vendorStatus === "APPROVED";
+                  const isRejected = vendorStatus === "REJECTED";
+                  const shipments = vendorOrder.shipments ?? [];
+
+                  return (
+                    <div
+                      key={vendorOrder.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gray-50 border border-gray-100"
+                    >
+                      <div>
+                        <p className="font-black text-gray-900 uppercase text-xs tracking-tight">
+                          {vendorOrder.vendorProfile?.storeName ||
+                            "Unknown Vendor"}
+                        </p>
+
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                          Vendor response
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`inline-flex items-center justify-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                          isApproved
+                            ? "bg-green-50 text-green-700 border-green-100"
+                            : isRejected
+                              ? "bg-red-50 text-red-700 border-red-100"
+                              : "bg-yellow-50 text-yellow-700 border-yellow-100"
+                        }`}
+                      >
+                        {vendorStatus}
+                      </span>
+
+                      {isApproved && (
+                        <>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                            {shipments.length > 0
+                              ? `${shipments.length} Shipment${shipments.length === 1 ? "" : "s"}`
+                              : "No shipment created"}
+                          </span>
+
+                          {shipments.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openShipmentModal(vendorOrder.id)
+                              }
+                              className="rounded-xl bg-gray-900 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white transition hover:bg-blue-600"
+                            >
+                              Create Shipment
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {isRefunded && (
             <div className="bg-red-600 text-white rounded-[2rem] p-6 flex items-center gap-4 shadow-xl shadow-red-100">
               <ShieldAlert size={32} />
@@ -343,6 +555,134 @@ export default function OrderDetailView({ order }: { order: any }) {
         onClose={() => setDecisionModal({ open: false, action: null })}
         onConfirm={handleDecisionConfirm}
       />
+
+
+      {shipmentModal.open && shipmentModal.vendorOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl">
+            <div className="mb-6">
+              <h3 className="text-xl font-black uppercase tracking-tight">
+                Create Shipment
+              </h3>
+
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Assign logistics information to this vendor order
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(
+                  event.currentTarget
+                );
+
+                const courierId =
+                  String(formData.get("courierId") || "").trim();
+
+                const trackingNumber =
+                  String(
+                    formData.get("trackingNumber") || ""
+                  ).trim();
+
+                await handleCreateShipment({
+                  vendorOrderId:
+                    shipmentModal.vendorOrderId!,
+                  courierId: courierId || undefined,
+                  trackingNumber:
+                    trackingNumber || undefined,
+                });
+              }}
+              className="space-y-5"
+            >
+              <div>
+                <label
+                  htmlFor="courierId"
+                  className="mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-500"
+                >
+                  Courier
+                </label>
+
+                <select
+                  id="courierId"
+                  name="courierId"
+                  disabled={loadingCouriers || creatingShipment}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 disabled:opacity-50"
+                  defaultValue=""
+                >
+                  <option value="">
+                    {loadingCouriers
+                      ? "Loading couriers..."
+                      : "Select courier"}
+                  </option>
+
+                  {couriers.map((courier) => (
+                    <option
+                      key={courier.id}
+                      value={courier.id}
+                    >
+                      {courier.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="trackingNumber"
+                  className="mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-500"
+                >
+                  Tracking Number
+                </label>
+
+                <input
+                  id="trackingNumber"
+                  name="trackingNumber"
+                  type="text"
+                  placeholder="Enter tracking number"
+                  disabled={creatingShipment}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 disabled:opacity-50"
+                />
+
+                <p className="mt-2 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+                  Optional for now. Internal logistics tracking
+                  generation will be handled separately.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  disabled={creatingShipment}
+                  onClick={() =>
+                    setShipmentModal({
+                      open: false,
+                      vendorOrderId: null,
+                    })
+                  }
+                  className="flex-1 rounded-2xl border border-gray-200 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    creatingShipment ||
+                    loadingCouriers
+                  }
+                  className="flex-1 rounded-2xl bg-gray-900 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {creatingShipment
+                    ? "Creating..."
+                    : "Create Shipment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

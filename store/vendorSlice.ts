@@ -229,7 +229,7 @@ export const fetchAllPayouts = createAsyncThunk(
 
 
 
-       export const fetchVendorProfile = createAsyncThunk(
+  export const fetchVendorProfile = createAsyncThunk(
   "vendor/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
@@ -274,14 +274,15 @@ export const updateOrderStatus = createAsyncThunk(
     {
       orderId,
       status,
-      trackingNumber,
-    }: { orderId: string; status: "APPROVED" | "REJECTED"; trackingNumber?: string },
+    }: {
+      orderId: string;
+      status: "APPROVED" | "REJECTED";
+    },
     { rejectWithValue }
   ) => {
     try {
       const response = await axios.patch(`/api/vendors/orders/${orderId}`, {
-        status,
-        trackingNumber,
+      status,
       });
       return { orderId, status, data: response.data };
     } catch (error: any) {

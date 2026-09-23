@@ -46,9 +46,7 @@ export const PATCH = withApiLogging(
         .trim()
         .toUpperCase();
 
-      const trackingNumber =
-        body.trackingNumber ?? null;
-
+     
       if (!status) {
         throw badRequest(
           "Order status is required."
@@ -65,7 +63,6 @@ export const PATCH = withApiLogging(
           id,
           vendor.id,
           status as "APPROVED" | "REJECTED",
-          trackingNumber
         );
 
       return NextResponse.json(

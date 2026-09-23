@@ -350,8 +350,8 @@ model MarketplaceTransaction {
   createdAt       DateTime          @default(now())
   vendorProfile   VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
 
-  @@index([vendorProfileId])
   @@unique([orderId, vendorProfileId])
+  @@index([vendorProfileId])
 }
 
 model Payout {
@@ -592,45 +592,51 @@ model CartItem {
 }
 
 model Order {
-  id                   String        @id @default(cuid())
-  userId               String?
-  status               String        @default("pending")
-  subtotal             Decimal       @db.Decimal(10, 2)
-  shipping             Decimal       @default(0) @db.Decimal(10, 2)
-  shippingMethod       String?
-  tax                  Decimal       @default(0) @db.Decimal(10, 2)
-  total                Decimal       @db.Decimal(10, 2)
-  paymentIntentId      String?       @unique
-  createdAt            DateTime      @default(now())
-  apartment            String?
-  city                 String?
-  email                String?
-  firstName            String?
-  lastName             String?
-  orderNotes           String?
-  orderNumber          String        @unique @default("MARVEL-TEMP")
-  phone                String?
-  shippingAddress      String?
-  shippingCity         String?
-  shippingState        String?
-  state                String?
-  streetAddress        String?
-  useDifferentShipping Boolean       @default(false)
-  paymentStatus        Boolean       @default(false)
-  emailSent            Boolean       @default(false)
-  refundStatus         String?
-  trackingNumber       String?
-  refundReason         String?
-  refundReference      String?       @unique
-  cancelReason         String?
-  vendorProfileId      String
-  shippingFirstName    String?
-  shippingLastName     String?
-  paymentTypes         PaymentTypes?
-  user                 User?         @relation(fields: [userId], references: [id])
-  vendorProfile        VendorProfile @relation(fields: [vendorProfileId], references: [id])
-  items                OrderItem[]
-  vendorOrders         VendorOrder[]
+  id                          String        @id @default(cuid())
+  userId                      String?
+  status                      String        @default("pending")
+  deliveredAt                 DateTime?
+  subtotal                    Decimal       @db.Decimal(10, 2)
+  shipping                    Decimal       @default(0) @db.Decimal(10, 2)
+  shippingMethod              String?
+  tax                         Decimal       @default(0) @db.Decimal(10, 2)
+  total                       Decimal       @db.Decimal(10, 2)
+  paymentIntentId             String?       @unique
+  paymentAuthorizationUrl     String?
+  paymentInitializationStatus String?
+  paymentInitializationAt     DateTime?
+  checkoutAttemptId           String?       @unique
+  createdAt                   DateTime      @default(now())
+  apartment                   String?
+  city                        String?
+  email                       String?
+  firstName                   String?
+  lastName                    String?
+  orderNotes                  String?
+  orderNumber                 String        @unique @default("MARVEL-TEMP")
+  phone                       String?
+  shippingAddress             String?
+  shippingCity                String?
+  shippingState               String?
+  state                       String?
+  streetAddress               String?
+  useDifferentShipping        Boolean       @default(false)
+  paymentStatus               Boolean       @default(false)
+  emailSent                   Boolean       @default(false)
+  refundStatus                String?
+  trackingNumber              String?
+  refundReason                String?
+  refundReference             String?       @unique
+  cancelReason                String?
+  vendorProfileId             String
+  shippingFirstName           String?
+  shippingLastName            String?
+  paymentTypes                PaymentTypes?
+  user                        User?         @relation(fields: [userId], references: [id])
+  vendorProfile               VendorProfile @relation(fields: [vendorProfileId], references: [id])
+  items                       OrderItem[]
+  vendorOrders                VendorOrder[]
+  shipments                   Shipment[]
 
   @@index([vendorProfileId])
   @@index([userId])
@@ -688,6 +694,7 @@ model VendorOrder {
   order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   vendorProfile VendorProfile     @relation(fields: [vendorProfileId], references: [id])
   items         VendorOrderItem[]
+  shipments     Shipment[]
 
   @@unique([orderId, vendorProfileId])
   @@index([orderId])
@@ -1298,4 +1305,79 @@ model FinancialAuditLog {
   @@index([createdAt])
 }
 
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+  RETURNED
+}
 
+model Courier {
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipments Shipment[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model Shipment {
+  id            String @id @default(cuid())
+  orderId       String
+  vendorOrderId String
+
+  courierId      String?
+  trackingNumber String?
+
+  status ShipmentStatus @default(PENDING)
+
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendorOrder VendorOrder     @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
+  courier     Courier?        @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  events      ShipmentEvent[]
+
+  @@index([orderId])
+  @@index([vendorOrderId])
+  @@index([courierId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@index([vendorOrderId, status])
+}
+
+model ShipmentEvent {
+  id         String         @id @default(cuid())
+  shipmentId String
+  status     ShipmentStatus
+
+  description String?
+  location    String?
+  occurredAt  DateTime
+
+  createdAt DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([shipmentId, occurredAt])
+}
