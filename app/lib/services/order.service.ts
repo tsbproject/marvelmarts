@@ -748,10 +748,20 @@ static async getOrders(userId: string) {
               merchandiseSubtotal: true,
               shipping: true,
               total: true,
+
               vendorProfile: {
                 select: {
                   id: true,
                   storeName: true,
+                },
+              },
+
+              shipments: {
+                orderBy: {
+                  createdAt: "asc",
+                },
+                include: {
+                  courier: true,
                 },
               },
             },

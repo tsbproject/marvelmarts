@@ -29,102 +29,108 @@ type Context = {
   }>;
 };
 
-export const PATCH =
-  withApiLogging(
-    async (
-      req: Request,
-      { params }: Context
-    ) => {
-      try {
-        verifyOrigin(req);
+export const PATCH = withApiLogging(
+  async (req: Request, { params }: Context) => {
+    try {
+      verifyOrigin(req);
 
-        await requireManageOrders();
+      await requireManageOrders();
 
-        const { id } =
-          await params;
+      const { id } = await params;
 
-        const body =
-          await req.json();
+      const body = await req.json();
 
-        const nextStatus = String(
-          body.status ?? ""
-        )
-          .trim()
-          .toUpperCase();
+      const nextStatus = String(body.status ?? "")
+        .trim()
+        .toUpperCase();
 
-          const trackingNumber =
-           body.trackingNumber?.trim() || null;
+      const trackingNumber =
+        typeof body.trackingNumber === "string"
+          ? body.trackingNumber.trim() || null
+          : null;
 
-        if (!id) {
-          throw badRequest(
-            "Order ID is required."
-          );
-        }
+      if (!id) {
+        throw badRequest("Order ID is required.");
+      }
 
-        const result =
+      const result =
         await OrderService.updateAdminOrderStatus(
           id,
           nextStatus,
           trackingNumber
         );
 
-        try {
-          if (
-            result.previousStatus !==
-              "SHIPPED" &&
-            nextStatus === "SHIPPED" &&
-            result.updatedOrder.email
-          ) {
-            await sendShipmentNotificationEmail(
-              result.updatedOrder
-            );
-          }
-
-          if (
-            result.previousStatus !==
-              "DELIVERED" &&
-            nextStatus ===
-              "DELIVERED" &&
-            result.updatedOrder.email
-          ) {
-            await sendDeliveryConfirmationEmail(
-              result.updatedOrder
-            );
-          }
-        } catch (error) {
-          logger.error(
-            "ORDER_EMAIL_ERROR:",
-            error
-          );
+      /*
+       * Legacy parent-order email notifications.
+       *
+       * Shipment lifecycle notifications for the new
+       * VendorOrder -> Shipment architecture are handled
+       * separately by ShipmentService.
+       */
+      try {
+        if (
+          result.previousStatus !== "SHIPPED" &&
+          nextStatus === "SHIPPED" &&
+          result.updatedOrder.email
+        ) {
+          await sendShipmentNotificationEmail({
+            orderNumber:
+              result.updatedOrder.orderNumber,
+            firstName:
+              result.updatedOrder.firstName,
+            email:
+              result.updatedOrder.email,
+            trackingNumber:
+              result.updatedOrder.trackingNumber,
+          });
         }
 
-        try {
-          if (result.userId) {
-            await pusherServer.trigger(
-              `user-${result.userId}`,
-              "order-update",
-              result.updatedOrder
-            );
-          }
-        } catch (error) {
-          logger.error(
-            "PUSHER_ORDER_ERROR:",
-            error
+        if (
+          result.previousStatus !== "DELIVERED" &&
+          nextStatus === "DELIVERED" &&
+          result.updatedOrder.email
+        ) {
+          await sendDeliveryConfirmationEmail(
+            result.updatedOrder
           );
         }
-
-        return NextResponse.json(
-          {
-            success: true,
-            order:
-              result.updatedOrder,
-          },
-          {
-            status: 200,
-          }
-        );
       } catch (error) {
-        return handleApiError(error);
+        logger.error(
+          "ORDER_EMAIL_ERROR:",
+          error
+        );
       }
+
+      /*
+       * Notify the customer in real time when the
+       * legacy parent Order changes.
+       */
+      try {
+        if (result.userId) {
+          await pusherServer.trigger(
+            `user-${result.userId}`,
+            "order-update",
+            result.updatedOrder
+          );
+        }
+      } catch (error) {
+        logger.error(
+          "PUSHER_ORDER_ERROR:",
+          error
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          order: result.updatedOrder,
+        },
+        {
+          status: 200,
+        }
+      );
+    } catch (error) {
+      return handleApiError(error);
     }
-  );
+  }
+);

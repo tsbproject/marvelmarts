@@ -394,53 +394,76 @@ export class FinancialReportingService {
 
 
   static async getRecentTransactions(limit = 10) {
-    const transactions =
-      await prisma.financialTransaction.findMany({
-        where: {
-          status: FinancialTransactionStatus.POSTED,
-        },
-        orderBy: [
-          {
-            occurredAt: "desc",
-          },
-          {
-            createdAt: "desc",
-          },
-        ],
-        take: limit,
-        select: {
-          id: true,
-          reference: true,
-          type: true,
-          status: true,
-          amount: true,
-          currency: true,
-          description: true,
-          orderId: true,
-          vendorProfileId: true,
-          userId: true,
-          externalReference: true,
-          occurredAt: true,
-          createdAt: true,
-        },
-      });
+  const transactions =
+    await prisma.financialTransaction.findMany({
+      where: { status: FinancialTransactionStatus.POSTED },
+      orderBy: [
+        { occurredAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: limit,
+      select: {
+        id: true,
+        reference: true,
+        type: true,
+        status: true,
+        amount: true,
+        currency: true,
+        description: true,
+        orderId: true,
+        vendorProfileId: true,
+        userId: true,
+        externalReference: true,
+        occurredAt: true,
+        createdAt: true,
+      },
+    });
 
-    return transactions.map((transaction) => ({
-      id: transaction.id,
-      reference: transaction.reference,
-      type: transaction.type,
-      status: transaction.status,
-      amount: Number(transaction.amount),
-      currency: transaction.currency,
-      description: transaction.description,
-      orderId: transaction.orderId,
-      vendorProfileId: transaction.vendorProfileId,
-      userId: transaction.userId,
-      externalReference: transaction.externalReference,
-      occurredAt: transaction.occurredAt,
-      createdAt: transaction.createdAt,
-    }));
-  }
+  const orderIds = transactions
+    .map((transaction) => transaction.orderId)
+    .filter((id): id is string => Boolean(id));
+
+  const orders =
+    orderIds.length > 0
+      ? await prisma.order.findMany({
+          where: {
+            id: {
+              in: orderIds,
+            },
+          },
+          select: {
+            id: true,
+            orderNumber: true,
+          },
+        })
+      : [];
+
+  const orderNumberById = new Map(
+    orders.map((order) => [
+      order.id,
+      order.orderNumber,
+    ])
+  );
+
+  return transactions.map((transaction) => ({
+    id: transaction.id,
+    reference: transaction.reference,
+    type: transaction.type,
+    status: transaction.status,
+    amount: Number(transaction.amount),
+    currency: transaction.currency,
+    description: transaction.description,
+    orderId: transaction.orderId,
+    orderNumber: transaction.orderId
+      ? orderNumberById.get(transaction.orderId) ?? null
+      : null,
+    vendorProfileId: transaction.vendorProfileId,
+    userId: transaction.userId,
+    externalReference: transaction.externalReference,
+    occurredAt: transaction.occurredAt,
+    createdAt: transaction.createdAt,
+  }));
+}
 
   static async getGeneralLedger(params?: {
   startDate?: Date;

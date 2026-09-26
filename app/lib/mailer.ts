@@ -26,6 +26,7 @@ export {
 export {
   sendOrderConfirmationEmail,
   sendShipmentNotificationEmail,
+  sendShipmentStatusNotificationEmail,
   sendDeliveryConfirmationEmail,
   sendOrderCancellationEmail,
   sendRefundStatusEmail,
@@ -60,6 +61,7 @@ export {
   sendLowCreditEmail as sendVendorLowCreditEmail,
   sendExhaustedCreditEmail as sendVendorExhaustedCreditsEmail,
 } from "./mail/services/vendor.service";
+
 
 
 

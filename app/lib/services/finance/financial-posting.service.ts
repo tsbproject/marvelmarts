@@ -60,7 +60,8 @@ function isPositive(value: Prisma.Decimal): boolean {
 }
 
 export async function postFinancialTransaction(
-  input: PostFinancialTransactionInput
+  input: PostFinancialTransactionInput,
+  tx?: Prisma.TransactionClient
 ) {
   const currency = input.currency ?? "NGN";
   const amount = toDecimal(input.amount);
@@ -138,9 +139,9 @@ export async function postFinancialTransaction(
     );
   }
 
-    return prisma.$transaction(
-    async (tx) => {
-      const existing = await tx.financialTransaction.findFirst({
+  const post = async (transactionClient: Prisma.TransactionClient) => {
+    const existing =
+      await transactionClient.financialTransaction.findFirst({
         where: {
           OR: [
             { reference: input.reference },
@@ -157,15 +158,20 @@ export async function postFinancialTransaction(
         },
       });
 
-      if (existing) {
-        return existing;
-      }
+    if (existing) {
+      return existing;
+    }
 
-      const accountCodes = [
-        ...new Set(normalizedEntries.map((entry) => entry.accountCode)),
-      ];
+    const accountCodes = [
+      ...new Set(
+        normalizedEntries.map(
+          (entry) => entry.accountCode
+        )
+      ),
+    ];
 
-      const accounts = await tx.financialAccount.findMany({
+    const accounts =
+      await transactionClient.financialAccount.findMany({
         where: {
           code: {
             in: accountCodes,
@@ -179,99 +185,127 @@ export async function postFinancialTransaction(
         },
       });
 
-      const accountMap = new Map(
-        accounts.map((account) => [account.code, account])
-      );
+    const accountMap = new Map(
+      accounts.map((account) => [
+        account.code,
+        account,
+      ])
+    );
 
-      for (const code of accountCodes) {
-        const account = accountMap.get(code);
+    for (const code of accountCodes) {
+      const account = accountMap.get(code);
 
-        if (!account) {
-          throw new FinancialPostingError(
-            `Financial account "${code}" does not exist.`
-          );
-        }
-
-        if (!account.isActive) {
-          throw new FinancialPostingError(
-            `Financial account "${code}" is inactive.`
-          );
-        }
-
-        if (account.currency !== currency) {
-          throw new FinancialPostingError(
-            `Financial account "${code}" uses ${account.currency}, not ${currency}.`
-          );
-        }
+      if (!account) {
+        throw new FinancialPostingError(
+          `Financial account "${code}" does not exist.`
+        );
       }
 
-      const transaction = await tx.financialTransaction.create({
+      if (!account.isActive) {
+        throw new FinancialPostingError(
+          `Financial account "${code}" is inactive.`
+        );
+      }
+
+      if (account.currency !== currency) {
+        throw new FinancialPostingError(
+          `Financial account "${code}" uses ${account.currency}, not ${currency}.`
+        );
+      }
+    }
+
+    const transaction =
+      await transactionClient.financialTransaction.create({
         data: {
           reference: input.reference,
           type: input.type,
-          status: FinancialTransactionStatus.POSTED,
+          status:
+            FinancialTransactionStatus.POSTED,
           amount,
           currency,
           description: input.description,
           orderId: input.orderId,
-          vendorProfileId: input.vendorProfileId,
-          userId: input.userId,
-          externalReference: input.externalReference,
-          idempotencyKey: input.idempotencyKey,
-          metadata: input.metadata,
-          occurredAt: input.occurredAt ?? new Date(),
-        },
-      });
-
-      await tx.financialLedgerEntry.createMany({
-        data: normalizedEntries.map((entry) => ({
-          transactionId: transaction.id,
-          accountId: accountMap.get(entry.accountCode)!.id,
-          debit: entry.debit,
-          credit: entry.credit,
-          currency,
-          description: entry.description,
           vendorProfileId:
-            entry.vendorProfileId ?? input.vendorProfileId,
-          userId: entry.userId ?? input.userId,
-          orderId: entry.orderId ?? input.orderId,
-        })),
-      });
-
-      await tx.financialAuditLog.create({
-        data: {
-          transactionId: transaction.id,
-          actorUserId: input.actorUserId,
-          action: "POSTED",
-          afterData: {
-            reference: transaction.reference,
-            type: transaction.type,
-            status: transaction.status,
-            amount: amount.toFixed(2),
-            currency,
-            ledgerEntryCount: normalizedEntries.length,
-          },
+            input.vendorProfileId,
+          userId: input.userId,
+          externalReference:
+            input.externalReference,
+          idempotencyKey:
+            input.idempotencyKey,
+          metadata: input.metadata,
+          occurredAt:
+            input.occurredAt ?? new Date(),
         },
       });
 
-      return tx.financialTransaction.findUniqueOrThrow({
-        where: {
-          id: transaction.id,
+    await transactionClient.financialLedgerEntry.createMany({
+      data: normalizedEntries.map((entry) => ({
+        transactionId:
+          transaction.id,
+        accountId:
+          accountMap.get(
+            entry.accountCode
+          )!.id,
+        debit: entry.debit,
+        credit: entry.credit,
+        currency,
+        description:
+          entry.description,
+        vendorProfileId:
+          entry.vendorProfileId ??
+          input.vendorProfileId,
+        userId:
+          entry.userId ??
+          input.userId,
+        orderId:
+          entry.orderId ??
+          input.orderId,
+      })),
+    });
+
+    await transactionClient.financialAuditLog.create({
+      data: {
+        transactionId:
+          transaction.id,
+        actorUserId:
+          input.actorUserId,
+        action: "POSTED",
+        afterData: {
+          reference:
+            transaction.reference,
+          type: transaction.type,
+          status:
+            transaction.status,
+          amount:
+            amount.toFixed(2),
+          currency,
+          ledgerEntryCount:
+            normalizedEntries.length,
         },
-        include: {
-          ledgerEntries: {
-            include: {
-              account: true,
-            },
+      },
+    });
+
+    return transactionClient.financialTransaction.findUniqueOrThrow({
+      where: {
+        id: transaction.id,
+      },
+      include: {
+        ledgerEntries: {
+          include: {
+            account: true,
           },
         },
-      });
-    },
-    {
-      timeout: 15000,
-    }
-  );
+      },
+    });
+  };
+
+  if (tx) {
+    return post(tx);
+  }
+
+  return prisma.$transaction(post, {
+    timeout: 15000,
+  });
 }
-
 
 export default postFinancialTransaction;

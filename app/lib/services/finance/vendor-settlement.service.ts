@@ -36,8 +36,10 @@ export class VendorSettlementService {
    * This method is intentionally read-only.
    */
   static async getVendorPayable(
-    vendorProfileId: string
+    vendorProfileId: string,
+    tx?: Prisma.TransactionClient
   ) {
+  const db = tx ?? prisma;
     if (!vendorProfileId) {
       throw new FinancialPostingError(
         "Vendor profile ID is required."
@@ -45,7 +47,7 @@ export class VendorSettlementService {
     }
 
     const account =
-      await prisma.financialAccount.findUnique({
+      await db.financialAccount.findUnique({
         where: {
           code: VENDOR_PAYABLE_ACCOUNT,
         },
@@ -71,7 +73,7 @@ export class VendorSettlementService {
     }
 
     const entries =
-      await prisma.financialLedgerEntry.findMany({
+       await db.financialLedgerEntry.findMany({
         where: {
           accountId: account.id,
           vendorProfileId,
@@ -129,13 +131,17 @@ export class VendorSettlementService {
    * The existing Payout workflow remains responsible for those
    * operational concerns.
    */
-  static async settleVendorPayout(input: {
-    payoutId: string;
-    vendorProfileId: string;
-    amount: Prisma.Decimal | number | string;
-    currency?: string;
-    actorUserId?: string;
-  }) {
+      static async settleVendorPayout(
+      input: {
+        payoutId: string;
+        vendorProfileId: string;
+        amount: Prisma.Decimal | number | string;
+        currency?: string;
+        actorUserId?: string;
+      },
+      tx?: Prisma.TransactionClient
+    ) {
+    const db = tx ?? prisma;
     if (!input.payoutId) {
       throw new FinancialPostingError(
         "Payout ID is required."
@@ -151,7 +157,8 @@ export class VendorSettlementService {
 
     const settlementReference = `PAYOUT-SETTLEMENT-${input.payoutId}`;
 
-    const existing = await prisma.financialTransaction.findUnique({
+    const existing =
+       await db.financialTransaction.findUnique({
     where: {
         reference: settlementReference,
     },
@@ -174,9 +181,10 @@ export class VendorSettlementService {
     }
 
     const payable =
-      await this.getVendorPayable(
-        input.vendorProfileId
-      );
+        await this.getVendorPayable(
+          input.vendorProfileId,
+          tx
+        );
 
     if (payable.currency !== currency) {
       throw new FinancialPostingError(
@@ -196,40 +204,42 @@ export class VendorSettlementService {
       );
     }
 
-    return postFinancialTransaction({
-      reference: settlementReference,
+    return postFinancialTransaction(
+      {
+        reference: settlementReference,
         idempotencyKey: settlementReference,
-            type:
-                FinancialTransactionType.PAYOUT,
-      amount,
-      currency,
-      description:
-        `Vendor payout settlement ${input.payoutId}.`,
-      vendorProfileId:
-        input.vendorProfileId,
-      externalReference:
-        input.payoutId,
-      actorUserId:
-        input.actorUserId,
-      entries: [
-        {
-          accountCode:
-            VENDOR_PAYABLE_ACCOUNT,
-          debit: amount,
-          description:
-            `Reduce vendor payable for payout ${input.payoutId}.`,
-          vendorProfileId:
-            input.vendorProfileId,
-        },
-        {
-          accountCode:
-            PAYSTACK_CLEARING_ACCOUNT,
-          credit: amount,
-          description:
-            `Record Paystack clearing settlement for payout ${input.payoutId}.`,
-        },
-      ],
-    });
+        type: FinancialTransactionType.PAYOUT,
+        amount,
+        currency,
+        description:
+          `Vendor payout settlement ${input.payoutId}.`,
+        vendorProfileId:
+          input.vendorProfileId,
+        externalReference:
+          input.payoutId,
+        actorUserId:
+          input.actorUserId,
+        entries: [
+          {
+            accountCode:
+              VENDOR_PAYABLE_ACCOUNT,
+            debit: amount,
+            description:
+              `Reduce vendor payable for payout ${input.payoutId}.`,
+            vendorProfileId:
+              input.vendorProfileId,
+          },
+          {
+            accountCode:
+              PAYSTACK_CLEARING_ACCOUNT,
+            credit: amount,
+            description:
+              `Record Paystack clearing settlement for payout ${input.payoutId}.`,
+          },
+        ],
+      },
+      tx
+    );
   }
 
 

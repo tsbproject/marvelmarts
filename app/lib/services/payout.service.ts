@@ -6,10 +6,10 @@ import {
   conflict
 } from "@/app/lib/auth/errors";
 
-
-
 import { TransactionStatus } from "@prisma/client";
 import { AuditService } from "@/app/lib/services/logging/audit.service";
+import { VendorSettlementService } from "@/app/lib/services/finance/vendor-settlement.service";
+
 
 export class PayoutService {
   static async getVendorPayouts(
@@ -232,134 +232,149 @@ export class PayoutService {
     remarks: string,
     adminId: string
   ) {
-    if (!payoutId || !status) {
-        throw badRequest(
-        "Payout ID and status are required."
-        );
-    }
+  if (!payoutId || !status) {
+    throw badRequest(
+      "Payout ID and status are required."
+    );
+  }
 
-    if (
-        status !== "APPROVED" &&
-        status !== "REJECTED"
-    ) {
-        throw badRequest(
-        "Invalid payout status."
-        );
-    }
+  if (
+    status !== "APPROVED" &&
+    status !== "REJECTED"
+  ) {
+    throw badRequest(
+      "Invalid payout status."
+    );
+  }
 
-    const payout =
-        await prisma.payout.findUnique({
-        where: {
-            id: payoutId,
+  const payout =
+    await prisma.payout.findUnique({
+      where: {
+        id: payoutId,
+      },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
-        include: {
-            vendor: {
-            select: {
-                id: true,
-                name: true,
-                email: true,
-            },
-            },
-        },
-        });
+      },
+    });
 
-    if (!payout) {
-        throw notFound(
-        "Payout request not found."
-        );
-    }
+  if (!payout) {
+    throw notFound(
+      "Payout request not found."
+    );
+  }
 
-    if (payout.status !== "PENDING") {
-        throw conflict(
-        `Payout has already been processed as ${payout.status}.`
-        );
-    }
+  if (payout.status !== "PENDING") {
+    throw conflict(
+      `Payout has already been processed as ${payout.status}.`
+    );
+  }
 
-    const result = await prisma.$transaction(
+  const result =
+    await prisma.$transaction(
       async (tx) => {
         const updatedPayout =
-            await tx.payout.update({
+          await tx.payout.update({
             where: {
-                id: payoutId,
+              id: payoutId,
             },
             data: {
-                status,
-                adminRemarks:
+              status,
+              adminRemarks:
                 remarks ||
-                (status ===
-                "APPROVED"
-                    ? "Processed by Administrator"
-                    : "Rejected by Administrator"),
-                processedAt:
-                new Date(),
+                (status === "APPROVED"
+                  ? "Processed by Administrator"
+                  : "Rejected by Administrator"),
+              processedAt: new Date(),
             },
             include: {
-                vendor: {
+              vendor: {
                 select: {
-                    id: true,
-                    name: true,
-                    email: true,
+                  id: true,
+                  name: true,
+                  email: true,
                 },
-                },
+              },
             },
-            });
+          });
+
+        if (status === "APPROVED") {
+          await VendorSettlementService.settleVendorPayout(
+            {
+              payoutId: payout.id,
+              vendorProfileId:
+                payout.vendorProfileId,
+              amount: payout.amount,
+              currency: "NGN",
+              actorUserId: adminId,
+            },
+            tx
+          );
+        }
 
         let newBalance:
-            | number
-            | null = null;
+          | number
+          | null = null;
 
-        if (
-            status === "REJECTED"
-        ) {
-            const profile =
+        if (status === "REJECTED") {
+          const profile =
             await tx.vendorProfile.update({
-                where: {
+              where: {
                 id: payout.vendorProfileId,
-                },
-                data: {
+              },
+              data: {
                 balance: {
-                    increment:
+                  increment:
                     payout.amount,
                 },
-                },
+              },
             });
 
-            newBalance = Number(
-            profile.balance
-            );
+          newBalance =
+            Number(profile.balance);
         }
 
-               return {
-            updatedPayout,
-            newBalance,
-            vendorId:
-            payout.vendorId,
+        return {
+          updatedPayout,
+          newBalance,
+          vendorId: payout.vendorId,
         };
-        }
+      }
     );
 
-    const auditData = {
-      actorId: adminId,
-      entityId: result.updatedPayout.id,
-      oldValues: {
-        status: payout.status,
-        adminRemarks: payout.adminRemarks,
-      },
-      newValues: {
-        status: result.updatedPayout.status,
-        adminRemarks: result.updatedPayout.adminRemarks,
-      },
-    };
+  const auditData = {
+    actorId: adminId,
+    entityId: result.updatedPayout.id,
+    oldValues: {
+      status: payout.status,
+      adminRemarks:
+        payout.adminRemarks,
+    },
+    newValues: {
+      status:
+        result.updatedPayout.status,
+      adminRemarks:
+        result.updatedPayout.adminRemarks,
+    },
+  };
 
-    if (status === "APPROVED") {
-      await AuditService.payoutApproved(auditData);
-    } else {
-      await AuditService.payoutRejected(auditData);
-    }
+  if (status === "APPROVED") {
+    await AuditService.payoutApproved(
+      auditData
+    );
+  } else {
+    await AuditService.payoutRejected(
+      auditData
+    );
+  }
 
-    return result;
-    }
-
+  return result;
+}
 
   static async requestWithdrawal(
       userId: string,

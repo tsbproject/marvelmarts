@@ -24,6 +24,7 @@ type FinancialTransaction = {
   currency: string;
   description: string | null;
   orderId: string | null;
+  orderNumber: string | null;
   vendorProfileId: string | null;
   userId: string | null;
   externalReference: string | null;
@@ -236,6 +237,7 @@ export default function FinancialTransactions() {
         transaction.amount,
         transaction.currency,
         transaction.status,
+       transaction.orderNumber ??
         extractOrderNumber(transaction.description) ?? "",
         transaction.description ?? "",
         formatDate(transaction.occurredAt),
@@ -295,7 +297,8 @@ export default function FinancialTransactions() {
     const transactionRows = transactions
       .map((transaction) => {
         const orderNumber =
-          extractOrderNumber(transaction.description);
+         transaction.orderNumber ??
+         extractOrderNumber(transaction.description);
 
         return `
           <tr>
@@ -667,9 +670,8 @@ export default function FinancialTransactions() {
                 <tbody>
                   {transactions.map((transaction) => {
                     const orderNumber =
-                      extractOrderNumber(
-                        transaction.description
-                      );
+                    transaction.orderNumber ??
+                    extractOrderNumber(transaction.description);
 
                     return (
                       <tr
@@ -750,9 +752,8 @@ export default function FinancialTransactions() {
             <div className="divide-y divide-gray-100 lg:hidden">
               {transactions.map((transaction) => {
                 const orderNumber =
-                  extractOrderNumber(
-                    transaction.description
-                  );
+                transaction.orderNumber ??
+                extractOrderNumber(transaction.description);
 
                 return (
                   <div

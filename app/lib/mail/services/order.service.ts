@@ -26,7 +26,8 @@ import {
 
 import {
   OrderConfirmationData,
-  ShipmentNotificationData,
+   ShipmentNotificationData,
+  ShipmentStatusNotificationData,
   DeliveryConfirmationData,
   OrderCancellationData,
   RefundStatusData,
@@ -57,21 +58,36 @@ export async function sendOrderConfirmationEmail(
 export async function sendShipmentNotificationEmail(
   data: ShipmentNotificationData
 ) {
+  if (!data.email) return;
 
-    if (!data.email) {
-    return;
-  }
-
-
-  const template =
-    shipmentNotificationEmail(data);
+  const content = shipmentNotificationEmail({
+    ...data,
+    status: "SHIPPED",
+  });
 
   return sendEmail({
     to: data.email,
-    subject: template.subject,
+    subject: content.subject,
+    html: emailLayout(content.html, content.preview),
+  });
+}
+
+
+export async function sendShipmentStatusNotificationEmail(
+  data: ShipmentStatusNotificationData
+) {
+  if (!data.email) {
+    return;
+  }
+
+  const content = shipmentNotificationEmail(data);
+
+  return sendEmail({
+    to: data.email,
+    subject: content.subject,
     html: emailLayout(
-      template.html,
-      template.preview
+      content.html,
+      content.preview
     ),
   });
 }

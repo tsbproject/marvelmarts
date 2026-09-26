@@ -15,12 +15,26 @@ export interface OrderConfirmationData {
   items: OrderItem[];
 }
 
+export type ShipmentNotificationStatus =
+  | "SHIPPED"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY";
+
 export interface ShipmentNotificationData {
   orderNumber: string;
   firstName?: string | null;
   email: string | null;
   trackingNumber: string | null;
 }
+
+export interface ShipmentStatusNotificationData {
+  orderNumber: string;
+  firstName?: string | null;
+  email: string | null;
+  trackingNumber: string | null;
+  status: ShipmentNotificationStatus;
+}
+
 export interface DeliveryConfirmationData {
   orderNumber: string;
 

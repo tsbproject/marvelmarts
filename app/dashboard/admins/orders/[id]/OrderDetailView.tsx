@@ -18,6 +18,7 @@ import { UserRole } from "@prisma/client";
 import AdminRefundModal from "@/app/_components/admins/AdminRefundModal";
 import RefundButton from "./RefundButton";
 import RejectButtonWrapper from "./RejectButtonWrapper";
+import ShipmentStatusToggle from "../ShipmentStatusToggle";
 
 export default function OrderDetailView({ order }: { order: any }) {
   const router = useRouter();
@@ -253,6 +254,10 @@ export default function OrderDetailView({ order }: { order: any }) {
 
 
 
+
+  
+
+
   return (
     <div className="max-w-[1600px] mx-auto pb-20 px-4 lg:px-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -369,28 +374,130 @@ export default function OrderDetailView({ order }: { order: any }) {
                         {vendorStatus}
                       </span>
 
-                      {isApproved && (
-                        <>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                            {shipments.length > 0
-                              ? `${shipments.length} Shipment${shipments.length === 1 ? "" : "s"}`
-                              : "No shipment created"}
-                          </span>
+                    {(isApproved || shipments.length > 0) && (
+                      <div className="w-full space-y-3">
+                        {shipments.length > 0 ? (
+                          <div className="space-y-3">
+                            {shipments.map((shipment: any) => (
+                              <div
+                                key={shipment.id}
+                                className="rounded-xl border border-gray-200 bg-white p-4"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      Shipment
+                                    </p>
 
-                          {shipments.length === 0 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openShipmentModal(vendorOrder.id)
-                              }
-                              className="rounded-xl bg-gray-900 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white transition hover:bg-blue-600"
-                            >
-                              Create Shipment
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                                    <p className="mt-1 text-xs font-bold text-gray-900">
+                                      {shipment.id}
+                                    </p>
+                                  </div>
+
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                                      shipment.status === "DELIVERED"
+                                        ? "bg-green-100 text-green-700"
+                                        : shipment.status === "FAILED" ||
+                                            shipment.status === "CANCELLED" ||
+                                            shipment.status === "RETURNED"
+                                          ? "bg-red-100 text-red-700"
+                                          : shipment.status === "OUT_FOR_DELIVERY"
+                                            ? "bg-orange-100 text-orange-700"
+                                            : "bg-blue-100 text-blue-700"
+                                    }`}
+                                  >
+                                    {String(shipment.status || "PENDING").replaceAll(
+                                      "_",
+                                      " "
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      Courier
+                                    </p>
+
+                                    <p className="mt-1 text-xs font-bold text-gray-900">
+                                      {shipment.courier?.name || "Not assigned"}
+                                    </p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      Tracking
+                                    </p>
+
+                                    <p className="mt-1 break-all text-xs font-bold text-gray-900">
+                                      {shipment.trackingNumber || "Not assigned"}
+                                    </p>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      Created
+                                    </p>
+
+                                    <p className="mt-1 text-xs font-bold text-gray-900">
+                                      {shipment.createdAt
+                                        ? new Date(
+                                            shipment.createdAt
+                                          ).toLocaleString()
+                                        : "—"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {shipment.shippedAt && (
+                                  <div className="mt-3">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      Shipped
+                                    </p>
+
+                                    <p className="mt-1 text-xs font-bold text-gray-900">
+                                      {new Date(
+                                        shipment.shippedAt
+                                      ).toLocaleString()}
+                                    </p>
+                                  </div>
+                                )}
+
+                               <div className="mt-4 border-t border-gray-100 pt-4">
+                                  <ShipmentStatusToggle
+                                    shipmentId={shipment.id}
+                                    status={shipment.status}
+                                    trackingNumber={shipment.trackingNumber}
+                                    courierCode={shipment.courier?.code}
+                                    onUpdate={() => {
+                                      router.refresh();
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
+                            No shipment created
+                          </p>
+                        )}
+
+                        {shipments.length === 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openShipmentModal(vendorOrder.id)
+                            }
+                            className="rounded-xl bg-gray-900 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white transition hover:bg-blue-600"
+                          >
+                            Create Shipment
+                          </button>
+                        )}
+                      </div>
+                    )}
+                                        </div>
                     </div>
                   );
                 })}

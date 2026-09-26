@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { 
   Eye, Search, ChevronLeft, ChevronRight, Download, CheckCircle, RefreshCcw, XCircle 
 } from "lucide-react";
 import Link from "next/link";
-import StatusToggle from "@/app/_components/admins/StatusToggle"; 
+import ShipmentStatusToggle from "./ShipmentStatusToggle";
 import { useNotification } from "@/app/_context/NotificationContext";
+
 
 export default function OrdersTable({ initialOrders }: { initialOrders: any[] }) {
   const [orders, setOrders] = useState(initialOrders);
@@ -34,13 +35,6 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
     link.click();
   };
 
-  const handleStatusUpdate = (orderId: string, newStatus: string) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-  };
 
   /**
    * handleApproveRefund: 
@@ -198,6 +192,20 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const currentItems = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+
+  useEffect(() => {
+      if (totalPages === 0) {
+        if (currentPage !== 1) {
+          setCurrentPage(1);
+        }
+        return;
+      }
+
+      if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+      }
+    }, [currentPage, totalPages]);
+
   return (
     <div className="space-y-6">
       {/* Search & Actions Bar */}
@@ -266,63 +274,213 @@ export default function OrdersTable({ initialOrders }: { initialOrders: any[] })
                     </div>
                   </td>
                   <td className="p-6">
-                    <div className="space-y-3">
-                      <StatusToggle
-                        order={order}
-                        onUpdate={(newStatus) =>
-                          handleStatusUpdate(order.id, newStatus)
-                        }
-                      />
-
+                    <div className="space-y-4">
+                      {/* Vendor Readiness */}
                       {order.vendorOrders?.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">
-                            Vendor Readiness:
-                          </span>
+                        <div className="rounded-xl border border-gray-100 bg-white p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">
+                              Vendor Readiness
+                            </span>
 
-                          {(() => {
-                            const approvedCount = order.vendorOrders.filter(
-                              (vendorOrder: any) =>
-                                vendorOrder.status === "APPROVED"
-                            ).length;
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-gray-300">
+                              {order.vendorOrders.length} Vendor
+                              {order.vendorOrders.length > 1 ? "s" : ""}
+                            </span>
+                          </div>
 
-                            const rejectedCount = order.vendorOrders.filter(
-                              (vendorOrder: any) =>
-                                vendorOrder.status === "REJECTED"
-                            ).length;
+                          <div className="flex flex-wrap items-center gap-2">
+                            {(() => {
+                              const approvedCount = order.vendorOrders.filter(
+                                (vendorOrder: any) =>
+                                  vendorOrder.status === "APPROVED"
+                              ).length;
 
-                            const pendingCount = order.vendorOrders.filter(
-                              (vendorOrder: any) =>
-                                vendorOrder.status === "PENDING"
-                            ).length;
+                              const rejectedCount = order.vendorOrders.filter(
+                                (vendorOrder: any) =>
+                                  vendorOrder.status === "REJECTED"
+                              ).length;
 
-                            return (
-                              <>
-                                {approvedCount > 0 && (
-                                  <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-green-600 border border-green-100">
-                                    ✓ {approvedCount} Approved
-                                  </span>
-                                )}
+                              const pendingCount = order.vendorOrders.filter(
+                                (vendorOrder: any) =>
+                                  vendorOrder.status === "PENDING"
+                              ).length;
 
-                                {rejectedCount > 0 && (
-                                  <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-red-500 border border-red-100">
-                                    ⚠ {rejectedCount} Rejected
-                                  </span>
-                                )}
+                              return (
+                                <>
+                                  {approvedCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg border border-green-100 bg-green-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-green-600">
+                                      ✓ {approvedCount} Approved
+                                    </span>
+                                  )}
 
-                                {pendingCount > 0 && (
-                                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-amber-600 border border-amber-100">
-                                    {pendingCount} Pending
-                                  </span>
-                                )}
-                              </>
-                            );
-                          })()}
+                                  {rejectedCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg border border-red-100 bg-red-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-red-500">
+                                      ⚠ {rejectedCount} Rejected
+                                    </span>
+                                  )}
+
+                                  {pendingCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg border border-amber-100 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-amber-600">
+                                      {pendingCount} Pending
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shipment Control */}
+                      {order.vendorOrders?.some(
+                        (vendorOrder: any) =>
+                          vendorOrder.shipments?.length > 0
+                      ) && (
+                        <div className="rounded-xl border border-gray-100 bg-[#F8F8F8] p-3">
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">
+                              Shipment Control
+                            </span>
+
+                            <span className="rounded-lg bg-white px-2 py-1 text-[8px] font-black uppercase tracking-wider text-[#002B5B] border border-gray-100">
+                              Live
+                            </span>
+                          </div>
+
+                          <div className="space-y-3">
+                            {order.vendorOrders.map((vendorOrder: any) =>
+                              vendorOrder.shipments?.map((shipment: any) => {
+                                const shipmentStatus = String(
+                                  shipment.status || "PENDING"
+                                ).toUpperCase();
+
+                                return (
+                                  <div
+                                    key={shipment.id}
+                                    className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+                                  >
+                                    <div className="flex flex-col gap-3">
+                                      {/* Shipment Information */}
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-[#F7931E]" />
+
+                                            <p className="truncate text-[9px] font-black uppercase tracking-wider text-[#002B5B]">
+                                              {shipment.courier?.name || "Courier"}
+                                            </p>
+                                          </div>
+
+                                          <p className="mt-1 text-[8px] font-bold uppercase tracking-wider text-gray-400">
+                                            Tracking:{" "}
+                                            <span className="text-gray-600">
+                                              {shipment.trackingNumber ||
+                                                "Tracking Pending"}
+                                            </span>
+                                          </p>
+
+                                          <p className="mt-1 text-[8px] font-bold uppercase tracking-wider text-gray-400">
+                                            Shipment Status:{" "}
+                                            <span className="text-[#002B5B]">
+                                              {shipmentStatus.replace(/_/g, " ")}
+                                            </span>
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Shipment Transition Control */}
+                                      <div className="border-t border-gray-100 pt-3">
+                                        <ShipmentStatusToggle
+                                            shipmentId={shipment.id}
+                                            status={shipment.status}
+                                            trackingNumber={shipment.trackingNumber}
+                                            courierCode={shipment.courier?.code}
+                                            onUpdate={(newStatus) => {
+                                            setOrders((currentOrders) =>
+                                              currentOrders.map((currentOrder) => {
+                                                if (
+                                                  currentOrder.id !== order.id
+                                                ) {
+                                                  return currentOrder;
+                                                }
+
+                                                return {
+                                                  ...currentOrder,
+                                                  vendorOrders:
+                                                    currentOrder.vendorOrders.map(
+                                                      (
+                                                        currentVendorOrder: typeof vendorOrder
+                                                      ) => {
+                                                        if (
+                                                          currentVendorOrder.id !==
+                                                          vendorOrder.id
+                                                        ) {
+                                                          return currentVendorOrder;
+                                                        }
+
+                                                        return {
+                                                          ...currentVendorOrder,
+                                                          shipments:
+                                                            currentVendorOrder.shipments.map(
+                                                              (
+                                                                currentShipment: typeof shipment
+                                                              ) => {
+                                                                if (
+                                                                  currentShipment.id !==
+                                                                  shipment.id
+                                                                ) {
+                                                                  return currentShipment;
+                                                                }
+
+                                                                return {
+                                                                  ...currentShipment,
+                                                                  status: newStatus,
+                                                                };
+                                                              }
+                                                            ),
+                                                        };
+                                                      }
+                                                    ),
+                                                };
+                                              })
+                                            );
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No Shipment Yet */}
+                      {!order.vendorOrders?.some(
+                        (vendorOrder: any) =>
+                          vendorOrder.shipments?.length > 0
+                      ) && (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-gray-300" />
+
+                            <div>
+                              <p className="text-[8px] font-black uppercase tracking-widest text-gray-400">
+                                Shipment
+                              </p>
+
+                              <p className="mt-1 text-[8px] font-medium text-gray-400">
+                                No shipment has been created for this order yet.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
                   </td>
-                  <td className="p-6">
+                                    <td className="p-6">
                     {order.refundStatus === "requested" || order.refundStatus === "pending" ? (
                       <div className="flex flex-col gap-1">
                         <button
